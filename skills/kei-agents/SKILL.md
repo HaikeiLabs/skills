@@ -12,9 +12,28 @@ decision point. This is a docs-only repository: no provider clients, no
 credential resolution, no secret material.
 
 Source of truth: `src/agents/` in the kei-agents repo (package import name
-`agents`), `README.md`, `docs/connector-tool-schemas.md`. Install with
-`pip install kei-agents` (PyPI publication is planned; see the distribution plan
-in the repo).
+`agents`), `README.md`, `docs/connector-tool-schemas.md`.
+
+## Install
+
+`kei-agents` is distributed from the internal AWS CodeArtifact index, not from
+public PyPI (decision D-008). Log in once per session with the AWS CLI, then
+install normally:
+
+```bash
+aws codeartifact login --tool pip --domain haikei --domain-owner <ACCOUNT_ID> --repository <REPOSITORY_NAME>
+pip install kei-agents
+```
+
+- `<ACCOUNT_ID>` is the 12-digit AWS account that owns the `haikei`
+  CodeArtifact domain. Substitute the real value; it is not published in this
+  repo.
+- `<REPOSITORY_NAME>` is the CodeArtifact repository that serves `kei-agents`.
+  The AWS CLI requires `--repository` on `login`.
+- Public PyPI publication is deferred to a ticket (D-008); `kei-agents` is not
+  on PyPI.
+- Without AWS access, install from a checkout of the kei-agents repo instead:
+  `pip install -e ".[dev]"` (see Validation commands).
 
 ## Public surface
 
@@ -151,4 +170,6 @@ python -c "from agents import validate_tool_definitions, ALL_TOOL_DEFINITIONS; p
 - **Do not** embed endpoints, credentials, or arbitrary URLs in binding config.
 - `connector_id` values are placeholders referencing `abac.connection_presets.id`; do not
   treat them as real connector identifiers.
-- The Python package is not yet on PyPI (publication planned); install from the repo until then.
+- The Python package is not on public PyPI (publication deferred, D-008); install
+  from the internal CodeArtifact index (see Install) or from a checkout of the
+  kei-agents repo.

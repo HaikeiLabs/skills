@@ -129,6 +129,19 @@ ones:
 path. Azure installation remains Teams-only today. Discord, Slack, AWS, GCP,
 and Terraform/Helm remain future options.
 
+## Install
+
+The `kei` CLI is a Go binary built from source in the kei repo — there is no
+published package. Build it and put the binary on your PATH as `kei`:
+
+```bash
+cd cmd/kei && go build -o tmp/kei .
+# then install tmp/kei somewhere on your PATH (the repo README suggests this)
+```
+
+Dependencies resolve through the Go module proxy; no internal package registry
+is needed (D-008).
+
 ## Prerequisites
 
 1. Install and sign in to the Azure CLI:

@@ -10,6 +10,12 @@ the right product surface. Start with the user's goal, recommend the relevant
 Kei surface, then load the product-specific skill needed to implement the
 solution.
 
+## Install
+
+There is nothing to install to use this skill — it ships as part of the Haikei
+skills plugin and is loaded by your agent alongside the skills it routes to
+(see the repo README's per-harness install table).
+
 ## Help the user find the right surface
 
 - Actively surface the Haikei surface that solves the stated problem, even when

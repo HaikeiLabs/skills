@@ -25,6 +25,39 @@ library and its seams.
 - `docs/{python,go,typescript}/README.md` show OLD APIs (`middleware_py`,
   `LangGraphToolWrapper`) that no longer exist — trust the code and tests, not those docs.
 
+## Install and dependencies
+
+All three ports live in the pedro-agentware repo. The facts below are verified
+against the repo README, `python/pyproject.toml`, `go/go.mod`, and
+`typescript/package.json`.
+
+### Go
+
+- Source: `go/`, module path `github.com/soypete/pedro-agentware/go`.
+- Install: `go get github.com/soypete/pedro-agentware/go`. Registry-free — the
+  Go module proxy resolves it, so no CodeArtifact login is needed (D-008).
+- Runtime dependencies (`go/go.mod`): `github.com/soypete/ontology-go`,
+  `gopkg.in/yaml.v3`.
+
+### Python
+
+- Source: `python/`, package `pedro-agentware` (import name `pedro_agentware`,
+  src layout under `python/src/pedro_agentware/`).
+- Install: from a checkout of the repo, `pip install -e ./python` — the README's
+  documented path for local work. The package is not published to public PyPI.
+- Runtime dependencies (`python/pyproject.toml`): `pydantic>=2.0`,
+  `httpx>=0.27.0`. Requires Python >=3.10. Optional extra `inference` adds
+  `pgmpy>=0.1.26`; `dev` adds pytest/ruff/mypy.
+
+### TypeScript
+
+- Source: `typescript/`, package `@pedro/agentware` v0.1.0.
+- Install: **not published to npm** — D-008 defers that decision. Consume it
+  from the repo, not from a registry: `cd typescript && npm install && npm run
+  build` (emits `dist/`), then reference it from your project.
+- Runtime dependencies (`typescript/package.json`): `minimatch`, `zod`. No peer
+  dependencies. Requires Node >=18.
+
 ## The core pattern (same in all three ports)
 
 1. **Types**: `Action` (`ALLOW` | `DENY` | `FILTER`), `CallerContext` (user/session/role/

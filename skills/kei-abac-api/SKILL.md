@@ -15,6 +15,19 @@ Read `references/routes.md` in this skill directory for the complete route
 table grouped by resource (every path and HTTP method below is traceable to that
 table and to `cmd/abac-engine/main.go`).
 
+## Install
+
+The ABAC API is an HTTP service — consuming it needs no install, and there is no
+client package to install. To build and test the engine yourself from the kei
+repo, use the go toolchain:
+
+```bash
+cd cmd/abac-engine && go build ./...
+```
+
+The engine is built from source (see Validation commands); there is no published
+package for it.
+
 ## Resource groups
 
 | Group | Primary routes (group prefix) | What you do here |
