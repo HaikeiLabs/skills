@@ -1,0 +1,20 @@
+{
+  "name": "haikei",
+  "interface": {
+    "displayName": "Haikei"
+  },
+  "plugins": [
+    {
+      "name": "haikei",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/HaikeiLabs/skills.git"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

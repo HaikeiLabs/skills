@@ -1,0 +1,23 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "haikei",
+  "version": "0.1.0",
+  "description": "Build and operate AI assistants with the Kei platform: set up and manage organizations, workspaces, data connectors, groups, policies, and users against the ABAC API, deploy customer-hosted bot runtimes with the kei CLI, and enforce policy and audit on agent tool calls with the agentware SDK.",
+  "author": {
+    "name": "Haikei"
+  },
+  "homepage": "https://github.com/HaikeiLabs/skills",
+  "repository": "https://github.com/HaikeiLabs/skills",
+  "license": "Apache-2.0",
+  "keywords": [
+    "haikei",
+    "kei",
+    "abac",
+    "agents",
+    "agentware",
+    "policy",
+    "audit",
+    "connectors",
+    "rbac"
+  ]
+}
