@@ -7,7 +7,7 @@
   },
   "homepage": "https://github.com/HaikeiLabs/skills",
   "repository": "https://github.com/HaikeiLabs/skills",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "keywords": ["haikei", "kei", "abac", "agents", "agentware", "policy", "audit", "connectors", "rbac"],
   "skills": "./skills/"
 }

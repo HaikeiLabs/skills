@@ -42,6 +42,8 @@ These run in CI as well.
 
 ## Licensing and naming
 
-The repository's name, owner org, visibility, and license are **pending** a
-decision (STOP B). `LICENSE` is an Apache-2.0 placeholder until that decision
-lands; do not add third-party code or content that is not compatible with it.
+This repository is `HaikeiLabs/skills`, public, under the **MIT** licence. Do
+not add third-party code or content that is not MIT-compatible.
+
+`main` is protected: no direct pushes. Every change lands through a pull
+request that a code owner has approved — see `CODEOWNERS`.

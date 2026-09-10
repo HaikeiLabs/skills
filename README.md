@@ -93,4 +93,4 @@ screenshots, no absolute paths, no invented APIs.
 
 ## License
 
-Apache-2.0 (placeholder — pending STOP B). See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
