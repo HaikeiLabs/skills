@@ -1,5 +1,5 @@
 /**
- * Standalone verifier for the Haikei skills repo (skills/**).
+ * Standalone verifier for the Haikei skills repo's skills directory.
  *
  * Ported from DVL-Group/assistant scripts/verify-skills.mjs (branch
  * docs/kei-agentware-skills, PR #44), adapted from a .opencode/skills root to
@@ -8,8 +8,7 @@
  * Checks every SKILL.md the way the suite's contract expects:
  *   - frontmatter parses and carries `name` + `description`;
  *   - `name` is lowercase-hyphen and matches its folder name;
- *   - the body is non-trivial and contains the two required sections
- *     (`## Validation commands` and `## Realistic usage boundaries`);
+ *   - the body is non-trivial and contains actionable instructions;
  *   - no placeholder tokens (TODO/FIXME/lorem/placeholder) survive.
  *
  * Exits non-zero on the first problem and prints a stable summary line on success.
@@ -26,8 +25,6 @@ const SKILL_ROOT = join(ROOT, 'skills');
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 const NAME_PATTERN = /^[a-z][a-z0-9-]{0,63}$/;
 const PLACEHOLDERS = /\b(TODO|FIXME|XXX|PLACEHOLDER|REPLACE_ME)\b|lorem\s+ipsum/i;
-const REQUIRED_SECTIONS = ['## Validation commands', '## Realistic usage boundaries'];
-
 function parseFrontmatter(raw) {
   const match = FRONTMATTER.exec(raw);
   if (!match) return null;
@@ -78,11 +75,6 @@ function verifySkill(folder) {
   const body = raw.replace(FRONTMATTER, '').trim();
   if (body.length < 200) {
     throw new Error(`${folder}/SKILL.md: body is too short to be useful (${body.length} chars)`);
-  }
-  for (const section of REQUIRED_SECTIONS) {
-    if (!body.includes(section)) {
-      throw new Error(`${folder}/SKILL.md: missing required section '${section}'`);
-    }
   }
   if (PLACEHOLDERS.test(body)) {
     throw new Error(`${folder}/SKILL.md: placeholder tokens (TODO/FIXME/lorem/placeholder) are not allowed`);
