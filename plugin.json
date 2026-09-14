@@ -18,6 +18,8 @@
     "policy",
     "audit",
     "connectors",
-    "rbac"
+    "rbac",
+    "setup-doctor",
+    "troubleshooting"
   ]
 }
