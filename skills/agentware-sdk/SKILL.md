@@ -13,6 +13,43 @@ when a decision allows it. It is language-agnostic and ships three ports: Go
 src layout), and TypeScript (`@pedro/agentware`). This skill is about the
 library and its seams.
 
+## General middleware principles
+
+These principles apply regardless of the specific agentware library or language.
+They are extracted from practical middleware design and reinforced by the
+pedro-agentware codebase.
+
+### Tool-call boundary
+
+- Validate tool names and arguments against a closed registry before execution.
+- Carry authenticated caller and delegation context separately from user text.
+- Make authorization an explicit allow, deny, or filtered decision.
+- Return bounded, typed results and stable correlation IDs.
+- Fail closed on malformed requests, missing identity, policy errors, timeouts,
+  and unavailable providers.
+
+### Audit boundary
+
+Record the minimum metadata needed to reconstruct a decision: correlation ID,
+caller pseudonym, tool name, policy decision, result status, timestamps, and
+safe error category. Do not store bearer tokens, raw credentials, hidden model
+reasoning, or unnecessary user content.
+
+### Reasoning and context trees
+
+When a backend exposes reasoning, normalize it into bounded structured events:
+goal, observation, decision, tool-call, tool-result, conclusion, or blocker.
+Retain summaries and evidence references, not raw chain-of-thought. Preserve
+parent/child links and tool-call IDs so an evaluator can explain the path
+without exposing private reasoning.
+
+### Testing
+
+Test allowed and denied calls, malformed arguments, missing identity, tool
+failures, recovery, ordering, budget exhaustion, and audit redaction. Prefer
+deterministic scripted backends for CI and reserve live provider tests for
+explicit integration environments.
+
 ## Where things live
 
 - `python/` — package `pedro_agentware` (src layout) under `python/src/pedro_agentware/`.

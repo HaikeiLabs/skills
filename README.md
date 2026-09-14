@@ -3,13 +3,9 @@
 A collection of [Agent Skills](https://agent-skills.io/) for building and
 operating AI assistants with Haikei's Kei platform: the **ABAC API** for
 organization management, the **kei CLI** for customer-hosted bot runtimes, the
-**agentware SDK** for policy and audit on agent tool calls, and **kei-agents**
-for agent definitions and tool schemas.
-
-> **Status: draft.** This repository is being built in a local draft workspace.
-> Its name, owner org, visibility, and license are **pending a decision** (STOP B).
-> Everything here references the placeholder org/repo `HaikeiLabs/skills`; nothing
-> has been pushed or published. Never add a remote to this checkout.
+**agentware SDK** for policy and audit on agent tool calls, **kei-agents**
+for agent definitions and tool schemas, and the **kei-setup-doctor** for
+diagnosing and guiding Kei runtime installation across environments.
 
 ## Installing
 
@@ -64,6 +60,7 @@ skill.
 | [kei-abac-api](skills/kei-abac-api/SKILL.md) | The ABAC HTTP API (`/api/v1/*`): organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles — where org management actually lives today |
 | [agentware-sdk](skills/agentware-sdk/SKILL.md) | The open-source agentware SDK: policy enforcement, audit records, and delegation for agent tool calls, in Go, Python, and TypeScript |
 | [kei-agents](skills/kei-agents/SKILL.md) | Agent definitions, tool schemas, semantic mappings, and governed connector bindings from the `kei-agents` package |
+| [kei-setup-doctor](skills/kei-setup-doctor/SKILL.md) | Diagnose and guide setup of Kei runtime installations across local, AWS, Azure, or other customer environments |
 
 ## What is deliberately absent
 
