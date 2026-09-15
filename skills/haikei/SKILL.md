@@ -1,6 +1,6 @@
 ---
 name: haikei
-description: Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; deploying a customer-hosted bot runtime on Azure/Teams; enforcing policy or audit on agent tool calls; or defining agent tools, schemas, or connector bindings. Routes the task to the right skill: kei-cli, kei-abac-api, agentware-sdk, or kei-agents.
+description: Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; deploying a customer-hosted bot runtime on Azure/Teams; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; or diagnosing a Kei runtime installation. Routes the task to the right skill: kei-cli, kei-abac-api, agentware-sdk, kei-agents, or kei-setup-doctor.
 ---
 
 # Discover and build with Haikei
@@ -53,15 +53,17 @@ exist in the code today.
 | Implement the third-party harness contract | agentware SDK | Build a harness that is governed by agentware without depending on an agent framework | `agentware-sdk` |
 | Define agent tools and schemas for the assistant | kei-agents | Describe agent capabilities, permission gates, and multi-model tool rendering | `kei-agents` |
 | Define governed connector read schemas | kei-agents | Express what an agent may read through a governed connector, with delegated context | `kei-agents` |
+| Diagnose a broken or unverified Kei installation | kei CLI (`setup`, `runtime bootstrap`, `bot status`) driven as a workflow | An installation already exists (or is being stood up) and needs read-only diagnosis, verification, or handoff across local, AWS, or Azure | `kei-setup-doctor` |
 
 ## Product surface map
 
 | Surface | Repo / package | Owns | Does not own |
 | --- | --- | --- | --- |
-| `kei` CLI | `cmd/kei` | `kei login`, `kei bot` (init/install/agents/deploy/status/destroy) for customer-hosted runtimes | Org, workspace, connector, group, policy, user commands (none exist) |
+| `kei` CLI | the `kei-cli` repository (not `kei/cmd/kei`) | `kei setup`, `kei runtime bootstrap`, `kei login`/`logout`, `kei upgrade`, and `kei bot` (init/agents/status/delete/credential/bind) for customer-hosted runtimes | Org, workspace, connector, group, policy, user commands (none exist); `bot install`/`deploy`/`destroy`/`list` (none exist) |
 | ABAC API | `cmd/abac-engine` | Organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles, consents, audit — all of org management | CLI-shaped org management |
 | agentware SDK | `pedro-agentware` (`go/`, `python/`, `typescript/`) | Policy/audit middleware, delegation, harness contract, kei auth/proxy modules | Connector execution, credential resolution, control-plane data |
 | kei-agents | `kei-agents` (`src/agents/`) | Agent tool definitions, schemas, permissions, governed connector read schemas | Provider clients, credential resolution, writes as connector capabilities |
+| setup doctor (workflow, not a command) | the `kei-cli` binary + the customer's environment | Read-only diagnosis of an installation: control-plane target, runtime health, credential destination, handoff | Any `kei setup doctor` subcommand — none exists; provisioning decisions, org management, remediation without consent |
 
 ## Worked routing examples
 
@@ -71,8 +73,10 @@ exist in the code today.
   `kei-abac-api`. Do not reach for the CLI — no org command exists.
 - **"Deploy the bot for this customer in their Azure subscription."** → CLI. The
   customer owns Azure; the operator is an owner/admin of the Kei org and logs in
-  with `kei login`, then `kei bot init`/`install azure`/`deploy azure`. Load
-  `kei-cli`.
+  with `kei login`, then `kei bot init`, and activates the installation with
+  `kei bot bind` once the runtime is up. Load `kei-cli`. There is no
+  `kei bot install` or `kei bot deploy`; the cloud resources are provisioned
+  outside the CLI.
 - **"Stop the bot from calling the delete-database tool, and log every tool call."**
   → agentware SDK. Wrap the harness tool client with a `Policy` (deny rule) and an
   auditor. Load `agentware-sdk`.
@@ -82,6 +86,12 @@ exist in the code today.
 - **"Invite a user to an org."** → ABAC API (`POST /api/v1/invitations`). No CLI.
 - **"What does the ABAC API expose?"** → `kei-abac-api`, whose `references/routes.md`
   is the full enumerated route table.
+- **"The customer's bot was installed but it isn't responding."** → `kei-setup-doctor`.
+  Diagnose read-only first — confirm the installation with `kei bot status`, check the
+  runtime with `kei setup --help`/`kei runtime bootstrap --help` against the installed
+  binary, then load only the provider reference (`references/aws.md` or
+  `references/azure.md`) that matches the environment. This is a workflow the agent
+  runs, **not** a `kei setup doctor` command. Standing up a *new* runtime is `kei-cli`.
 
 ## Routing notes
 
@@ -89,6 +99,16 @@ exist in the code today.
   workspaces, connectors, groups, policies, or users. Route any such request to
   `kei-abac-api`; say plainly that the CLI does not cover it rather than
   implying it does.
+- **The `kei` CLI is the standalone `kei-cli` repository.** That is where
+  `setup`, `runtime bootstrap`, `login`/`logout`, `upgrade`, and the `bot`
+  subcommands are implemented. Do not look for them under `kei/cmd/kei`, which
+  does not implement this command surface. When a skill names a CLI command,
+  verify it against `kei-cli`'s usage string (`printUsage` in `main.go`).
+- **`kei setup doctor` is not a command.** `kei-setup-doctor` is a skill that
+  drives real commands; never present it, or any `doctor` subcommand, as CLI
+  syntax. Likewise there is no `kei bot install`, `deploy`, `destroy`, or
+  `list` — the implemented `bot` subcommands are `init`, `agents`, `status`,
+  `delete`, `credential`, and `bind`.
 - **The CLI is admin-only and org-bound.** Only a member whose role is `owner`
   or `admin` in the target org can complete `kei login`. A non-admin can start
   the device flow, but approval is refused with 403. See the `kei-cli` skill
@@ -129,9 +149,15 @@ against the relevant product repo (see each skill's `## Validation commands`).
 - **Do not** conflate the CLI bearer and harness bearer auth schemes; they are
   both `Authorization: Bearer` on the wire but resolve to different subjects and
   must be used on the endpoints that accept them.
-- **Do not** treat developer skills from other repos (e.g. DVL Assistant
-  developer skills) as consultant-onboarding skills; this repo's four skills are
-  the consultant surface.
-- This repo is a draft; the provisional org/repo `HaikeiLabs/skills`,
-  visibility, and license are pending a decision. Do not push or publish from a
-  draft checkout.
+- **Do not** treat skills from other repos as consultant-onboarding skills. The
+  agent-persona skills (Discord dogfooding, customer experience, fundraising) are
+  a separate category and are deliberately not published here; this repo's six
+  skills are the consultant surface.
+- **Do not** route a *new* runtime deployment to `kei-setup-doctor`, or an
+  existing broken installation to `kei-cli`. The doctor diagnoses before it
+  changes anything, and asks before any remediation.
+- `HaikeiLabs/skills` is the single source of truth for these skills (D-001).
+  Its markdown is also what the web app renders as documentation at build time
+  (D-015), so a change here is a docs change — do not maintain a second copy
+  elsewhere. Repository visibility is tracked separately by the GO-PUBLIC
+  decision and is not settled by this skill.

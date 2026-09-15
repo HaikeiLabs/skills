@@ -9,6 +9,19 @@ Use the installed Kei CLI and the customer's runtime environment as the
 source of truth. Discover before acting, load only the provider reference that
 matches the environment, and separate diagnosis from remediation.
 
+**This skill is a workflow, not a CLI command.** There is no `kei setup doctor`
+subcommand and this skill must never advertise one. It diagnoses installations
+by driving the commands the `kei-cli` repository actually implements — `kei
+setup`, `kei runtime bootstrap`, `kei login`/`logout`, and the `kei bot`
+subcommands — plus ordinary read-only cloud and host tooling. Confirm the real
+surface of the installed binary before relying on any syntax:
+
+```sh
+kei --help
+kei setup --help
+kei runtime bootstrap --help
+```
+
 ## Guardrails
 
 - Keep diagnosis read-only. Ask before rotating credentials, deleting an
@@ -29,23 +42,27 @@ Use `https://app.haikeilabs.com` as the control-plane default. Ask for a
 different URL only for a custom or self-hosted control plane. The installation
 ID is optional at this stage.
 
-If no ID was supplied:
+There is **no `kei bot list`** command — the CLI cannot enumerate installations.
+If no ID was supplied, ask the customer for it, or have them read it from the
+control-plane UI or the ABAC API (`kei-abac-api` owns installation listing).
+Once you have a candidate ID, confirm it from its non-secret metadata:
 
 ```sh
-kei bot list --api-url CONTROL_PLANE_URL
+kei bot status --installation ID --api-url CONTROL_PLANE_URL
 ```
 
-Confirm a single matching installation from its non-secret metadata. If there
-are several, ask the customer to choose. If the command is unavailable, ask
-whether to inspect an existing installation or create one. If none exists,
-check prerequisites first, then use the supported UI or:
+If that ID is wrong or unknown, ask the customer to choose rather than guessing
+or probing IDs. If no installation exists, check prerequisites first, then use
+the supported UI or:
 
 ```sh
 kei bot init --platform PLATFORM --name NAME
 ```
 
 Capture the returned `installation_id`; it is not secret. Inspect
-`kei help` and `kei bot --help` before relying on version-specific syntax.
+`kei help` and `kei bot --help` before relying on version-specific syntax. The
+implemented `bot` subcommands are `init`, `agents`, `status`, `delete`,
+`credential`, and `bind`; there is no `install`, `deploy`, `destroy`, or `list`.
 
 Collect the remaining target details:
 
