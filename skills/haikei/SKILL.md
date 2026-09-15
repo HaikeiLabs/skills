@@ -1,6 +1,6 @@
 ---
 name: haikei
-description: Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; deploying a customer-hosted bot runtime on Azure/Teams; enforcing policy or audit on agent tool calls; or defining agent tools, schemas, or connector bindings. Routes the task to the right skill: kei-cli, kei-abac-api, agentware-sdk, or kei-agents.
+description: Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; deploying a customer-hosted bot runtime on Azure/Teams; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; or diagnosing a Kei runtime installation. Routes the task to the right skill: kei-cli, kei-abac-api, agentware-sdk, kei-agents, or kei-setup-doctor.
 ---
 
 # Discover and build with Haikei
@@ -53,6 +53,7 @@ exist in the code today.
 | Implement the third-party harness contract | agentware SDK | Build a harness that is governed by agentware without depending on an agent framework | `agentware-sdk` |
 | Define agent tools and schemas for the assistant | kei-agents | Describe agent capabilities, permission gates, and multi-model tool rendering | `kei-agents` |
 | Define governed connector read schemas | kei-agents | Express what an agent may read through a governed connector, with delegated context | `kei-agents` |
+| Diagnose a broken or unverified Kei installation | kei setup doctor | An installation already exists (or is being stood up) and needs read-only diagnosis, verification, or handoff across local, AWS, or Azure | `kei-setup-doctor` |
 
 ## Product surface map
 
@@ -62,6 +63,7 @@ exist in the code today.
 | ABAC API | `cmd/abac-engine` | Organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles, consents, audit — all of org management | CLI-shaped org management |
 | agentware SDK | `pedro-agentware` (`go/`, `python/`, `typescript/`) | Policy/audit middleware, delegation, harness contract, kei auth/proxy modules | Connector execution, credential resolution, control-plane data |
 | kei-agents | `kei-agents` (`src/agents/`) | Agent tool definitions, schemas, permissions, governed connector read schemas | Provider clients, credential resolution, writes as connector capabilities |
+| kei setup doctor | the installed `kei` CLI + the customer's environment | Read-only diagnosis of an installation: control-plane target, runtime health, credential destination, handoff | Provisioning decisions, org management, remediation without consent |
 
 ## Worked routing examples
 
@@ -82,6 +84,10 @@ exist in the code today.
 - **"Invite a user to an org."** → ABAC API (`POST /api/v1/invitations`). No CLI.
 - **"What does the ABAC API expose?"** → `kei-abac-api`, whose `references/routes.md`
   is the full enumerated route table.
+- **"The customer's bot was installed but it isn't responding."** → `kei-setup-doctor`.
+  Diagnose read-only first — establish the control plane and installation, then load
+  only the provider reference (`references/aws.md` or `references/azure.md`) that
+  matches the environment. Deploying a *new* runtime is `kei-cli` instead.
 
 ## Routing notes
 
@@ -129,9 +135,15 @@ against the relevant product repo (see each skill's `## Validation commands`).
 - **Do not** conflate the CLI bearer and harness bearer auth schemes; they are
   both `Authorization: Bearer` on the wire but resolve to different subjects and
   must be used on the endpoints that accept them.
-- **Do not** treat developer skills from other repos (e.g. DVL Assistant
-  developer skills) as consultant-onboarding skills; this repo's four skills are
-  the consultant surface.
-- This repo is a draft; the provisional org/repo `HaikeiLabs/skills`,
-  visibility, and license are pending a decision. Do not push or publish from a
-  draft checkout.
+- **Do not** treat skills from other repos as consultant-onboarding skills. The
+  agent-persona skills (Discord dogfooding, customer experience, fundraising) are
+  a separate category and are deliberately not published here; this repo's six
+  skills are the consultant surface.
+- **Do not** route a *new* runtime deployment to `kei-setup-doctor`, or an
+  existing broken installation to `kei-cli`. The doctor diagnoses before it
+  changes anything, and asks before any remediation.
+- `HaikeiLabs/skills` is the single source of truth for these skills (D-001).
+  Its markdown is also what the web app renders as documentation at build time
+  (D-015), so a change here is a docs change — do not maintain a second copy
+  elsewhere. Repository visibility is tracked separately by the GO-PUBLIC
+  decision and is not settled by this skill.

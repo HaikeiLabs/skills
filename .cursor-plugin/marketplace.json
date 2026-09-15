@@ -7,7 +7,7 @@
     {
       "name": "haikei",
       "source": "./",
-      "description": "Build and operate AI assistants with the Kei platform: ABAC API org management, kei CLI bot runtime deployment, and agentware SDK policy/audit middleware."
+      "description": "Build and operate AI assistants with the Kei platform: ABAC API org management, kei CLI bot runtime deployment, agentware SDK policy/audit middleware, and Kei runtime setup diagnosis."
     }
   ]
 }

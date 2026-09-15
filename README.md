@@ -7,6 +7,22 @@ organization management, the **kei CLI** for customer-hosted bot runtimes, the
 for agent definitions and tool schemas, and the **kei-setup-doctor** for
 diagnosing and guiding Kei runtime installation across environments.
 
+## Source of truth
+
+`HaikeiLabs/skills` is the single canonical repository for these skills
+(decision D-001). There is no parallel skills repository: content that was
+drafted elsewhere has been reconciled into this repo, and no other copy is
+maintained.
+
+The markdown in `skills/` is also the source the web app renders as
+documentation at build time (decision D-015) — one source, so what a coding
+agent loads as a skill and what a consultant reads as docs cannot drift.
+Two consequences for contributors:
+
+- Editing a `SKILL.md` is a documentation change. Do not fork these files into
+  the web repo or any other repo.
+- Screenshots belong in the docs layer, never in `skills/`.
+
 ## Installing
 
 ### Claude Code
@@ -71,16 +87,29 @@ skill.
   CLI's usage string.
 - **No absolute local paths.** Every reference is product-name- and
   repo-relative so the repo can be published as-is.
+- **No public-PyPI install instructions.** `kei-agents` is distributed from the
+  internal AWS CodeArtifact index; public PyPI and npm publication are deferred
+  to a tracked ticket (decision D-008). Skills document the CodeArtifact path,
+  and every documented command must actually work. Go is unaffected — the module
+  proxy resolves `pedro-agentware` with no CodeArtifact login.
 
 ## Validation
 
-The suite is self-checking and is enforced by CI:
+The suite is self-checking and is enforced by CI (`.github/workflows/ci.yml`,
+Node 22) on every pull request and on pushes to `main`. Run all three before
+opening a PR:
 
 ```bash
 node scripts/verify-skills.mjs          # frontmatter, name=dir, required sections, no placeholders
 node scripts/verify-manifests.mjs       # every plugin manifest parses as JSON with its required shape
 node scripts/check-internal-links.mjs   # every internal markdown link resolves to a file
 ```
+
+Because the web app renders `skills/` at build time (D-015), a failure here is a
+docs build failure too. When adding a skill, also confirm it is listed in the
+Skills table above, routed from `skills/haikei/SKILL.md`, and reflected in the
+per-harness manifests (`plugin.json`, `.claude-plugin/`, `.codex-plugin/`,
+`.cursor-plugin/`, `.agents/plugins/`) — the scripts check shape, not coverage.
 
 ## Contributing
 

@@ -16,7 +16,12 @@ instead of maintaining another copy of it.
   never reference a developer's home directory, a personal directory, or a
   machine-specific path. Reference repositories by product name and
   repo-relative paths only.
-- **No screenshots.** Reference a live resource instead.
+- **No screenshots.** Reference a live resource instead. Screenshots live in the
+  docs layer, not in `skills/` (D-015).
+- **This repo is the only copy.** `HaikeiLabs/skills` is the single source of
+  truth (D-001), and the web app renders `skills/` as documentation at build
+  time (D-015). Never fork a `SKILL.md` into another repository to edit it
+  there; fix it here and let the docs build pick it up.
 - **Every skill carries two sections**: `## Validation commands` (how a user
   verifies the guidance in their own checkout) and
   `## Realistic usage boundaries` (what the skill does not cover, what is not
@@ -30,7 +35,14 @@ instead of maintaining another copy of it.
    130-340 lines.
 3. Set the `description` frontmatter as a trigger ("Use when...") so the skill
    auto-loads on match.
-4. Run the verification suite before committing:
+4. If you are adding a new skill, also wire it up — the scripts validate shape,
+   not coverage, so none of these will fail if you forget:
+   - add a row to the Skills table in `README.md`;
+   - add a routing row and a worked example in `skills/haikei/SKILL.md`;
+   - mention it in the manifest descriptions (`plugin.json`, `.claude-plugin/`,
+     `.codex-plugin/`, `.cursor-plugin/`, `.agents/plugins/`) and add any
+     keywords it introduces.
+5. Run the verification suite before committing:
 
 ```bash
 node scripts/verify-skills.mjs
@@ -38,7 +50,7 @@ node scripts/verify-manifests.mjs
 node scripts/check-internal-links.mjs
 ```
 
-These run in CI as well.
+These run in CI as well (Node 22), on pull requests and pushes to `main`.
 
 ## Licensing and naming
 
