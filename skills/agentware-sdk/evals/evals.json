@@ -1,0 +1,23 @@
+{
+  "skill_name": "agentware-sdk",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Add policy enforcement around an agent's GitHub issue tool so denied calls are audited and allowed calls proceed. Explain the middleware boundary and what the model is not allowed to decide.",
+      "expected_output": "Uses the Agentware middleware and its action/audit contract, with authorization enforced by the system before tool execution.",
+      "expectations": [
+        "The response identifies the middleware as the policy enforcement and audit boundary.",
+        "The response does not treat a model's refusal as proof that an unauthorized tool call cannot execute."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "A tool call fails downstream after the policy allows it. How should an Agentware integration represent audit, error handling, and redaction without inventing an API?",
+      "expected_output": "Separates policy outcome from downstream failure, preserves audit semantics, protects arguments, and directs implementation to the installed SDK source and tests.",
+      "expectations": [
+        "The response distinguishes an allowed decision from successful provider execution.",
+        "The response tells the implementer to verify exact types and methods against the relevant language port."
+      ]
+    }
+  ]
+}

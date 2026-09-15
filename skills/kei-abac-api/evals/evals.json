@@ -1,0 +1,23 @@
+{
+  "skill_name": "kei-abac-api",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a workspace-scoped policy and then check whether a harness may read a connector. Explain which authentication scheme and API surface are involved.",
+      "expected_output": "Uses the ABAC API route and harness authentication contract, describes a decision request and audit evidence, and keeps workspace scope explicit.",
+      "expectations": [
+        "The response distinguishes browser, CLI, and harness authentication rather than treating all bearer tokens alike.",
+        "The response includes workspace scope in policy or authorization reasoning."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "An operator wants to accept an invitation and immediately access another organization's workspace. Explain the safe API flow and what must be denied.",
+      "expected_output": "Describes invitation redemption and membership checks while preserving organization and workspace isolation.",
+      "expectations": [
+        "The response does not imply that accepting an org invitation automatically grants unrelated workspace access.",
+        "The response recommends verifying the implemented invitation contract against current routes and repository behavior."
+      ]
+    }
+  ]
+}

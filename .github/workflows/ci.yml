@@ -27,5 +27,7 @@ jobs:
         run: node scripts/verify-skills.mjs
       - name: Validate plugin manifests against their schema shape
         run: node scripts/verify-manifests.mjs
+      - name: Validate portable skill eval fixtures
+        run: node scripts/verify-evals.mjs
       - name: Fail on internal markdown links to missing files
         run: node scripts/check-internal-links.mjs

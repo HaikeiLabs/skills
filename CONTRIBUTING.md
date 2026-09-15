@@ -42,12 +42,17 @@ instead of maintaining another copy of it.
    - mention it in the manifest descriptions (`plugin.json`, `.claude-plugin/`,
      `.codex-plugin/`, `.cursor-plugin/`, `.agents/plugins/`) and add any
      keywords it introduces.
-5. Run the verification suite before committing:
+5. Add at least two realistic, prompt-only cases in
+   `skills/<name>/evals/evals.json`. Keep these portable across Claude Code,
+   Cursor, OpenCode, Pi, and Codex. Record expected behavior and assertions;
+   never check in results that were not actually run.
+6. Run the verification suite before committing:
 
 ```bash
 node scripts/verify-skills.mjs
 node scripts/verify-manifests.mjs
 node scripts/check-internal-links.mjs
+node scripts/verify-evals.mjs
 ```
 
 These run in CI as well (Node 22), on pull requests and pushes to `main`.
