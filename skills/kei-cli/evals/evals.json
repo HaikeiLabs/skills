@@ -1,0 +1,23 @@
+{
+  "skill_name": "kei-cli",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to install Kei for a customer-hosted Azure bot runtime. Show the safe sequence for login, initializing the bot, deploying it, and checking status, but do not make up commands for creating a workspace.",
+      "expected_output": "Uses the documented kei login and bot lifecycle commands, and sends workspace management to the ABAC API skill.",
+      "expectations": [
+        "The command sequence is limited to commands present in the CLI source or help.",
+        "The response explicitly says the CLI does not manage organizations or workspaces."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "The runtime is pending after deployment and I want to diagnose it without changing cloud resources. What should I inspect and what evidence should I collect?",
+      "expected_output": "Provides read-only CLI status and local/provider checks, distinguishes pending heartbeat from a failed deployment, and avoids credential disclosure.",
+      "expectations": [
+        "The response treats a pending status as evidence about heartbeat rather than proof that the runtime is healthy.",
+        "The response does not suggest printing or pasting a runtime credential."
+      ]
+    }
+  ]
+}

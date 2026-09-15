@@ -25,6 +25,29 @@ Two consequences for contributors:
 
 ## Installing
 
+### Copyable setup prompt
+
+Paste this prompt into the coding agent you want to configure. It tells the
+agent to fetch the repository and install the same portable skill folders for
+the harness it is running in:
+
+```text
+Install the Haikei Agent Skills from https://github.com/HaikeiLabs/skills.git.
+First inspect which harness you are running (Claude Code, Cursor, OpenCode,
+Pi, or Codex) and its documented user/project skill directory. Clone the
+repository to a temporary directory, review the skills/ folders, then copy or
+symlink each folder containing SKILL.md into that harness's skill directory.
+Preserve existing skills, do not overwrite a same-named skill without asking,
+and do not copy .git metadata. After installation, verify that all SKILL.md
+files have name and description frontmatter and report the destination and
+the installed skill names. Do not print secrets or modify project files
+outside the selected skill directory.
+```
+
+The prompt is intentionally harness-neutral: the agent must discover its
+actual runtime and use its own supported install path instead of assuming
+that a path for another harness is valid.
+
 ### Claude Code
 
 Install from the plugin marketplace:
@@ -46,6 +69,22 @@ codex plugin add haikei@haikei
 Clone this repo and symlink or copy the skill folders into
 `~/.config/opencode/skills/` (or the project's `.opencode/skills/`).
 
+### Pi
+
+Pi loads the same Agent Skills directories. Clone this repo and either add
+the repository's `skills/` directory to `~/.pi/agent/skills/`, or configure
+the clone in Pi's settings:
+
+```json
+{
+  "skills": ["/path/to/skills/skills"]
+}
+```
+
+For a project-local install, use `.pi/skills/` or configure the repository's
+`skills/` directory in `.pi/settings.json`. Pi also discovers the skills
+through `~/.agents/skills/` and project `.agents/skills/` directories.
+
 ### Cursor
 
 Add via **Settings > Rules > Add Rule > Remote Rule (GitHub)** with
@@ -61,6 +100,7 @@ your agent:
 | Claude Code | `~/.claude/skills/` | [docs](https://code.claude.com/docs/en/skills) |
 | Cursor | `~/.cursor/skills/` | [docs](https://cursor.com/docs/context/skills) |
 | opencode | `~/.config/opencode/skills/` | [docs](https://opencode.ai/docs/skills/) |
+| Pi | `~/.pi/agent/skills/` or `~/.agents/skills/` | [docs](https://pi.dev/docs/latest/skills) |
 | Codex | `~/.codex/skills/` | [docs](https://developers.openai.com/codex/skills/) |
 
 ## Skills
@@ -107,6 +147,7 @@ opening a PR:
 node scripts/verify-skills.mjs          # frontmatter, name=dir, required sections, no placeholders
 node scripts/verify-manifests.mjs       # every plugin manifest parses as JSON with its required shape
 node scripts/check-internal-links.mjs   # every internal markdown link resolves to a file
+node scripts/verify-evals.mjs           # every skill has portable Aspire-style eval cases
 ```
 
 Because the web app renders `skills/` at build time (D-015), a failure here is a
