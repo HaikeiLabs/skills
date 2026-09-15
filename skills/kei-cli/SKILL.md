@@ -1,6 +1,6 @@
 ---
 name: kei-cli
-description: Use the kei deployment CLI for customer-hosted Kei bot runtimes. Use when running kei login or kei bot commands — init, install azure, agents list/add/remove, deploy azure, status, destroy azure — for provisioning and managing Kei bot runtimes on Microsoft Teams/Azure. Covers the admin-only, org-bound OIDC device-authorization login. Do not use for org/workspace/connector/group/policy/user management: those commands do not exist; org management lives in the ABAC API (kei-abac-api skill).
+description: Use the kei CLI (the standalone kei-cli repository) for customer-hosted Kei bot runtimes. Use when running kei setup, kei runtime bootstrap, kei login/logout, kei upgrade, or kei bot commands — init, credential, agents list/add/remove, status, bind, delete — for registering and managing Kei bot runtimes on Microsoft Teams/Azure. Covers the admin-only, org-bound OIDC device-authorization login. Do not use for org/workspace/connector/group/policy/user management: those commands do not exist; org management lives in the ABAC API (kei-abac-api skill).
 ---
 
 # kei CLI (deployment CLI)
@@ -10,11 +10,15 @@ supports Microsoft Teams on Azure. The customer owns the Azure subscription,
 resource group, Key Vault, and deployed runtime; Kei provides the control-plane
 installation and runtime image.
 
-Source of truth: `cmd/kei/main.go` (`printUsage`), `cmd/kei/README.md` in the
-kei repo. Every command and flag below is traceable to those files. **There are
-no other commands.** In particular there is no `org`, `workspace`, `connector`,
-`group`, `policy`, or `user` command — org management is done through the ABAC
-API (see the `kei-abac-api` skill).
+Source of truth: `main.go` (`printUsage`) and `README.md` at the root of the
+**`kei-cli` repository** (Go module `github.com/HaikeiLabs/kei-cli`). This is a
+standalone repository — the CLI is not built from `kei/cmd/kei`, which does not
+implement this command surface. Every command and flag below is traceable to
+those files. **There are no other commands.** In particular there is no `org`,
+`workspace`, `connector`, `group`, `policy`, or `user` command — org management
+is done through the ABAC API (see the `kei-abac-api` skill) — and no
+`kei setup doctor`: diagnosis is the `kei-setup-doctor` skill's workflow, not a
+subcommand.
 
 ## Who can use this CLI
 
@@ -67,80 +71,102 @@ kei login [--api-url URL]
 
 ## Command surface
 
-Exact usage from `printUsage`:
+Exact usage from `printUsage` in the `kei-cli` repository's `main.go`:
 
 ```
-kei login [--api-url URL]
-kei bot init --name NAME [--platform cli|teams|discord|slack] [--agent ID] [--api-url URL]
+kei setup [--config PATH] [--control-plane-url URL] [--runtime-token TOKEN]
+kei runtime bootstrap [--config PATH] [--proxy-path PATH]
+kei login [--api-url URL] [--no-browser]
+kei logout [--api-url URL]
+kei upgrade [--version VERSION]
+kei bot init --platform teams|discord|slack --name NAME [--agent ID] [--api-url URL]
+kei bot credential --installation ID [--rotate] [--api-url URL]
 kei bot agents list|add|remove --installation ID [--agent ID] [--default] [--api-url URL]
 kei bot status --installation ID [--api-url URL]
-kei bot install azure --name NAME [--platform teams] [--agent ID] [--resource-group NAME] [--location REGION] [--key-vault NAME] --runtime-control-plane-url URL --image OCI_IMAGE [--teams-manifest PATH]
-kei bot deploy azure --installation ID --resource-group NAME --location REGION --key-vault NAME --runtime-control-plane-url URL --image OCI_IMAGE [--create-resource-group] [--create-key-vault] [--create-teams-app --teams-app-display-name NAME]
-kei bot deploy azure --installation ID --resource-group NAME --location REGION --key-vault NAME --teams-app-password-secret NAME --teams-app-id ID --teams-tenant-id ID --runtime-control-plane-url URL --image OCI_IMAGE [--teams-manifest PATH]
-kei bot destroy azure --installation ID [--resource-group NAME] [--environment-name NAME] [--delete-environment] [--preserve-installation] [--confirm-destroy ID] [--api-url URL]
+kei bot delete --installation ID --yes [--api-url URL]
+kei --version
 ```
+
+The `bot` dispatch also accepts `bind` (`kei bot bind --installation ID
+[--api-url URL]`), which activates an installation after its deployed runtime
+has reported a heartbeat; it is not listed in `printUsage`.
+
+There is **no `kei bot install`, `deploy`, `destroy`, or `list`**, and no
+`kei setup doctor`. Cloud provisioning is not performed by the CLI.
 
 ### Workflow in practice
 
-- **One-shot install** (`bot install azure`): creates the pending Kei
-  installation, creates or reuses the Azure resource group and Key Vault,
-  creates or reuses a Microsoft Entra app, writes the Teams password and Kei
-  runtime credential to Key Vault, applies the Bicep template, waits for a
-  runtime heartbeat, and binds the installation.
-- **Split install/deploy**: `bot init --platform teams --name "..."` creates
-  public installation metadata (runtime credentials are intentionally created
-  later by `bot deploy` and delivered to the customer secret manager, never to
-  terminal output). Then `bot deploy azure ...`.
-- **Existing Entra/Teams app**: omit `--create-teams-app` and provide
-  `--teams-app-password-secret`, `--teams-app-id`, `--teams-tenant-id`. The
-  existing Key Vault must use Azure RBAC.
+- **Register the installation**: `kei bot init --platform teams --name "..."`
+  creates the public installation metadata and returns a non-secret
+  `installation_id`. Runtime credentials are not printed here.
+- **Provision the runtime**: done **outside the CLI** — the CLI has no
+  `install`, `deploy`, or `destroy` command and does not apply cloud templates.
+  The customer (or the operator, in the customer's account) stands up the host,
+  and the runtime itself is configured with `kei setup` and started via
+  `kei runtime bootstrap`.
+- **Deliver the credential**: `kei bot credential --installation ID` (with
+  `--rotate` to replace it) emits the runtime credential for piping into the
+  customer's secret manager. Never echo it to a terminal or transcript.
+- **Activate**: `kei bot bind --installation ID`, once the deployed runtime has
+  reported a heartbeat. Binding is deliberately explicit.
 - **Inspection**: `kei bot status --installation ID` and
   `kei bot agents list --installation ID`.
-- **Regional retry / teardown**: `kei bot destroy azure` prints a plan and
-  requires typing the installation name or ID. `--preserve-installation` keeps
-  the control-plane installation enabled for redeploy to another region; final
-  teardown omits it. Destroy intentionally retains the customer Key Vault and
-  secrets; Microsoft Entra app registrations are tenant-level and are also not
-  removed.
+- **Teardown**: `kei bot delete --installation ID --yes` removes the
+  control-plane installation. It does **not** delete customer cloud resources —
+  Key Vaults, secrets, and tenant-level Microsoft Entra app registrations are
+  the customer's to remove.
 - The CLI talks to the web app at `/api/cli/runtime-installations*`, which maps
   to `/api/v1/internal/runtime-installations*` on the ABAC engine.
 
 ### Flags beyond the usage string
 
 `printUsage` is the compact surface; individual commands accept a few more
-flags defined in `cmd/kei/{install,azure,azure_destroy,agents}.go`. Notable
-ones:
+flags, defined next to each command in the `kei-cli` repository root
+(`setup.go`, `runtime.go`, `agents.go`, `delete.go`, `bind.go`). Notable ones:
 
-- `bot install azure` also takes `--platform teams` (only `teams` is supported;
-  the flag defaults to `teams`), plus `--runtime-secret-name`,
-  `--teams-app-display-name`, `--app-name`, `--environment-name`,
-  `--identity-name`, `--bot-name` for controlling generated Azure resource
-  names.
-- `bot deploy azure` also takes `--runtime-secret-name`, `--app-name`,
-  `--environment-name`, `--identity-name`, `--bot-name`.
-- `bot destroy azure` has `--confirm-destroy ID` for non-interactive teardown;
-  it must exactly equal `--installation`.
+- `kei setup` also takes `--harness-url` (default `http://127.0.0.1:8088`),
+  `--proxy-path`, `--proxy-registry`, `--model-endpoint`, `--model`, and
+  `--skip-verify` (do not verify the runtime token against Kei). Prefer the
+  interactive prompt over `--runtime-token` so the token stays out of the shell
+  history.
+- `kei runtime bootstrap` takes `--config` and `--proxy-path` (overrides the
+  configured `kei-proxy` path).
 - `bot agents add|remove` takes `--default` (make this the default agent).
+- `bot delete` requires `--yes` to confirm permanent deletion.
+- `bot bind` takes `--installation` (must be a UUID) and `--api-url`.
+
+Verify against the installed binary with `kei --help` and
+`kei <command> --help` rather than trusting this list across versions.
 
 ### Platforms
 
-`--platform cli|teams|discord|slack`. Platform-neutral headless runtime uses
-`cli` (or omit `--platform`); that does not enable a chat-platform deployment
-path. Azure installation remains Teams-only today. Discord, Slack, AWS, GCP,
-and Terraform/Helm remain future options.
+`bot init` **requires** `--platform`, and validates it against exactly
+`teams`, `discord`, or `slack` — any other value, including `cli`, is rejected
+with `bot init requires --platform teams|discord|slack and --name NAME`. The
+flag has no default, so it cannot be omitted.
+
+Accepting a platform at registration is not the same as a supported deployment
+path: Teams on Azure is the MVP. Treat `discord` and `slack` as registerable
+but not an implemented end-to-end runtime, and confirm before promising either.
 
 ## Install
 
-The `kei` CLI is a Go binary built from source in the kei repo — there is no
-published package. Build it and put the binary on your PATH as `kei`:
+The `kei` CLI is a Go binary from the standalone `kei-cli` repository — there is
+no published package. Install it with `go install`:
 
 ```bash
-cd cmd/kei && go build -o tmp/kei .
-# then install tmp/kei somewhere on your PATH (the repo README suggests this)
+go install github.com/HaikeiLabs/kei-cli@latest
 ```
 
-Dependencies resolve through the Go module proxy; no internal package registry
-is needed (D-008).
+Or build from a checkout of `kei-cli` and put the binary on your PATH as `kei`:
+
+```bash
+go build -o tmp/kei .
+```
+
+Once installed, `kei upgrade [--version VERSION]` replaces the running binary
+by re-installing the same module. Dependencies resolve through the Go module
+proxy; no internal package registry is needed (D-008).
 
 ## Prerequisites
 
@@ -159,13 +185,16 @@ Azure resource-management permissions.
 ## Validation commands
 
 ```bash
-# Build from source (kei repo):
-cd cmd/kei && go build -o tmp/kei .
+# Build from source (a checkout of the kei-cli repo):
+go build -o tmp/kei .
 
 # Confirm the exact command surface (source of truth):
 tmp/kei help                       # prints printUsage
-tmp/kei login --help               # -api-url flag
-tmp/kei bot --help                 # subcommands: init install agents deploy status destroy
+tmp/kei login --help               # -api-url, -no-browser flags
+tmp/kei setup --help               # runtime configuration flags
+tmp/kei runtime bootstrap --help   # -config, -proxy-path
+tmp/kei bot                        # lists subcommands: init agents status delete credential bind
+#   ("bot requires a subcommand", exit 2 — there is no install/deploy/destroy/list)
 
 # Confirm the auth flow against a deployment:
 tmp/kei login --api-url https://app.haikeilabs.com
@@ -176,6 +205,10 @@ tmp/kei login --api-url https://app.haikeilabs.com
 tmp/kei bot init --name "Test" --platform teams
 tmp/kei bot status --installation INSTALLATION_ID
 tmp/kei bot agents list --installation INSTALLATION_ID
+
+# Confirm the commands this repo says do NOT exist really do not:
+tmp/kei bot list                   # -> unknown bot command "list"
+tmp/kei setup doctor               # -> setup accepts no positional arguments
 ```
 
 ## Realistic usage boundaries
@@ -190,7 +223,15 @@ tmp/kei bot agents list --installation INSTALLATION_ID
 - **Do not** expect the token on stdout or in a config file. It goes to the OS
   keychain only and is never printed.
 - **Do not** treat the runtime credential as CLI-visible. `bot init` creates
-  public installation metadata only; runtime credentials are delivered by
-  `bot deploy` to the customer secret manager, never to terminal output.
-- Discord, Slack, AWS, GCP, and Terraform/Helm are **not** implemented; Azure +
+  public installation metadata only; the runtime credential is emitted by
+  `bot credential` for piping into the customer secret manager, never echoed to
+  terminal output or a transcript.
+- **Do not** name a command that is not in `printUsage` plus `bot bind`. There
+  is no `bot install`, `bot deploy`, `bot destroy`, `bot list`, or
+  `kei setup doctor`. `bot delete` is the teardown command, and it removes only
+  the control-plane installation — customer cloud resources are not touched.
+- **Do not** assume the CLI provisions cloud infrastructure. It does not apply
+  templates or create Azure resources; the runtime is configured with
+  `kei setup` and started with `kei runtime bootstrap`.
+- AWS, GCP, and Terraform/Helm deployment paths are **not** implemented; Azure +
   Teams is the MVP.

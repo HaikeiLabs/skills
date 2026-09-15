@@ -72,19 +72,23 @@ skill.
 | Skill | Useful for |
 |-------|------------|
 | [haikei](skills/haikei/SKILL.md) | Router: "what are you trying to build?" maps a need to the right Haikei product and the skill to load |
-| [kei-cli](skills/kei-cli/SKILL.md) | The `kei` deployment CLI: `login` (OIDC device flow, admin-only, org-bound) and `bot init/install/agents/deploy/status/destroy` for customer-hosted runtimes |
+| [kei-cli](skills/kei-cli/SKILL.md) | The `kei` CLI (standalone `kei-cli` repo): `setup`, `runtime bootstrap`, `login`/`logout` (OIDC device flow, admin-only, org-bound), `upgrade`, and `bot init/credential/agents/status/bind/delete` for customer-hosted runtimes |
 | [kei-abac-api](skills/kei-abac-api/SKILL.md) | The ABAC HTTP API (`/api/v1/*`): organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles — where org management actually lives today |
 | [agentware-sdk](skills/agentware-sdk/SKILL.md) | The open-source agentware SDK: policy enforcement, audit records, and delegation for agent tool calls, in Go, Python, and TypeScript |
 | [kei-agents](skills/kei-agents/SKILL.md) | Agent definitions, tool schemas, semantic mappings, and governed connector bindings from the `kei-agents` package |
-| [kei-setup-doctor](skills/kei-setup-doctor/SKILL.md) | Diagnose and guide setup of Kei runtime installations across local, AWS, Azure, or other customer environments |
+| [kei-setup-doctor](skills/kei-setup-doctor/SKILL.md) | A diagnosis *workflow* (not a CLI command — there is no `kei setup doctor`) for Kei runtime installations across local, AWS, Azure, or other customer environments |
 
 ## What is deliberately absent
 
-- **No CLI commands that do not exist.** The `kei` CLI exposes only `login` and
-  `bot` today. There are no `org`, `workspace`, `connector`, `group`, `policy`,
-  or `user` commands. Org management is done through the ABAC API (see the
-  `kei-abac-api` skill). This repo never invents a command that is not in the
-  CLI's usage string.
+- **No CLI commands that do not exist.** The `kei` CLI — the standalone
+  `kei-cli` repository, not `kei/cmd/kei` — exposes `setup`, `runtime
+  bootstrap`, `login`, `logout`, `upgrade`, and `bot` (`init`, `credential`,
+  `agents`, `status`, `delete`, `bind`). There are no `org`, `workspace`,
+  `connector`, `group`, `policy`, or `user` commands; org management is done
+  through the ABAC API (see the `kei-abac-api` skill). There is also no
+  `bot install`, `bot deploy`, `bot destroy`, `bot list`, or `kei setup doctor`
+  — the setup doctor is a skill workflow, not a subcommand. This repo never
+  invents a command that is not in the CLI's usage string.
 - **No absolute local paths.** Every reference is product-name- and
   repo-relative so the repo can be published as-is.
 - **No public-PyPI install instructions.** `kei-agents` is distributed from the
