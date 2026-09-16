@@ -36,6 +36,39 @@ kei runtime bootstrap --help
 - Inspect local help and current provider documentation when behavior depends
   on a version; do not invent flags or configuration fields.
 
+## Install or upgrade the published CLI
+
+For supported macOS and Linux systems (arm64 and amd64), install the published
+`kei` binary from the public release endpoint. The installer selects the local
+platform, downloads the archive, and verifies its SHA-256 checksum before
+installing it. Use a user-writable directory unless system-wide installation
+is explicitly wanted:
+
+```sh
+export PATH="$HOME/.local/bin:$PATH"
+curl -fsSL "https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh" \
+  | bash -s -- -d "$HOME/.local/bin"
+```
+
+Install a pinned release with `-v VERSION`; the version does not include a
+leading `v`:
+
+```sh
+curl -fsSL "https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh" \
+  | bash -s -- -v 0.2.0 -d "$HOME/.local/bin"
+```
+
+Rerun the installer to upgrade. Verify the command after installation:
+
+```sh
+command -v kei
+kei help
+```
+
+Do not put runtime credentials in the installer command or environment. The
+release endpoint is public and the installer only downloads and verifies the
+CLI binary.
+
 ## 1. Establish the target
 
 Use `https://app.haikeilabs.com` as the control-plane default. Ask for a
