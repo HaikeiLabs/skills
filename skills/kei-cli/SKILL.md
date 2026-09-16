@@ -169,10 +169,13 @@ release with `-v VERSION` (for example `-v 0.2.0`; do not include a leading
 ```bash
 command -v kei
 kei help
+kei --version
 ```
 
-For development or when the published installer is unavailable, build from a
-checkout of `kei-cli` and put the binary on your PATH as `kei`:
+Rerun the installer to upgrade from S3. When Go is installed, the binary also
+supports `kei upgrade` and `kei upgrade --version VERSION` through the Go
+module proxy. For development or when the published installer is unavailable,
+build from a checkout of `kei-cli` and put the binary on your PATH as `kei`:
 
 ```bash
 go build -o tmp/kei .
