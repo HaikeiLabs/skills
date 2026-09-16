@@ -157,8 +157,7 @@ checksum-verifying release installer:
 ```bash
 export PATH="$HOME/.local/bin:$PATH"
 curl -fsSL "https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh" \
-  | AWS_S3_RELEASES_URL_BASE="https://kei-cli-releases.s3.us-east-1.amazonaws.com" \
-    bash -s -- -d "$HOME/.local/bin"
+  | bash -s -- -d "$HOME/.local/bin"
 ```
 
 The installer resolves the latest version from `latest.txt`, verifies the
