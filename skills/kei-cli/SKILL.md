@@ -155,10 +155,10 @@ Install the published `kei` binary on macOS or Linux (arm64 and amd64) with the
 checksum-verifying release installer:
 
 ```bash
-export AWS_S3_RELEASES_URL_BASE="https://kei-cli-releases.s3.us-east-1.amazonaws.com"
 export PATH="$HOME/.local/bin:$PATH"
-curl -fsSL "$AWS_S3_RELEASES_URL_BASE/kei-cli/install.sh" \
-  | bash -s -- -d "$HOME/.local/bin"
+curl -fsSL "https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh" \
+  | AWS_S3_RELEASES_URL_BASE="https://kei-cli-releases.s3.us-east-1.amazonaws.com" \
+    bash -s -- -d "$HOME/.local/bin"
 ```
 
 The installer resolves the latest version from `latest.txt`, verifies the

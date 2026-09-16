@@ -45,18 +45,19 @@ installing it. Use a user-writable directory unless system-wide installation
 is explicitly wanted:
 
 ```sh
-export AWS_S3_RELEASES_URL_BASE="https://kei-cli-releases.s3.us-east-1.amazonaws.com"
 export PATH="$HOME/.local/bin:$PATH"
-curl -fsSL "$AWS_S3_RELEASES_URL_BASE/kei-cli/install.sh" \
-  | bash -s -- -d "$HOME/.local/bin"
+curl -fsSL "https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh" \
+  | AWS_S3_RELEASES_URL_BASE="https://kei-cli-releases.s3.us-east-1.amazonaws.com" \
+    bash -s -- -d "$HOME/.local/bin"
 ```
 
 Install a pinned release with `-v VERSION`; the version does not include a
 leading `v`:
 
 ```sh
-curl -fsSL "$AWS_S3_RELEASES_URL_BASE/kei-cli/install.sh" \
-  | bash -s -- -v 0.2.0 -d "$HOME/.local/bin"
+curl -fsSL "https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh" \
+  | AWS_S3_RELEASES_URL_BASE="https://kei-cli-releases.s3.us-east-1.amazonaws.com" \
+    bash -s -- -v 0.2.0 -d "$HOME/.local/bin"
 ```
 
 Rerun the installer to upgrade. Verify the command after installation:
