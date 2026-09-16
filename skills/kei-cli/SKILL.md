@@ -151,22 +151,35 @@ but not an implemented end-to-end runtime, and confirm before promising either.
 
 ## Install
 
-The `kei` CLI is a Go binary from the standalone `kei-cli` repository — there is
-no published package. Install it with `go install`:
+Install the published `kei` binary on macOS or Linux (arm64 and amd64) with the
+checksum-verifying release installer:
 
 ```bash
-go install github.com/HaikeiLabs/kei-cli@latest
+export AWS_S3_RELEASES_URL_BASE="https://kei-cli-releases.s3.us-east-1.amazonaws.com"
+export PATH="$HOME/.local/bin:$PATH"
+curl -fsSL "$AWS_S3_RELEASES_URL_BASE/kei-cli/install.sh" \
+  | bash -s -- -d "$HOME/.local/bin"
 ```
 
-Or build from a checkout of `kei-cli` and put the binary on your PATH as `kei`:
+The installer resolves the latest version from `latest.txt`, verifies the
+downloaded archive against its SHA-256 checksums, and installs `kei`. Pin a
+release with `-v VERSION` (for example `-v 0.2.0`; do not include a leading
+`v`). Rerun the command to upgrade. Verify the installation with:
+
+```bash
+command -v kei
+kei help
+```
+
+For development or when the published installer is unavailable, build from a
+checkout of `kei-cli` and put the binary on your PATH as `kei`:
 
 ```bash
 go build -o tmp/kei .
 ```
 
-Once installed, `kei upgrade [--version VERSION]` replaces the running binary
-by re-installing the same module. Dependencies resolve through the Go module
-proxy; no internal package registry is needed (D-008).
+The published installer is the supported customer installation path; the
+source build is for development and diagnostics.
 
 ## Prerequisites
 
