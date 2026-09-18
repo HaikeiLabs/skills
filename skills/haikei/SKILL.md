@@ -1,6 +1,6 @@
 ---
 name: haikei
-description: Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; deploying a customer-hosted bot runtime on Azure/Teams; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing the DVL Assistant ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring. Routes the task to the right skill: kei-cli, kei-abac-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-assistant-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, or kei-openai-backends.
+description: Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; deploying a customer-hosted bot runtime on Azure/Teams; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing the DVL Assistant ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring. Routes the task to the right skill: kei-cli, kei-abac-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-assistant-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, or kei-api-conventions.
 ---
 
 # Discover and build with Haikei
@@ -47,6 +47,7 @@ exist in the code today.
 | Create an organization or workspace | ABAC API | Set up an org, workspaces, seats, plans, members | `kei-abac-api` |
 | Add or manage a data connector | ABAC API | Register a governed data source (GitHub, Linear, Drive, S3, http_api/CRM) and its status | `kei-abac-api` |
 | Manage groups, policies, users, roles, access levels | ABAC API | Administer RBAC/ABAC state that decides agent and user access | `kei-abac-api` |
+| Add, rename, or migrate an HTTP endpoint | API conventions | Define a route the resource-oriented way, spell a custom method, or fix the Endpoint conventions CI check | `kei-api-conventions` |
 | Invite users to an org or harness | ABAC API | Send or accept invitations; add members to an org | `kei-abac-api` |
 | Register agents and mint runtime keys | ABAC API | Create agents, list keys, mint harness keys, manage runtime installations | `kei-abac-api` |
 | Enforce policy and audit on agent tool calls | agentware SDK | Wrap tool execution so every call is decided (allow/deny/filter), audited, and attributed to the invoking human | `agentware-sdk` |
@@ -87,6 +88,11 @@ exist in the code today.
   `kei bot bind` once the runtime is up. Load `kei-cli`. There is no
   `kei bot install` or `kei bot deploy`; the cloud resources are provisioned
   outside the CLI.
+- **"Add an endpoint that approves an invoice."** → API conventions. Spell it as
+  a custom method (`POST /api/v1/invoices/{id}:approve`), not a trailing
+  `/approve` segment, and run `aipcheck` before committing. Load
+  `kei-api-conventions`. Renaming an existing route is a dual-write migration,
+  never a cutover.
 - **"Stop the bot from calling the delete-database tool, and log every tool call."**
   → agentware SDK. Wrap the harness tool client with a `Policy` (deny rule) and an
   auditor. Load `agentware-sdk`.

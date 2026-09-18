@@ -1,6 +1,6 @@
 {
   "name": "haikei",
-  "description": "Build and operate AI assistants with the Kei platform: set up and manage organizations, workspaces, data connectors, groups, policies, and users against the ABAC API, deploy customer-hosted bot runtimes with the kei CLI, enforce policy and audit on agent tool calls with the agentware SDK, diagnose Kei runtime installations with the setup doctor, and develop the DVL Assistant's ingress security, Teams integration, tool adapters, headless evals, and OpenAI-compatible backend wiring.",
+  "description": "Build and operate AI assistants with the Kei platform: set up and manage organizations, workspaces, data connectors, groups, policies, and users against the ABAC API, deploy customer-hosted bot runtimes with the kei CLI, enforce policy and audit on agent tool calls with the agentware SDK, diagnose Kei runtime installations with the setup doctor, and develop the DVL Assistant's ingress security, Teams integration, tool adapters, headless evals, and OpenAI-compatible backend wiring, and resource-oriented API endpoint conventions (AIP-style routes, custom methods, migrations).",
   "version": "0.1.0",
   "author": {
     "name": "Haikei"
