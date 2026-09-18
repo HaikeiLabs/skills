@@ -164,6 +164,21 @@ Every hosted runtime needs compute, outbound HTTPS/DNS to the control plane,
 secure credential injection, process supervision, logs, restart/reload
 behavior, and least-privilege identity/network access.
 
+For the supported co-located deployment, verify that the harness and its
+`kei-proxy` child process share these environment values:
+
+```text
+KEI_RUNTIME_CONTROL_PLANE_URL=https://app.haikeilabs.com
+KEI_RUNTIME_TOKEN=<injected-secret>
+KEI_RUNTIME_VERSION=<deployed-version>
+```
+
+The URL is the gateway base; do not add `/api/v1`. Check that the token is
+injected through the container/service secret mechanism and is not present in
+argv, logs, or shell history. Do not diagnose scope from `KEI_ORG_ID`; verify
+the installation, organization, and workspace returned by `kei runtime
+bootstrap` instead.
+
 For local runtimes, check configuration presence and permissions without
 printing contents:
 
