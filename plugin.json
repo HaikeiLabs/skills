@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "haikei",
   "version": "0.1.0",
-  "description": "Build and operate AI assistants with the Kei platform: set up and manage organizations, workspaces, data connectors, groups, policies, and users against the ABAC API, deploy customer-hosted bot runtimes with the kei CLI, enforce policy and audit on agent tool calls with the agentware SDK, and diagnose Kei runtime installations with the setup doctor.",
+  "description": "Build and operate AI assistants with the Kei platform: set up and manage organizations, workspaces, data connectors, groups, policies, and users against the ABAC API, deploy customer-hosted bot runtimes with the kei CLI, enforce policy and audit on agent tool calls with the agentware SDK, diagnose Kei runtime installations with the setup doctor, and develop the DVL Assistant's ingress security, Teams integration, tool adapters, headless evals, and OpenAI-compatible backend wiring.",
   "author": {
     "name": "Haikei"
   },
@@ -20,6 +20,12 @@
     "connectors",
     "rbac",
     "setup-doctor",
-    "troubleshooting"
+    "troubleshooting",
+    "assistant-security",
+    "teams-ingress",
+    "tool-adapters",
+    "headless-evals",
+    "openai-backends",
+    "bot-framework"
   ]
 }

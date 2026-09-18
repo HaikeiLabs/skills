@@ -1,0 +1,23 @@
+{
+  "skill_name": "kei-headless-evals",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to add a new golden fixture for the semantic-model lane that tests an injection-shaped input. What files do I touch and what contract must the fixture preserve?",
+      "expected_output": "Identifies eval/fixtures/*.golden.json as the location, the EvalCase JSON contract from src/eval/types.ts, and the requirement that the test counts stay pinned in test/eval.harness.test.ts.",
+      "expectations": [
+        "The response points to the golden fixture location and the EvalCase schema.",
+        "The response mentions that removing a case is a breaking change because case counts are asserted."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "The chat harness eval harness has both headless and model-backed test suites. How do I run only the deterministic headless tests and skip the flaky integration ones?",
+      "expected_output": "Uses pytest's -m \"not integration\" marker to exclude model-backed suites, and directs to tests/test_eval_harness.py and tests/test_headless_harness.py for the headless path.",
+      "expectations": [
+        "The response uses the integration marker filter and does not run model-backed suites.",
+        "The response distinguishes the offline scripted path from live model evaluation."
+      ]
+    }
+  ]
+}
