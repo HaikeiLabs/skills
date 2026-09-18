@@ -118,6 +118,27 @@ There is **no `kei bot install`, `deploy`, `destroy`, or `list`**, and no
 - The CLI talks to the web app at `/api/cli/runtime-installations*`, which maps
   to `/api/v1/internal/runtime-installations*` on the ABAC engine.
 
+### Runtime environment injection
+
+The harness and `kei-proxy` must run in the same container or host process
+environment so the harness can invoke the proxy with the same runtime
+configuration. Inject these values through the deployment environment or
+secret manager; never put the runtime token in command-line arguments:
+
+```text
+KEI_RUNTIME_CONTROL_PLANE_URL=https://app.haikeilabs.com
+KEI_RUNTIME_TOKEN=<secret-manager-value>
+KEI_RUNTIME_VERSION=<deployed-version>
+```
+
+Do not append `/api/v1`; the runtime adds its API paths. For Docker, pass the
+non-secret URL and version as environment variables and load
+`KEI_RUNTIME_TOKEN` from a protected `--env-file` or secret manager. For a
+service manifest, define the same variables on the harness process; its child
+`kei-proxy` process inherits them. Do not use `KEI_ORG_ID` as authoritative
+scope; the runtime token determines installation, organization, and workspace
+scope.
+
 ### Flags beyond the usage string
 
 `printUsage` is the compact surface; individual commands accept a few more

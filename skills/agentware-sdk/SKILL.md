@@ -140,6 +140,26 @@ token counts, latency, and success/error. `resources_touched` makes
 - There is **no** Go or TypeScript KEI module on main; KEI work lives in Python only.
   Do not assume parity.
 
+### Runtime environment for the harness and proxy
+
+The harness and `kei-proxy` are co-located in the same container or host
+runtime. Put the runtime configuration in the harness service environment so
+the proxy subprocess inherits it:
+
+```text
+KEI_RUNTIME_CONTROL_PLANE_URL=https://app.haikeilabs.com
+KEI_RUNTIME_TOKEN=<secret-manager-value>
+KEI_RUNTIME_VERSION=<deployed-version>
+```
+
+The control-plane value is the gateway base URL; do not append `/api/v1`. In
+Docker or a service manifest,
+inject the URL and version as ordinary environment values and inject
+`KEI_RUNTIME_TOKEN` from a protected secret or env-file. Never pass the token
+as an argv flag, write it to logs, or derive authoritative scope from
+`KEI_ORG_ID`; the runtime token establishes the installation/org/workspace
+scope.
+
 ## Third-party harness contract
 
 `docs/harness-contract.md` defines how a third-party harness is governed by
