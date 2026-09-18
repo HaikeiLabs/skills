@@ -117,7 +117,11 @@ skill.
 | [agentware-sdk](skills/agentware-sdk/SKILL.md) | The open-source agentware SDK: policy enforcement, audit records, and delegation for agent tool calls, in Go, Python, and TypeScript |
 | [kei-agents](skills/kei-agents/SKILL.md) | Agent definitions, tool schemas, semantic mappings, and governed connector bindings from the `kei-agents` package |
 | [kei-setup-doctor](skills/kei-setup-doctor/SKILL.md) | A diagnosis *workflow* (not a CLI command — there is no `kei setup doctor`) for Kei runtime installations across local, AWS, Azure, or other customer environments |
-
+| [kei-assistant-security](skills/kei-assistant-security/SKILL.md) | The DVL Assistant (Kei) ingress boundary: fail-closed authentication, principal derivation, enrollment gates, pseudonymous audit, idempotency, and the governor pin — security invariants for the Teams/Bot Framework bot that must not be weakened |
+| [kei-teams-ingress](skills/kei-teams-ingress/SKILL.md) | Microsoft Teams and Bot Framework integration: activity parsing, Connector JWT auth, SSO signin/tokenExchange, OAuthCards, mention/audience gate, reply routes, outbound Connector sends, the Teams app manifest, and both the assistant and the chat harness Teams adapter |
+| [kei-tool-adapters](skills/kei-tool-adapters/SKILL.md) | Tool adapters and the governor tool-lane pattern: schema/client/guard/envelope/renderer/runtime stacks, GovernorClient proposals and stdio protocol, the typed tool-lane registry, and the chat harness's agent tools and tool-definition renderers |
+| [kei-headless-evals](skills/kei-headless-evals/SKILL.md) | Headless, deterministic evaluation harnesses: EvalSuite/EvalCase/EvalTrace/EvalReport, ScriptedBackend, golden fixtures, the assistant CLI, and the chat harness and agentware eval harnesses |
+| [kei-openai-backends](skills/kei-openai-backends/SKILL.md) | OpenAI-compatible LLM backend integration: LLM_ENDPOINT/LLM_MODEL wiring, pydantic-ai OpenAIChatModel, tool-definition format renderers, eval ModelBackend, and the Kei local docker stack |
 ## What is deliberately absent
 
 - **No CLI commands that do not exist.** The `kei` CLI — the standalone

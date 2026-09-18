@@ -1,0 +1,23 @@
+{
+  "skill_name": "kei-tool-adapters",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to add a new tool lane called \"expense-report\" to the assistant. Walk me through the full stack components I need to create and what invariants each must preserve.",
+      "expected_output": "Lists schema, client, guard, envelope, renderer, runtime, proposal, and registry entry, with each component's closed invariants and the integration test requirements.",
+      "expectations": [
+        "The response includes all six lane components plus the governor proposal and registry entry.",
+        "The response mentions the integration test and governance test in deployment_artifact_contract.test.ts."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "A governor decision returns exit 0 with a line that structurally looks like a valid decision but references a different request's proposal id. How should GovernorClient handle this?",
+      "expected_output": "Classifies it as a replay because the binding fields (request/proposal id refs, actor, identity refs, canonical tuple) do not match the exact request, collapsing to unavailable.",
+      "expectations": [
+        "The response identifies the mismatched binding fields as the reason for replay detection.",
+        "The response does not accept a shape-valid decision whose binding context differs from the original request."
+      ]
+    }
+  ]
+}
