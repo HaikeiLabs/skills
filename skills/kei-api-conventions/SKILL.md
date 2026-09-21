@@ -150,8 +150,9 @@ grep -v '^#' aip-baseline.txt | sort
 
 ## Realistic usage boundaries
 
-- **ADR-019 is Proposed, not Accepted.** Check its status before treating the
-  conventions as settled; the decision may still change in review.
+- **ADR-019 is accepted and the CI check is live.** `aipcheck` runs on every
+  `kei-policy-catalog` PR, so a new route that breaks a convention fails the
+  build rather than being caught in review.
 - **The migration is not finished.** Most routes registered today predate these
   conventions and are in `aip-baseline.txt`. Existing code is not a reliable
   example — read the ADR, not the neighbouring route.
