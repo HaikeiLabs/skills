@@ -114,6 +114,7 @@ skill.
 | [haikei](skills/haikei/SKILL.md) | Router: "what are you trying to build?" maps a need to the right Haikei product and the skill to load |
 | [kei-cli](skills/kei-cli/SKILL.md) | The `kei` CLI (standalone `kei-cli` repo): `setup`, `runtime bootstrap`, `login`/`logout` (OIDC device flow, admin-only, org-bound), `upgrade`, and `bot init/credential/agents/status/bind/delete` for customer-hosted runtimes |
 | [kei-abac-api](skills/kei-abac-api/SKILL.md) | The ABAC HTTP API (`/api/v1/*`): organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles — where org management actually lives today |
+| [kei-api-conventions](skills/kei-api-conventions/SKILL.md) | Resource-oriented (AIP-style) HTTP endpoint conventions from ADR-019: collection naming, `:verb` custom methods, pagination, the dual-write migration, and the `aipcheck` CI gate |
 | [agentware-sdk](skills/agentware-sdk/SKILL.md) | The open-source agentware SDK: policy enforcement, audit records, and delegation for agent tool calls, in Go, Python, and TypeScript |
 | [kei-agents](skills/kei-agents/SKILL.md) | Agent definitions, tool schemas, semantic mappings, and governed connector bindings from the `kei-agents` package |
 | [kei-setup-doctor](skills/kei-setup-doctor/SKILL.md) | A diagnosis *workflow* (not a CLI command — there is no `kei setup doctor`) for Kei runtime installations across local, AWS, Azure, or other customer environments |

@@ -1,0 +1,32 @@
+{
+  "skill_name": "kei-api-conventions",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to add an endpoint that approves a pending invoice in kei-policy-catalog. What should the route look like?",
+      "expected_output": "Proposes POST /api/v1/invoices/{id}:approve as a custom method, explains why a trailing /approve path segment is not used, and points at the aipcheck CI step to verify.",
+      "expectations": [
+        "The response spells the operation as a :verb custom method rather than a trailing path segment.",
+        "The response does not suggest adding the new route to aip-baseline.txt."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Our Endpoint conventions CI check is failing on a route I renamed. How do I migrate the old path without breaking the console and the CLI?",
+      "expected_output": "Describes the dual-write migration: add the conforming route pointing at the same handler, serve both, move known callers, mark the legacy route deprecated, then remove it and its baseline entry.",
+      "expectations": [
+        "The response keeps both paths serving from one handler rather than duplicating the implementation.",
+        "The response removes the legacy route only after its callers have moved."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Add a list endpoint for ledger entries to the policy catalog API.",
+      "expected_output": "Uses a plural kebab-case collection, GET for List, and page_size/page_token pagination rather than offset, and directs the user to run aipcheck before committing.",
+      "expectations": [
+        "The response uses a plural, kebab-case collection name.",
+        "The response specifies page_size/page_token pagination instead of offset."
+      ]
+    }
+  ]
+}

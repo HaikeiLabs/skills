@@ -1,13 +1,33 @@
 {
   "name": "haikei",
   "version": "0.1.0",
-  "description": "Build and operate AI assistants with the Kei platform: ABAC API org management, kei CLI bot runtime deployment, agentware SDK policy/audit middleware, Kei runtime setup diagnosis, and DVL Assistant development (ingress security, Teams integration, tool adapters, headless evals, OpenAI backends).",
+  "description": "Build and operate AI assistants with the Kei platform: ABAC API org management, kei CLI bot runtime deployment, agentware SDK policy/audit middleware, Kei runtime setup diagnosis, and DVL Assistant development (ingress security, Teams integration, tool adapters, headless evals, OpenAI backends), and resource-oriented API endpoint conventions (AIP-style routes, custom methods, migrations).",
   "author": {
     "name": "Haikei"
   },
   "homepage": "https://github.com/HaikeiLabs/skills",
   "repository": "https://github.com/HaikeiLabs/skills",
   "license": "MIT",
-  "keywords": ["haikei", "kei", "abac", "agents", "agentware", "policy", "audit", "connectors", "rbac", "setup-doctor", "troubleshooting", "assistant-security", "teams-ingress", "tool-adapters", "headless-evals", "openai-backends", "bot-framework"],
+  "keywords": [
+    "haikei",
+    "kei",
+    "abac",
+    "agents",
+    "agentware",
+    "policy",
+    "audit",
+    "connectors",
+    "rbac",
+    "setup-doctor",
+    "troubleshooting",
+    "assistant-security",
+    "teams-ingress",
+    "tool-adapters",
+    "headless-evals",
+    "openai-backends",
+    "bot-framework",
+    "api-conventions",
+    "aip"
+  ],
   "skills": "./skills/"
 }
