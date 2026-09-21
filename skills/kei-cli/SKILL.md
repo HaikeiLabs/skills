@@ -1,6 +1,6 @@
 ---
 name: kei-cli
-description: Use the kei CLI (the standalone kei-cli repository) for customer-hosted Kei bot runtimes. Use when running kei setup, kei runtime bootstrap, kei login/logout, kei upgrade, or kei bot commands — init, credential, agents list/add/remove, status, bind, delete — for registering and managing Kei bot runtimes on Microsoft Teams/Azure. Covers the admin-only, org-bound OIDC device-authorization login. Do not use for org/workspace/connector/group/policy/user management: those commands do not exist; org management lives in the ABAC API (kei-abac-api skill).
+description: Use the kei CLI (the standalone kei-cli repository) for customer-hosted Kei bot runtimes and its governed resource commands when released. Use when running setup, runtime bootstrap, login/logout, upgrade, bot lifecycle commands, or supported AIP-style resource commands. Covers admin-only, org-bound OIDC device authorization. Do not invent commands: verify the installed CLI and contract; current releases do not provide org/workspace/connector/group/policy/user CRUD, so those surfaces remain in the ABAC API skill until a governed CLI command exists.
 ---
 
 # kei CLI (deployment CLI)
@@ -92,7 +92,27 @@ The `bot` dispatch also accepts `bind` (`kei bot bind --installation ID
 has reported a heartbeat; it is not listed in `printUsage`.
 
 There is **no `kei bot install`, `deploy`, `destroy`, or `list`**, and no
-`kei setup doctor`. Cloud provisioning is not performed by the CLI.
+`kei setup doctor`. Cloud provisioning is not performed by the CLI. Do not
+infer a resource-management command from an API route or add a private CLI
+endpoint.
+
+## AIP/CRUD relationship
+
+The public CLI is being extended toward the resource-oriented Kei contract,
+but the current standalone release has no organization, workspace, connector,
+group, policy, or user CRUD commands. When a release exposes a resource, use
+that release's command and help output as the source of truth and map it to
+the governed API resource:
+
+- `list`/`get`/`create`/`update`/`delete` map to List/Get/Create/Update/Delete;
+- updates use PATCH semantics and an explicit update mask;
+- lists use opaque page tokens and return the next page token;
+- errors retain stable machine-readable reasons;
+- state transitions that are not CRUD use explicit `:verb` API methods, not
+  guessed subpaths.
+
+Until the CLI command exists and is tested, load `kei-abac-api` for the
+supported API surface. Do not document a future command as available.
 
 ### Workflow in practice
 
