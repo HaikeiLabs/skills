@@ -18,6 +18,15 @@
         "The response treats a pending status as evidence about heartbeat rather than proof that the runtime is healthy.",
         "The response does not suggest printing or pasting a runtime credential."
       ]
+    },
+    {
+      "id": 3,
+      "prompt": "I want to run `kei policy list` and `kei policy update` for a workspace. What should you verify before using those commands?",
+      "expected_output": "Checks the installed CLI help and governed contract first, explains that current releases may not provide these commands, and routes unsupported resource management to the ABAC API skill without inventing endpoints.",
+      "expectations": [
+        "The response does not claim a future resource command exists without source or help evidence.",
+        "The response mentions opaque pagination and PATCH/update-mask semantics only as contract requirements for a released resource command."
+      ]
     }
   ]
 }

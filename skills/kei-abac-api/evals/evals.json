@@ -18,6 +18,15 @@
         "The response does not imply that accepting an org invitation automatically grants unrelated workspace access.",
         "The response recommends verifying the implemented invitation contract against current routes and repository behavior."
       ]
+    },
+    {
+      "id": 3,
+      "prompt": "Design a new workspace-scoped connector-bindings API resource that a future kei CLI command could consume. Describe the CRUD paths, pagination, update mask, error reasons, and what must be checked before implementation.",
+      "expected_output": "Uses plural kebab-case resource-oriented CRUD, opaque page tokens, PATCH with an update mask, stable errors, explicit workspace/org authorization, and route/contract verification before coding.",
+      "expectations": [
+        "The response does not invent an existing CLI command or bypass the governed contract.",
+        "The response preserves workspace scope, repository/database boundaries, audit identity, and metadata-only policy-catalog invariants."
+      ]
     }
   ]
 }

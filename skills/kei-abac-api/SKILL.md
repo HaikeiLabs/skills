@@ -1,19 +1,37 @@
 ---
 name: kei-abac-api
-description: Use the Kei ABAC HTTP API (/api/v1/*) to manage organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles, consents, and audit. Use when creating or managing any of these resources, minting harness keys, or calling the runtime surface — this is where org management lives today; the kei CLI has no org commands. Covers the three distinct auth schemes (CLI bearer, harness/runtime bearer, browser session cookie) and which endpoints accept which.
+description: Use governed Kei API contracts for organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles, consents, and audit when no supported kei CLI command exists. Use for API/resource design, contract verification, or current ABAC-only surfaces; prefer the kei CLI for any released resource command. Covers auth schemes, AIP/CRUD conventions, workspace scope, and endpoint ownership.
 ---
 
 # Kei ABAC API
 
-The ABAC engine (`kei/cmd/abac-engine`) is the HTTP API where organization
-management actually lives. It exposes **94 distinct `/api/v1/*` routes**,
-enumerated from the route table in `cmd/abac-engine/main.go`. The kei CLI has no
-`org`, `workspace`, `connector`, `group`, `policy`, or `user` commands — every
-one of those operations is done through this API.
+The ABAC engine (`kei/cmd/abac-engine`) is the current API authority for
+organization management and other surfaces that the standalone CLI does not
+yet cover. It exposes **94 distinct `/api/v1/*` routes**, enumerated from the
+route table in `cmd/abac-engine/main.go`. Check the installed CLI first; do not
+assume that an API route has a corresponding CLI command.
 
 Read `references/routes.md` in this skill directory for the complete route
 table grouped by resource (every path and HTTP method below is traceable to that
 table and to `cmd/abac-engine/main.go`).
+
+## Resource-oriented contract
+
+For new or migrated API work, use the Kei AIP house style:
+
+- plural kebab-case collections with resource-oriented List/Get/Create/Update/
+  Delete operations;
+- List with opaque `page_token` and `next_page_token`, never new offset
+  pagination;
+- Update as PATCH with an explicit `update_mask`;
+- stable machine-readable error reasons alongside human-readable messages;
+- explicit `:verb` custom methods only for non-CRUD state transitions.
+
+When a governed CLI command exists, public workflows should use it rather than
+reaching around the client with guessed routes or raw HTTP. This skill remains
+the source for API-only resources until the CLI covers them. Verify paths and
+methods against the route table and current contract; documentation never
+creates an endpoint.
 
 ## Install
 
@@ -159,6 +177,8 @@ rg -n "agent not found" cmd/abac-engine/pkg/handlers/harness_keys.go
 
 ## Realistic usage boundaries
 
+- Prefer a released, governed `kei` CLI resource command over direct API use;
+  current CLI releases do not cover all resource groups in this skill.
 - **Do not** claim a CLI command exists for org management. It does not; this API is the surface.
 - **Do not** collapse the three auth schemes. CLI bearer = human admin + org-bound; harness bearer = installation; session cookie = web UI. Header alone cannot tell (a) from (b).
 - **Do not** treat `X-KEI-API-Key` as a client credential; it is the web-proxy → engine service credential and is not part of the client auth model.
