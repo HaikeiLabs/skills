@@ -73,8 +73,9 @@ Then immediately:
 
 1. Get the new token to where the runtime reads it, and restart:
    - **Workstation runtime** (set up with `kei setup`): the token also lives in
-     `~/.config/kei.yaml`. Re-run `kei setup` and enter the new token at the
-     prompt, then restart the harness.
+     `~/.config/kei.yaml`. Pipe the new token from the secret manager into
+     `kei setup` (`<secret-manager read> | kei setup --control-plane-url URL`)
+     so nobody pastes it, then restart the harness.
    - **Deployed runtime**: restart or roll it so it reloads `KEI_RUNTIME_TOKEN`
      from the secret manager.
 2. Re-run bootstrap and check the output:

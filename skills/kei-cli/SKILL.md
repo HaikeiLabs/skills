@@ -14,10 +14,11 @@ time; that is `kei-proxy`.
 | --- | --- | --- |
 | Who runs it | A person: org `owner`/`admin` | The harness, as a subprocess, per governed operation |
 | Auth | `kei login` → CLI token in the OS keychain | `KEI_RUNTIME_TOKEN` in the harness environment |
-| Jobs | Login, installations, runtime credentials, bind, agents-on-installation | Allow/deny each tool call, governed connector calls, bootstrap/heartbeat, audit shipping |
+| Jobs | Login, installations, runtime credentials, bind, agents-on-installation | Allow/deny each tool call (`kei-proxy authorize`), governed connector calls (`kei-proxy connector invoke`), heartbeat, audit shipping |
 | Skill | `kei-cli` | `kei-proxy` |
 
-If the task is "make the agent's tool call go through Kei", load `kei-proxy`,
+If the task is "make the agent's tool call go through Kei" or "check whether
+the agent may do X", the answer is `kei-proxy authorize` — load `kei-proxy`,
 not this skill. An agent never needs `kei login` to do its work. `kei setup`
 and `kei runtime bootstrap` are the only bridge: admin conveniences that write
 local runtime config and invoke `kei-proxy` to verify it.
@@ -185,6 +186,7 @@ manager — see `kei-runtime-setup` and `kei-proxy`.
 
 ```sh
 kei setup                      # prompts; verifies the runtime token; writes ~/.config/kei.yaml (0600)
+<secret-manager read> | kei setup --control-plane-url https://app.haikeilabs.com   # token from a pipe, nobody pastes it
 kei runtime bootstrap          # runs the configured kei-proxy to verify + send a heartbeat
 ```
 

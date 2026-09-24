@@ -139,14 +139,19 @@ verified and heartbeating); they differ in where the runtime settings live.
 ### Path A: workstation — `kei setup` then `kei runtime bootstrap`
 
 ```sh
-kei setup               # prompts for control-plane URL, runtime token, harness URL, kei-proxy path, optional model
+<secret-manager read> | kei setup --control-plane-url https://app.haikeilabs.com --harness-url http://127.0.0.1:8088
 kei runtime bootstrap   # verifies the installation and sends the first heartbeat
 ```
 
-- `kei setup` verifies the runtime token against the control plane before
-  saving. It prompts for the token so it stays out of shell history
-  (`--runtime-token` exists for automation but is recorded in history). Use
-  `--config PATH` for a separate environment.
+- Feed the token to `kei setup` on stdin straight from the secret manager
+  (for example `op read …`, `aws secretsmanager get-secret-value … --query
+  SecretString --output text`), so no one copies or pastes it. When stdin is
+  not a terminal, `kei setup` reads the token as the first line and uses
+  defaults for anything else not given as a flag. Run interactively, it
+  prompts with hidden input instead. Avoid `--runtime-token`: it lands in shell
+  history and the process list.
+- `kei setup` verifies the token against the control plane before saving.
+  Use `--config PATH` for a separate environment.
 - `kei runtime bootstrap` loads that config and runs the local `kei-proxy
   runtime bootstrap`, passing the URL and token in the child's environment —
   the same thing the harness will do. It finds `kei-proxy` via the configured

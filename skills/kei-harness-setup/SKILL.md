@@ -125,7 +125,7 @@ For a coding harness on a workstation, the current path is:
 kei login --api-url https://app.haikeilabs.com   # admin, once; a person approves in the browser
 kei bot init --platform cli --name "my laptop"
 kei bot credential --installation ID | <secret-manager import>
-kei setup                 # stores the runtime token + URL in ~/.config/kei.yaml
+<secret-manager read> | kei setup --control-plane-url https://app.haikeilabs.com   # token via pipe → ~/.config/kei.yaml
 kei runtime bootstrap     # runs the bundled kei-proxy to verify + heartbeat
 kei bot bind --installation ID
 ```
