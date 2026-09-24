@@ -27,6 +27,11 @@ kei runtime bootstrap --help
 - Keep diagnosis read-only. Ask before rotating credentials, deleting an
   installation, restarting a workload, changing cloud resources, or changing
   an account/subscription context.
+- A blanket "just do it" given before diagnosis is not approval for a specific
+  change. Diagnose first. Then name each mutation, what it changes, and what it
+  breaks (rotation kills the current token immediately; a restart drops
+  in-flight work), and get a yes for that step before running it or handing
+  over its command. Until then, give only the read-only commands.
 - Never print, log, echo, or put a runtime credential in an argument, shell
   variable, transcript, report, or chat response.
 - Do not assume AWS, Azure, a secret manager, a runtime host, or an existing

@@ -131,6 +131,22 @@ docker compose -f docker-compose.kei-local.yml up -d
 # from HaikeiLabs/Agentware: PYTHONPATH=python/src python3 -m evals.main --models ollama
 ```
 
+## Providers that are not OpenAI-compatible
+
+The supported answer is to put the provider behind an OpenAI-compatible
+`/v1/chat/completions` endpoint and point `LLM_ENDPOINT` at that. Many GPU
+serving stacks already expose one (vLLM, llama.cpp/llamafile, Ollama's `/v1`).
+Otherwise, use a translating gateway the team runs and owns. The harness,
+`tool_definitions.py`, and `eval_harness.py` then need no vendor-specific code.
+
+Adding a native, non-OpenAI adapter (a new `ModelFormat`, `ModelBackend`, or
+model class) changes the project boundary. That needs a reviewed design (an
+ADR or design doc approved by the harness owners) before any code. Until one
+exists, do not write or outline implementation steps for it. Explain the
+boundary, offer the compatible-endpoint path, and suggest opening the design
+discussion. `ollama_direct` is an existing exception, not a template
+for new ones.
+
 ## Realistic usage boundaries
 
 - **Do not** add a hardcoded model vendor, a proprietary SDK, or a non-OpenAI-compatible
