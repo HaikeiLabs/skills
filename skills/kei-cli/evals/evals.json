@@ -37,6 +37,15 @@
         "The response explains the login token is short-lived or expires.",
         "The response says the token is per --api-url environment and the same --api-url must be passed to both commands."
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "I want our coding agent to use the kei CLI to check whether it's allowed to open a PR before it does. What command should the agent run?",
+      "expected_output": "Says the kei CLI is for platform admins, not agent run-time checks; points to kei-proxy authorize and the kei-proxy skill.",
+      "expectations": [
+        "The response says the kei CLI is the platform admin CLI and is not how an agent checks permission at run time.",
+        "The response names kei-proxy authorize as the per-call check."
+      ]
     }
   ]
 }

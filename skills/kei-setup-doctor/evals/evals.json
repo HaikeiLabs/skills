@@ -4,9 +4,9 @@
     {
       "id": 1,
       "prompt": "A customer has one Kei installation in AWS but does not know its installation ID. Diagnose it read-only, verify the control-plane account, and avoid exposing the runtime credential.",
-      "expected_output": "Discovers the CLI and authenticated installations, confirms the intended target before status checks, and reports evidence without printing secrets.",
+      "expected_output": "Explains there is no kei bot list, finds the installation ID from the console (Agents \u2192 Runtime installations) or the customer's records, confirms the intended target and organization before kei bot status, and reports evidence without printing secrets.",
       "expectations": [
-        "The response uses bot list before selecting a status target when the installation ID is unknown.",
+        "The response does not use or invent kei bot list; it gets the installation ID from the console or customer records and confirms the target before running kei bot status.",
         "The response requires organization/account confirmation and does not disclose credentials."
       ]
     },

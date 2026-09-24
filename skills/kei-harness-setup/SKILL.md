@@ -15,8 +15,11 @@ inside the tenant runtime. The catalog holds policy, connector metadata, and
 redacted audit metadata only. Setting up a harness means installing the skills
 that teach the agent this contract, then wiring the harness to a runtime.
 
-This is a workflow skill. Load **`kei-cli`** for `kei` syntax and
-**`kei-runtime-setup`** for the runtime half.
+This is a workflow skill. Keep the two Kei executables straight: **`kei`** is
+the platform admin CLI a person runs once to set things up (`kei-cli` skill);
+**`kei-proxy`** is the runtime the harness calls on every governed tool call
+(`kei-proxy` skill). The agent itself only ever talks to `kei-proxy`. Load
+**`kei-runtime-setup`** for the runtime half of the setup.
 
 ## Retrieval sources
 
@@ -116,14 +119,28 @@ container as the harness. Follow **`kei-runtime-setup`** — it starts with
 `kei login`, which a person must approve in the browser. For a local coding
 harness, create the installation with `--platform cli`.
 
-After bootstrap, the harness process needs `KEI_RUNTIME_TOKEN` (from the
-secret manager) and `KEI_RUNTIME_CONTROL_PLANE_URL` in its environment so the
-`kei-proxy` it spawns inherits them.
+For a coding harness on a workstation, the current path is:
+
+```sh
+kei login --api-url https://app.haikeilabs.com   # admin, once; a person approves in the browser
+kei bot init --platform cli --name "my laptop"
+kei bot credential --installation ID | <secret-manager import>
+kei setup                 # stores the runtime token + URL in ~/.config/kei.yaml
+kei runtime bootstrap     # runs the bundled kei-proxy to verify + heartbeat
+kei bot bind --installation ID
+```
+
+At run time the harness process needs `KEI_RUNTIME_TOKEN` and
+`KEI_RUNTIME_CONTROL_PLANE_URL` in its environment so the `kei-proxy` it
+spawns for each call inherits them. Load them from the secret manager; do not
+put the token in a harness config file in a repo.
 
 ## 3. Pass identity on every governed call
 
 The adapter calls `kei-proxy authorize` before a governed tool runs and obeys
-the result: exit code `0` means allowed, anything else means stop. Identity and
+the result: exit code `0` means allowed; any non-zero exit (a deny, or an
+error such as an unreachable control plane) means do not run the tool. The
+full flag and env reference is in the `kei-proxy` skill. Identity and
 delegation come from flags or environment:
 
 ```text

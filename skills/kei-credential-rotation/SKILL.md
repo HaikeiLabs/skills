@@ -5,8 +5,10 @@ description: Rotate or revoke a Kei runtime installation credential (the KEI_RUN
 
 # Rotate a Kei runtime credential
 
-This is a workflow skill. For exact `kei` syntax and install steps, load
-**`kei-cli`**; this skill owns the cutover order and the checks.
+This is a workflow skill. Rotation is admin work done with `kei`, the platform
+admin CLI (`kei-cli` skill); the runtime (`kei-proxy`, used by agents) only
+consumes the new token and is restarted and re-bootstrapped afterwards
+(`kei-proxy` skill). This skill owns the cutover order and the checks.
 
 ## Retrieval sources
 
@@ -69,11 +71,17 @@ revealed once; copy it directly into the secret manager.
 
 Then immediately:
 
-1. Restart or roll the runtime so it reloads `KEI_RUNTIME_TOKEN`.
+1. Get the new token to where the runtime reads it, and restart:
+   - **Workstation runtime** (set up with `kei setup`): the token also lives in
+     `~/.config/kei.yaml`. Re-run `kei setup` and enter the new token at the
+     prompt, then restart the harness.
+   - **Deployed runtime**: restart or roll it so it reloads `KEI_RUNTIME_TOKEN`
+     from the secret manager.
 2. Re-run bootstrap and check the output:
 
    ```sh
-   kei-proxy runtime bootstrap | jq '{installation_id, status, binding_status, workspace_id}'
+   kei runtime bootstrap | jq '{installation_id, status, binding_status, workspace_id}'        # workstation
+   kei-proxy runtime bootstrap | jq '{installation_id, status, binding_status, workspace_id}'  # deployed runtime
    ```
 
    `workspace_id` must be present. Rotation re-scopes the credential to the

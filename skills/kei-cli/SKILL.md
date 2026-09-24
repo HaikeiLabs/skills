@@ -1,14 +1,26 @@
 ---
 name: kei-cli
-description: The `kei` administrator CLI for Kei — install/upgrade, `kei login` device-flow auth, runtime installations (`kei bot init|credential|agents|status|bind|delete`), and local runtime config (`kei setup`, `kei runtime bootstrap`). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something "from the CLI" in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org, workspace, agent, connector, policy, or user commands — say so rather than inventing one.
+description: The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade, `kei login` device-flow auth, runtime installations (`kei bot init|credential|agents|status|bind|delete`), and local runtime config (`kei setup`, `kei runtime bootstrap`). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something "from the CLI" in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org, workspace, agent, connector, policy, or user commands — say so rather than inventing one. For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead.
 ---
 
 # kei CLI
 
-`kei` is the Kei administrator CLI. It authenticates an org owner/admin and
-manages **runtime installations** — the identity a customer-hosted runtime
-uses. It is not the runtime: `kei-proxy` is the separate runtime executable the
-harness invokes per governed call.
+`kei` is the Kei **platform administration** CLI. It authenticates an org
+owner/admin and manages **runtime installations** — the identity a
+customer-hosted runtime uses. It is not how agents interact with Kei at run
+time; that is `kei-proxy`.
+
+| | `kei` — platform admin (this skill) | `kei-proxy` — runtime for agent interaction |
+| --- | --- | --- |
+| Who runs it | A person: org `owner`/`admin` | The harness, as a subprocess, per governed operation |
+| Auth | `kei login` → CLI token in the OS keychain | `KEI_RUNTIME_TOKEN` in the harness environment |
+| Jobs | Login, installations, runtime credentials, bind, agents-on-installation | Allow/deny each tool call, governed connector calls, bootstrap/heartbeat, audit shipping |
+| Skill | `kei-cli` | `kei-proxy` |
+
+If the task is "make the agent's tool call go through Kei", load `kei-proxy`,
+not this skill. An agent never needs `kei login` to do its work. `kei setup`
+and `kei runtime bootstrap` are the only bridge: admin conveniences that write
+local runtime config and invoke `kei-proxy` to verify it.
 
 Your knowledge of `kei` flags and subcommands may be outdated; the CLI is young
 and changes between releases. **Prefer retrieval over this file.**
@@ -42,7 +54,10 @@ kei help && kei --version
 ```
 
 Pin a release with `-v VERSION` (no leading `v`, e.g. `-v 0.1.5`). Rerun the
-installer to upgrade.
+installer to upgrade. Since v0.1.4 the release archive also carries a pinned
+`kei-proxy` (the runtime), and the installer puts it next to `kei`, so a
+workstation gets both binaries from one install. `go install` builds only
+`kei`.
 
 `go install` also works (Go 1.26+), but the package path depends on the
 release. Through v0.1.5 the command lives at the module root and builds a
@@ -159,7 +174,14 @@ kei bot credential --installation ID | <secret-manager import>
   immediately. Load **`kei-credential-rotation`** before rotating a runtime
   that is serving traffic.
 
-## Local runtime config
+## Local runtime: `kei setup` + `kei runtime bootstrap`
+
+This is the current way to bring up a runtime on a workstation. `kei setup`
+saves the runtime settings; `kei runtime bootstrap` runs the bundled
+`kei-proxy runtime bootstrap` with those settings passed in its environment
+(it finds `kei-proxy` via the configured path, then `PATH`). A deployed
+runtime runs `kei-proxy runtime bootstrap` itself with env from its secret
+manager — see `kei-runtime-setup` and `kei-proxy`.
 
 ```sh
 kei setup                      # prompts; verifies the runtime token; writes ~/.config/kei.yaml (0600)

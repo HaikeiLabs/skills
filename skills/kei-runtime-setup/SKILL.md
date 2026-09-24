@@ -11,9 +11,10 @@ allow/deny decision and executes allowed work locally, so provider payloads,
 results, and credentials never enter Kei. This skill takes a runtime from
 "nothing" to "bound and heartbeating".
 
-This is a workflow skill. For exact `kei` syntax, flags, and install steps,
-load **`kei-cli`** (the command reference); this skill decides the order and
-the checks between commands.
+This is a workflow skill that uses both Kei executables: `kei`, the platform
+admin CLI a person runs (command reference: **`kei-cli`**), and `kei-proxy`,
+the runtime the harness runs for agent interaction (command reference:
+**`kei-proxy`**). This skill decides the order and the checks between them.
 
 ## Retrieval sources
 
@@ -29,15 +30,22 @@ user.
 
 ## Two binaries, two jobs
 
-| Binary | Who runs it | What it does |
-| --- | --- | --- |
-| `kei` | An org owner/admin, on their workstation | Logs in, creates installation metadata, emits the runtime credential, writes local runtime config, binds |
-| `kei-proxy` | The harness, as a subprocess, inside the runtime | Bootstraps the installation, sends heartbeats, authorizes each governed tool call |
+| Binary | Role | Who runs it | Auth | What it does |
+| --- | --- | --- | --- | --- |
+| `kei` | Platform admin | An org owner/admin, on their workstation | `kei login` (browser device flow) | Logs in, creates installation metadata, emits the runtime credential, writes local runtime config, binds |
+| `kei-proxy` | Runtime for agent interaction | The harness, as a subprocess, inside the runtime | `KEI_RUNTIME_TOKEN` env | Bootstraps the installation, sends heartbeats, authorizes each governed tool call |
 
-`kei-proxy` has **no network listener** for governed calls. It runs in the same
-container or on the same host as the harness, and the harness invokes it per
-operation and reads the decision from its output. Do not design a sidecar
-service or expose a port for it.
+Steps 0–2 and 6 below are admin work with `kei`. Steps 3–5 configure and
+bootstrap the runtime: on a workstation with `kei setup` + `kei runtime
+bootstrap` (which drive the bundled `kei-proxy` for you), in a deployed runtime
+with `kei-proxy` directly. Step 7 is the runtime answering real calls. The
+runtime never needs `kei login`.
+
+Governed tool calls have **no network listener**: `kei-proxy` runs in the same
+container or on the same host as the harness, which invokes it per operation
+and reads the decision from its output. Do not design a sidecar service or
+expose a port for governed calls. (`kei-proxy serve` is a separate, opt-in
+local OpenAI-compatible model endpoint; see the `kei-proxy` skill.)
 
 ## Before you start
 
@@ -117,7 +125,36 @@ The web reveal also shows `KEI_CREDENTIAL_STORE_INSTALLATION_ID`. That is the
 installation's database ID for credential-store sync. It is not the runtime
 installation identifier, and it is not a secret.
 
-## 3. Configure the runtime environment
+## 3–5. Configure and bootstrap — pick your path
+
+There are two supported paths. They end in the same place (the installation
+verified and heartbeating); they differ in where the runtime settings live.
+
+| | **Workstation / local harness (current default)** | **Deployed runtime (container, server)** |
+| --- | --- | --- |
+| Get `kei-proxy` | Comes with `kei`: since kei-cli v0.1.4 the release installer also installs a pinned `kei-proxy` next to `kei` | Build `kei-proxy:local` from the Kei repo (below) or copy the bundled binary into the image |
+| Settings live in | `~/.config/kei.yaml` (mode `0600`), written by `kei setup` | Harness process environment, from the secret manager |
+| Bootstrap with | `kei runtime bootstrap` | `kei-proxy runtime bootstrap` |
+
+### Path A: workstation — `kei setup` then `kei runtime bootstrap`
+
+```sh
+kei setup               # prompts for control-plane URL, runtime token, harness URL, kei-proxy path, optional model
+kei runtime bootstrap   # verifies the installation and sends the first heartbeat
+```
+
+- `kei setup` verifies the runtime token against the control plane before
+  saving. It prompts for the token so it stays out of shell history
+  (`--runtime-token` exists for automation but is recorded in history). Use
+  `--config PATH` for a separate environment.
+- `kei runtime bootstrap` loads that config and runs the local `kei-proxy
+  runtime bootstrap`, passing the URL and token in the child's environment —
+  the same thing the harness will do. It finds `kei-proxy` via the configured
+  path, then `PATH`; override with `--proxy-path`.
+- Neither command needs `kei login`; they use the runtime token, not the admin
+  login.
+
+### Path B: deployed runtime — environment + `kei-proxy runtime bootstrap`
 
 Set these on the harness process; `kei-proxy` inherits them as a child process:
 
@@ -134,50 +171,35 @@ KEI_RUNTIME_VERSION=<your deployed runtime version>
 - Do not supply an org, tenant, or workspace ID as scope. The token determines
   installation, organization, and workspace.
 
-For a local harness on a workstation, `kei setup` writes the same settings to
-`~/.config/kei.yaml` (mode `0600`) after verifying the token against the
-control plane. It prompts for the token so it stays out of shell history;
-`--runtime-token` exists for automation but is recorded in history.
-
-```sh
-kei setup                       # interactive; also asks for harness URL, kei-proxy path, optional model
-kei setup --config PATH         # separate config file
-```
-
-## 4. Package with the harness (containers)
-
-The container build lives in the private `HaikeiLabs/kei` repository and must
-run from the repository root, because the Dockerfile copies from both
-`cmd/kei-connector-runtime/` and `contracts/connectors/`:
+To build a container, use the private `HaikeiLabs/kei` repository, from its
+root (the Dockerfile copies from both `cmd/kei-connector-runtime/` and
+`contracts/connectors/`):
 
 ```sh
 docker build -f cmd/kei-connector-runtime/Dockerfile -t kei-proxy:local .
 ```
 
-The image contains only `kei-proxy`. Add the harness to the same image (or
-install `kei-proxy` on the same host). No public `kei-proxy` image is
-published; do not invent a registry URL.
-
-## 5. Bootstrap, then keep the heartbeat running
-
-Run bootstrap before the harness accepts work:
+The image contains only `kei-proxy`; add the harness to the same image. No
+public `kei-proxy` image is published; do not invent a registry URL. Then, in
+the runtime, before the harness accepts work:
 
 ```sh
-kei-proxy runtime bootstrap            # inside the runtime
-kei runtime bootstrap                  # from a workstation using ~/.config/kei.yaml
+kei-proxy runtime bootstrap
 ```
 
-`kei runtime bootstrap` just invokes the local `kei-proxy` as a subprocess, the
-same way the harness does. Bootstrap verifies the installation, sends a first
-heartbeat, and prints safe JSON: `installation_id`, `org_id`, `platform`,
-`status`, `binding_status`, and `workspace_id`.
+### Check the bootstrap output (both paths)
+
+Bootstrap prints safe JSON: `installation_id`, `org_id`, `platform`, `status`,
+`binding_status`, and `workspace_id`.
 
 **If `workspace_id` is missing, stop.** The credential was minted before the
 workspace boundary existed. Re-mint it (rotation) rather than letting the
 runtime fall back to organization-wide scope.
 
-Keep liveness current with the companion process, supervised like any other
-long-running process:
+### Keep the heartbeat running (both paths)
+
+`kei runtime` only has `bootstrap`. Ongoing liveness is the runtime's job, run
+under the same supervisor as the harness:
 
 ```sh
 kei-proxy runtime heartbeat --interval 1m
@@ -225,7 +247,8 @@ kei-proxy collector --poll --poll-interval 1m
 kei --version && kei help                    # confirms platform list and flags
 kei-proxy help                               # confirms runtime subcommands and env vars
 kei bot status --installation INSTALLATION_ID
-kei-proxy runtime bootstrap | jq '{installation_id, status, binding_status, workspace_id}'
+kei runtime bootstrap | jq '{installation_id, status, binding_status, workspace_id}'        # workstation
+kei-proxy runtime bootstrap | jq '{installation_id, status, binding_status, workspace_id}'  # deployed runtime
 ```
 
 ## Realistic usage boundaries

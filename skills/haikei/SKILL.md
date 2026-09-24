@@ -1,6 +1,6 @@
 ---
 name: haikei
-description: Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime credential or agent key; connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing the DVL Assistant ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring. Routes the task to the right skill: kei-cli, kei-runtime-setup, kei-credential-rotation, kei-harness-setup, kei-abac-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-assistant-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, or kei-api-conventions.
+description: Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime credential or agent key; connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing the DVL Assistant ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring. Routes the task to the right skill: kei-cli, kei-proxy, kei-runtime-setup, kei-credential-rotation, kei-harness-setup, kei-abac-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-assistant-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, or kei-api-conventions.
 ---
 
 # Discover and build with Haikei
@@ -37,8 +37,13 @@ skills plugin and is loaded by your agent alongside the skills it routes to
 ## Quick decision trees
 
 ```
+Who is acting?
+├─ A person administering the platform (login, installations, credentials) → kei CLI → kei-cli
+└─ An agent doing work (is this tool call allowed? governed connector call? audit) → kei-proxy runtime → kei-proxy
+
 Need to operate Kei from a terminal?
-├─ Which command / what flags / install or upgrade kei → kei-cli
+├─ Which admin command / what flags / install or upgrade kei → kei-cli
+├─ Which runtime command (authorize, connector invoke, heartbeat, collector) → kei-proxy
 ├─ New runtime next to a harness (installation, credential, bootstrap, bind) → kei-runtime-setup
 ├─ Rotate / revoke a runtime token, or a kh_live agent key → kei-credential-rotation
 ├─ Existing installation misbehaving → kei-setup-doctor
@@ -62,6 +67,7 @@ exist in the code today.
 | What you need to do | Surface | When to choose it | Skill |
 | --- | --- | --- | --- |
 | Log in to Haikei from the CLI, or look up any `kei` command | kei CLI | Human operator (owner/admin) needs an org-bound CLI token via the device flow, or exact command syntax | `kei-cli` |
+| Make an agent's tool call go through Kei (allow/deny, connector calls, audit) | `kei-proxy` runtime | Harness or adapter code that calls Kei at run time; never `kei login` | `kei-proxy` |
 | Stand up a customer-hosted runtime / kei-proxy | kei CLI `bot` + `kei-proxy runtime` | New installation → credential → config → bootstrap → heartbeat → bind | `kei-runtime-setup` |
 | Rotate or revoke a runtime credential or agent key | kei CLI `bot credential --rotate`; console for agent keys | Scheduled rotation, suspected leak, or a bootstrap missing `workspace_id` | `kei-credential-rotation` |
 | Connect Claude Code, Codex, OpenCode, Pi, or Cursor to Kei | Haikei skills + kei-proxy | Install these skills in a harness and route its governed calls through the runtime | `kei-harness-setup` |
@@ -86,6 +92,7 @@ exist in the code today.
 
 | Surface | Repo / package | Owns | Does not own |
 | --- | --- | --- | --- |
+| `kei-proxy` runtime | the `kei-connector-runtime` repository | Per-call `authorize`, `connector invoke`, `runtime bootstrap`/`heartbeat`, `collector`, `credential sync`, `model`, `serve` — what agents use at run time | Logins, installations, credential minting (admin CLI); agents and keys (console) |
 | `kei` CLI | the `kei-cli` repository (not `kei/cmd/kei`) | `kei setup`, `kei runtime bootstrap`, `kei login`/`logout`, `kei upgrade`, and `kei bot` (init/agents/status/delete/credential/bind) for customer-hosted runtimes | Org, workspace, connector, group, policy, user commands (none exist); `bot install`/`deploy`/`destroy`/`list` (none exist) |
 | ABAC API | `cmd/abac-engine` | Organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles, consents, audit — all of org management | CLI-shaped org management |
 | agentware SDK | `pedro-agentware` (`go/`, `python/`, `typescript/`) | Policy/audit middleware, delegation, harness contract, kei auth/proxy modules | Connector execution, credential resolution, control-plane data |

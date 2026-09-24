@@ -51,6 +51,8 @@ const HARNESSES = {
     skillDir: '.opencode/skills',
     command: (prompt, model, cwd) => ['opencode', ['run', '--dir', cwd,
       ...(model ? ['-m', model] : []), prompt]],
+    // `opencode run` has no tool flags; deny the same tools via inline config.
+    env: { OPENCODE_CONFIG_CONTENT: JSON.stringify({ permission: { bash: 'deny', edit: 'deny', webfetch: 'deny' } }) },
   },
 };
 
@@ -74,10 +76,10 @@ function parseArgs(argv) {
   return opts;
 }
 
-function run(cmd, args, cwd, timeoutMs = 600_000) {
+function run(cmd, args, cwd, timeoutMs = 600_000, env = {}) {
   return new Promise((resolve) => {
     const started = Date.now();
-    const child = spawn(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawn(cmd, args, { cwd, env: { ...process.env, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '';
     let stderr = '';
     child.stdout.on('data', (d) => { stdout += d; });
@@ -102,7 +104,7 @@ async function answer(skill, prompt, withSkill, opts, runDir) {
   const cwd = scratchProject(skill, withSkill, opts.harness);
   const outFile = path.join(cwd, 'last-message.md');
   const [cmd, args] = HARNESSES[opts.harness].command(prompt, opts.model, cwd, outFile);
-  const res = await run(cmd, args, cwd);
+  const res = await run(cmd, args, cwd, 600_000, HARNESSES[opts.harness].env);
   let response = res.stdout;
   if (HARNESSES[opts.harness].readsOutputFile && fs.existsSync(outFile)) {
     response = fs.readFileSync(outFile, 'utf8');
@@ -143,15 +145,18 @@ Answer to grade:
 <<<
 ${response}
 >>>`;
-  const res = await run('claude', ['-p', graderPrompt, '--output-format', 'text',
-    '--disallowedTools', 'Bash', 'Edit', 'Write', 'Read', 'WebFetch', 'WebSearch',
-    ...(model ? ['--model', model] : [])], os.tmpdir());
   let parsed;
-  try {
-    parsed = JSON.parse(res.stdout.slice(res.stdout.indexOf('{'), res.stdout.lastIndexOf('}') + 1));
-  } catch {
-    parsed = { expectations: expectations.map((text) => ({ text, passed: false, evidence: 'grader output was not valid JSON' })) };
+  // Retry once: the grader occasionally wraps or truncates its JSON.
+  for (let attempt = 0; attempt < 2 && !parsed; attempt++) {
+    const res = await run('claude', ['-p', graderPrompt, '--output-format', 'text',
+      '--disallowedTools', 'Bash', 'Edit', 'Write', 'Read', 'WebFetch', 'WebSearch',
+      ...(model ? ['--model', model] : [])], os.tmpdir());
+    try {
+      const candidate = JSON.parse(res.stdout.slice(res.stdout.indexOf('{'), res.stdout.lastIndexOf('}') + 1));
+      if (Array.isArray(candidate.expectations) && candidate.expectations.length === expectations.length) parsed = candidate;
+    } catch { /* retry */ }
   }
+  parsed ??= { expectations: expectations.map((text) => ({ text, passed: false, evidence: 'grader output was not valid JSON' })) };
   const passed = parsed.expectations.filter((e) => e.passed).length;
   const grading = {
     expectations: parsed.expectations,
