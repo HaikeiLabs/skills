@@ -158,6 +158,16 @@ node scripts/check-internal-links.mjs   # every internal markdown link resolves 
 node scripts/verify-evals.mjs           # every skill has portable Aspire-style eval cases
 ```
 
+The checks above don't call a model. To see whether a skill actually changes
+agent behavior, run its evals with and without the skill (needs the harness
+CLI logged in; not run in CI):
+
+```bash
+node scripts/run-evals.mjs --skill kei-cli                  # one skill, Claude Code
+node scripts/run-evals.mjs --harness codex                  # every skill, Codex
+node scripts/run-evals.mjs --grade-only evals-out/<run>     # re-grade saved answers
+```
+
 Because the web app renders `skills/` at build time (D-015), a failure here is a
 docs build failure too. When adding a skill, also confirm it is listed in the
 Skills table above, routed from `skills/haikei/SKILL.md`, and reflected in the

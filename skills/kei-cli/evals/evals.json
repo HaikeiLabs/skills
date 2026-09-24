@@ -7,7 +7,7 @@
       "expected_output": "Logs in first with the device flow, uses kei bot init --platform cli, pipes kei bot credential to a secret manager, uses kei bot status, and says workspaces are created in the web app.",
       "expectations": [
         "kei login is run before any kei bot command and the response notes a person must approve it in the browser.",
-        "The command sequence is limited to commands present in the CLI help.",
+        "Every kei command used is one of: kei login, kei logout, kei setup, kei runtime bootstrap, kei upgrade, kei bot init, kei bot credential, kei bot agents, kei bot status, kei bot bind, kei bot delete, kei help, kei --version (no invented subcommands such as kei workspace, kei runtime tokens, or kei bot list).",
         "The response explicitly says the CLI does not manage organizations or workspaces."
       ]
     },

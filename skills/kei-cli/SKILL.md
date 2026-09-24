@@ -171,6 +171,25 @@ kei runtime bootstrap          # runs the configured kei-proxy to verify + send 
 `--runtime-token` (lands in shell history — prefer the prompt), and
 `--skip-verify`.
 
+## When resource commands arrive (AIP/CRUD)
+
+The CLI is being extended toward the resource-oriented Kei API contract, but
+no released version has org, workspace, agent, connector, group, policy, or
+user commands yet. Before using or documenting one, confirm it in `kei help`
+for the installed version and check that it follows the contract:
+
+- `list` / `get` / `create` / `update` / `delete` map to the API's List, Get,
+  Create, Update, and Delete;
+- `update` uses PATCH semantics with an explicit update mask, never a full
+  replace;
+- `list` uses opaque page tokens and returns the next page token, not offsets;
+- errors keep a stable machine-readable reason;
+- non-CRUD state changes are explicit `:verb` custom methods (for example
+  `:rotate`), not guessed subpaths.
+
+Until the command exists and is tested, use the web app or `kei-abac-api`. Do
+not describe a future command as available.
+
 ## Validation commands
 
 ```sh
