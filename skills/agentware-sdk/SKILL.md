@@ -97,6 +97,15 @@ against the repo README, `python/pyproject.toml`, `go/go.mod`, and
 
 ## The core pattern (same in all three ports)
 
+The pattern is shared; the spelling is not. Go, Python, and TypeScript name and
+shape these types differently (for example `Execute` vs `execute`, error
+return vs raised exception, sync vs async). The names below are a map, not a
+signature reference. Before writing integration code or telling someone
+"this type exists", open the port they are using (`go/`, `python/`,
+`typescript/`) and confirm the exact type, method, argument order, and
+failure behavior there, including in its tests. Say which port you checked. If
+you cannot check, say the names are unverified.
+
 1. **Types**: `Action` (`ALLOW` | `DENY` | `FILTER`), `CallerContext` (user/session/role/
    source/trusted + delegation fields `invoking_subject`, `parent_span`, `delegation_depth`),
    `Decision` (action + rule + reason + redacted args), `MessageType`/`MessageMeta`.

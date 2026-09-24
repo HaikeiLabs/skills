@@ -27,6 +27,33 @@ For new or migrated API work, use the Kei AIP house style:
 - stable machine-readable error reasons alongside human-readable messages;
 - explicit `:verb` custom methods only for non-CRUD state transitions.
 
+### Invariants every new or migrated resource must keep
+
+Include all four in any design, and check them in review:
+
+1. **Workspace scope.** Everything is workspace-scoped; workspaces belong to
+   organizations. Require both org and workspace (in the path for AIP
+   resources), take the org from the authenticated token, name a missing one in
+   a 400, and return 404 when zero rows match or the resource is in another
+   tenant. An optional org or workspace that widens the query is a defect.
+2. **Repository boundary.** All database access goes through the
+   policy-catalog `pkg/database` package (ADR 016): an interface for the
+   operations, a `Postgres…Repository` holding the pool, a constructor, and a
+   `Set…Repository` injection. Handlers hold no SQL. Mutations return rows
+   affected so the handler can tell 404 from 500. Wire the repository in both
+   `main.go` and `main_test.go`.
+3. **Audit identity.** Every mutation records who did it (the authenticated
+   subject, and for agent calls the invoking human and delegation chain) in
+   the audit trail. Never record secrets or payloads.
+4. **Metadata only in the policy catalog.** The catalog stores policy,
+   connector and tool metadata, opaque credential references, and redacted
+   audit metadata (ADR 011). Provider credentials, payloads, results,
+   documents, embeddings, and indexes never enter it. They stay in the tenant
+   runtime.
+
+Migrations for a new table follow the goose rules (unique next number from
+`origin/main`, `+goose Up`/`+goose Down`).
+
 When a governed CLI command exists, public workflows should use it rather than
 reaching around the client with guessed routes or raw HTTP. This skill remains
 the source for API-only resources until the CLI covers them. Verify paths and
