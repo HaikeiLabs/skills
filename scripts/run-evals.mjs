@@ -31,12 +31,20 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SKILLS = path.join(ROOT, 'skills');
 
 // Project-level skill directory each harness discovers from its cwd.
+//
+// Every harness is also isolated from user-level skills (~/.claude/skills,
+// ~/.agents/skills, ...). Without that, a machine with the Haikei skills
+// installed globally would load them in the "without skill" baseline too,
+// and in "with skill" runs could load the installed copy instead of the one
+// under test.
 const HARNESSES = {
   claude: {
     skillDir: '.claude/skills',
     // Read-only: evals judge the written answer, and must never run kei,
     // log in, or touch credentials.
+    // project,local: load the scratch project's .claude/skills but not ~/.claude.
     command: (prompt, model) => ['claude', ['-p', prompt, '--output-format', 'text',
+      '--setting-sources', 'project,local',
       '--disallowedTools', 'Bash', 'Edit', 'Write', 'NotebookEdit', 'WebFetch', 'WebSearch',
       ...(model ? ['--model', model] : [])]],
   },
@@ -46,13 +54,22 @@ const HARNESSES = {
       '--ephemeral', '-s', 'read-only', '-C', cwd, '-o', outFile,
       ...(model ? ['-m', model] : []), prompt]],
     readsOutputFile: true,
+    // Codex reads user skills from $HOME/.agents/skills; give it an empty HOME
+    // but keep CODEX_HOME so it stays logged in.
+    env: () => ({ HOME: fs.mkdtempSync(path.join(os.tmpdir(), 'skill-eval-home-')),
+      CODEX_HOME: process.env.CODEX_HOME ?? path.join(os.homedir(), '.codex') }),
   },
   opencode: {
     skillDir: '.opencode/skills',
     command: (prompt, model, cwd) => ['opencode', ['run', '--dir', cwd,
       ...(model ? ['-m', model] : []), prompt]],
     // `opencode run` has no tool flags; deny the same tools via inline config.
-    env: { OPENCODE_CONFIG_CONTENT: JSON.stringify({ permission: { bash: 'deny', edit: 'deny', webfetch: 'deny' } }) },
+    // Skip ~/.claude/skills and ~/.agents/skills; .opencode/skills still loads.
+    env: () => ({
+      OPENCODE_CONFIG_CONTENT: JSON.stringify({ permission: { bash: 'deny', edit: 'deny', webfetch: 'deny' } }),
+      OPENCODE_DISABLE_CLAUDE_CODE_SKILLS: '1',
+      OPENCODE_DISABLE_EXTERNAL_SKILLS: '1',
+    }),
   },
 };
 
@@ -104,7 +121,7 @@ async function answer(skill, prompt, withSkill, opts, runDir) {
   const cwd = scratchProject(skill, withSkill, opts.harness);
   const outFile = path.join(cwd, 'last-message.md');
   const [cmd, args] = HARNESSES[opts.harness].command(prompt, opts.model, cwd, outFile);
-  const res = await run(cmd, args, cwd, 600_000, HARNESSES[opts.harness].env);
+  const res = await run(cmd, args, cwd, 600_000, HARNESSES[opts.harness].env?.() ?? {});
   let response = res.stdout;
   if (HARNESSES[opts.harness].readsOutputFile && fs.existsSync(outFile)) {
     response = fs.readFileSync(outFile, 'utf8');
