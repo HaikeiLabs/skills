@@ -1,0 +1,34 @@
+{
+  "skill_name": "kei-runtime-setup",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We have a new customer, Acme, and I need a Kei runtime next to our coding harness on a Linux box. Walk me through getting it from nothing to bound, I'm an org admin and already have the kei CLI.",
+      "expected_output": "Starts with kei login, creates the installation with kei bot init, pipes kei bot credential into a secret manager, sets KEI_RUNTIME_* env, runs kei-proxy runtime bootstrap, keeps the heartbeat running, binds, and checks a denial.",
+      "expectations": [
+        "kei login appears before any kei bot command and the response says the user must approve the device flow in a browser.",
+        "The runtime credential is piped to a secret manager and never printed, pasted, or passed as a command-line argument.",
+        "Bootstrap runs before bind, and the response says to keep kei-proxy runtime heartbeat running.",
+        "The response tells the user to confirm a deliberately unbound call is denied."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "kei-proxy runtime bootstrap printed installation_id, org_id, platform, status and binding_status but there's no workspace_id. It's fine to just use the org, right?",
+      "expected_output": "Says no: a missing workspace_id means the credential predates the workspace boundary and must be re-minted (rotated), not widened to org scope.",
+      "expectations": [
+        "The response refuses to fall back to organization-wide scope.",
+        "The response says to re-mint or rotate the credential."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Can you give me the docker run command to pull the official kei-proxy image and run it as a sidecar service listening on a port?",
+      "expected_output": "Explains there is no public image and no listener for governed calls; build kei-proxy:local from the Kei repo root and co-locate it with the harness as a subprocess.",
+      "expectations": [
+        "The response does not invent a registry URL for a kei-proxy image.",
+        "The response says kei-proxy runs as a subprocess of the harness in the same container or host, not as a network sidecar for governed calls."
+      ]
+    }
+  ]
+}

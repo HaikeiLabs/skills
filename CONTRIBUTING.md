@@ -57,6 +57,24 @@ node scripts/verify-evals.mjs
 
 These run in CI as well (Node 22), on pull requests and pushes to `main`.
 
+7. Run the evals for any skill you add or change, with and without the skill,
+   and include the pass rates in the pull request:
+
+```bash
+node scripts/run-evals.mjs --skill <name>                     # Claude Code (default)
+node scripts/run-evals.mjs --skill <name> --harness codex     # or opencode
+```
+
+Each case runs in a scratch project with the skill installed in that harness's
+project skill directory (`.claude/skills`, `.agents/skills`, `.opencode/skills`)
+and again without it. The harness gets read-only tools, and a `claude -p`
+grader checks every expectation. Results go to `evals-out/` (ignored by git).
+Open them with skill-creator's `eval-viewer/generate_review.py`. The script
+exits non-zero if the skill passes under half of its expectations. It calls
+models, so it is not part of CI. Write expectations the grader can check from
+the answer alone: name the allowed commands instead of "commands in the CLI
+help", because the grader cannot see the help output.
+
 ## Licensing and naming
 
 This repository is `HaikeiLabs/skills`, public, under the **MIT** licence. Do

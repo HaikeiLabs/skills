@@ -113,6 +113,10 @@ skill.
 |-------|------------|
 | [haikei](skills/haikei/SKILL.md) | Router: "what are you trying to build?" maps a need to the right Haikei product and the skill to load |
 | [kei-cli](skills/kei-cli/SKILL.md) | The `kei` CLI (standalone `kei-cli` repo): `setup`, `runtime bootstrap`, `login`/`logout` (OIDC device flow, admin-only, org-bound), `upgrade`, and `bot init/credential/agents/status/bind/delete` for customer-hosted runtimes |
+| [kei-proxy](skills/kei-proxy/SKILL.md) | The `kei-proxy` runtime agents use at run time: `authorize` per tool call (exit codes, JSON, `KEI_PROXY_*` identity), `connector invoke`, `runtime bootstrap`/`heartbeat`, `collector`, `serve` — and how it differs from the `kei` admin CLI |
+| [kei-runtime-setup](skills/kei-runtime-setup/SKILL.md) | Stand up a customer-hosted runtime end to end: login, installation, credential to secret manager, `KEI_RUNTIME_*` env, `kei-proxy runtime bootstrap`/`heartbeat`, bind, and a fail-closed check |
+| [kei-credential-rotation](skills/kei-credential-rotation/SKILL.md) | Rotate or revoke a runtime installation credential (`kei bot credential --rotate`, immediate cutover) and the console-only agent-key rotation |
+| [kei-harness-setup](skills/kei-harness-setup/SKILL.md) | Connect Claude Code, Codex, OpenCode, Pi, or Cursor to Kei: install these skills, pair with a runtime, pass agent identity to `kei-proxy authorize`, prove denials |
 | [kei-abac-api](skills/kei-abac-api/SKILL.md) | The ABAC HTTP API (`/api/v1/*`): organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles — where org management actually lives today |
 | [kei-api-conventions](skills/kei-api-conventions/SKILL.md) | Resource-oriented (AIP-style) HTTP endpoint conventions from ADR-019: collection naming, `:verb` custom methods, pagination, the dual-write migration, and the `aipcheck` CI gate |
 | [agentware-sdk](skills/agentware-sdk/SKILL.md) | The open-source agentware SDK: policy enforcement, audit records, and delegation for agent tool calls, in Go, Python, and TypeScript |
@@ -153,6 +157,16 @@ node scripts/verify-skills.mjs          # frontmatter, name=dir, required sectio
 node scripts/verify-manifests.mjs       # every plugin manifest parses as JSON with its required shape
 node scripts/check-internal-links.mjs   # every internal markdown link resolves to a file
 node scripts/verify-evals.mjs           # every skill has portable Aspire-style eval cases
+```
+
+The checks above don't call a model. To see whether a skill actually changes
+agent behavior, run its evals with and without the skill (needs the harness
+CLI logged in; not run in CI):
+
+```bash
+node scripts/run-evals.mjs --skill kei-cli                  # one skill, Claude Code
+node scripts/run-evals.mjs --harness codex                  # every skill, Codex
+node scripts/run-evals.mjs --grade-only evals-out/<run>     # re-grade saved answers
 ```
 
 Because the web app renders `skills/` at build time (D-015), a failure here is a

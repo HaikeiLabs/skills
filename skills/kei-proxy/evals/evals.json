@@ -1,0 +1,35 @@
+{
+  "skill_name": "kei-proxy",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm writing the tool-call hook for our Claude Code adapter. Before a github.create_pr call runs, how should the hook ask Kei and how do I read the answer? Our agent id is 9c1d2e3f-4a5b-4c6d-8e7f-0a1b2c3d4e5f.",
+      "expected_output": "Uses kei-proxy authorize with --tool/--action/--resource and identity env (KEI_PROXY_AGENT_ID, KEI_PROXY_FRAMEWORK, invoking subject), treats exit 0 as allow and any non-zero exit as do-not-run, reads the JSON decision from stdout, and keeps the token in KEI_RUNTIME_TOKEN.",
+      "expectations": [
+        "The response uses kei-proxy authorize, not the kei admin CLI, for the per-call decision.",
+        "The response treats any non-zero exit, including errors, as do not run the tool.",
+        "The runtime token comes from the KEI_RUNTIME_TOKEN environment variable, not a command-line argument.",
+        "The response does not tell the agent to run kei login."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "our agent keeps getting 'not logged in; run kei login first' when it tries to check permissions mid-task. should I just have the agent run kei login?",
+      "expected_output": "Explains the agent is using the admin CLI by mistake; agents call kei-proxy with KEI_RUNTIME_TOKEN, and kei login is a human device flow for platform admins.",
+      "expectations": [
+        "The response says the agent should not run kei login.",
+        "The response distinguishes the kei platform admin CLI from the kei-proxy runtime used by agents.",
+        "The response points the agent at kei-proxy authorize with KEI_RUNTIME_TOKEN in its environment."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "On my laptop I already ran kei setup. Do I call kei-proxy runtime bootstrap or kei runtime bootstrap, and which one keeps the heartbeat going?",
+      "expected_output": "On a workstation use kei runtime bootstrap (it runs the bundled kei-proxy with the kei.yaml settings); heartbeat is kei-proxy runtime heartbeat, since kei runtime only has bootstrap.",
+      "expectations": [
+        "The response recommends kei runtime bootstrap on the workstation after kei setup.",
+        "The response says ongoing heartbeat is kei-proxy runtime heartbeat."
+      ]
+    }
+  ]
+}
