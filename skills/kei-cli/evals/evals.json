@@ -3,10 +3,11 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "I need to install Kei for a customer-hosted Azure bot runtime. Show the safe sequence for login, initializing the bot, deploying it, and checking status, but do not make up commands for creating a workspace.",
-      "expected_output": "Uses the documented kei login and bot lifecycle commands, and sends workspace management to the ABAC API skill.",
+      "prompt": "I'm an org admin and just installed kei. Show me the safe sequence to create a runtime installation for a local coding harness, get its credential into our secret manager, and check its status. Don't make up commands for creating a workspace.",
+      "expected_output": "Logs in first with the device flow, uses kei bot init --platform cli, pipes kei bot credential to a secret manager, uses kei bot status, and says workspaces are created in the web app.",
       "expectations": [
-        "The command sequence is limited to commands present in the CLI source or help.",
+        "kei login is run before any kei bot command and the response notes a person must approve it in the browser.",
+        "The command sequence is limited to commands present in the CLI help.",
         "The response explicitly says the CLI does not manage organizations or workspaces."
       ]
     },
@@ -26,6 +27,15 @@
       "expectations": [
         "The response does not claim a future resource command exists without source or help evidence.",
         "The response mentions opaque pagination and PATCH/update-mask semantics only as contract requirements for a released resource command."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "kei bot status --installation 3f2c9a1e-8b7d-4c6e-9f10-2a3b4c5d6e7f says 'not logged in; run kei login first' but I logged in yesterday against staging. what's going on",
+      "expected_output": "Explains the token is short-lived and bound to the --api-url host; log in again with the same --api-url used by the command.",
+      "expectations": [
+        "The response explains the login token is short-lived or expires.",
+        "The response says the token is per --api-url environment and the same --api-url must be passed to both commands."
       ]
     }
   ]

@@ -1,293 +1,196 @@
 ---
 name: kei-cli
-description: Use the kei CLI (the standalone kei-cli repository) for customer-hosted Kei bot runtimes and its governed resource commands when released. Use when running setup, runtime bootstrap, login/logout, upgrade, bot lifecycle commands, or supported AIP-style resource commands. Covers admin-only, org-bound OIDC device authorization. Do not invent commands: verify the installed CLI and contract; current releases do not provide org/workspace/connector/group/policy/user CRUD, so those surfaces remain in the ABAC API skill until a governed CLI command exists.
+description: The `kei` administrator CLI for Kei — install/upgrade, `kei login` device-flow auth, runtime installations (`kei bot init|credential|agents|status|bind|delete`), and local runtime config (`kei setup`, `kei runtime bootstrap`). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something "from the CLI" in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org, workspace, agent, connector, policy, or user commands — say so rather than inventing one.
 ---
 
-# kei CLI (deployment CLI)
+# kei CLI
 
-The `kei` CLI provisions and manages customer-hosted Kei bot runtimes. The MVP
-supports Microsoft Teams on Azure. The customer owns the Azure subscription,
-resource group, Key Vault, and deployed runtime; Kei provides the control-plane
-installation and runtime image.
+`kei` is the Kei administrator CLI. It authenticates an org owner/admin and
+manages **runtime installations** — the identity a customer-hosted runtime
+uses. It is not the runtime: `kei-proxy` is the separate runtime executable the
+harness invokes per governed call.
 
-Source of truth: `main.go` (`printUsage`) and `README.md` at the root of the
-**`kei-cli` repository** (Go module `github.com/HaikeiLabs/kei-cli`). This is a
-standalone repository — the CLI is not built from `kei/cmd/kei`, which does not
-implement this command surface. Every command and flag below is traceable to
-those files. **There are no other commands.** In particular there is no `org`,
-`workspace`, `connector`, `group`, `policy`, or `user` command — org management
-is done through the ABAC API (see the `kei-abac-api` skill) — and no
-`kei setup doctor`: diagnosis is the `kei-setup-doctor` skill's workflow, not a
-subcommand.
+Your knowledge of `kei` flags and subcommands may be outdated; the CLI is young
+and changes between releases. **Prefer retrieval over this file.**
 
-## Who can use this CLI
+## Retrieval sources
 
-The CLI is **admin-only and org-bound**. Only a member whose role is `owner` or
-`admin` in the target organization can complete `kei login`. This is enforced in
-two places (defense in depth):
+| Source | How to retrieve | Use for |
+| --- | --- | --- |
+| Installed binary | `kei help`, `kei <command> --help`, `kei bot` (lists subcommands) | Exact commands, flags, and allowed values for the version actually installed |
+| Kei console docs | `https://app.haikeilabs.com/#/docs/getting-started`, `#/docs/create-an-organization` (CLI authentication and identity), `#/docs/add-a-workspace` (proxy runtime) | The customer-facing, supported workflow |
+| `kei-cli` README | `https://github.com/HaikeiLabs/kei-cli` (private) | Install options, build from source |
+| Release endpoint | `https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/latest.txt` | Latest published version |
 
-1. `cmd/abac-engine/cli_device_auth.go` — the device-authorization approve
-   handler selects the member role for `(org_id, user_id)` and refuses anything
-   but `owner` or `admin` with **403 "organization administrator role is
-   required"**.
-2. `cmd/web/main.go` — the browser-facing approve handler independently checks
-   the signed-in user's administrated organizations and refuses others, with a
-   constant-time CSRF check.
+When this skill and `kei help` disagree, **trust `kei help`** and mention the
+difference to the user.
 
-A non-admin **can** start a device flow, but the approval is refused. Do not
-hand the CLI to a non-admin expecting a usable token; they will hit the 403
-above.
-
-The CLI bearer token is **bound to the org selected at approval time**: the
-approval row records both `approved_user_id` and `org_id`, so the token grants
-access to that one org only. It is not a generic user token.
-
-## Login: OIDC/SSO device flow
-
-`kei login` runs an OAuth device flow. It does not print a token and does not
-store one in a config file.
+## FIRST: check that `kei` is installed
 
 ```sh
-kei login [--api-url URL]
+kei --version     # prints "kei <version>"
 ```
 
-- Defaults to `https://app.haikeilabs.com`, overridable with `--api-url URL`
-  (absolute http(s) URL, no query or fragment) or the `KEI_WEB_URL` env var.
-- The CLI starts a device authorization, prints a browser URL and a one-time
-  verification code:
-  - `POST /api/cli/device/authorize` (web app), which maps to
-    `/api/v1/internal/cli-device-authorizations` on the ABAC engine.
-  - Prints `Open this URL in a browser and approve the CLI:` plus
-    `Verification code: <code>`.
-- An **owner/admin approves the code in an authenticated browser session**
-  (OIDC/SSO). Approval goes through `/api/v1/internal/cli-device-authorizations/approve`.
-- The CLI polls `/api/cli/device/token` (`/poll`) until `approved`, `denied`,
-  or `expired`.
-- On approval the access token is written to the **OS keychain** (service
-  `kei-cli`, account = host of `--api-url`) and **never printed**. It is sent
-  as `Authorization: Bearer` on subsequent calls.
-- The token is short-lived. Re-run `kei login` before a retry if a long Azure
-  deployment ends with a 401 from the Kei API.
+If it is missing, install with the checksum-verifying release installer
+(macOS and Linux, arm64 and amd64). This is the recommended path:
 
-## Command surface
-
-Exact usage from `printUsage` in the `kei-cli` repository's `main.go`:
-
-```
-kei setup [--config PATH] [--control-plane-url URL] [--runtime-token TOKEN]
-kei runtime bootstrap [--config PATH] [--proxy-path PATH]
-kei login [--api-url URL] [--no-browser]
-kei logout [--api-url URL]
-kei upgrade [--version VERSION]
-kei bot init --platform teams|discord|slack --name NAME [--agent ID] [--api-url URL]
-kei bot credential --installation ID [--rotate] [--api-url URL]
-kei bot agents list|add|remove --installation ID [--agent ID] [--default] [--api-url URL]
-kei bot status --installation ID [--api-url URL]
-kei bot delete --installation ID --yes [--api-url URL]
-kei --version
-```
-
-The `bot` dispatch also accepts `bind` (`kei bot bind --installation ID
-[--api-url URL]`), which activates an installation after its deployed runtime
-has reported a heartbeat; it is not listed in `printUsage`.
-
-There is **no `kei bot install`, `deploy`, `destroy`, or `list`**, and no
-`kei setup doctor`. Cloud provisioning is not performed by the CLI. Do not
-infer a resource-management command from an API route or add a private CLI
-endpoint.
-
-## AIP/CRUD relationship
-
-The public CLI is being extended toward the resource-oriented Kei contract,
-but the current standalone release has no organization, workspace, connector,
-group, policy, or user CRUD commands. When a release exposes a resource, use
-that release's command and help output as the source of truth and map it to
-the governed API resource:
-
-- `list`/`get`/`create`/`update`/`delete` map to List/Get/Create/Update/Delete;
-- updates use PATCH semantics and an explicit update mask;
-- lists use opaque page tokens and return the next page token;
-- errors retain stable machine-readable reasons;
-- state transitions that are not CRUD use explicit `:verb` API methods, not
-  guessed subpaths.
-
-Until the CLI command exists and is tested, load `kei-abac-api` for the
-supported API surface. Do not document a future command as available.
-
-### Workflow in practice
-
-- **Register the installation**: `kei bot init --platform teams --name "..."`
-  creates the public installation metadata and returns a non-secret
-  `installation_id`. Runtime credentials are not printed here.
-- **Provision the runtime**: done **outside the CLI** — the CLI has no
-  `install`, `deploy`, or `destroy` command and does not apply cloud templates.
-  The customer (or the operator, in the customer's account) stands up the host,
-  and the runtime itself is configured with `kei setup` and started via
-  `kei runtime bootstrap`.
-- **Deliver the credential**: `kei bot credential --installation ID` (with
-  `--rotate` to replace it) emits the runtime credential for piping into the
-  customer's secret manager. Never echo it to a terminal or transcript.
-- **Activate**: `kei bot bind --installation ID`, once the deployed runtime has
-  reported a heartbeat. Binding is deliberately explicit.
-- **Inspection**: `kei bot status --installation ID` and
-  `kei bot agents list --installation ID`.
-- **Teardown**: `kei bot delete --installation ID --yes` removes the
-  control-plane installation. It does **not** delete customer cloud resources —
-  Key Vaults, secrets, and tenant-level Microsoft Entra app registrations are
-  the customer's to remove.
-- The CLI talks to the web app at `/api/cli/runtime-installations*`, which maps
-  to `/api/v1/internal/runtime-installations*` on the ABAC engine.
-
-### Runtime environment injection
-
-The harness and `kei-proxy` must run in the same container or host process
-environment so the harness can invoke the proxy with the same runtime
-configuration. Inject these values through the deployment environment or
-secret manager; never put the runtime token in command-line arguments:
-
-```text
-KEI_RUNTIME_CONTROL_PLANE_URL=https://app.haikeilabs.com
-KEI_RUNTIME_TOKEN=<secret-manager-value>
-KEI_RUNTIME_VERSION=<deployed-version>
-```
-
-Do not append `/api/v1`; the runtime adds its API paths. For Docker, pass the
-non-secret URL and version as environment variables and load
-`KEI_RUNTIME_TOKEN` from a protected `--env-file` or secret manager. For a
-service manifest, define the same variables on the harness process; its child
-`kei-proxy` process inherits them. Do not use `KEI_ORG_ID` as authoritative
-scope; the runtime token determines installation, organization, and workspace
-scope.
-
-### Flags beyond the usage string
-
-`printUsage` is the compact surface; individual commands accept a few more
-flags, defined next to each command in the `kei-cli` repository root
-(`setup.go`, `runtime.go`, `agents.go`, `delete.go`, `bind.go`). Notable ones:
-
-- `kei setup` also takes `--harness-url` (default `http://127.0.0.1:8088`),
-  `--proxy-path`, `--proxy-registry`, `--model-endpoint`, `--model`, and
-  `--skip-verify` (do not verify the runtime token against Kei). Prefer the
-  interactive prompt over `--runtime-token` so the token stays out of the shell
-  history.
-- `kei runtime bootstrap` takes `--config` and `--proxy-path` (overrides the
-  configured `kei-proxy` path).
-- `bot agents add|remove` takes `--default` (make this the default agent).
-- `bot delete` requires `--yes` to confirm permanent deletion.
-- `bot bind` takes `--installation` (must be a UUID) and `--api-url`.
-
-Verify against the installed binary with `kei --help` and
-`kei <command> --help` rather than trusting this list across versions.
-
-### Platforms
-
-`bot init` **requires** `--platform`, and validates it against exactly
-`teams`, `discord`, or `slack` — any other value, including `cli`, is rejected
-with `bot init requires --platform teams|discord|slack and --name NAME`. The
-flag has no default, so it cannot be omitted.
-
-Accepting a platform at registration is not the same as a supported deployment
-path: Teams on Azure is the MVP. Treat `discord` and `slack` as registerable
-but not an implemented end-to-end runtime, and confirm before promising either.
-
-## Install
-
-Install the published `kei` binary on macOS or Linux (arm64 and amd64) with the
-checksum-verifying release installer:
-
-```bash
+```sh
 export PATH="$HOME/.local/bin:$PATH"
 curl -fsSL "https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh" \
   | bash -s -- -d "$HOME/.local/bin"
+kei help && kei --version
 ```
 
-The installer resolves the latest version from `latest.txt`, verifies the
-downloaded archive against its SHA-256 checksums, and installs `kei`. Pin a
-release with `-v VERSION` (for example `-v 0.2.0`; do not include a leading
-`v`). Rerun the command to upgrade. Verify the installation with:
+Pin a release with `-v VERSION` (no leading `v`, e.g. `-v 0.1.5`). Rerun the
+installer to upgrade.
 
-```bash
-command -v kei
-kei help
-kei --version
+`go install` also works (Go 1.26+), but the package path depends on the
+release. Through v0.1.5 the command lives at the module root and builds a
+binary named `kei-cli`, so rename it:
+
+```sh
+go install github.com/HaikeiLabs/kei-cli@latest
+mv "$(go env GOPATH)/bin/kei-cli" "$(go env GOPATH)/bin/kei"
 ```
 
-Rerun the installer to upgrade from S3. When Go is installed, the binary also
-supports `kei upgrade` and `kei upgrade --version VERSION` through the Go
-module proxy. For development or when the published installer is unavailable,
-build from a checkout of `kei-cli` and put the binary on your PATH as `kei`:
+Releases after the entrypoint moved to `cmd/kei` build `kei` directly:
+`go install github.com/HaikeiLabs/kei-cli/cmd/kei@latest`. If one path fails
+with "does not contain package", use the other. `kei upgrade [--version V]`
+reinstalls through `go install` (Go must be on `PATH`); it does not use the S3
+installer.
 
-```bash
-go build -o tmp/kei .
+## FIRST: log in
+
+Every `kei bot …` command calls the control plane with the operator's CLI
+token. Log in before any of them:
+
+```sh
+kei login --api-url https://app.haikeilabs.com                  # opens a browser
+kei login --api-url https://app.haikeilabs.com --no-browser     # headless: prints URL + code
 ```
 
-The published installer is the supported customer installation path; the
-source build is for development and diagnostics.
+- It is an OAuth **device flow**. The CLI prints a URL and a verification code;
+  a person approves it in a signed-in browser. As an agent, run the command,
+  show the user the URL and code, and wait — you cannot approve it for them.
+- Only an org `owner` or `admin` can complete approval. Others can start the
+  flow but are refused with `403 organization administrator role is required`.
+  Don't hand the CLI to a non-admin.
+- The token is bound to the organization chosen at approval and to the
+  `--api-url` host (default `https://app.haikeilabs.com`, or `KEI_WEB_URL`).
+  Use the same `--api-url` on every later command.
+- The token goes to the OS keychain (service `kei-cli`, account = API host).
+  It is never printed and never written to a config file.
+- It is short-lived. `not logged in; run kei login first` or a 401 mid-session
+  means log in again and retry.
+- `kei logout --api-url URL` removes the local keychain entry only; it does not
+  revoke the token server-side. Safe to repeat.
 
-## Prerequisites
+Commands that do **not** need `kei login`: `kei setup`, `kei runtime
+bootstrap`, `kei upgrade`, `kei help`, `kei --version`. The first two
+authenticate with the runtime token instead.
 
-1. Install and sign in to the Azure CLI:
-   `az login`; `az account set --subscription SUBSCRIPTION_ID`.
-2. Register the resource providers used by the Azure template
-   (`Microsoft.KeyVault`, `Microsoft.ManagedIdentity`,
-   `Microsoft.OperationalInsights`, `Microsoft.App`, `Microsoft.BotService`).
-3. Log in to Kei: `kei login --api-url https://app.haikeilabs.com`.
+## Key guidelines
 
-The operator needs Azure provider-registration and resource create/update
-permissions, Key Vault secret read/write, and Entra app create/update rights.
-The deployed identity receives only `Key Vault Secrets User`; it does not get
-Azure resource-management permissions.
+- **Nothing outside the usage string exists.** No `kei org`, `workspace`,
+  `agent`, `connector`, `group`, `policy`, `user`, or `key` commands; no
+  `bot install`, `deploy`, `destroy`, or `list`; no `kei setup doctor`. Orgs,
+  workspaces, agents, agent keys, connectors, and policies are managed in the
+  web app (or through the HTTP API — see `kei-abac-api`). Say that plainly
+  instead of guessing a command from an API route.
+- **Credentials never touch the terminal.** `kei bot credential` refuses to
+  write to an interactive terminal; pipe it into a secret manager. Never pass a
+  token as an argument unless the user accepts shell-history exposure.
+- **The CLI does not provision infrastructure.** The customer owns hosting and
+  secrets; the CLI registers and inspects control-plane metadata.
+- **Every ID is a UUID.** `--installation` and `--agent` are validated as UUIDs
+  before any request is made.
+
+## Quick reference
+
+| Task | Command | Needs login |
+| --- | --- | --- |
+| Show commands for this version | `kei help` | no |
+| Log in / out | `kei login [--api-url URL] [--no-browser]` / `kei logout [--api-url URL]` | — |
+| Create a runtime installation | `kei bot init --platform cli\|teams\|discord\|slack --name NAME [--agent ID]` | yes |
+| Emit the runtime credential | `kei bot credential --installation ID \| <secret-manager import>` | yes |
+| Rotate the runtime credential | `kei bot credential --installation ID --rotate \| <secret-manager import>` | yes |
+| Inspect an installation | `kei bot status --installation ID` | yes |
+| Activate after first heartbeat | `kei bot bind --installation ID` | yes |
+| List / attach / detach agents | `kei bot agents list\|add\|remove --installation ID [--agent ID] [--default]` | yes |
+| Delete an installation | `kei bot delete --installation ID --yes` | yes |
+| Write local runtime config | `kei setup [--config PATH] [--control-plane-url URL]` | no (runtime token) |
+| Verify + heartbeat via local kei-proxy | `kei runtime bootstrap [--config PATH] [--proxy-path PATH]` | no (runtime token) |
+| Upgrade via Go | `kei upgrade [--version VERSION]` | no |
+
+All `bot` commands accept `--api-url URL`. `bot bind` works but is not listed in
+`kei help`.
+
+## Runtime installations
+
+An installation is one customer-owned runtime boundary: the scope for
+bootstrap, heartbeats, policy delivery, and audit. It is distinct from a user
+login and from an agent key.
+
+```sh
+kei bot init --platform cli --name "Acme local runtime"
+```
+
+- `--platform` and `--name` are required; there is no default platform. v0.1.4+
+  accepts `cli`, `teams`, `discord`, `slack` (earlier releases and some console
+  pages omit `cli`). Use `cli` for a local coding-harness runtime. `discord` is
+  for Haikei-internal harnesses only.
+- The output includes the non-secret `installation_id`. No credential is
+  printed here.
+- `bot delete` removes the control-plane installation and revokes its
+  credential immediately; it never touches customer cloud resources.
+
+For the full stand-up sequence (credential → config → bootstrap → heartbeat →
+bind → fail-closed check), load **`kei-runtime-setup`**.
+
+## Runtime credential
+
+```sh
+kei bot credential --installation ID | <secret-manager import>
+```
+
+- Emitted once for a new installation. If one already exists the command fails
+  with `bot credential already exists; use --rotate to replace it`.
+- `--rotate` replaces the credential in place; the old one stops working
+  immediately. Load **`kei-credential-rotation`** before rotating a runtime
+  that is serving traffic.
+
+## Local runtime config
+
+```sh
+kei setup                      # prompts; verifies the runtime token; writes ~/.config/kei.yaml (0600)
+kei runtime bootstrap          # runs the configured kei-proxy to verify + send a heartbeat
+```
+
+`kei setup` also takes `--harness-url` (default `http://127.0.0.1:8088`),
+`--proxy-path`, `--proxy-registry`, `--model-endpoint`, `--model`,
+`--runtime-token` (lands in shell history — prefer the prompt), and
+`--skip-verify`.
 
 ## Validation commands
 
-```bash
-# Build from source (a checkout of the kei-cli repo):
-go build -o tmp/kei .
-
-# Confirm the exact command surface (source of truth):
-tmp/kei help                       # prints printUsage
-tmp/kei login --help               # -api-url, -no-browser flags
-tmp/kei setup --help               # runtime configuration flags
-tmp/kei runtime bootstrap --help   # -config, -proxy-path
-tmp/kei bot                        # lists subcommands: init agents status delete credential bind
-#   ("bot requires a subcommand", exit 2 — there is no install/deploy/destroy/list)
-
-# Confirm the auth flow against a deployment:
-tmp/kei login --api-url https://app.haikeilabs.com
-#   -> prints URL + verification code; approve as owner/admin in a browser
-#   -> "Logged in to Kei for organization <org_id>."
-
-# Confirm a runtime installation round-trips:
-tmp/kei bot init --name "Test" --platform teams
-tmp/kei bot status --installation INSTALLATION_ID
-tmp/kei bot agents list --installation INSTALLATION_ID
-
-# Confirm the commands this repo says do NOT exist really do not:
-tmp/kei bot list                   # -> unknown bot command "list"
-tmp/kei setup doctor               # -> setup accepts no positional arguments
+```sh
+kei --version
+kei help                                  # authoritative usage for this version
+kei bot                                   # "bot requires a subcommand" (exit 2) — confirms no list/deploy
+kei login --api-url https://app.haikeilabs.com --no-browser
+kei bot status --installation INSTALLATION_ID
 ```
 
 ## Realistic usage boundaries
 
-- **Do not** invent org/workspace/connector/group/policy/user commands. They do
-  not exist; org management is via the ABAC API. Say so plainly.
-- **Do not** tell a non-admin to log in. Approval is refused with 403
-  "organization administrator role is required"; a non-admin can start a device
-  flow but can never complete it.
-- **Do not** treat the CLI token as generic. It is org-bound at approval time
-  and short-lived; a long Azure operation can outlive it (re-run `kei login`).
-- **Do not** expect the token on stdout or in a config file. It goes to the OS
-  keychain only and is never printed.
-- **Do not** treat the runtime credential as CLI-visible. `bot init` creates
-  public installation metadata only; the runtime credential is emitted by
-  `bot credential` for piping into the customer secret manager, never echoed to
-  terminal output or a transcript.
-- **Do not** name a command that is not in `printUsage` plus `bot bind`. There
-  is no `bot install`, `bot deploy`, `bot destroy`, `bot list`, or
-  `kei setup doctor`. `bot delete` is the teardown command, and it removes only
-  the control-plane installation — customer cloud resources are not touched.
-- **Do not** assume the CLI provisions cloud infrastructure. It does not apply
-  templates or create Azure resources; the runtime is configured with
-  `kei setup` and started with `kei runtime bootstrap`.
-- AWS, GCP, and Terraform/Helm deployment paths are **not** implemented; Azure +
-  Teams is the MVP.
+- Organization, workspace, agent, agent-key, connector, policy, invitation, and
+  approval management happen in the web app today. The CLI will grow
+  resource-oriented commands after the API's AIP migration; until a release
+  ships one, do not describe it as available.
+- The CLI token is org-bound and short-lived; it is not a general user token and
+  cannot be used by a runtime.
+- `kei` does not mint agent (`kh_live_…`) keys; those come from the console's
+  **Agents → Keys**.
+- AWS, GCP, Azure, Terraform, and Helm deployment steps are not part of the
+  CLI. Kei's own control plane runs on AWS EKS; customer hosting is the
+  customer's choice.

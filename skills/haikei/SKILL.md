@@ -1,6 +1,6 @@
 ---
 name: haikei
-description: Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; deploying a customer-hosted bot runtime on Azure/Teams; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing the DVL Assistant ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring. Routes the task to the right skill: kei-cli, kei-abac-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-assistant-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, or kei-api-conventions.
+description: Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime credential or agent key; connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing the DVL Assistant ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring. Routes the task to the right skill: kei-cli, kei-runtime-setup, kei-credential-rotation, kei-harness-setup, kei-abac-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-assistant-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, or kei-api-conventions.
 ---
 
 # Discover and build with Haikei
@@ -34,6 +34,25 @@ skills plugin and is loaded by your agent alongside the skills it routes to
 - Load only the skills you need. Each skill is a self-contained unit; the
   router does not replace them.
 
+## Quick decision trees
+
+```
+Need to operate Kei from a terminal?
+├─ Which command / what flags / install or upgrade kei → kei-cli
+├─ New runtime next to a harness (installation, credential, bootstrap, bind) → kei-runtime-setup
+├─ Rotate / revoke a runtime token, or a kh_live agent key → kei-credential-rotation
+├─ Existing installation misbehaving → kei-setup-doctor
+└─ Org, workspace, agent, connector, policy, user → web app (no CLI); HTTP API → kei-abac-api
+
+Need a coding agent governed by Kei?
+├─ Install the Haikei skills in Claude Code / Codex / OpenCode / Pi / Cursor → kei-harness-setup
+├─ Wrap tool calls with policy + audit in your own harness code → agentware-sdk
+└─ Define agent tools and schemas → kei-agents
+```
+
+Every `kei bot …` command needs `kei login` first, and a person has to approve
+it in the browser. Say so before running one.
+
 ## What are you trying to do?
 
 Find the row closest to the user's task. Load the named skill before
@@ -42,14 +61,16 @@ exist in the code today.
 
 | What you need to do | Surface | When to choose it | Skill |
 | --- | --- | --- | --- |
-| Log in to Haikei from the CLI | kei CLI `login` | Human operator (owner/admin) needs an org-bound CLI token via OIDC/SSO device flow | `kei-cli` |
-| Deploy a customer-hosted bot runtime | kei CLI `bot` | Provision and manage Kei bot runtimes; MVP supports Microsoft Teams on Azure | `kei-cli` |
+| Log in to Haikei from the CLI, or look up any `kei` command | kei CLI | Human operator (owner/admin) needs an org-bound CLI token via the device flow, or exact command syntax | `kei-cli` |
+| Stand up a customer-hosted runtime / kei-proxy | kei CLI `bot` + `kei-proxy runtime` | New installation → credential → config → bootstrap → heartbeat → bind | `kei-runtime-setup` |
+| Rotate or revoke a runtime credential or agent key | kei CLI `bot credential --rotate`; console for agent keys | Scheduled rotation, suspected leak, or a bootstrap missing `workspace_id` | `kei-credential-rotation` |
+| Connect Claude Code, Codex, OpenCode, Pi, or Cursor to Kei | Haikei skills + kei-proxy | Install these skills in a harness and route its governed calls through the runtime | `kei-harness-setup` |
 | Create an organization or workspace | ABAC API | Set up an org, workspaces, seats, plans, members | `kei-abac-api` |
 | Add or manage a data connector | ABAC API | Register a governed data source (GitHub, Linear, Drive, S3, http_api/CRM) and its status | `kei-abac-api` |
 | Manage groups, policies, users, roles, access levels | ABAC API | Administer RBAC/ABAC state that decides agent and user access | `kei-abac-api` |
 | Add, rename, or migrate an HTTP endpoint | API conventions | Define a route the resource-oriented way, spell a custom method, or fix the Endpoint conventions CI check | `kei-api-conventions` |
 | Invite users to an org or harness | ABAC API | Send or accept invitations; add members to an org | `kei-abac-api` |
-| Register agents and mint runtime keys | ABAC API | Create agents, list keys, mint harness keys, manage runtime installations | `kei-abac-api` |
+| Create agents or mint agent keys | Web app (console **Agents**); ABAC API for integrations | Create an agent, mint a `kh_live_…` key — no CLI command exists yet | `kei-abac-api` |
 | Enforce policy and audit on agent tool calls | agentware SDK | Wrap tool execution so every call is decided (allow/deny/filter), audited, and attributed to the invoking human | `agentware-sdk` |
 | Implement the third-party harness contract | agentware SDK | Build a harness that is governed by agentware without depending on an agent framework | `agentware-sdk` |
 | Define agent tools and schemas for the assistant | kei-agents | Describe agent capabilities, permission gates, and multi-model tool rendering | `kei-agents` |
@@ -82,12 +103,14 @@ exist in the code today.
   (`POST /api/v1/onboarding/organizations` or `POST /api/v1/organizations`), add
   workspaces, invite users, mint a harness key when a runtime is ready. Load
   `kei-abac-api`. Do not reach for the CLI — no org command exists.
-- **"Deploy the bot for this customer in their Azure subscription."** → CLI. The
-  customer owns Azure; the operator is an owner/admin of the Kei org and logs in
-  with `kei login`, then `kei bot init`, and activates the installation with
-  `kei bot bind` once the runtime is up. Load `kei-cli`. There is no
-  `kei bot install` or `kei bot deploy`; the cloud resources are provisioned
-  outside the CLI.
+- **"Stand up the runtime for this customer."** → `kei-runtime-setup`. The
+  operator (owner/admin) runs `kei login`, then `kei bot init`, pipes
+  `kei bot credential` into the customer's secret manager, bootstraps
+  `kei-proxy`, and binds with `kei bot bind` once the runtime has heartbeated.
+  There is no `kei bot install` or `kei bot deploy`; hosting is the customer's.
+- **"Rotate the Kei token for our prod harness."** → `kei-credential-rotation`.
+  Rotation invalidates the old token immediately, so plan the restart.
+- **"Set up Kei in Claude Code for the team."** → `kei-harness-setup`.
 - **"Add an endpoint that approves an invoice."** → API conventions. Spell it as
   a custom method (`POST /api/v1/invoices/{id}:approve`), not a trailing
   `/approve` segment, and run `aipcheck` before committing. Load
@@ -137,7 +160,7 @@ exist in the code today.
   `setup`, `runtime bootstrap`, `login`/`logout`, `upgrade`, and the `bot`
   subcommands are implemented. Do not look for them under `kei/cmd/kei`, which
   does not implement this command surface. When a skill names a CLI command,
-  verify it against `kei-cli`'s usage string (`printUsage` in `main.go`).
+  verify it against the installed `kei help` (the `PrintUsage` usage string in `kei-cli`'s `internal/app/app.go`).
 - **`kei setup doctor` is not a command.** `kei-setup-doctor` is a skill that
   drives real commands; never present it, or any `doctor` subcommand, as CLI
   syntax. Likewise there is no `kei bot install`, `deploy`, `destroy`, or
@@ -185,8 +208,8 @@ against the relevant product repo (see each skill's `## Validation commands`).
   must be used on the endpoints that accept them.
 - **Do not** treat skills from other repos as consultant-onboarding skills. The
   agent-persona skills (Discord dogfooding, customer experience, fundraising) are
-  a separate category and are deliberately not published here; this repo's eleven
-  skills are the consultant surface.
+  a separate category and are deliberately not published here; this repo's skills
+  are the consultant surface.
 - **Do not** route a *new* runtime deployment to `kei-setup-doctor`, or an
   existing broken installation to `kei-cli`. The doctor diagnoses before it
   changes anything, and asks before any remediation.
