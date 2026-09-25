@@ -1,6 +1,6 @@
 ---
 name: kei-runtime-setup
-description: Stand up a customer-hosted Kei runtime end to end — create the runtime installation, deliver its one-time credential to a secret manager, configure `kei-proxy` beside the harness, bootstrap, keep heartbeats running, and bind. Use whenever someone is installing, configuring, containerizing, bootstrapping, or first-activating a Kei runtime, kei-proxy, or kei-connector-runtime, or asks what KEI_RUNTIME_* variables to set, even if they only say "get the bot talking to Kei" or "set up the proxy". For diagnosing an installation that already exists and is misbehaving, use kei-setup-doctor instead.
+description: Stand up a customer-hosted Kei runtime end to end — create the runtime installation, deliver its one-time credential to a secret manager, configure `kei-proxy` beside the harness, bootstrap, keep heartbeats running, and bind. Use when installing, configuring, containerizing, bootstrapping, or activating a runtime, or when configuring `KEI_RUNTIME_*` variables. For diagnosis of an existing installation, use kei-setup-doctor.
 ---
 
 # Set up a Kei runtime
@@ -132,14 +132,14 @@ verified and heartbeating); they differ in where the runtime settings live.
 
 | | **Workstation / local harness (current default)** | **Deployed runtime (container, server)** |
 | --- | --- | --- |
-| Get `kei-proxy` | Comes with `kei`: since kei-cli v0.1.4 the release installer also installs a pinned `kei-proxy` next to `kei` | Build `kei-proxy:local` from the Kei repo (below) or copy the bundled binary into the image |
+| Get `kei-proxy` | Install it alongside `kei` using the current public release instructions | Use the current public release and packaging instructions |
 | Settings live in | `~/.config/kei.yaml` (mode `0600`), written by `kei setup` | Harness process environment, from the secret manager |
 | Bootstrap with | `kei runtime bootstrap` | `kei-proxy runtime bootstrap` |
 
 ### Path A: workstation — `kei setup` then `kei runtime bootstrap`
 
 ```sh
-<secret-manager read> | kei setup --control-plane-url https://app.haikeilabs.com --harness-url http://127.0.0.1:8088
+<secret-manager read> | kei setup --control-plane-url https://app.haikeilabs.com
 kei runtime bootstrap   # verifies the installation and sends the first heartbeat
 ```
 
@@ -176,17 +176,9 @@ KEI_RUNTIME_VERSION=<your deployed runtime version>
 - Do not supply an org, tenant, or workspace ID as scope. The token determines
   installation, organization, and workspace.
 
-To build a container, use the private `HaikeiLabs/kei` repository, from its
-root (the Dockerfile copies from both `cmd/kei-connector-runtime/` and
-`contracts/connectors/`):
-
-```sh
-docker build -f cmd/kei-connector-runtime/Dockerfile -t kei-proxy:local .
-```
-
-The image contains only `kei-proxy`; add the harness to the same image. No
-public `kei-proxy` image is published; do not invent a registry URL. Then, in
-the runtime, before the harness accepts work:
+Install or package `kei-proxy` using the current public release instructions.
+Place it alongside the harness in the customer-hosted runtime. Then, before
+the harness accepts work:
 
 ```sh
 kei-proxy runtime bootstrap

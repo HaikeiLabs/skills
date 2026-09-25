@@ -32,7 +32,6 @@ and changes between releases. **Prefer retrieval over this file.**
 | --- | --- | --- |
 | Installed binary | `kei help`, `kei <command> --help`, `kei bot` (lists subcommands) | Exact commands, flags, and allowed values for the version actually installed |
 | Kei console docs | `https://app.haikeilabs.com/#/docs/getting-started`, `#/docs/create-an-organization` (CLI authentication and identity), `#/docs/add-a-workspace` (proxy runtime) | The customer-facing, supported workflow |
-| `kei-cli` README | `https://github.com/HaikeiLabs/kei-cli` (private) | Install options, build from source |
 | Release endpoint | `https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/latest.txt` | Latest published version |
 
 When this skill and `kei help` disagree, **trust `kei help`** and mention the
@@ -153,8 +152,7 @@ kei bot init --platform cli --name "Acme local runtime"
 
 - `--platform` and `--name` are required; there is no default platform. v0.1.4+
   accepts `cli`, `teams`, `discord`, `slack` (earlier releases and some console
-  pages omit `cli`). Use `cli` for a local coding-harness runtime. `discord` is
-  for Haikei-internal harnesses only.
+  pages omit `cli`). Use the platform documented for your runtime.
 - The output includes the non-secret `installation_id`. No credential is
   printed here.
 - `bot delete` removes the control-plane installation and revokes its
@@ -190,7 +188,7 @@ kei setup                      # prompts; verifies the runtime token; writes ~/.
 kei runtime bootstrap          # runs the configured kei-proxy to verify + send a heartbeat
 ```
 
-`kei setup` also takes `--harness-url` (default `http://127.0.0.1:8088`),
+`kei setup` also takes `--harness-url`,
 `--proxy-path`, `--proxy-registry`, `--model-endpoint`, `--model`,
 `--runtime-token` (lands in shell history — prefer the prompt), and
 `--skip-verify`.

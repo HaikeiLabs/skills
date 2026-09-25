@@ -11,8 +11,8 @@ matches the environment, and separate diagnosis from remediation.
 
 **This skill is a workflow, not a CLI command.** There is no `kei setup doctor`
 subcommand and this skill must never advertise one. It diagnoses installations
-by driving the commands the `kei-cli` repository actually implements — `kei
-setup`, `kei runtime bootstrap`, `kei login`/`logout`, and the `kei bot`
+by driving the commands supported by the installed CLI — `kei setup`,
+`kei runtime bootstrap`, `kei login`/`logout`, and the `kei bot`
 subcommands — plus ordinary read-only cloud and host tooling. Confirm the real
 surface of the installed binary before relying on any syntax:
 

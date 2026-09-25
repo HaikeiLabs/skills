@@ -1,6 +1,6 @@
 ---
 name: kei-proxy
-description: The `kei-proxy` runtime executable (kei-connector-runtime) — what an agent harness calls at run time to get a governed decision: `kei-proxy authorize` before a tool call, `connector invoke` for governed data, `runtime bootstrap|heartbeat`, `collector` for audit shipping, `model`, `credential sync`, and `serve`. Load whenever code or config in a harness, adapter, container, or agent calls kei-proxy, sets KEI_RUNTIME_* or KEI_PROXY_* variables, reads its exit codes or JSON, or someone asks how an agent's tool call gets allowed or denied by Kei. Not for platform administration (logins, installations, credentials) — that is the `kei` CLI (kei-cli skill).
+description: The `kei-proxy` runtime executable for governed agent operations: authorize tool calls, invoke governed connectors, bootstrap and report runtime health, and ship audit records. Load when configuring a harness or asking how Kei allows or denies a runtime operation. For platform administration, use the `kei` CLI skill.
 ---
 
 # kei-proxy (runtime for agent interaction)
@@ -32,7 +32,6 @@ Your knowledge of `kei-proxy` subcommands may be outdated. **Prefer retrieval.**
 | Console: Configure the tenant-side proxy | `https://app.haikeilabs.com/#/docs/add-a-workspace` | Runtime env, bootstrap output, container build |
 | Console: Test Agent Keys | `https://app.haikeilabs.com/#/docs/test-agent-keys` | `authorize` with a `kh_live_` key |
 | Console: Audit logs | `https://app.haikeilabs.com/#/docs/groups-policies-users` | `collector` |
-| Source | `HaikeiLabs/kei-connector-runtime` (private): `main.go` usage | Ground truth |
 
 ## FIRST: confirm it is present and configured
 
@@ -42,9 +41,8 @@ kei-proxy help
 ```
 
 It must be on the same host or in the same image as the harness. On a
-workstation it is installed alongside `kei` by the release installer
-(kei-cli v0.1.4+). For containers, build it from the Kei repo (see
-`kei-runtime-setup`; no public image is published).
+workstation it is installed alongside `kei` by the release installer. For a
+container, use the current public release and packaging instructions.
 
 On a workstation you normally don't bootstrap with `kei-proxy` directly:
 `kei setup` stores the settings and `kei runtime bootstrap` runs
@@ -73,11 +71,6 @@ but puts the token in the process list and shell history; use the env var.
 | Ship local audit JSONL | `kei-proxy collector [--poll --poll-interval 1m]` |
 | Sync credential-store metadata | `kei-proxy credential sync` |
 | Model profile / invocation | `kei-proxy model profile …`, `kei-proxy model --harness-key …` (request JSON on stdin) |
-| Local OpenAI-compatible endpoint | `kei-proxy serve` (listens on `KEI_PROXY_LISTEN_ADDR`, default `:8085`) |
-
-`kei-proxy org` and `kei-proxy init` also exist. They call the Kei API
-directly with a service secret and are Haikei-internal provisioning tools, not
-part of a customer harness. Don't wire them into an agent.
 
 ## authorize: the per-call decision
 
@@ -118,15 +111,6 @@ reference (`--approval-id`) from an approved request in the console's
 **Approvals**; an approval is bound to org, workspace, agent, connector,
 capability, and resource and cannot be reused elsewhere. Pass
 `--idempotency-key` for retried writes.
-
-## Listeners
-
-Governed tool calls go through per-call subprocess invocations; there is no
-listener for them, and nothing should reach `authorize` over the network.
-`kei-proxy serve` is the one exception: an opt-in, runtime-owned
-OpenAI-compatible HTTP adapter (`GET /v1/models`, `POST /v1/chat/completions`)
-for harnesses that want a model endpoint. Bind it to localhost or a private
-interface; it is not a public service.
 
 ## Validation commands
 

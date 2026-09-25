@@ -2,26 +2,30 @@
 
 A collection of [Agent Skills](https://agent-skills.io/) for building and
 operating AI assistants with Haikei's Kei platform: the **Kei API** for
-organization management, the **kei CLI** for customer-hosted bot runtimes, the
-**agentware SDK** for policy and audit on agent tool calls, **kei-agents**
-for agent definitions and tool schemas, and the **kei-setup-doctor** for
-diagnosing and guiding Kei runtime installation across environments.
+documented platform resources, the **kei CLI** for customer-hosted runtimes,
+the **Agentware SDK** for policy and audit on agent tool calls, and the
+**kei-setup-doctor** for diagnosing runtime installations.
 
 ## Source of truth
 
-`HaikeiLabs/skills` is the single canonical repository for these skills
-(decision D-001). There is no parallel skills repository: content that was
-drafted elsewhere has been reconciled into this repo, and no other copy is
-maintained.
+This repository contains the public, portable skills for supported Haikei
+developer and operator workflows. Product-specific internal engineering
+guides are excluded from the public skills and plugin catalogs.
 
-The markdown in `skills/` is also the source the web app renders as
-documentation at build time (decision D-015) — one source, so what a coding
-agent loads as a skill and what a consultant reads as docs cannot drift.
-Two consequences for contributors:
+This audit removed the assistant ingress security guide, assistant-specific
+Teams adapter details, private tool-lane implementation guide, repository
+specific evaluation harnesses, and private chat-harness backend guide. Those
+materials documented internal source layouts, security gates, or deployment
+and testing workflows rather than supported public developer workflows. The
+public Teams and model-provider ecosystems remain available through their
+upstream documentation; public Kei integration guidance stays in the runtime,
+API, and SDK skills.
 
-- Editing a `SKILL.md` is a documentation change. Do not fork these files into
-  the web repo or any other repo.
-- Screenshots belong in the docs layer, never in `skills/`.
+Contributor guidelines:
+
+- Keep skills aligned with supported public workflows and public documentation.
+- Do not include screenshots, internal source paths, private installation
+  details, or undocumented endpoints in public skill content.
 
 ## Installing
 
@@ -117,16 +121,11 @@ skill.
 | [kei-runtime-setup](skills/kei-runtime-setup/SKILL.md) | Stand up a customer-hosted runtime end to end: login, installation, credential to secret manager, `KEI_RUNTIME_*` env, `kei-proxy runtime bootstrap`/`heartbeat`, bind, and a fail-closed check |
 | [kei-credential-rotation](skills/kei-credential-rotation/SKILL.md) | Rotate or revoke a runtime installation credential (`kei bot credential --rotate`, immediate cutover) and the console-only agent-key rotation |
 | [kei-harness-setup](skills/kei-harness-setup/SKILL.md) | Connect Claude Code, Codex, OpenCode, Pi, or Cursor to Kei: install these skills, pair with a runtime, pass agent identity to `kei-proxy authorize`, prove denials |
-| [kei-api](skills/kei-api/SKILL.md) | The Kei HTTP API (`/api/v1/*`): organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles — where org management actually lives today |
-| [kei-api-conventions](skills/kei-api-conventions/SKILL.md) | Resource-oriented (AIP-style) HTTP endpoint conventions from ADR-019: collection naming, `:verb` custom methods, pagination, the dual-write migration, and the `aipcheck` CI gate |
-| [agentware-sdk](skills/agentware-sdk/SKILL.md) | The open-source agentware SDK: policy enforcement, audit records, and delegation for agent tool calls, in Go, Python, and TypeScript |
-| [kei-agents](skills/kei-agents/SKILL.md) | Agent definitions, tool schemas, semantic mappings, and governed connector bindings from the `kei-agents` package |
+| [kei-api](skills/kei-api/SKILL.md) | Use the Kei API to manage organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, and roles |
+| [kei-api-conventions](skills/kei-api-conventions/SKILL.md) | Design public resource-oriented endpoints, custom actions, pagination, update masks, and stable API errors |
+| [agentware-sdk](skills/agentware-sdk/SKILL.md) | Agentware policy enforcement and audit middleware for agent tool calls |
+| [kei-agents](skills/kei-agents/SKILL.md) | Define agent capabilities, tool schemas, permission gates, and governed connector read capabilities |
 | [kei-setup-doctor](skills/kei-setup-doctor/SKILL.md) | A diagnosis *workflow* (not a CLI command — there is no `kei setup doctor`) for Kei runtime installations across local, AWS, Azure, or other customer environments |
-| [kei-assistant-security](skills/kei-assistant-security/SKILL.md) | The DVL Assistant (Kei) ingress boundary: fail-closed authentication, principal derivation, enrollment gates, pseudonymous audit, idempotency, and the governor pin — security invariants for the Teams/Bot Framework bot that must not be weakened |
-| [kei-teams-ingress](skills/kei-teams-ingress/SKILL.md) | Microsoft Teams and Bot Framework integration: activity parsing, Connector JWT auth, SSO signin/tokenExchange, OAuthCards, mention/audience gate, reply routes, outbound Connector sends, the Teams app manifest, and both the assistant and the chat harness Teams adapter |
-| [kei-tool-adapters](skills/kei-tool-adapters/SKILL.md) | Tool adapters and the governor tool-lane pattern: schema/client/guard/envelope/renderer/runtime stacks, GovernorClient proposals and stdio protocol, the typed tool-lane registry, and the chat harness's agent tools and tool-definition renderers |
-| [kei-headless-evals](skills/kei-headless-evals/SKILL.md) | Headless, deterministic evaluation harnesses: EvalSuite/EvalCase/EvalTrace/EvalReport, ScriptedBackend, golden fixtures, the assistant CLI, and the chat harness and agentware eval harnesses |
-| [kei-openai-backends](skills/kei-openai-backends/SKILL.md) | OpenAI-compatible LLM backend integration: LLM_ENDPOINT/LLM_MODEL wiring, pydantic-ai OpenAIChatModel, tool-definition format renderers, eval ModelBackend, and the Kei local docker stack |
 ## What is deliberately absent
 
 - **No CLI commands that do not exist.** The `kei` CLI — the standalone
@@ -140,11 +139,8 @@ skill.
   invents a command that is not in the CLI's usage string.
 - **No absolute local paths.** Every reference is product-name- and
   repo-relative so the repo can be published as-is.
-- **No public-PyPI install instructions.** `kei-agents` is distributed from the
-  internal AWS CodeArtifact index; public PyPI and npm publication are deferred
-  to a tracked ticket (decision D-008). Skills document the CodeArtifact path,
-  and every documented command must actually work. Go is unaffected — the module
-  proxy resolves `pedro-agentware` with no CodeArtifact login.
+- **No private distribution instructions.** Public skills describe supported
+  developer workflows and link only to public installation sources.
 
 ## Validation
 

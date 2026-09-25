@@ -3,20 +3,20 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Define a read-only Linear issue tool and a write action that creates an issue, then explain how each maps to governed connector capabilities and policy checks.",
-      "expected_output": "Creates or describes tool definitions and semantic bindings using the kei-agents package, distinguishing connector reads from agent actions.",
+      "prompt": "I am defining a read-only connector tool for an agent. What belongs in its schema and binding, and where should credentials and organization scope come from?",
+      "expected_output": "Defines the capability and permission in the tool schema, keeps binding metadata non-secret, and sources credentials and organization scope from trusted runtime configuration.",
       "expectations": [
-        "The response keeps provider execution and credentials out of kei-agents definitions.",
-        "The response distinguishes a connector read from a write action with a policy boundary."
+        "The response says a schema does not itself grant permission.",
+        "The response keeps credentials and provider execution in the customer runtime."
       ]
     },
     {
       "id": 2,
-      "prompt": "Render the same tool definitions for OpenAI and Anthropic and validate them before exposing them to an agent. Which package APIs and source files should I inspect?",
-      "expected_output": "Points to render_tools, ModelFormat, validation, and the package source/docs without guessing unsupported model formats or fields.",
+      "prompt": "How should I render a tool definition for a model and decide whether the agent is allowed to run it?",
+      "expected_output": "Renders the schema for the selected model format, then applies an explicit policy decision at execution time; it does not treat the schema as permission.",
       "expectations": [
-        "The response recommends validation before publication or execution.",
-        "The response directs the user to the package source and docs as the authority for exact API names."
+        "The response distinguishes schema rendering from authorization.",
+        "The response recommends checking the installed package version for exported APIs."
       ]
     }
   ]
