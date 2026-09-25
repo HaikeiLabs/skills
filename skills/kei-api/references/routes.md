@@ -1,14 +1,9 @@
-# Kei API route table
+# Kei API route reference
 
-Enumerated from `cmd/abac-engine/main.go` (kei repo). This is the ground truth;
-if a skill or doc disagrees with this table, this table and the code win.
-
-The Kei API exposes **94 distinct `/api/v1/*` route paths**. Each row shows
-the route path and the HTTP methods registered on it. Routes marked **(runtime)**
-are the harness/runtime surface authenticated by the harness bearer scheme and
-exempt from the `X-KEI-API-Key` service credential. `/api/v1/authorize` is also
-exempt and takes a `harness_token` in the request body. Everything else is
-reached through the trusted web proxy.
+This reference lists documented Kei API resource routes. Consult current public
+API documentation for supported operations, request and response schemas, and
+authentication requirements before building a client. Routes and availability
+can change between releases. This list excludes internal service routes.
 
 ## Organizations
 
@@ -16,7 +11,6 @@ reached through the trusted web proxy.
 |--------|-------|
 | GET | `/api/v1/organizations` |
 | POST | `/api/v1/organizations` |
-| DELETE | `/api/v1/organizations/{id}` (test-org teardown) |
 | POST | `/api/v1/onboarding/organizations` |
 | PUT | `/api/v1/organizations/{id}/default-model-profile` |
 | GET | `/api/v1/organizations/{id}/members` |
@@ -205,7 +199,7 @@ reached through the trusted web proxy.
 | GET | `/api/v1/audit/query` |
 | GET | `/api/v1/audit/query/subject-touches` |
 
-## Runtime (harness bearer; exempt from the service credential)
+## Runtime
 
 | Method | Route |
 |--------|-------|
@@ -217,21 +211,3 @@ reached through the trusted web proxy.
 | GET | `/api/v1/runtime/model-profiles/{profile_id}` |
 | POST | `/api/v1/runtime/credential-delivery/claim` |
 | POST | `/api/v1/runtime/credential-delivery/ack` |
-
-## Internal (web-proxy driven)
-
-| Method | Route |
-|--------|-------|
-| POST | `/api/v1/internal/harness-identity` |
-| POST | `/api/v1/internal/cli-device-authorizations` |
-| POST | `/api/v1/internal/cli-device-authorizations/poll` |
-| POST | `/api/v1/internal/cli-device-authorizations/approve` |
-| POST | `/api/v1/internal/runtime-installations` |
-| GET | `/api/v1/internal/runtime-installations/{id}` |
-| GET | `/api/v1/internal/runtime-installations/{id}/agents` |
-| POST | `/api/v1/internal/runtime-installations/{id}/agents` |
-| DELETE | `/api/v1/internal/runtime-installations/{id}/agents/{agent_id}` |
-| POST | `/api/v1/internal/runtime-installations/{id}/credential` |
-| POST | `/api/v1/internal/runtime-installations/{id}/deployment` |
-| POST | `/api/v1/internal/runtime-installations/{id}/{action:bind\|disable\|revoke}` |
-| POST | `/api/v1/internal/runtime-installations/{id}/rotate` |

@@ -1,13 +1,13 @@
 ---
 name: kei-harness-setup
-description: Connect a coding-agent harness — Claude Code, Codex, OpenCode, Pi, or Cursor — to Kei governance. Install the Haikei skills into the right skills directory, pair the harness with a runtime installation and kei-proxy, pass agent identity to each governed call, and prove that unbound calls are denied. Use whenever someone wants to "set up Kei in Claude Code/Codex/OpenCode/Pi/Cursor", install or update the Haikei skills, onboard a harness or adapter, or asks which harnesses Kei supports. Also covers the product harnesses Assistant, PDE, and Discord at the routing level.
+description: Connect a supported coding-agent harness — Claude Code, Codex, OpenCode, Pi, or Cursor — to Kei governance. Install Haikei skills, pair the harness with a runtime installation and kei-proxy, pass agent identity to each governed call, and verify that unbound calls are denied.
 ---
 
 # Set up a harness with Kei
 
 Kei governs a harness through this chain:
 
-`harness adapter → kei-proxy (kei-connector-runtime) → kei-policy-catalog`
+`harness adapter → kei-proxy → Kei policy and audit services`
 
 The harness asks `kei-proxy` before each governed operation. `kei-proxy`
 decides locally against the workspace policy bundle and runs allowed work
@@ -37,8 +37,6 @@ the platform admin CLI a person runs once to set things up (`kei-cli` skill);
 | --- | --- | --- |
 | Claude Code, Codex, OpenCode, Pi | Local coding adapter | This skill's main path |
 | Cursor | Local coding adapter (skills only) | The skills repo ships a Cursor plugin; the console does not list a Cursor runtime adapter yet, so confirm before promising governed calls |
-| Assistant, PDE | Kei product harness | Adapter is built into the product; register its tools against an installation |
-| Discord | Haikei-internal product harness | Not a customer onboarding path |
 
 Any other harness is unsupported and is denied until an adapter is explicitly
 registered. Do not improvise one.
@@ -158,11 +156,9 @@ from the runtime token.
 
 ## 4. Register tools and bind connectors (console)
 
-Registering the harness's skills and tool IDs against the installation, and
-binding connectors and capabilities to an agent, happen in the web app today
-(**Agents → Bindings**). There is no `kei` command for them and no
-resource-oriented API yet. A tool is not allowed just because the adapter
-exposes it; baseline tools like `search_wiki` and `web_search` are
+Register harness tools and bind connectors and capabilities using the
+currently documented platform workflow. A tool is not allowed just because
+the adapter exposes it; tools like `search_wiki` and `web_search` are
 policy-governed too.
 
 ## 5. Prove it fails closed

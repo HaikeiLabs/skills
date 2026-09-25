@@ -3,29 +3,29 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Create a workspace-scoped policy and then check whether a harness may read a connector. Explain which authentication scheme and API surface are involved.",
-      "expected_output": "Uses the Kei API route and harness authentication contract, describes a decision request and audit evidence, and keeps workspace scope explicit.",
+      "prompt": "A customer wants to create a workspace-scoped policy and then check whether a harness may read a connector. Explain how to find the supported Kei API operations and keep scope explicit.",
+      "expected_output": "Uses current public Kei API documentation, follows the documented client authentication flow, and keeps organization and workspace scope explicit.",
       "expectations": [
-        "The response distinguishes browser, CLI, and harness authentication rather than treating all bearer tokens alike.",
+        "The response checks current public documentation for authentication requirements.",
         "The response includes workspace scope in policy or authorization reasoning."
       ]
     },
     {
       "id": 2,
       "prompt": "An operator wants to accept an invitation and immediately access another organization's workspace. Explain the safe API flow and what must be denied.",
-      "expected_output": "Describes invitation redemption and membership checks while preserving organization and workspace isolation.",
+      "expected_output": "Describes the documented invitation flow and membership checks while preserving organization and workspace isolation.",
       "expectations": [
         "The response does not imply that accepting an org invitation automatically grants unrelated workspace access.",
-        "The response recommends verifying the implemented invitation contract against current routes and repository behavior."
+        "The response recommends verifying the invitation workflow against current public API documentation."
       ]
     },
     {
       "id": 3,
-      "prompt": "Design a new workspace-scoped connector-bindings API resource that a future kei CLI command could consume. Describe the CRUD paths, pagination, update mask, error reasons, and what must be checked before implementation.",
-      "expected_output": "Uses plural kebab-case resource-oriented CRUD, opaque page tokens, PATCH with an update mask, stable errors, explicit workspace/org authorization, and route/contract verification before coding.",
+      "prompt": "Design a public workspace-scoped connector-bindings API resource. Describe resource paths, pagination, updates, error reasons, and what must be checked before implementation.",
+      "expected_output": "Uses plural kebab-case resource routes, opaque page tokens, PATCH with an update mask where supported, stable errors, explicit workspace scope, and contract verification before release.",
       "expectations": [
         "The response does not invent an existing CLI command or bypass the governed contract.",
-        "The response preserves workspace scope, repository/database boundaries, audit identity, and metadata-only policy-catalog invariants."
+        "The response preserves workspace authorization scope and checks request and response schemas."
       ]
     }
   ]

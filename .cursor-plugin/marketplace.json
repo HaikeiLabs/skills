@@ -7,7 +7,7 @@
     {
       "name": "haikei",
       "source": "./",
-      "description": "Build and operate AI assistants with the Kei platform: ABAC API org management, kei CLI platform administration, kei-proxy runtime for agent tool calls, runtime setup, credential rotation, harness setup for Claude Code/Codex/OpenCode/Pi/Cursor, agentware SDK policy/audit middleware, Kei runtime setup diagnosis, and DVL Assistant development (ingress security, Teams integration, tool adapters, headless evals, OpenAI backends), and resource-oriented API endpoint conventions (AIP-style routes, custom methods, migrations)."
+      "description": "Build and operate AI assistants with Haikei\u2019s Kei platform: manage documented resources through the Kei API, administer runtime installations with the kei CLI, govern runtime operations with kei-proxy, define agent tools, connect supported coding harnesses, apply Agentware policy and audit middleware, rotate credentials, and troubleshoot installations."
     }
   ]
 }

@@ -1,9 +1,7 @@
 /**
  * Standalone verifier for the Haikei skills repo's skills directory.
  *
- * Ported from DVL-Group/assistant scripts/verify-skills.mjs (branch
- * docs/kei-agentware-skills, PR #44), adapted from a .opencode/skills root to
- * this repo's skills/ root.
+ * Checks the public skills directory against this repository's skill contract.
  *
  * Checks every SKILL.md the way the suite's contract expects:
  *   - frontmatter parses and carries `name` + `description`;
