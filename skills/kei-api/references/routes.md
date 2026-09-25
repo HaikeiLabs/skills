@@ -1,9 +1,9 @@
-# ABAC API route table
+# Kei API route table
 
 Enumerated from `cmd/abac-engine/main.go` (kei repo). This is the ground truth;
 if a skill or doc disagrees with this table, this table and the code win.
 
-The ABAC engine exposes **94 distinct `/api/v1/*` route paths**. Each row shows
+The Kei API exposes **94 distinct `/api/v1/*` route paths**. Each row shows
 the route path and the HTTP methods registered on it. Routes marked **(runtime)**
 are the harness/runtime surface authenticated by the harness bearer scheme and
 exempt from the `X-KEI-API-Key` service credential. `/api/v1/authorize` is also

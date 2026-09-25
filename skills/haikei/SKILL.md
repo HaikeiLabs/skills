@@ -1,6 +1,6 @@
 ---
 name: haikei
-description: Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime credential or agent key; connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing the DVL Assistant ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring. Routes the task to the right skill: kei-cli, kei-proxy, kei-runtime-setup, kei-credential-rotation, kei-harness-setup, kei-abac-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-assistant-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, or kei-api-conventions.
+description: Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime credential or agent key; connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing the DVL Assistant ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring. Routes the task to the right skill: kei-cli, kei-proxy, kei-runtime-setup, kei-credential-rotation, kei-harness-setup, kei-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-assistant-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, or kei-api-conventions.
 ---
 
 # Discover and build with Haikei
@@ -23,10 +23,10 @@ skills plugin and is loaded by your agent alongside the skills it routes to
   a connector", or "make the bot call tools safely" may not know which surface
   owns the answer.
 - Use the need-to-surface map below to choose, then load the named skill. A
-  request like "invite a user" is an ABAC API operation, not a CLI command — no
+  request like "invite a user" uses the Kei API, not a CLI command — no
   `kei` CLI command exists for it.
 - Respect the boundary that is true today: the **CLI** manages customer-hosted
-  bot runtimes; the **ABAC API** is where organization management actually
+  bot runtimes; the **Kei API** is where organization management actually
   lives. Do not suggest a CLI command that does not exist.
 - When several surfaces could fit, explain the deciding requirement: is this
   org management (API), runtime deployment (CLI), in-harness tool governance
@@ -47,7 +47,7 @@ Need to operate Kei from a terminal?
 ├─ New runtime next to a harness (installation, credential, bootstrap, bind) → kei-runtime-setup
 ├─ Rotate / revoke a runtime token, or a kh_live agent key → kei-credential-rotation
 ├─ Existing installation misbehaving → kei-setup-doctor
-└─ Org, workspace, agent, connector, policy, user → web app (no CLI); HTTP API → kei-abac-api
+└─ Org, workspace, agent, connector, policy, user → web app (no CLI); HTTP API → kei-api
 
 Need a coding agent governed by Kei?
 ├─ Install the Haikei skills in Claude Code / Codex / OpenCode / Pi / Cursor → kei-harness-setup
@@ -71,12 +71,12 @@ exist in the code today.
 | Stand up a customer-hosted runtime / kei-proxy | kei CLI `bot` + `kei-proxy runtime` | New installation → credential → config → bootstrap → heartbeat → bind | `kei-runtime-setup` |
 | Rotate or revoke a runtime credential or agent key | kei CLI `bot credential --rotate`; console for agent keys | Scheduled rotation, suspected leak, or a bootstrap missing `workspace_id` | `kei-credential-rotation` |
 | Connect Claude Code, Codex, OpenCode, Pi, or Cursor to Kei | Haikei skills + kei-proxy | Install these skills in a harness and route its governed calls through the runtime | `kei-harness-setup` |
-| Create an organization or workspace | ABAC API | Set up an org, workspaces, seats, plans, members | `kei-abac-api` |
-| Add or manage a data connector | ABAC API | Register a governed data source (GitHub, Linear, Drive, S3, http_api/CRM) and its status | `kei-abac-api` |
-| Manage groups, policies, users, roles, access levels | ABAC API | Administer RBAC/ABAC state that decides agent and user access | `kei-abac-api` |
+| Create an organization or workspace | Kei API | Set up an org, workspaces, seats, plans, members | `kei-api` |
+| Add or manage a data connector | Kei API | Register a governed data source (GitHub, Linear, Drive, S3, http_api/CRM) and its status | `kei-api` |
+| Manage groups, policies, users, roles, access levels | Kei API | Administer RBAC/ABAC state that decides agent and user access | `kei-api` |
 | Add, rename, or migrate an HTTP endpoint | API conventions | Define a route the resource-oriented way, spell a custom method, or fix the Endpoint conventions CI check | `kei-api-conventions` |
-| Invite users to an org or harness | ABAC API | Send or accept invitations; add members to an org | `kei-abac-api` |
-| Create agents or mint agent keys | Web app (console **Agents**); ABAC API for integrations | Create an agent, mint a `kh_live_…` key — no CLI command exists yet | `kei-abac-api` |
+| Invite users to an org or harness | Kei API | Send or accept invitations; add members to an org | `kei-api` |
+| Create agents or mint agent keys | Web app (console **Agents**); Kei API for integrations | Create an agent, mint a `kh_live_…` key — no CLI command exists yet | `kei-api` |
 | Enforce policy and audit on agent tool calls | agentware SDK | Wrap tool execution so every call is decided (allow/deny/filter), audited, and attributed to the invoking human | `agentware-sdk` |
 | Implement the third-party harness contract | agentware SDK | Build a harness that is governed by agentware without depending on an agent framework | `agentware-sdk` |
 | Define agent tools and schemas for the assistant | kei-agents | Describe agent capabilities, permission gates, and multi-model tool rendering | `kei-agents` |
@@ -94,7 +94,7 @@ exist in the code today.
 | --- | --- | --- | --- |
 | `kei-proxy` runtime | the `kei-connector-runtime` repository | Per-call `authorize`, `connector invoke`, `runtime bootstrap`/`heartbeat`, `collector`, `credential sync`, `model`, `serve` — what agents use at run time | Logins, installations, credential minting (admin CLI); agents and keys (console) |
 | `kei` CLI | the `kei-cli` repository (not `kei/cmd/kei`) | `kei setup`, `kei runtime bootstrap`, `kei login`/`logout`, `kei upgrade`, and `kei bot` (init/agents/status/delete/credential/bind) for customer-hosted runtimes | Org, workspace, connector, group, policy, user commands (none exist); `bot install`/`deploy`/`destroy`/`list` (none exist) |
-| ABAC API | `cmd/abac-engine` | Organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles, consents, audit — all of org management | CLI-shaped org management |
+| Kei API | `cmd/abac-engine` | Organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles, consents, audit — all of org management | CLI-shaped org management |
 | agentware SDK | `pedro-agentware` (`go/`, `python/`, `typescript/`) | Policy/audit middleware, delegation, harness contract, kei auth/proxy modules | Connector execution, credential resolution, control-plane data |
 | kei-agents | `kei-agents` (`src/agents/`) | Agent tool definitions, schemas, permissions, governed connector read schemas | Provider clients, credential resolution, writes as connector capabilities |
 | setup doctor (workflow, not a command) | the `kei-cli` binary + the customer's environment | Read-only diagnosis of an installation: control-plane target, runtime health, credential destination, handoff | Any `kei setup doctor` subcommand — none exists; provisioning decisions, org management, remediation without consent |
@@ -106,10 +106,10 @@ exist in the code today.
 
 ## Worked routing examples
 
-- **"Set up a new client org for the private beta."** → ABAC API. Create the org
+- **"Set up a new client org for the private beta."** → Kei API. Create the org
   (`POST /api/v1/onboarding/organizations` or `POST /api/v1/organizations`), add
   workspaces, invite users, mint a harness key when a runtime is ready. Load
-  `kei-abac-api`. Do not reach for the CLI — no org command exists.
+  `kei-api`. Do not reach for the CLI — no org command exists.
 - **"Stand up the runtime for this customer."** → `kei-runtime-setup`. The
   operator (owner/admin) runs `kei login`, then `kei bot init`, pipes
   `kei bot credential` into the customer's secret manager, bootstraps
@@ -129,8 +129,8 @@ exist in the code today.
 - **"What tools can my assistant expose for GitHub, and what permissions gate them?"**
   → kei-agents. `github_read`/`github_write` tool definitions, governed read
   schemas, `render_tools`. Load `kei-agents`.
-- **"Invite a user to an org."** → ABAC API (`POST /api/v1/invitations`). No CLI.
-- **"What does the ABAC API expose?"** → `kei-abac-api`, whose `references/routes.md`
+- **"Invite a user to an org."** → Kei API (`POST /api/v1/invitations`). No CLI.
+- **"What does the Kei API expose?"** → `kei-api`, whose `references/routes.md`
   is the full enumerated route table.
 - **"The customer's bot was installed but it isn't responding."** → `kei-setup-doctor`.
   Diagnose read-only first — confirm the installation with `kei bot status`, check the
@@ -161,7 +161,7 @@ exist in the code today.
 
 - **Org management is API-only today.** There is no `kei` CLI command for orgs,
   workspaces, connectors, groups, policies, or users. Route any such request to
-  `kei-abac-api`; say plainly that the CLI does not cover it rather than
+  `kei-api`; say plainly that the CLI does not cover it rather than
   implying it does.
 - **The `kei` CLI is the standalone `kei-cli` repository.** That is where
   `setup`, `runtime bootstrap`, `login`/`logout`, `upgrade`, and the `bot`
@@ -177,12 +177,12 @@ exist in the code today.
   or `admin` in the target org can complete `kei login`. A non-admin can start
   the device flow, but approval is refused with 403. See the `kei-cli` skill
   for the full statement and the exact 403 message.
-- **Three distinct auth schemes, all separate.** The ABAC API accepts a CLI
+- **Three distinct auth schemes, all separate.** The Kei API accepts a CLI
   bearer token (human, admin-only, org-bound), a harness/runtime bearer token
   (installation-scoped, minted via harness-keys), and a browser session cookie
   (web UI). Schemes (a) and (b) are both `Authorization: Bearer` on the wire and
   indistinguishable by header alone. They are not interchangeable; the
-  `kei-abac-api` skill marks which endpoints accept which.
+  `kei-api` skill marks which endpoints accept which.
 - **The cross-tenant 404 is intentional.** A harness-key lookup for an agent
   that belongs to another tenant returns 404 "agent not found", not 403, so
   agent IDs cannot be enumerated across tenants. Do not "fix" it.

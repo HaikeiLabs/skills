@@ -1,10 +1,10 @@
 {
-  "skill_name": "kei-abac-api",
+  "skill_name": "kei-api",
   "evals": [
     {
       "id": 1,
       "prompt": "Create a workspace-scoped policy and then check whether a harness may read a connector. Explain which authentication scheme and API surface are involved.",
-      "expected_output": "Uses the ABAC API route and harness authentication contract, describes a decision request and audit evidence, and keeps workspace scope explicit.",
+      "expected_output": "Uses the Kei API route and harness authentication contract, describes a decision request and audit evidence, and keeps workspace scope explicit.",
       "expectations": [
         "The response distinguishes browser, CLI, and harness authentication rather than treating all bearer tokens alike.",
         "The response includes workspace scope in policy or authorization reasoning."

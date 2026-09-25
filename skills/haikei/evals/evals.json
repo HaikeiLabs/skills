@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "I want to create a workspace, attach a governed GitHub connector, and let an agent call it with policy and audit. Which Haikei surface and skill should I use?",
-      "expected_output": "Routes organization and workspace configuration to the ABAC API skill, and agent policy/audit enforcement to the agentware SDK skill, with the boundary between them explained.",
+      "expected_output": "Routes organization and workspace configuration to the Kei API skill, and agent policy/audit enforcement to the agentware SDK skill, with the boundary between them explained.",
       "expectations": [
         "The response does not invent a kei CLI org or workspace command.",
         "The response distinguishes ABAC resource management from agentware enforcement and audit."
@@ -13,7 +13,7 @@
     {
       "id": 2,
       "prompt": "A customer asks how to deploy their Kei bot runtime on Azure and then grant it access to a workspace. Give me the routing and the first source of truth to inspect for each part.",
-      "expected_output": "Routes runtime deployment to kei-cli and workspace access to kei-abac-api, pointing to the installed CLI help/source and the API route documentation.",
+      "expected_output": "Routes runtime deployment to kei-cli and workspace access to kei-api, pointing to the installed CLI help/source and the API route documentation.",
       "expectations": [
         "The response keeps deployment and control-plane authorization as separate workstreams.",
         "The response directs the agent to inspect actual CLI help or API routes before using commands."

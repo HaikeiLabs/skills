@@ -75,7 +75,7 @@ but puts the token in the process list and shell history; use the env var.
 | Model profile / invocation | `kei-proxy model profile …`, `kei-proxy model --harness-key …` (request JSON on stdin) |
 | Local OpenAI-compatible endpoint | `kei-proxy serve` (listens on `KEI_PROXY_LISTEN_ADDR`, default `:8085`) |
 
-`kei-proxy org` and `kei-proxy init` also exist. They call the ABAC engine
+`kei-proxy org` and `kei-proxy init` also exist. They call the Kei API
 directly with a service secret and are Haikei-internal provisioning tools, not
 part of a customer harness. Don't wire them into an agent.
 

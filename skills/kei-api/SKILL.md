@@ -1,15 +1,15 @@
 ---
-name: kei-abac-api
-description: Use governed Kei API contracts for organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles, consents, and audit when no supported kei CLI command exists. Use for API/resource design, contract verification, or current ABAC-only surfaces; prefer the kei CLI for any released resource command. Covers auth schemes, AIP/CRUD conventions, workspace scope, and endpoint ownership.
+name: kei-api
+description: Use governed Kei API contracts for organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles, consents, and audit when no supported kei CLI command exists. Use for API/resource design, contract verification, or current API-only surfaces; prefer the kei CLI for any released resource command. Covers auth schemes, AIP/CRUD conventions, workspace scope, and endpoint ownership.
 ---
 
-# Kei ABAC API
+# Kei API
 
-The ABAC engine (`kei/cmd/abac-engine`) is the current API authority for
-organization management and other surfaces that the standalone CLI does not
-yet cover. It exposes **94 distinct `/api/v1/*` routes**, enumerated from the
-route table in `cmd/abac-engine/main.go`. Check the installed CLI first; do not
-assume that an API route has a corresponding CLI command.
+The Kei API is served by the `kei/cmd/abac-engine` executable and is the current
+API authority for organization management and other surfaces that the
+standalone CLI does not yet cover. It exposes **94 distinct `/api/v1/*` routes**,
+enumerated from the route table in `cmd/abac-engine/main.go`. Check the installed
+CLI first; do not assume that an API route has a corresponding CLI command.
 
 Read `references/routes.md` in this skill directory for the complete route
 table grouped by resource (every path and HTTP method below is traceable to that
@@ -62,7 +62,7 @@ creates an endpoint.
 
 ## Install
 
-The ABAC API is an HTTP service — consuming it needs no install, and there is no
+The Kei API is an HTTP service — consuming it needs no install, and there is no
 client package to install. To build and test the engine yourself from the kei
 repo, use the go toolchain:
 
@@ -142,7 +142,7 @@ treats them differently. They are **not interchangeable**.
 
 ### (c) Browser session cookie — subject is a human in the web UI
 
-- The web UI (`cmd/web`) authenticates via OIDC/SSO through the oidc-bridge and keeps a browser session cookie (~127 session/cookie references in `cmd/web/main.go`). The web app then calls the ABAC engine on the user's behalf with org scope from the session.
+- The web UI (`cmd/web`) authenticates via OIDC/SSO through the oidc-bridge and keeps a browser session cookie (~127 session/cookie references in `cmd/web/main.go`). The web app then calls the Kei API on the user's behalf with org scope from the session.
 
 ### CRITICAL
 
@@ -163,7 +163,7 @@ exempt from it. This is **not** a client-facing scheme.
 
 ## Which endpoints take which scheme
 
-- **CLI bearer (a):** the CLI-facing routes the web app exposes (`/api/cli/device/*`, `/api/cli/runtime-installations*`). The ABAC engine's `/api/v1/internal/runtime-installations*` and `/api/v1/internal/cli-device-authorizations*` are called **by the web proxy** (service credential + org scope), never directly by the CLI with its bearer token.
+- **CLI bearer (a):** the CLI-facing routes the web app exposes (`/api/cli/device/*`, `/api/cli/runtime-installations*`). The API's `/api/v1/internal/runtime-installations*` and `/api/v1/internal/cli-device-authorizations*` are called **by the web proxy** (service credential + org scope), never directly by the CLI with its bearer token.
 - **Harness bearer (b):** `/api/v1/runtime/*` (whoami, agents, heartbeat, credential-bindings, credential-delivery, model-profiles) and `/api/v1/authorize` (`harness_token` body field).
 - **Browser session (c):** everything the web UI drives, forwarded by the web proxy with `org_id` scope from the session.
 - **Everything else** is reached by a client through the web proxy, which requires a valid session (c) or CLI login (a) and forwards to the engine with the service credential plus org scope.

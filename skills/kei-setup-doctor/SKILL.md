@@ -82,7 +82,7 @@ ID is optional at this stage.
 
 There is **no `kei bot list`** command — the CLI cannot enumerate installations.
 If no ID was supplied, ask the customer for it, or have them read it from the
-control-plane UI or the ABAC API (`kei-abac-api` owns installation listing).
+control-plane UI or the Kei API (`kei-api` owns installation listing).
 Once you have a candidate ID, confirm it from its non-secret metadata:
 
 ```sh

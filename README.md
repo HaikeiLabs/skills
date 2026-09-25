@@ -1,7 +1,7 @@
 # Haikei Skills
 
 A collection of [Agent Skills](https://agent-skills.io/) for building and
-operating AI assistants with Haikei's Kei platform: the **ABAC API** for
+operating AI assistants with Haikei's Kei platform: the **Kei API** for
 organization management, the **kei CLI** for customer-hosted bot runtimes, the
 **agentware SDK** for policy and audit on agent tool calls, **kei-agents**
 for agent definitions and tool schemas, and the **kei-setup-doctor** for
@@ -117,7 +117,7 @@ skill.
 | [kei-runtime-setup](skills/kei-runtime-setup/SKILL.md) | Stand up a customer-hosted runtime end to end: login, installation, credential to secret manager, `KEI_RUNTIME_*` env, `kei-proxy runtime bootstrap`/`heartbeat`, bind, and a fail-closed check |
 | [kei-credential-rotation](skills/kei-credential-rotation/SKILL.md) | Rotate or revoke a runtime installation credential (`kei bot credential --rotate`, immediate cutover) and the console-only agent-key rotation |
 | [kei-harness-setup](skills/kei-harness-setup/SKILL.md) | Connect Claude Code, Codex, OpenCode, Pi, or Cursor to Kei: install these skills, pair with a runtime, pass agent identity to `kei-proxy authorize`, prove denials |
-| [kei-abac-api](skills/kei-abac-api/SKILL.md) | The ABAC HTTP API (`/api/v1/*`): organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles — where org management actually lives today |
+| [kei-api](skills/kei-api/SKILL.md) | The Kei HTTP API (`/api/v1/*`): organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles — where org management actually lives today |
 | [kei-api-conventions](skills/kei-api-conventions/SKILL.md) | Resource-oriented (AIP-style) HTTP endpoint conventions from ADR-019: collection naming, `:verb` custom methods, pagination, the dual-write migration, and the `aipcheck` CI gate |
 | [agentware-sdk](skills/agentware-sdk/SKILL.md) | The open-source agentware SDK: policy enforcement, audit records, and delegation for agent tool calls, in Go, Python, and TypeScript |
 | [kei-agents](skills/kei-agents/SKILL.md) | Agent definitions, tool schemas, semantic mappings, and governed connector bindings from the `kei-agents` package |
@@ -134,7 +134,7 @@ skill.
   bootstrap`, `login`, `logout`, `upgrade`, and `bot` (`init`, `credential`,
   `agents`, `status`, `delete`, `bind`). There are no `org`, `workspace`,
   `connector`, `group`, `policy`, or `user` commands; org management is done
-  through the ABAC API (see the `kei-abac-api` skill). There is also no
+  through the Kei API (see the `kei-api` skill). There is also no
   `bot install`, `bot deploy`, `bot destroy`, `bot list`, or `kei setup doctor`
   — the setup doctor is a skill workflow, not a subcommand. This repo never
   invents a command that is not in the CLI's usage string.

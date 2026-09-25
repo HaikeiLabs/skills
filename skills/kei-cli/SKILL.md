@@ -111,7 +111,7 @@ authenticate with the runtime token instead.
   `agent`, `connector`, `group`, `policy`, `user`, or `key` commands; no
   `bot install`, `deploy`, `destroy`, or `list`; no `kei setup doctor`. Orgs,
   workspaces, agents, agent keys, connectors, and policies are managed in the
-  web app (or through the HTTP API — see `kei-abac-api`). Say that plainly
+  web app (or through the HTTP API — see `kei-api`). Say that plainly
   instead of guessing a command from an API route.
 - **Credentials never touch the terminal.** `kei bot credential` refuses to
   write to an interactive terminal; pipe it into a secret manager. Never pass a
@@ -211,7 +211,7 @@ for the installed version and check that it follows the contract:
 - non-CRUD state changes are explicit `:verb` custom methods (for example
   `:rotate`), not guessed subpaths.
 
-Until the command exists and is tested, use the web app or `kei-abac-api`. Do
+Until the command exists and is tested, use the web app or `kei-api`. Do
 not describe a future command as available.
 
 ## Validation commands
