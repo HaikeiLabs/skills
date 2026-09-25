@@ -263,5 +263,5 @@ cd go && go test ./middleware/... -run ActionToolBoundary -v
 
 - `kei-agents` — agent definitions and governed connector read schemas that the harness
   renders; provider-neutral and schema-only.
-- `kei-abac-api` — the control-plane API that mints harness keys and decides
+- `kei-api` — the control-plane API that mints harness keys and decides
   metadata-only policy.

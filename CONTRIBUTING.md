@@ -9,7 +9,7 @@ instead of maintaining another copy of it.
   a command, endpoint, flag, or type that does not exist in the code, the code
   wins. Update the skill.
 - **Prefer retrieval over pre-training.** Point agents at the authoritative
-  source — the `kei` CLI usage string, the ABAC engine route table, the
+  source — the `kei` CLI usage string, the Kei API route table, the
   `pedro-agentware` README and docs, the `kei-agents` package — rather than
   duplicating details that can drift.
 - **No absolute local paths.** This repo is a public repo candidate. A skill must

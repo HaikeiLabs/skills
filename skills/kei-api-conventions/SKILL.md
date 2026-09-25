@@ -1,6 +1,6 @@
 ---
 name: kei-api-conventions
-description: Define or change a Kei HTTP endpoint following the resource-oriented (Google AIP-style) conventions adopted in ADR-019. Use when adding a route to kei-policy-catalog, renaming an endpoint, designing a custom method, adding pagination to a list endpoint, or when the "Endpoint conventions" CI check fails. Covers collection naming, the :verb custom-method spelling, the dual-write migration from legacy paths, and the aipcheck baseline. Do not use for connector capability definitions (kei-agents) or for calling existing endpoints (kei-abac-api).
+description: Define or change a Kei HTTP endpoint following the resource-oriented (Google AIP-style) conventions adopted in ADR-019. Use when adding a route to kei-policy-catalog, renaming an endpoint, designing a custom method, adding pagination to a list endpoint, or when the "Endpoint conventions" CI check fails. Covers collection naming, the :verb custom-method spelling, the dual-write migration from legacy paths, and the aipcheck baseline. Do not use for connector capability definitions (kei-agents) or for calling existing endpoints (kei-api).
 ---
 
 # Kei API conventions
@@ -171,6 +171,6 @@ grep -v '^#' aip-baseline.txt | sort
   registered elsewhere is unchecked.
 - **This skill does not cover connector capabilities.** Tool schemas and
   connector capability definitions are `kei-agents`; calling existing endpoints
-  is `kei-abac-api`.
+  is `kei-api`.
 - **The code wins.** If a route in `main.go` contradicts this skill, the route
   is the fact and the skill needs updating.
