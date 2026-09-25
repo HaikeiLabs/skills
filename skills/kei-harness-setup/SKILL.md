@@ -15,6 +15,18 @@ inside the tenant runtime. The catalog holds policy, connector metadata, and
 redacted audit metadata only. Setting up a harness means installing the skills
 that teach the agent this contract, then wiring the harness to a runtime.
 
+## Concepts
+
+- **Harness** — software that lets an LLM act as an agent (for example Claude
+  Code, OpenCode, or a custom bot).
+- **Kei-enabled harness** — a harness governed by Kei through a **runtime
+  installation**.
+- **Runtime installation** — Kei's record for the one runtime deployed beside
+  that harness (one harness : one runtime installation : one credential,
+  `KEI_RUNTIME_TOKEN`). The console page is called **Runtime installations**.
+- **Agent** — an LLM configuration the harness runs (model, system prompt,
+  tools).
+
 This is a workflow skill. Keep the two Kei executables straight: **`kei`** is
 the platform admin CLI a person runs once to set things up (`kei-cli` skill);
 **`kei-proxy`** is the runtime the harness calls on every governed tool call
@@ -35,8 +47,8 @@ the platform admin CLI a person runs once to set things up (`kei-cli` skill);
 
 | Harness | Kind | Notes |
 | --- | --- | --- |
-| Claude Code, Codex, OpenCode, Pi | Local coding adapter | This skill's main path |
-| Cursor | Local coding adapter (skills only) | The skills repo ships a Cursor plugin; the console does not list a Cursor runtime adapter yet, so confirm before promising governed calls |
+| Claude Code, Codex, OpenCode, Pi | Kei-enabled local coding harness | This skill's main path |
+| Cursor | Kei-enabled local coding harness (skills only) | The skills repo ships a Cursor plugin; the console does not list a Cursor runtime adapter yet, so confirm before promising governed calls |
 | Assistant, PDE | Kei product harness | Adapter is built into the product; register its tools against an installation |
 | Discord | Haikei-internal product harness | Not a customer onboarding path |
 
@@ -119,12 +131,13 @@ container as the harness. Follow **`kei-runtime-setup`** — it starts with
 `kei login`, which a person must approve in the browser. For a local coding
 harness, create the installation with `--platform cli`.
 
-For a coding harness on a workstation, the current path is:
+For a Kei-enabled coding harness on a workstation, the current path is:
 
 ```sh
-kei login --api-url https://app.haikeilabs.com   # admin, once; a person approves in the browser
+kei login                                       # admin, once; a person approves in the browser
 kei bot init --platform cli --name "my laptop"
-kei bot credential --installation ID | <secret-manager import>
+kei workspaces list                               # discover workspace name or ID
+kei bot credential --installation ID --workspace WS | <secret-manager import>
 <secret-manager read> | kei setup --control-plane-url https://app.haikeilabs.com   # token via pipe → ~/.config/kei.yaml
 kei runtime bootstrap     # runs the bundled kei-proxy to verify + heartbeat
 kei bot bind --installation ID
@@ -190,11 +203,10 @@ kei-proxy authorize --user U --tool T --action A --resource R; echo $?
 
 ## Realistic usage boundaries
 
-- Do not paste runtime tokens or `kh_live_…` agent keys into harness config
+- Do not paste runtime tokens into harness config
   files in a repo, or into the conversation.
 - Installing skills changes what the agent knows, not what it may do. Policy in
   the workspace decides that.
-- Agents are created and keyed in the console; there is no CLI command for
-  either yet.
+- Agents are created in the console; there is no CLI command for that yet.
 - The explicit Harness resource, installation-claim handshake, and short-lived
   runtime identity in the ADRs are planned. Do not present them as available.

@@ -1,6 +1,6 @@
 ---
 name: kei-runtime-setup
-description: Stand up a customer-hosted Kei runtime end to end — create the runtime installation, deliver its one-time credential to a secret manager, configure `kei-proxy` beside the harness, bootstrap, keep heartbeats running, and bind. Use whenever someone is installing, configuring, containerizing, bootstrapping, or first-activating a Kei runtime, kei-proxy, or kei-connector-runtime, or asks what KEI_RUNTIME_* variables to set, even if they only say "get the bot talking to Kei" or "set up the proxy". For diagnosing an installation that already exists and is misbehaving, use kei-setup-doctor instead.
+description: Stand up a customer-hosted Kei runtime end to end — create the runtime installation, deliver its credential (shown once) to a secret manager, configure `kei-proxy` beside the harness, bootstrap, keep heartbeats running, and bind. Use whenever someone is installing, configuring, containerizing, bootstrapping, or first-activating a Kei runtime, kei-proxy, or kei-connector-runtime, or asks what KEI_RUNTIME_* variables to set, even if they only say "get the bot talking to Kei" or "set up the proxy". For diagnosing an installation that already exists and is misbehaving, use kei-setup-doctor instead.
 ---
 
 # Set up a Kei runtime
@@ -10,6 +10,18 @@ connector metadata, and redacted audit metadata; the runtime makes the live
 allow/deny decision and executes allowed work locally, so provider payloads,
 results, and credentials never enter Kei. This skill takes a runtime from
 "nothing" to "bound and heartbeating".
+
+## Concepts
+
+- **Harness** — software that lets an LLM act as an agent (for example Claude
+  Code, OpenCode, or a custom bot).
+- **Kei-enabled harness** — a harness governed by Kei through a **runtime
+  installation**.
+- **Runtime installation** — Kei's record for the one runtime deployed beside
+  that harness (one harness : one runtime installation : one credential,
+  `KEI_RUNTIME_TOKEN`). The console page is called **Runtime installations**.
+- **Agent** — an LLM configuration the harness runs (model, system prompt,
+  tools).
 
 This is a workflow skill that uses both Kei executables: `kei`, the platform
 admin CLI a person runs (command reference: **`kei-cli`**), and `kei-proxy`,
@@ -35,7 +47,7 @@ user.
 | `kei` | Platform admin | An org owner/admin, on their workstation | `kei login` (browser device flow) | Logs in, creates installation metadata, emits the runtime credential, writes local runtime config, binds |
 | `kei-proxy` | Runtime for agent interaction | The harness, as a subprocess, inside the runtime | `KEI_RUNTIME_TOKEN` env | Bootstraps the installation, sends heartbeats, authorizes each governed tool call |
 
-Steps 0–2 and 6 below are admin work with `kei`. Steps 3–5 configure and
+Steps 0–3 and 7 below are admin work with `kei`. Steps 4–6 configure and
 bootstrap the runtime: on a workstation with `kei setup` + `kei runtime
 bootstrap` (which drive the bundled `kei-proxy` for you), in a deployed runtime
 with `kei-proxy` directly. Step 7 is the runtime answering real calls. The
@@ -50,7 +62,8 @@ local OpenAI-compatible model endpoint; see the `kei-proxy` skill.)
 ## Before you start
 
 - The org and workspace already exist. They are created in the Kei web app;
-  there are no `kei org` or `kei workspace` commands.
+  there are no `kei org` commands (use `kei workspaces list` to discover
+  workspace names and IDs from the CLI).
 - The operator is an org `owner` or `admin`. Anyone else is refused at login
   with `403 organization administrator role is required`.
 - The `kei` CLI is installed (see the `kei-cli` skill) and `kei --version`
@@ -65,7 +78,7 @@ Every `kei bot …` command (`init`, `credential`, `agents`, `status`, `bind`,
 `kei login` before any of them:
 
 ```sh
-kei login --api-url https://app.haikeilabs.com   # add --no-browser when headless
+kei login                                       # add --no-browser when headless
 ```
 
 It is a browser device flow: the CLI prints a URL and a verification code, an
@@ -73,9 +86,9 @@ org owner/admin approves it in a signed-in browser, and the token is stored in
 the OS keychain — never printed, never in a config file. Things that trip
 people up:
 
-- The token is bound to the organization chosen at approval and to the
-  `--api-url` host. Logging in to one environment does not log you in to
-  another; pass the same `--api-url` to every later command.
+- The token is bound to the organization chosen at approval and to the API URL
+  host. Logging in to one environment does not log you in to another; log in
+  again per environment.
 - The token is short-lived. A `not logged in; run kei login first` error, or a
   401 partway through a long session, means log in again and retry.
 - An agent cannot approve the device flow for the user. Run `kei login`, show
@@ -88,7 +101,7 @@ people up:
 
 One installation per customer-owned runtime boundary. It is the identity used
 for bootstrap, heartbeats, policy delivery, and audit context — separate from a
-user login and from an agent key.
+user login.
 
 From the CLI (after `kei login`):
 
@@ -101,31 +114,64 @@ kei bot init --platform cli --name "Acme local runtime"
 `teams|discord|slack`. Use `cli` for a local coding harness runtime. Record the
 returned `installation_id` — it is not secret.
 
-From the web app instead: **Agents → Runtime installations → create**, which
-also offers the one-time credential reveal.
+From the web app instead: **Agents → Runtime installations → Create**. The
+console creates the installation and reveals the credential in a single step
+(atomic create+credential). Copy the credential immediately — it is shown once
+only.
 
-## 2. Deliver the credential to the secret manager
+## 2. Discover the workspace
+
+The credential must be scoped to a workspace. If you don't know the workspace
+name or ID, list them from the CLI:
+
+```sh
+kei workspaces list
+```
+
+`--workspace` on `bot credential` accepts a workspace name or ID. Using the
+name is fine — the CLI resolves it server-side.
+
+## 3. Deliver the credential to the secret manager
 
 The runtime credential is shown or emitted once. Send it straight into the
 secret manager so it never lands in a terminal, a transcript, a file in the
 repo, or a command-line argument:
 
 ```sh
-kei bot credential --installation INSTALLATION_ID | <your secret-manager import command>
+kei bot credential --installation INSTALLATION_ID --workspace WS | <your secret-manager import command>
 ```
 
-The CLI refuses to write the credential to an interactive terminal; that
-refusal is the guard working, not a bug to route around. If the installation
-already has a credential the command fails with
+`--workspace` accepts the workspace name or ID. If omitted, the credential is
+scoped to the installation's existing workspace (set at creation time). The CLI
+refuses to write the credential to an interactive terminal; that refusal is the
+guard working, not a bug to route around. If the installation already has a
+credential the command fails with
 `bot credential already exists; use --rotate to replace it` — that is a
 rotation, and rotation breaks the running runtime immediately, so load
 `kei-credential-rotation` before using `--rotate`.
 
-The web reveal also shows `KEI_CREDENTIAL_STORE_INSTALLATION_ID`. That is the
-installation's database ID for credential-store sync. It is not the runtime
-installation identifier, and it is not a secret.
+### Recovery: installation stuck in "pending · unverified"
 
-## 3–5. Configure and bootstrap — pick your path
+If the credential was never received (lost the reveal — it is shown only at creation) or the creation
+step failed, the console shows **pending · unverified** with RUNTIME CREDENTIAL
+**Not configured**. Recover by creating a credential for the existing
+installation — do not recreate the installation under the same name (that
+returns `409`). Either:
+
+- **Console:** open the installation card's **Create credential** action.
+- **CLI:** `kei bot credential --installation INSTALLATION_ID --workspace <name|id>`.
+
+To recreate with a different name, delete the old installation first:
+`kei bot delete --installation INSTALLATION_ID --yes`.
+
+The web reveal shows `KEI_RUNTIME_CONTROL_PLANE_URL`, `KEI_RUNTIME_TOKEN`,
+and the bootstrap command. `KEI_CREDENTIAL_STORE_INSTALLATION_ID` (the
+**credential-store installation ID** (an installation used for secret-sync routing)
+is **not** in the reveal — find it on the **Credential store** page or via
+`kei credential-store get`. It is only needed for credential-store sync;
+most deployments do not need it at all.
+
+## 4–6. Configure and bootstrap — pick your path
 
 There are two supported paths. They end in the same place (the installation
 verified and heartbeating); they differ in where the runtime settings live.
@@ -198,8 +244,8 @@ Bootstrap prints safe JSON: `installation_id`, `org_id`, `platform`, `status`,
 `binding_status`, and `workspace_id`.
 
 **If `workspace_id` is missing, stop.** The credential was minted before the
-workspace boundary existed. Re-mint it (rotation) rather than letting the
-runtime fall back to organization-wide scope.
+workspace boundary existed. Re-mint it (rotation) rather than using a
+workspace-less credential.
 
 ### Keep the heartbeat running (both paths)
 
@@ -210,7 +256,7 @@ under the same supervisor as the harness:
 kei-proxy runtime heartbeat --interval 1m
 ```
 
-## 6. Bind
+## 7. Bind
 
 Once the runtime has reported a heartbeat, activate it:
 
@@ -230,7 +276,7 @@ kei bot agents list --installation INSTALLATION_ID
 Agents themselves are created in the web app; there is no CLI command to
 create one.
 
-## 7. Prove it fails closed
+## 8. Prove it fails closed
 
 A runtime is not set up until a denial has been observed. Run one permitted,
 disposable operation and one that no policy allows (for example an unbound
