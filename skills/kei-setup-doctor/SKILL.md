@@ -202,6 +202,13 @@ runtime/control-plane version skew. Deep string-scanning of large pod
 binaries is slow and `kubectl cp` may fail; prefer inspecting the same image
 locally or skip binary forensics during a read-only pass.
 
+If container logs contain `x509: certificate signed by unknown authority`
+during kei-proxy bootstrap, the final image stage likely uses a Debian
+`*-slim` base without `ca-certificates`. Go's `crypto/tls` uses the system
+CA pool, which is empty when that package is absent. Inspect the Dockerfile's
+final `FROM` stage for `ca-certificates`. See [Container TLS certificate
+reference](references/container-tls.md) for the fix and verification steps.
+
 ## 5. Apply approved remediation
 
 For each failure, report the evidence, likely cause, smallest remediation,
