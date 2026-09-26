@@ -18,6 +18,16 @@
         "The response distinguishes an allowed decision from successful provider execution.",
         "The response tells the implementer to verify exact types and methods against the relevant language port."
       ]
+    },
+    {
+      "id": 3,
+      "prompt": "I need to read the agent ID assigned to my runtime installation from within the agentware SDK. The agent was set up in the Kei console and attached to the installation. How do I get the agent ID in TypeScript, and what should I do if identity is not available?",
+      "expected_output": "Uses link.identity() from @haikeilabs/agentware >= 0.4.0 with kei-proxy >= 0.1.11, reads defaultAgentId and agents from the identity object, denies governed calls if identity is unavailable rather than guessing a fallback agent ID.",
+      "expectations": [
+        "The response reads agent identity from link.identity(), not from an environment variable.",
+        "The response denies governed calls when identity is undefined rather than guessing a fallback agent ID.",
+        "The response requires kei-proxy >= 0.1.11 and agentware >= 0.4.0."
+      ]
     }
   ]
 }

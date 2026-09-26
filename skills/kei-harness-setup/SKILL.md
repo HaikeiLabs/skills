@@ -158,7 +158,8 @@ delegation come from flags or environment:
 
 ```text
 KEI_PROXY_FRAMEWORK=claude|codex|opencode|pi   # which harness
-KEI_PROXY_AGENT_ID=<agent UUID from the console>
+# Agent identity is auto-discovered from the runtime identity event
+# (kei-proxy >= 0.1.11, agentware >= 0.4.0). No agent-ID env var needed.
 KEI_PROXY_INVOKING_SUBJECT=<the human who started the task>
 KEI_PROXY_PARENT_SPAN / KEI_PROXY_DELEGATION_DEPTH   # when a subagent delegates
 KEI_PROXY_REGISTRY=<tool → service registry path>
@@ -168,6 +169,10 @@ Keep the human who started the task as the invoking subject through every
 subagent hop; it is what the audit trail attributes the call to. Never put a
 tenant, org, or workspace ID in agent-controlled tool parameters — scope comes
 from the runtime token.
+
+To read the assigned agent ID at runtime, use the agentware SDK's
+`link.identity()` (see `agentware-sdk` skill). If identity is not available,
+deny governed calls — never guess a fallback agent ID.
 
 ## 4. Register tools and bind connectors (console)
 

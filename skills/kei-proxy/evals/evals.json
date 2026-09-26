@@ -3,12 +3,13 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "I'm writing the tool-call hook for our Claude Code adapter. Before a github.create_pr call runs, how should the hook ask Kei and how do I read the answer? Our agent id is 9c1d2e3f-4a5b-4c6d-8e7f-0a1b2c3d4e5f.",
-      "expected_output": "Uses kei-proxy authorize with --tool/--action/--resource and identity env (KEI_PROXY_AGENT_ID, KEI_PROXY_FRAMEWORK, invoking subject), treats exit 0 as allow and any non-zero exit as do-not-run, reads the JSON decision from stdout, and keeps the token in KEI_RUNTIME_TOKEN.",
+      "prompt": "I'm writing the tool-call hook for our Claude Code adapter. Before a github.create_pr call runs, how should the hook ask Kei and how do I read the answer? We're on kei-proxy 0.1.11 with agentware 0.4.0.",
+      "expected_output": "Uses kei-proxy authorize with --tool/--action/--resource and identity env (KEI_PROXY_FRAMEWORK, invoking subject), treats exit 0 as allow and any non-zero exit as do-not-run, reads the JSON decision from stdout, and keeps the token in KEI_RUNTIME_TOKEN. Agent ID is auto-discovered from the runtime identity event — no KEI_PROXY_AGENT_ID needed.",
       "expectations": [
         "The response uses kei-proxy authorize, not the kei admin CLI, for the per-call decision.",
         "The response treats any non-zero exit, including errors, as do not run the tool.",
         "The runtime token comes from the KEI_RUNTIME_TOKEN environment variable, not a command-line argument.",
+        "The response does not tell the user to set an agent-ID environment variable.",
         "The response does not tell the agent to run kei login."
       ]
     },

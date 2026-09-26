@@ -169,6 +169,47 @@ as an argv flag, write it to logs, or derive authoritative scope from
 `KEI_ORG_ID`; the runtime token establishes the installation and workspace
 scope; the org is derived through the workspace.
 
+The harness needs **only** `KEI_RUNTIME_TOKEN` and the control-plane URL.
+Agent identity is not a user-supplied environment variable — the runtime
+discovers it automatically (see below).
+
+## Reading agent identity from the runtime
+
+Since agentware SDK 0.4.0 (`@haikeilabs/agentware`, Python `pedro_agentware`,
+Go `github.com/haikeilabs/agentware`) and kei-proxy 0.1.11, the agent identity
+assigned to a runtime installation is available through the runtime identity
+event — not from an environment variable. The harness only needs
+`KEI_RUNTIME_TOKEN` and the control-plane URL; the SDK discovers the agent
+automatically from the `kei-proxy` identity response.
+
+**TypeScript** (`@haikeilabs/agentware`):
+
+```typescript
+const identity = link.identity();
+const defaultAgentId = identity?.defaultAgentId;  // string | undefined
+const agents = identity?.agents;                   // Agent[] | undefined
+```
+
+**Python** (`pedro_agentware`):
+
+```python
+identity = link.identity()
+default_agent_id = identity.default_agent_id  # str | None
+agents = identity.agents                      # list[Agent] | None
+```
+
+**Go** (`github.com/haikeilabs/agentware`):
+
+```go
+identity := link.Identity()
+defaultAgentID := identity.DefaultAgentID  // string
+agents := identity.Agents                 // []Agent
+```
+
+If `identity` is `None`/`undefined`/`nil` — because the runtime hasn't
+bootstrapped yet, `kei-proxy` is older than 0.1.11, or agentware is older than
+0.4.0 — **deny governed calls**. Never guess a fallback agent ID.
+
 ## Third-party harness contract
 
 `docs/harness-contract.md` defines how a third-party harness is governed by
