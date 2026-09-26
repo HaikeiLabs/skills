@@ -62,6 +62,13 @@ The token determines installation, organization, and workspace scope. Do not
 pass org, tenant, or workspace IDs as scope. `--key` exists on some commands
 but puts the token in the process list and shell history; use the env var.
 
+**Agent identity is auto-discovered.** Since kei-proxy 0.1.11 the identity
+event (whoami) returns the assigned agent ID and agent list. The harness does
+not need `KEI_PROXY_AGENT_ID` or any agent-ID environment variable. If you
+use the agentware SDK (>= 0.4.0), call `link.identity()` (see
+`agentware-sdk` skill). When calling `kei-proxy authorize` directly, omit
+`--agent-id` — the runtime resolves it from the installation.
+
 There is one credential — the runtime installation credential (`KEI_RUNTIME_TOKEN`)
 from **Create installation** or `kei bot credential`. The **Keys** page no longer
 exists; agent keys were deprecated in favor of the installation credential for
@@ -107,11 +114,15 @@ Identity and delegation come from flags or environment:
 | Env | Flag | Meaning |
 | --- | --- | --- |
 | `KEI_PROXY_INVOKING_SUBJECT` | `--invoking-subject` | The human who started the task (defaults to `--user`); keep it through subagent hops |
-| `KEI_PROXY_AGENT_ID` / `KEI_PROXY_AGENT_VERSION` | `--agent-id` / `--agent-version` | The agent making the call |
 | `KEI_PROXY_FRAMEWORK` | `--framework` | Harness, e.g. `claude`, `codex` |
 | `KEI_PROXY_SPAN_ID` / `KEI_PROXY_PARENT_SPAN` / `KEI_PROXY_DELEGATION_DEPTH` | `--span-id` / `--parent-span` / `--delegation-depth` | Delegation chain; span ID is the dedupe key |
 | `KEI_PROXY_TOOL_ARGS_DIGEST` | `--tool-args-digest` | SHA-256 of the tool args — never the raw args |
 | `KEI_PROXY_REGISTRY` | `--registry` | Tool → service registry (default `/data/config/tools.yaml`) |
+
+**Agent ID is auto-discovered** — the proxy resolves it from the runtime
+identity event. Do not set `KEI_PROXY_AGENT_ID` or pass `--agent-id`; omit
+them. (The flag and env var still exist on older kei-proxy builds but are
+neither required nor recommended with >= 0.1.11.)
 
 Never put a tenant, org, or workspace ID into agent-controlled tool
 parameters, and never log the credential `authorize` returns.

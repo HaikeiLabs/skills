@@ -56,6 +56,17 @@
         "The response explains that CA certificates installed in earlier build stages do not carry into the final stage.",
         "The response provides the apt-get fix for Debian slim bases and the docker run verification command."
       ]
+    },
+    {
+      "id": 7,
+      "prompt": "I ran kei-proxy runtime bootstrap and it succeeded, but when I check the identity data the agent_id is empty. What could cause this and how do I fix it?",
+      "expected_output": "Lists three possible causes: kei-proxy older than 0.1.11 (upgrade), agentware older than 0.4.0 (upgrade), or no agent attached to the installation (attach one via console or kei bot agents add). Warns against guessing a fallback agent ID — deny governed calls instead.",
+      "expectations": [
+        "The response identifies kei-proxy < 0.1.11 as one cause and recommends upgrading.",
+        "The response identifies agentware < 0.4.0 as another cause and recommends upgrading.",
+        "The response says to attach an agent to the installation if versions are current.",
+        "The response does not suggest guessing or supplying a fallback agent ID."
+      ]
     }
   ]
 }
