@@ -81,8 +81,8 @@ Every `kei bot …` command calls the control plane with the operator's CLI
 token. Log in before any of them:
 
 ```sh
-kei login --api-url https://app.haikeilabs.com                  # opens a browser
-kei login --api-url https://app.haikeilabs.com --no-browser     # headless: prints URL + code
+kei login                                                       # opens a browser
+kei login --no-browser                                          # headless: prints URL + code
 ```
 
 - It is an OAuth **device flow**. The CLI prints a URL and a verification code;
@@ -91,14 +91,14 @@ kei login --api-url https://app.haikeilabs.com --no-browser     # headless: prin
 - Only an org `owner` or `admin` can complete approval. Others can start the
   flow but are refused with `403 organization administrator role is required`.
   Don't hand the CLI to a non-admin.
-- The token is bound to the organization chosen at approval and to the
-  `--api-url` host (default `https://app.haikeilabs.com`, or `KEI_WEB_URL`).
-  Use the same `--api-url` on every later command.
+- The token is bound to the organization chosen at approval and to the API URL
+  host (default `https://app.haikeilabs.com`, or `KEI_WEB_URL`). Login again
+  if switching environments.
 - The token goes to the OS keychain (service `kei-cli`, account = API host).
   It is never printed and never written to a config file.
 - It is short-lived. `not logged in; run kei login first` or a 401 mid-session
   means log in again and retry.
-- `kei logout --api-url URL` removes the local keychain entry only; it does not
+- `kei logout` removes the local keychain entry only; it does not
   revoke the token server-side. Safe to repeat.
 
 Commands that do **not** need `kei login`: `kei setup`, `kei runtime
@@ -107,12 +107,13 @@ authenticate with the runtime token instead.
 
 ## Key guidelines
 
-- **Nothing outside the usage string exists.** No `kei org`, `workspace`,
+- **Nothing outside the usage string exists.** No `kei org`,
   `agent`, `connector`, `group`, `policy`, `user`, or `key` commands; no
   `bot install`, `deploy`, `destroy`, or `list`; no `kei setup doctor`. Orgs,
-  workspaces, agents, agent keys, connectors, and policies are managed in the
+  agents, connectors, and policies are managed in the
   web app (or through the HTTP API — see `kei-api`). Say that plainly
-  instead of guessing a command from an API route.
+  instead of guessing a command from an API route. `kei workspaces list`
+  does exist for workspace discovery.
 - **Credentials never touch the terminal.** `kei bot credential` refuses to
   write to an interactive terminal; pipe it into a secret manager. Never pass a
   token as an argument unless the user accepts shell-history exposure.
@@ -126,10 +127,11 @@ authenticate with the runtime token instead.
 | Task | Command | Needs login |
 | --- | --- | --- |
 | Show commands for this version | `kei help` | no |
-| Log in / out | `kei login [--api-url URL] [--no-browser]` / `kei logout [--api-url URL]` | — |
+| Log in / out | `kei login [--no-browser]` / `kei logout` | — |
+| List workspaces | `kei workspaces list [--json]` | yes |
 | Create a runtime installation | `kei bot init --platform cli\|teams\|discord\|slack --name NAME [--agent ID]` | yes |
-| Emit the runtime credential | `kei bot credential --installation ID \| <secret-manager import>` | yes |
-| Rotate the runtime credential | `kei bot credential --installation ID --rotate \| <secret-manager import>` | yes |
+| Emit the runtime credential | `kei bot credential --installation ID --workspace WORKSPACE \| <secret-manager import>` | yes |
+| Rotate the runtime credential | `kei bot credential --installation ID --workspace WS --rotate \| <secret-manager import>` | yes |
 | Inspect an installation | `kei bot status --installation ID` | yes |
 | Activate after first heartbeat | `kei bot bind --installation ID` | yes |
 | List / attach / detach agents | `kei bot agents list\|add\|remove --installation ID [--agent ID] [--default]` | yes |
@@ -138,14 +140,14 @@ authenticate with the runtime token instead.
 | Verify + heartbeat via local kei-proxy | `kei runtime bootstrap [--config PATH] [--proxy-path PATH]` | no (runtime token) |
 | Upgrade via Go | `kei upgrade [--version VERSION]` | no |
 
-All `bot` commands accept `--api-url URL`. `bot bind` works but is not listed in
-`kei help`.
+All `bot` commands accept `--api-url URL` (override the default control-plane
+URL). `bot bind` works but is not listed in `kei help`.
 
 ## Runtime installations
 
 An installation is one customer-owned runtime boundary: the scope for
 bootstrap, heartbeats, policy delivery, and audit. It is distinct from a user
-login and from an agent key.
+login.
 
 ```sh
 kei bot init --platform cli --name "Acme local runtime"
@@ -166,11 +168,14 @@ bind → fail-closed check), load **`kei-runtime-setup`**.
 ## Runtime credential
 
 ```sh
-kei bot credential --installation ID | <secret-manager import>
+kei bot credential --installation ID --workspace WORKSPACE | <secret-manager import>
 ```
 
 - Emitted once for a new installation. If one already exists the command fails
   with `bot credential already exists; use --rotate to replace it`.
+- `--workspace` accepts a workspace name or ID. The credential is scoped to
+  that workspace. If omitted, the existing workspace (set at installation
+  creation) is used.
 - `--rotate` replaces the credential in place; the old one stops working
   immediately. Load **`kei-credential-rotation`** before rotating a runtime
   that is serving traffic.
@@ -198,8 +203,9 @@ kei runtime bootstrap          # runs the configured kei-proxy to verify + send 
 ## When resource commands arrive (AIP/CRUD)
 
 The CLI is being extended toward the resource-oriented Kei API contract, but
-no released version has org, workspace, agent, connector, group, policy, or
-user commands yet. Before using or documenting one, confirm it in `kei help`
+no released version has org, agent, connector, group, policy, or
+user commands yet (`kei workspaces list` is a notable early exception).
+Before using or documenting one, confirm it in `kei help`
 for the installed version and check that it follows the contract:
 
 - `list` / `get` / `create` / `update` / `delete` map to the API's List, Get,
@@ -220,20 +226,21 @@ not describe a future command as available.
 kei --version
 kei help                                  # authoritative usage for this version
 kei bot                                   # "bot requires a subcommand" (exit 2) — confirms no list/deploy
-kei login --api-url https://app.haikeilabs.com --no-browser
+kei login --no-browser
 kei bot status --installation INSTALLATION_ID
 ```
 
 ## Realistic usage boundaries
 
-- Organization, workspace, agent, agent-key, connector, policy, invitation, and
-  approval management happen in the web app today. The CLI will grow
+- Organization, agent, connector, policy, invitation, and
+  approval management happen in the web app today (`kei workspaces list` is
+  available for workspace discovery). The CLI will grow
   resource-oriented commands after the API's AIP migration; until a release
   ships one, do not describe it as available.
 - The CLI token is org-bound and short-lived; it is not a general user token and
   cannot be used by a runtime.
-- `kei` does not mint agent (`kh_live_…`) keys; those come from the console's
-  **Agents → Keys**.
+- The **Keys** page no longer exists. Agent keys were deprecated in favor of
+  the runtime installation credential for all runtime operations.
 - AWS, GCP, Azure, Terraform, and Helm deployment steps are not part of the
   CLI. Kei's own control plane runs on AWS EKS; customer hosting is the
   customer's choice.

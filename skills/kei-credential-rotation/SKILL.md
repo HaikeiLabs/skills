@@ -1,6 +1,6 @@
 ---
 name: kei-credential-rotation
-description: Rotate or revoke a Kei runtime installation credential (the KEI_RUNTIME_TOKEN a kei-proxy runtime authenticates with) without leaking it and with a planned cutover, using `kei bot credential --rotate` or the console's Rotate button. Use whenever someone wants to rotate, re-mint, replace, roll, or revoke a Kei runtime token or installation credential, suspects one leaked, sees a bootstrap without workspace_id, or asks how key rotation works in Kei — including when they just say "rotate the Kei keys". Also explains why agent (harness) key rotation is console-only today.
+description: Rotate or revoke a Kei runtime installation credential (the KEI_RUNTIME_TOKEN a kei-proxy runtime authenticates with) without leaking it and with a planned cutover, using `kei bot credential --rotate` or the console's Rotate button. Use whenever someone wants to rotate, re-mint, replace, roll, or revoke a Kei runtime token or installation credential, suspects one leaked, sees a bootstrap without workspace_id, or asks how key rotation works in Kei — including when they just say "rotate the Kei keys".
 ---
 
 # Rotate a Kei runtime credential
@@ -16,7 +16,7 @@ consumes the new token and is restarted and re-bootstrapped afterwards
 | --- | --- | --- |
 | Installed binary | `kei help` (look for `--rotate` on `bot credential`) | Whether this release supports CLI rotation |
 | Console: CLI authentication and identity | `https://app.haikeilabs.com/#/docs/create-an-organization` | Credential handling rules |
-| Console: Test Agent Keys | `https://app.haikeilabs.com/#/docs/test-agent-keys` | Agent-key mint/verify/cleanup flow |
+| Console: Runtime installations | `https://app.haikeilabs.com/#/docs/add-a-workspace` | Runtime credential management |
 
 ## Which secret?
 
@@ -26,7 +26,6 @@ before doing anything:
 | Secret | Looks like | Minted by | Rotate with |
 | --- | --- | --- | --- |
 | Runtime installation credential | `KEI_RUNTIME_TOKEN` for an installation | `kei bot credential`, or the console's installation reveal | This skill: `kei bot credential --rotate` or console **Rotate** |
-| Agent (harness) key | `kh_live_…` | Console **Agents → Keys → Create** | Console only — no CLI command (see the end of this skill) |
 
 ## What rotation actually does
 
@@ -42,10 +41,10 @@ with the new token. Plan the order so that gap is seconds, not hours.
 ## Before rotating
 
 1. **Log in.** `kei bot credential` uses the operator's CLI token, so run
-   `kei login --api-url https://app.haikeilabs.com` first (owner/admin only; a
+   `kei login` first (owner/admin only; a
    browser approval the user must complete). The token is short-lived and
    per-environment — re-run login on `not logged in; run kei login first` or a
-   401, and pass the same `--api-url` to every command.
+   401, log in again.
 2. **Confirm the installation.** `kei bot status --installation INSTALLATION_ID`
    — check it is the right name and environment, and that it is `pending` or
    `active`.
@@ -63,8 +62,11 @@ write it to an interactive terminal, which is the point — never redirect it to
 a file in the repo, echo it, or paste it into the conversation.
 
 ```sh
-kei bot credential --installation INSTALLATION_ID --rotate | <your secret-manager import command>
+kei bot credential --installation INSTALLATION_ID --workspace WS --rotate | <your secret-manager import command>
 ```
+
+`--workspace` accepts a workspace name or ID and re-scopes the rotated
+credential. If omitted the existing workspace scope is preserved.
 
 Web alternative: **Agents → Runtime installations → Rotate**. The new value is
 revealed once; copy it directly into the secret manager.
@@ -116,16 +118,9 @@ kei bot status --installation INSTALLATION_ID
 kei-proxy runtime bootstrap | jq '.workspace_id'  # must not be null
 ```
 
-## Agent (harness) keys: console only today
-
-`kh_live_…` agent keys are minted per agent in the console (**Agents → Keys**),
-shown once, and consumed by `kei-proxy` as `KEI_RUNTIME_TOKEN`. There is no
-`kei` command to create, list, rotate, or delete them, and their API is not yet
-resource-oriented, so this skill does not script them. Rotating one today means,
-in the console: create a new key, store it in the secret manager, restart the
-runtime, confirm with `kei-proxy authorize` for a permitted disposable call,
-then delete the old key and confirm the old value is rejected. Deleting a key
-revokes it at once.
+The **Keys** page no longer exists. Agent keys were deprecated in favor of the
+runtime installation credential for all runtime operations. Only
+`KEI_RUNTIME_TOKEN` is used today.
 
 ## Realistic usage boundaries
 

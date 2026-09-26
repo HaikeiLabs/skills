@@ -166,8 +166,8 @@ Docker or a service manifest,
 inject the URL and version as ordinary environment values and inject
 `KEI_RUNTIME_TOKEN` from a protected secret or env-file. Never pass the token
 as an argv flag, write it to logs, or derive authoritative scope from
-`KEI_ORG_ID`; the runtime token establishes the installation/org/workspace
-scope.
+`KEI_ORG_ID`; the runtime token establishes the installation and workspace
+scope; the org is derived through the workspace.
 
 ## Third-party harness contract
 

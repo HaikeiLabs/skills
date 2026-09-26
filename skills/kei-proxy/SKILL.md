@@ -11,7 +11,7 @@ settle which one a task needs before anything else:
 | | `kei` — platform admin CLI | `kei-proxy` — runtime |
 | --- | --- | --- |
 | Who runs it | A person: org `owner`/`admin`, on a workstation | The harness, as a subprocess, per governed operation |
-| Authenticates with | `kei login` device flow → CLI token in the OS keychain | `KEI_RUNTIME_TOKEN` (runtime credential or `kh_live_` agent key) from the environment |
+| Authenticates with | `kei login` device flow → CLI token in the OS keychain | `KEI_RUNTIME_TOKEN` (runtime credential only) from the environment |
 | Talks to | The control plane's admin APIs | The control plane's runtime APIs, plus local secret stores and providers |
 | Jobs | Log in, create/inspect/bind/delete runtime installations, emit/rotate runtime credentials | Decide allow/deny for a tool call, run allowed connector work locally, bootstrap + heartbeat, ship audit |
 | Lives | Operator's laptop | Same container/host as the harness |
@@ -30,7 +30,7 @@ Your knowledge of `kei-proxy` subcommands may be outdated. **Prefer retrieval.**
 | --- | --- | --- |
 | Installed binary | `kei-proxy help`, `kei-proxy <command> --help` | Commands, flags, env vars for this version |
 | Console: Configure the tenant-side proxy | `https://app.haikeilabs.com/#/docs/add-a-workspace` | Runtime env, bootstrap output, container build |
-| Console: Test Agent Keys | `https://app.haikeilabs.com/#/docs/test-agent-keys` | `authorize` with a `kh_live_` key |
+| Console: Runtime installations | `https://app.haikeilabs.com/#/docs/add-a-workspace` | Runtime env, bootstrap output, container build |
 | Console: Audit logs | `https://app.haikeilabs.com/#/docs/groups-policies-users` | `collector` |
 | Source | `HaikeiLabs/kei-connector-runtime` (private): `main.go` usage | Ground truth |
 
@@ -54,13 +54,18 @@ The harness process needs, in its environment:
 
 ```text
 KEI_RUNTIME_CONTROL_PLANE_URL=https://YOUR_KEI_GATEWAY   # no /api/v1 suffix
-KEI_RUNTIME_TOKEN=<from the secret manager>              # never an argument
+KEI_RUNTIME_TOKEN=<runtime credential from the secret manager>  # never an argument
 KEI_RUNTIME_VERSION=<runtime version>
 ```
 
 The token determines installation, organization, and workspace scope. Do not
 pass org, tenant, or workspace IDs as scope. `--key` exists on some commands
 but puts the token in the process list and shell history; use the env var.
+
+There is one credential — the runtime installation credential (`KEI_RUNTIME_TOKEN`)
+from **Create installation** or `kei bot credential`. The **Keys** page no longer
+exists; agent keys were deprecated in favor of the installation credential for
+all runtime operations.
 
 ## Quick reference
 
@@ -145,6 +150,6 @@ kei-proxy authorize --user U --tool T --action A --resource R; echo "exit=$?"   
   stay in the runtime. Only decisions and redacted audit metadata go to Kei.
 - Unsupported harnesses, missing bindings, invalid installation scope, stale
   policy, and no matching policy are all DENY.
-- Creating installations, credentials, agents, or keys is not a `kei-proxy`
-  job. Installations and credentials are `kei` (`kei-cli`); agents and agent
-  keys are the console.
+- Creating installations, credentials, or agents is not a `kei-proxy`
+  job. Installations and credentials are `kei` (`kei-cli`); agents
+  are the console.

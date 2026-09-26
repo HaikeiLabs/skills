@@ -32,10 +32,10 @@
     {
       "id": 4,
       "prompt": "kei bot status --installation 3f2c9a1e-8b7d-4c6e-9f10-2a3b4c5d6e7f says 'not logged in; run kei login first' but I logged in yesterday against staging. what's going on",
-      "expected_output": "Explains the token is short-lived and bound to the --api-url host; log in again with the same --api-url used by the command.",
+      "expected_output": "Explains the token is short-lived and bound to the API URL host; log in again.",
       "expectations": [
         "The response explains the login token is short-lived or expires.",
-        "The response says the token is per --api-url environment and the same --api-url must be passed to both commands."
+        "The response says the token is per environment and login again is needed."
       ]
     },
     {

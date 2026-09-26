@@ -86,7 +86,7 @@ control-plane UI or the Kei API (`kei-api` owns installation listing).
 Once you have a candidate ID, confirm it from its non-secret metadata:
 
 ```sh
-kei bot status --installation ID --api-url CONTROL_PLANE_URL
+kei bot status --installation ID
 ```
 
 If that ID is wrong or unknown, ask the customer to choose rather than guessing
@@ -101,6 +101,10 @@ Capture the returned `installation_id`; it is not secret. Inspect
 `kei help` and `kei bot --help` before relying on version-specific syntax. The
 implemented `bot` subcommands are `init`, `agents`, `status`, `delete`,
 `credential`, and `bind`; there is no `install`, `deploy`, `destroy`, or `list`.
+
+If `kei bot status` returns a **409** (conflict), the installation's workspace
+scope may be out of sync with the credential. Rotate the credential with
+`--workspace` to re-scope rather than re-creating the installation.
 
 Collect the remaining target details:
 
@@ -151,7 +155,7 @@ do not ask for a session token.
 Only after an installation ID is known:
 
 ```sh
-kei bot status --installation INSTALLATION_ID --api-url CONTROL_PLANE_URL
+kei bot status --installation INSTALLATION_ID
 ```
 
 Verify the ID, platform, display name, status, binding status, runtime
@@ -181,8 +185,8 @@ KEI_RUNTIME_VERSION=<deployed-version>
 The URL is the gateway base; do not add `/api/v1`. Check that the token is
 injected through the container/service secret mechanism and is not present in
 argv, logs, or shell history. Do not diagnose scope from `KEI_ORG_ID`; verify
-the installation, organization, and workspace returned by `kei runtime
-bootstrap` instead.
+the installation and workspace returned by `kei runtime
+bootstrap` instead (the org is derived through the workspace).
 
 For local runtimes, check configuration presence and permissions without
 printing contents:
@@ -215,9 +219,22 @@ For each failure, report the evidence, likely cause, smallest remediation,
 validation command, and external-state impact. Ask immediately before the
 mutation.
 
-If a runtime credential is unavailable, explain that Kei stores only a hash
-and cannot recover the old plaintext. After approval, create or rotate it
-through the pipe-safe CLI flow:
+If a runtime credential is unavailable, check the installation state first:
+
+- **pending · unverified** with RUNTIME CREDENTIAL **Not configured** means the
+  credential was never created (the reveal was lost — it is shown only at creation — or the creation
+  step failed). Create one for the existing installation rather than recreating
+  under the same name (which returns `409`). Either use the console card's
+  **Create credential** action, or the CLI:
+  ```sh
+  kei bot credential --installation INSTALLATION_ID --workspace <name|id>
+  ```
+  To recreate with a different name, delete the old installation first with
+  `kei bot delete --installation INSTALLATION_ID --yes`.
+
+- If the credential existed but was lost, explain that Kei stores only a hash
+  and cannot recover the old plaintext. After approval, rotate it through the
+  pipe-safe CLI flow:
 
 ```sh
 kei bot credential --installation INSTALLATION_ID --rotate | DESTINATION_COMMAND
