@@ -46,6 +46,16 @@
         "The response says Kei stores only a hash and the plaintext token cannot be recovered.",
         "The response proposes rotation only after approval, piping the new credential to its destination rather than printing it."
       ]
+    },
+    {
+      "id": 6,
+      "prompt": "A containerised runtime installation keeps crashing with tls: failed to verify certificate: x509: certificate signed by unknown authority during kei-proxy bootstrap. Diagnose the cause and fix it.",
+      "expected_output": "Identifies the missing ca-certificates package in the final Docker image stage, points to the container-tls reference, and explains that CAs from earlier build stages do not carry over. Describes the apt-get install fix and the docker run verification step.",
+      "expectations": [
+        "The response identifies the root cause as a missing ca-certificates package in the final Docker image stage.",
+        "The response explains that CA certificates installed in earlier build stages do not carry into the final stage.",
+        "The response provides the apt-get fix for Debian slim bases and the docker run verification command."
+      ]
     }
   ]
 }
