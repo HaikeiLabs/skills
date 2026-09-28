@@ -174,6 +174,24 @@ To read the assigned agent ID at runtime, use the agentware SDK's
 `link.identity()` (see `agentware-sdk` skill). If identity is not available,
 deny governed calls — never guess a fallback agent ID.
 
+### 3a. Use KeiProxyEvaluator instead of hand-rolling authorize
+
+If your harness imports the agentware SDK (any of the three ports), use
+`KeiProxyEvaluator` instead of calling `kei-proxy authorize` directly. It
+handles spawn, timeout, env filtering, decision parsing, enrollment
+extraction, and all fail-closed invariants. See the `agentware-sdk` skill for
+per-language construction, the decision table, and testing with shared
+fixtures.
+
+Do **not** keep a local allow list in the harness. The workspace policy bundle
+(`kei-proxy` + `kei-policy-catalog`) is the single source of truth for what
+is allowed. A local allow list is stale on deploy and invisible to audit.
+
+> **Future (HAI-124):** Catalog-distributed policy bundles will let the
+> control plane push policy updates to runtimes without a deploy. Until then,
+> the runtime boots with the bundle it fetched at bootstrap. `KeiProxyEvaluator`
+> works the same way either way — it asks `kei-proxy` every time.
+
 ## 4. Register tools and bind connectors (console)
 
 Registering the harness's skills and tool IDs against the installation, and

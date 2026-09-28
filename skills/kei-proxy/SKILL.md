@@ -90,10 +90,16 @@ all runtime operations.
 `kei-proxy org` and `kei-proxy init` also exist. They call the Kei API
 directly with a service secret and are Haikei-internal provisioning tools, not
 part of a customer harness. Don't wire them into an agent.
-
 ## authorize: the per-call decision
 
-The adapter calls this before every governed tool runs and obeys the result:
+> **If your harness uses the agentware SDK**, prefer `KeiProxyEvaluator`
+> (see `agentware-sdk` skill) over calling `kei-proxy authorize` directly.
+> The evaluator handles spawn, timeout, env filtering, decision parsing,
+> enrollment extraction, and all fail-closed invariants. This reference is
+> for direct calls when you cannot use the SDK.
+
+The adapter calls this before every governed tool runs and obeys the
+result:
 
 ```sh
 kei-proxy authorize --user "$SUBJECT" --tool github.create_pr \
