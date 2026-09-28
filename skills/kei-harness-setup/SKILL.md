@@ -197,6 +197,65 @@ redacted audit metadata. Missing bindings, an unregistered harness, invalid
 installation scope, stale policy, and no matching policy must all be **DENY**.
 The harness is not set up until you have seen a denial.
 
+## 6. Enrolling chat users (claim links)
+
+When a chat-platform user (Teams, Slack, or Discord) is not yet linked to a
+Kei user, the authorize endpoint returns `decision: "enrollment_required"`
+with an `enrollment` block instead of `deny`:
+
+```json
+{
+  "decision": "enrollment_required",
+  "reason": "provider identity is not linked to a kei user",
+  "identity_status": "unlinked",
+  "org_id": "...",
+  "workspace_id": "...",
+  "provider_user_id": "...",
+  "enrollment": {
+    "provider": "teams|slack",
+    "provider_user_id": "...",
+    "org_id": "...",
+    "workspace_id": "...",
+    "url": "https://...",
+    "expires_at": "2026-09-28T12:00:00Z"
+  }
+}
+```
+
+The harness must:
+
+1. **Show the claim link privately.** The `url` is a one-time link that enrols
+   the user as a workspace member with default group access; treat it as
+   sensitive — show it only to the user who needs it, never log it or echo it
+   to a shared channel.
+2. **Honour the expiry.** `expires_at` is ~15 minutes from issuance; after that
+   the url is unredeemable and the user must be re-prompted to authorize again.
+3. **Re-authorize after enrollment.** Once the user visits the link and
+   completes the self-enroll flow, their provider identity is linked and the
+   next authorize call returns `allow` or policy-driven `deny` instead of
+   `enrollment_required`.
+4. **Do not auto-retry enrollment.** If the url is expired or the user declines,
+   the next authorize call from the same provider identity re-issues a fresh
+   enrollment. Do not loop; let the user drive re-authorization.
+5. **Self-enroll grants member + default group.** Redeeming the claim link
+   creates a Kei user (if new) and links the provider identity with member-level
+   access and the workspace's default group. Approval-based elevation
+   (managed access-request flow) is for non-default groups or elevated roles.
+
+The `enrollment` object may be absent (no url/expires_at) when the control
+plane cannot issue a claim — for example when the runtime installation has no
+workspace scope or `KEI_WEB_BASE_URL` is unset. In that case fall back to
+`guest_requires_signup`.
+
+**Always show the newest link.** Every `enrollment_required` response mints a
+new claim and invalidates the previous live claim for that identity. A resent
+old link fails with `claim_used` (409). Do not mint extra links yourself —
+each authorize call already does that. If the user has not acted on a link and
+you re-prompt, show the link from the latest response, not a cached one.
+
+The claim-link lifecycle is documented in detail at the canonical API contract:
+`kei-policy-catalog docs/chat-identity-claims.md`.
+
 ## Validation commands
 
 ```sh
@@ -213,5 +272,8 @@ kei-proxy authorize --user U --tool T --action A --resource R; echo $?
 - Installing skills changes what the agent knows, not what it may do. Policy in
   the workspace decides that.
 - Agents are created in the console; there is no CLI command for that yet.
-- The explicit Harness resource, installation-claim handshake, and short-lived
-  runtime identity in the ADRs are planned. Do not present them as available.
+- The explicit Harness resource and short-lived runtime identity in the ADRs
+  are planned. Do not present them as available.
+- The installation-claim handshake (HAI-155) IS available for chat-platform
+  identities via the claim-link enrollment flow (see section 6 above), but is
+  NOT available for generic harness-to-installation linking.

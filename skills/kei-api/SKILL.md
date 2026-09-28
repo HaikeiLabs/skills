@@ -91,6 +91,7 @@ package for it.
 | Consents | `/api/v1/consents`, `/api/v1/consent-requests` | Provider consent grants and consent requests (confirm via `/{token}/confirm`) |
 | Audit | `/api/v1/audit`, `/api/v1/audit/query*` | List audit logs/events/records; governed, ABAC-checked audit queries |
 | Runtime | `/api/v1/runtime/*` | Harness-facing: `whoami`, `agents`, `heartbeat`, `credential-bindings`, `credential-delivery/claim|ack`, `credential-sync-keys`, `model-profiles` |
+| Chat identity claims | `/api/v1/runtime/chat-identity-claims`, `/api/v1/internal/chat-identity-claims*`, `/api/v1/organizations/{id}/chat-identity-access-requests*`, `/api/v1/chat-identity-access-requests/{id}:decide` | Issue one-time claim links for chat-platform self-enrollment; server-to-server preview/redeem endpoints; managed access-request approval flow |
 | Internal | `/api/v1/internal/*` | Device-authorization flow, harness-identity, runtime-installations and lifecycle (bind/disable/revoke/rotate) |
 
 ## How authorization is decided
@@ -114,8 +115,83 @@ where `decision` is `allow` or `deny`.
 - Subjects resolve through `user_consents` (`provider_user_id` → `user_id`),
   groups, and `org:<role>` memberships; policies match `user:`/`email:`/`group:`
   patterns or wildcards.
-- Guests (a `provider_user_id` with no matching user) are denied with
-  `guest_requires_signup` for any non-`public:*` action.
+- Guests (a `provider_user_id` with no matching user): for chat-platform
+  identities (Teams, Slack, or Discord) the authorization returns
+  `enrollment_required` with a one-time claim-link `url` for self-enrollment
+  (see [Chat identity claims and enrollment](#chat-identity-claims-and-enrollment)
+  below). For all other platforms the guest is denied with
+  `guest_requires_signup`.
+
+## Chat identity claims and enrollment
+
+When a chat-platform identity (Teams, Slack, or Discord) is not linked to a
+Kei user, `POST /api/v1/authorize` returns `decision: "enrollment_required"`
+with an `enrollment` block carrying a one-time claim-link `url` and
+`expires_at` (~15 minutes). The user visits the link to self-enroll as a
+workspace member with default group access.
+
+### Endpoints
+
+| Method | Route | Auth | Purpose |
+|--------|-------|------|---------|
+| POST | `/api/v1/runtime/chat-identity-claims` | Harness bearer | Issue a one-time claim link for a chat-platform identity |
+| POST | `/api/v1/runtime/chat-identity-statuses:resolve` | Harness bearer | Resolve the linking status for a provider identity |
+| POST | `/api/v1/internal/chat-identity-claims:preview` | Internal (X-KEI-API-Key + X-User-ID) | Server-to-server: preview what enrollment would do (user info, groups, access) |
+| POST | `/api/v1/internal/chat-identity-claims:redeem` | Internal (X-KEI-API-Key + X-User-ID) | Server-to-server: redeem a claim link, creating/updating the user and linking the identity |
+| GET | `/api/v1/organizations/{id}/chat-identity-access-requests` | Web session | List pending access requests for group/role elevation |
+| GET | `/api/v1/organizations/{id}/chat-identity-access-requests/{request_id}/assignment-options` | Web session | List available groups/roles for an access request |
+| POST | `/api/v1/chat-identity-access-requests/{id}:decide` | Web session | Approve or deny an access request |
+
+### Preview/redeem (server-to-server)
+
+The `:preview` and `:redeem` custom methods are **internal-only**, authenticated
+by the `X-KEI-API-Key` service credential **and** an `X-User-ID` header
+identifying the acting admin. They are not called by agents or harnesses.
+
+- **preview** returns the user info and group memberships that redemption would
+  produce, without mutating state.
+- **redeem** creates or updates the Kei user, links the provider identity, and
+  assigns default-group membership. Returns the created/updated user.
+- The one-time claim token is passed in the request body (see the canonical
+  contract at `kei-policy-catalog docs/chat-identity-claims.md`).
+
+### Redeem error codes
+
+| Condition | Response |
+|-----------|----------|
+| No row for the token hash | `claim_invalid` (404) |
+| Already consumed as `linked` by the same user | No-op 204 (double-click is safe) |
+| Already consumed as `identity_conflict` by the same user | `identity_conflict` (409) |
+| Any other consumed state | `claim_used` (409) |
+| `expires_at` in the past | `claim_expired` (410) |
+| Identity already linked to a different Kei user | `identity_conflict` (409) — owner not revealed |
+
+### Retired enrollment routes
+
+| Method | Route | Status |
+|--------|-------|--------|
+| POST | `/api/v1/enroll` | **410 Gone** — returns `"legacy enrollment is disabled; use identity claim confirmation"` |
+| POST | `/api/v1/internal/enroll` | Removed — the OIDC-bridge enrollment path is replaced by the claim-link flow |
+
+Both routes are retired. Do not call them or document them as available. The
+claim-link flow (above) is the only supported path.
+
+### Enrollment object shape
+
+```json
+{
+  "provider": "teams",
+  "provider_user_id": "user@domain.com",
+  "org_id": "uuid",
+  "workspace_id": "uuid",
+  "url": "https://app.haikeilabs.com/identity/link#claim=abc123...",
+  "expires_at": "2026-09-28T12:00:00Z"
+}
+```
+
+`url` and `expires_at` are absent when the control plane cannot issue a claim
+(no workspace scope, no `KEI_WEB_BASE_URL`). See the `kei-harness-setup` skill
+for how agent harnesses should handle the `enrollment_required` decision.
 
 ## Three distinct auth schemes — do not collapse them
 

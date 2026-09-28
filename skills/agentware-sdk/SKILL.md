@@ -231,6 +231,13 @@ closed on every path that is not an explicit `permit`/`allow`**.
 Fail-closed rules: unknown policy decision → DENY; unreachable proxy → DENY; missing
 credential → DENY; expired token → DENY.
 
+> **Pending (agentware PR #150, HAI-155):** `KeiProxyEvaluator` will carry the
+> `enrollment` object from `kei-proxy authorize` on DENY decisions for unlinked
+> chat-platform users. Until that PR merges, the evaluator does not surface
+> `enrollment` to the harness. The `kei-proxy` binary itself already returns
+> `enrollment` in its stdout JSON (shipped, HAI-209); only the agentware
+> evaluator layer is pending.
+
 ## The control-plane and action-tool boundary
 
 Authoritative sources: `docs/tenant-proxy-reference.md` and

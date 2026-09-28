@@ -61,7 +61,10 @@ assert them. Weakening one is a security regression, never a test convenience.
    validation; commit on success AND expected failure; release on throw so a corrected
    redelivery can retry. A duplicate is acknowledged with zero reprocessing.
 8. **Enrollment gates the pilot.** `BOT_ENROLLED_OBJECT_IDS` admits only approved AAD object
-   ids. The not-enrolled reply is generic and reveals nothing.
+   ids. The not-enrolled reply is generic and reveals nothing. This is the
+   assistant's own pilot access gate (AAD object IDs), distinct from the
+   catalog's claim-link enrollment flow for chat-platform users (HAI-155) —
+   see `kei-harness-setup` section 6 and `kei-api` for the claim-link flow.
 9. **Outbound capability is object identity.** `outbound.claimTurn(identity)` treats the
    verified `identity` object as the capability — a copied or fixture identity cannot reach
    the Connector. With no outbound wired the pipeline is outbound-dark and claims nothing.
