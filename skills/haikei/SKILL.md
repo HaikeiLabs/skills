@@ -45,7 +45,7 @@ Need to operate Kei from a terminal?
 ├─ Which admin command / what flags / install or upgrade kei → kei-cli
 ├─ Which runtime command (authorize, connector invoke, heartbeat, collector) → kei-proxy
 ├─ New runtime next to a harness (installation, credential, bootstrap, bind) → kei-runtime-setup
-├─ Rotate / revoke a runtime token, or a kh_live agent key → kei-credential-rotation
+├─ Rotate / revoke a runtime credential (KEI_RUNTIME_TOKEN) — agent keys deprecated for runtime → kei-credential-rotation
 ├─ Existing installation misbehaving → kei-setup-doctor
 └─ Org, workspace, agent, connector, policy, user → web app (no CLI); HTTP API → kei-api
 
@@ -69,7 +69,7 @@ exist in the code today.
 | Log in to Haikei from the CLI, or look up any `kei` command | kei CLI | Human operator (owner/admin) needs an org-bound CLI token via the device flow, or exact command syntax | `kei-cli` |
 | Make an agent's tool call go through Kei (allow/deny, connector calls, audit) | `kei-proxy` runtime | Harness or adapter code that calls Kei at run time; never `kei login` | `kei-proxy` |
 | Stand up a customer-hosted runtime / kei-proxy | kei CLI `bot` + `kei-proxy runtime` | New installation → credential → config → bootstrap → heartbeat → bind | `kei-runtime-setup` |
-| Rotate or revoke a runtime credential or agent key | kei CLI `bot credential --rotate`; console for agent keys | Scheduled rotation, suspected leak, or a bootstrap missing `workspace_id` | `kei-credential-rotation` |
+| Rotate or revoke a runtime credential (KEI_RUNTIME_TOKEN) | kei CLI `bot credential --rotate` | Scheduled rotation, suspected leak, or a bootstrap missing `workspace_id` | `kei-credential-rotation` |
 | Connect Claude Code, Codex, OpenCode, Pi, or Cursor to Kei | Haikei skills + kei-proxy | Install these skills in a harness and route its governed calls through the runtime | `kei-harness-setup` |
 | Create an organization or workspace | Kei API | Set up an org, workspaces, seats, plans, members | `kei-api` |
 | Add or manage a data connector | Kei API | Register a governed data source (GitHub, Linear, Drive, S3, http_api/CRM) and its status | `kei-api` |
@@ -108,7 +108,7 @@ exist in the code today.
 
 - **"Set up a new client org for the private beta."** → Kei API. Create the org
   (`POST /api/v1/onboarding/organizations` or `POST /api/v1/organizations`), add
-  workspaces, invite users, mint a harness key when a runtime is ready. Load
+  workspaces, invite users, mint a runtime credential when a runtime is ready. Load
   `kei-api`. Do not reach for the CLI — no org command exists.
 - **"Stand up the runtime for this customer."** → `kei-runtime-setup`. The
   operator (owner/admin) runs `kei login`, then `kei bot init`, pipes
@@ -179,7 +179,7 @@ exist in the code today.
   for the full statement and the exact 403 message.
 - **Three distinct auth schemes, all separate.** The Kei API accepts a CLI
   bearer token (human, admin-only, org-bound), a harness/runtime bearer token
-  (installation-scoped, minted via harness-keys), and a browser session cookie
+  (installation-scoped, minted via runtime-installation credentials), and a browser session cookie
   (web UI). Schemes (a) and (b) are both `Authorization: Bearer` on the wire and
   indistinguishable by header alone. They are not interchangeable; the
   `kei-api` skill marks which endpoints accept which.

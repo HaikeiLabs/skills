@@ -1,6 +1,6 @@
 ---
 name: agentware-sdk
-description: Use the open-source agentware SDK (pedro-agentware) — policy enforcement and audit middleware for agent tool calls, in Go, Python, and TypeScript. Use when working with middleware policy/audit, AuditedToolClient, ToolExecutor, CallerContext, Action ALLOW/DENY/FILTER, rate limits, guardrails (response validator, step enforcer, error tracker, nudge), KEI_HARNESS_TOKEN, OpaqueTokenProvider/JWTTokenProvider, HarnessManifest, KeiProxyEvaluator, kei-proxy, delegation, the third-party harness contract, or the action-tool/connector boundary. This is generic agentware guidance; the tool-adapter/governor lane pattern lives in the assistant's developer skills, and no invented APIs are allowed — the code and docs in the repo are the source of truth.
+description: Use the open-source agentware SDK (pedro-agentware) — policy enforcement and audit middleware for agent tool calls, in Go, Python, and TypeScript. Use when working with middleware policy/audit, AuditedToolClient, ToolExecutor, CallerContext, Action ALLOW/DENY/FILTER, rate limits, guardrails (response validator, step enforcer, error tracker, nudge), KEI_RUNTIME_TOKEN, OpaqueTokenProvider/JWTTokenProvider, HarnessManifest, KeiProxyEvaluator, kei-proxy, delegation, the third-party harness contract, or the action-tool/connector boundary. This is generic agentware guidance; the tool-adapter/governor lane pattern lives in the assistant's developer skills, and no invented APIs are allowed — the code and docs in the repo are the source of truth.
 ---
 
 # Open-source agentware (pedro-agentware)
@@ -134,7 +134,7 @@ token counts, latency, and success/error. `resources_touched` makes
 ## KEI identity/auth integration (Python on main)
 
 - `python/src/pedro_agentware/kei/auth.py` — `TokenType` (OPAQUE | JWT),
-  `BOOTSTRAP_TOKEN_ENV = "KEI_HARNESS_TOKEN"`, `OpaqueTokenProvider` (current, no auto-renew;
+  `BOOTSTRAP_TOKEN_ENV = "KEI_RUNTIME_TOKEN"`, `OpaqueTokenProvider` (current, no auto-renew;
   `invalidate()` fails closed with `httpx.HTTPStatusError`), `JWTTokenProvider` (future
   exchange/refresh/revoke contract, gated behind explicit `enable()`, else fail-closed).
 - `python/src/pedro_agentware/kei/config.py` — `HarnessManifest` (schema `1.0.0`,
@@ -219,7 +219,7 @@ required components:
 1. **AuthProvider** — supplies tokens for the KEI API (use `OpaqueTokenProvider`, or
    implement the `get_token`/`invalidate`/`get_token_type` protocol).
 2. **ToolExecutor** — executes tools on behalf of agents (implement `execute(tool_name, args)`).
-3. **SecretProvider** — sources the bootstrap secret `KEI_HARNESS_TOKEN`
+3. **SecretProvider** — sources the bootstrap secret `KEI_RUNTIME_TOKEN`
    (use `EnvSecretProvider`).
 
 Assemble with `HarnessContract(auth_provider, tool_executor, secret_provider)` and

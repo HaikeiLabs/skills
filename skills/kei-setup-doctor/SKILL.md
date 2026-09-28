@@ -222,6 +222,7 @@ installation, or the versions are too old to report agent identity.
 | `agent_id` is empty / `agents` is `[]` after `kei-proxy runtime bootstrap` | kei-proxy older than 0.1.11 (identity event does not emit agent identity) | Upgrade kei-proxy to >= 0.1.11 |
 | `agent_id` is empty / `agents` is `[]` after bootstrap with kei-proxy >= 0.1.11 | agentware SDK older than 0.4.0 (SDK does not expose `link.identity()`) | Upgrade agentware to >= 0.4.0 |
 | `agent_id` is empty / `agents` is `[]` with all versions current | No agent has been attached to the installation | In the console, attach an agent to the installation, or run `kei bot agents add --installation ID --agent AGENT_ID --default` |
+| Agent and model: 0 ready in `kei bot status` | Agent assigned but not yet initialized; model profile not resolved | Wait for agent initialization (poll `kei bot status`); if stuck, check agent configuration in console |
 
 If agent identity is unavailable, the harness must deny governed calls at the
 SDK boundary — never guess or supply a fallback agent ID.

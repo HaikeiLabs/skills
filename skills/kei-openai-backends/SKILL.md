@@ -75,12 +75,12 @@ For local development and contract testing the harness can run against a local K
   (8081), `credential-admin` (8090), `web`. Built from the sibling `kei` repo
   (`../kei/cmd/...`), so that checkout must exist.
 - `scripts/seed-local-kei.sh` + `scripts/seed-local-kei.sql` — seeds org/user/group/policy/
-  harness-key fixtures (defaults `LOCAL_KEI_ORG_ID`, `LOCAL_KEI_USER_UUID`, `KEI_HARNESS_TOKEN=local-dev-token`).
+  harness-key fixtures (defaults `LOCAL_KEI_ORG_ID`, `LOCAL_KEI_USER_UUID`, `KEI_RUNTIME_TOKEN=local-dev-token`).
 - `docker-compose.local.yml` — the harness's own local compose (LLM + service).
 
 ### Env vars that matter
 
-`LLM_ENDPOINT`, `LLM_MODEL`, `OPENAI_API_KEY`/`OPENAI_KEY`, `KEI_HARNESS_TOKEN`,
+`LLM_ENDPOINT`, `LLM_MODEL`, `OPENAI_API_KEY`/`OPENAI_KEY`, `KEI_RUNTIME_TOKEN`,
 `KEI_API_URL` (fallback `ABAC_URL`), `KEI_PROXY_PATH`, `KEI_PROXY_DISABLED` (inverted into
 `kei_proxy_enabled`; `true` short-circuits authorization to permit), `INTERNAL_API_KEY`
 (guards the `/message` endpoint). See `config.py` `Config.from_env()` for the full set.
