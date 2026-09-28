@@ -3,7 +3,7 @@
 Enumerated from `cmd/abac-engine/main.go` (kei repo). This is the ground truth;
 if a skill or doc disagrees with this table, this table and the code win.
 
-The Kei API exposes **91 distinct `/api/v1/*` route paths**. Each row shows
+The Kei API exposes **99 distinct `/api/v1/*` route paths**. Each row shows
 the route path and the HTTP methods registered on it. Routes marked **(runtime)**
 are the harness/runtime surface authenticated by the harness bearer scheme and
 exempt from the `X-KEI-API-Key` service credential. `/api/v1/authorize` is also
@@ -176,6 +176,19 @@ reached through the trusted web proxy.
 |--------|-------|
 | POST | `/api/v1/authorize` (takes `harness_token` in body) |
 | POST | `/api/v1/initialize` |
+| POST | `/api/v1/enroll` — **410 Gone** (retired; use claim-link flow) |
+
+## Chat identity claims
+
+| Method | Route |
+|--------|-------|
+| POST | `/api/v1/runtime/chat-identity-claims` (runtime) |
+| POST | `/api/v1/runtime/chat-identity-statuses:resolve` (runtime) |
+| POST | `/api/v1/internal/chat-identity-claims:preview` |
+| POST | `/api/v1/internal/chat-identity-claims:redeem` |
+| GET | `/api/v1/organizations/{id}/chat-identity-access-requests` |
+| GET | `/api/v1/organizations/{id}/chat-identity-access-requests/{request_id}/assignment-options` |
+| POST | `/api/v1/chat-identity-access-requests/{id}:decide` |
 
 ## Consents
 

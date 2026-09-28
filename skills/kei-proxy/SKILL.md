@@ -109,6 +109,35 @@ kei-proxy authorize --user "$SUBJECT" --tool github.create_pr \
 - **stderr** gets a structured audit event; with `KEI_PROXY_AUDIT` set, the
   decision is also appended to that JSONL file for `collector`.
 
+### Enrollment in the authorize response
+
+When a chat-platform user (Teams, Slack, Discord) is not yet linked to a Kei
+user, `kei-proxy authorize` exits non-zero and the JSON on stdout carries
+`decision: "enrollment_required"` with an `enrollment` object:
+
+```json
+{
+  "decision": "enrollment_required",
+  "identity_status": "unlinked",
+  "reason": "provider identity is not linked to a kei user",
+  "enrollment": {
+    "provider": "teams",
+    "provider_user_id": "user@domain.com",
+    "org_id": "uuid",
+    "workspace_id": "uuid",
+    "url": "https://app.haikeilabs.com/identity/link#claim=abc123...",
+    "expires_at": "2026-09-28T12:00:00Z"
+  }
+}
+```
+
+The harness must show `url` privately to the user (ephemeral message or DM),
+never log it. `url` and `expires_at` may be absent when the control plane
+cannot issue a claim (no workspace scope, no `KEI_WEB_BASE_URL`). The user
+visits the link to self-enroll; the next authorize call then returns `allow`
+or policy-driven `deny`. See `kei-harness-setup` section 6 for the full
+enrollment flow and `kei-api` for the endpoint contract.
+
 Identity and delegation come from flags or environment:
 
 | Env | Flag | Meaning |
