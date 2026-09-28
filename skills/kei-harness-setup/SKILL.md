@@ -247,6 +247,12 @@ plane cannot issue a claim — for example when the runtime installation has no
 workspace scope or `KEI_WEB_BASE_URL` is unset. In that case fall back to
 `guest_requires_signup`.
 
+**Always show the newest link.** Every `enrollment_required` response mints a
+new claim and invalidates the previous live claim for that identity. A resent
+old link fails with `claim_used` (409). Do not mint extra links yourself —
+each authorize call already does that. If the user has not acted on a link and
+you re-prompt, show the link from the latest response, not a cached one.
+
 The claim-link lifecycle is documented in detail at the canonical API contract:
 `kei-policy-catalog docs/chat-identity-claims.md`.
 

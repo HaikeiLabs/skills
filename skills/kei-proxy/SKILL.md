@@ -112,13 +112,13 @@ kei-proxy authorize --user "$SUBJECT" --tool github.create_pr \
 ### Enrollment in the authorize response
 
 When a chat-platform user (Teams, Slack, Discord) is not yet linked to a Kei
-user, `kei-proxy authorize` exits non-zero and the JSON on stdout carries
-`decision: "enrollment_required"` with an `enrollment` object:
+user, `kei-proxy authorize` exits with code `1` (deny) and the JSON on stdout
+carries `decision: "deny"` with an `enrollment` object passed through from the
+catalog:
 
 ```json
 {
-  "decision": "enrollment_required",
-  "identity_status": "unlinked",
+  "decision": "deny",
   "reason": "provider identity is not linked to a kei user",
   "enrollment": {
     "provider": "teams",
@@ -130,6 +130,11 @@ user, `kei-proxy authorize` exits non-zero and the JSON on stdout carries
   }
 }
 ```
+
+**Detect enrollment by the presence of `enrollment` on a deny**, not by
+`decision == "enrollment_required"`. The catalog itself returns
+`enrollment_required` (see `kei-api`), but kei-proxy maps that to `deny` and
+passes the `enrollment` object through unchanged.
 
 The harness must show `url` privately to the user (ephemeral message or DM),
 never log it. `url` and `expires_at` may be absent when the control plane
