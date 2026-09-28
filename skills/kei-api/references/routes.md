@@ -3,7 +3,7 @@
 Enumerated from `cmd/abac-engine/main.go` (kei repo). This is the ground truth;
 if a skill or doc disagrees with this table, this table and the code win.
 
-The Kei API exposes **94 distinct `/api/v1/*` route paths**. Each row shows
+The Kei API exposes **91 distinct `/api/v1/*` route paths**. Each row shows
 the route path and the HTTP methods registered on it. Routes marked **(runtime)**
 are the harness/runtime surface authenticated by the harness bearer scheme and
 exempt from the `X-KEI-API-Key` service credential. `/api/v1/authorize` is also
@@ -132,10 +132,8 @@ reached through the trusted web proxy.
 | POST | `/api/v1/agents/{id}/start` |
 | POST | `/api/v1/agents/{id}/stop` |
 | POST | `/api/v1/agents/{id}/reconcile` |
-| GET | `/api/v1/agents/{id}/keys` |
-| POST | `/api/v1/agents/{id}/keys` |
-| POST | `/api/v1/organizations/{id}/harness-keys` |
-| DELETE | `/api/v1/keys/{key_id}` |
+
+> Credential minting for agents moved to the runtime-installation flow: see `POST /api/v1/internal/runtime-installations/{id}/credential` under Internal. Direct `/agents/{id}/keys` and `/organizations/{id}/harness-keys` endpoints removed per ADR-023.
 
 ## Access levels
 

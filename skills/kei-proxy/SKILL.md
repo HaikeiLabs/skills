@@ -84,7 +84,7 @@ all runtime operations.
 | Keep liveness current | `kei-proxy runtime heartbeat --interval 1m` |
 | Ship local audit JSONL | `kei-proxy collector [--poll --poll-interval 1m]` |
 | Sync credential-store metadata | `kei-proxy credential sync` |
-| Model profile / invocation | `kei-proxy model profile …`, `kei-proxy model --harness-key …` (request JSON on stdin) |
+| Model profile / invocation | `kei-proxy model profile …`, `kei-proxy model  # uses runtime identity (no key flag needed)` (request JSON on stdin) |
 | Local OpenAI-compatible endpoint | `kei-proxy serve` (listens on `KEI_PROXY_LISTEN_ADDR`, default `:8085`) |
 
 `kei-proxy org` and `kei-proxy init` also exist. They call the Kei API

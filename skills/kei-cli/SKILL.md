@@ -1,6 +1,6 @@
 ---
 name: kei-cli
-description: The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade, `kei login` device-flow auth, runtime installations (`kei bot init|credential|agents|status|bind|delete`), and local runtime config (`kei setup`, `kei runtime bootstrap`). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something "from the CLI" in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org, workspace, agent, connector, policy, or user commands — say so rather than inventing one. For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead.
+description: The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade, `kei login` device-flow auth, runtime installations (`kei bot init|credential|agents|status|bind|delete`), and local runtime config (`kei setup`, `kei runtime bootstrap`). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something "from the CLI" in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org, agent, connector, policy, or user commands — say so rather than inventing one. (`kei workspaces list` does exist for workspace discovery.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead.
 ---
 
 # kei CLI

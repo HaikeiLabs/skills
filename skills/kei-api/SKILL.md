@@ -84,7 +84,7 @@ package for it.
 | Policies | `/api/v1/policies` | Create/list/update/delete ABAC policies; `src`/`dst` pattern rules |
 | Users | `/api/v1/users` | Create/list/get/update users; list a user's workspaces |
 | Invitations | `/api/v1/invitations` | Create/list/get/delete invitations; accept via `/{token}/accept` |
-| Agents | `/api/v1/agents` | Create/list/get/update/delete agents; start/stop/reconcile; list and mint agent keys (`/{id}/keys`) |
+| Agents | `/api/v1/agents` | Create/list/get/update/delete agents; start/stop/reconcile |
 | Access levels | `/api/v1/access-levels`, `/api/v1/organizations/{id}/access-levels` | Per-user database and agent access (`allowed_databases`, `allowed_agents`) |
 | Roles | `/api/v1/orgs/{org_id}/roles`, `/api/v1/roles/{id}`, `/api/v1/service-principals`, `/api/v1/role-requests` | Custom org roles; role service principals; role requests and approve/deny |
 | Authorization | `/api/v1/authorize` | The ABAC decision endpoint: subject/action/resource → `allow`/`deny` |
@@ -135,8 +135,8 @@ treats them differently. They are **not interchangeable**.
 
 ### (b) Harness/runtime bearer token — subject is an INSTALLATION
 
-- Scoped to `org_id` + `agent_id` + `service`. Minted by `POST /api/v1/organizations/{id}/harness-keys` and `POST /api/v1/agents/{id}/keys`; revoked by `DELETE /api/v1/keys/{key_id}`.
-- Stored **only as a sha256 `token_hash`** (`cmd/abac-engine/pkg/handlers/harness_keys.go:113`); the plaintext is returned exactly once (`Token json:"token,omitempty"`) at mint time. Supports `expires_at`.
+- Scoped to `org_id` + `agent_id` + `service`. Minted through the **runtime installation flow**: `POST /api/v1/internal/runtime-installations/{id}/credential` (or `kei bot credential` CLI). The `/agents/{id}/keys` and `/organizations/{id}/harness-keys` direct-mint endpoints were removed per ADR-023 — manual agent keys no longer exist. Revoked by `DELETE /api/v1/keys/{key_id}` (legacy key cleanup) or by deleting the runtime installation.
+- Stored **only as a sha256 `token_hash`** (`cmd/abac-engine/pkg/handlers/harness_keys.go:113`); the plaintext is returned exactly once at mint time. Supports `expires_at`.
 - Authenticates the **runtime surface**: `/api/v1/runtime/whoami`, `/api/v1/runtime/agents`, `/api/v1/runtime/heartbeat`, `/api/v1/runtime/credential-bindings/*`, and the credential-delivery claim/ack endpoints, by joining `harness_keys` to `runtime_installations` (`cmd/abac-engine/runtime_installations.go`). `/api/v1/authorize` takes a `harness_token` in the request body instead.
 - These endpoints are **exempt from the service credential** (see below) so customer-hosted runtimes never receive the internal API secret.
 
@@ -189,7 +189,7 @@ rate-limited request returns 429.
 ```bash
 # Confirm the route table against the code (kei repo):
 rg 'r\.HandleFunc\("/api/v1' cmd/abac-engine/main.go | sed -E 's/.*HandleFunc\("([^"]+)".*Methods\(([^)]*)\).*/\1 \2/' | sort | uniq
-# Count distinct /api/v1 paths (expect 94):
+# Count distinct /api/v1 paths (expect 91; adjust if routes changed):
 rg 'r\.HandleFunc\("/api/v1' cmd/abac-engine/main.go | grep -oE '"/api/v1[^"]*"' | sort -u | wc -l
 
 # Build and test the engine (kei repo):
@@ -211,4 +211,4 @@ rg -n "agent not found" cmd/abac-engine/pkg/handlers/harness_keys.go
 - **Do not** treat `X-KEI-API-Key` as a client credential; it is the web-proxy → engine service credential and is not part of the client auth model.
 - **Do not** change the cross-tenant 404 to 403. It is the security control against agent-ID enumeration (see `authorizeAgentOrg`).
 - **Do not** assume the OpenAPI/documentation matches the code on every detail; the route table in `cmd/abac-engine/main.go` and this skill's `references/routes.md` are the ground truth. If they disagree, the code wins.
-- Key minting (`POST /organizations/{id}/harness-keys`) is security-sensitive: the plaintext token is returned once and only the sha256 hash is stored. Do not log or persist the plaintext.
+- Runtime credential minting is security-sensitive: the plaintext token is returned once and only the sha256 hash is stored. Do not log or persist the plaintext. Credentials are minted through the runtime installation flow, not direct endpoints.
