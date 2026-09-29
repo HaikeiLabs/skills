@@ -44,6 +44,12 @@ difference to the user.
 kei --version     # prints "kei <version>"
 ```
 
+If `kei --version` prints kubectl or AWS errors instead of a version, the name
+is shadowed by an alias — oh-my-zsh's kubectl plugin defines
+`alias kei='kubectl edit ingress'`. Diagnose with `type -a kei`; fix with
+`unalias kei` after `source $ZSH/oh-my-zsh.sh` in `~/.zshrc`, or run
+`command kei` or the full path (`~/.local/bin/kei`).
+
 If it is missing, install with the checksum-verifying release installer
 (macOS and Linux, arm64 and amd64). This is the recommended path:
 
@@ -110,10 +116,10 @@ authenticate with the runtime token instead.
 - **Nothing outside the usage string exists.** No `kei org`,
   `agent`, `connector`, `group`, `policy`, `user`, or `key` commands; no
   `bot install`, `deploy`, `destroy`, or `list`; no `kei setup doctor`. Orgs,
-  agents, connectors, and policies are managed in the
-  web app (or through the HTTP API — see `kei-api`). Say that plainly
-  instead of guessing a command from an API route. `kei workspaces list`
-  does exist for workspace discovery.
+  workspaces, agents, connectors, groups, and policies are managed in the
+  web app (or through the HTTP API — see `kei-api`); there are no CLI commands
+  to create or change them. Say that plainly instead of guessing a command from
+  an API route. `kei workspaces list` does exist for workspace discovery only.
 - **Credentials never touch the terminal.** `kei bot credential` refuses to
   write to an interactive terminal; pipe it into a secret manager. Never pass a
   token as an argument unless the user accepts shell-history exposure.

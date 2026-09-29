@@ -150,6 +150,13 @@ put the token in a harness config file in a repo.
 
 ## 3. Pass identity on every governed call
 
+A tool call is **governed** when it touches tenant data, external systems, or
+credentials: it goes through `kei-proxy authorize` (or the agentware
+`KeiProxyEvaluator` — see the `agentware-sdk` skill), Kei policy decides, the
+decision is audited, and enrollment or approval can apply. A call that is
+**non-governed** runs locally and never reaches Kei. When unsure, treat the
+tool as governed. The full distinction is in the `kei-proxy` skill.
+
 The adapter calls `kei-proxy authorize` before a governed tool runs and obeys
 the result: exit code `0` means allowed; any non-zero exit (a deny, or an
 error such as an unreachable control plane) means do not run the tool. The
@@ -214,6 +221,12 @@ The unbound call must be denied without any provider call and produce only
 redacted audit metadata. Missing bindings, an unregistered harness, invalid
 installation scope, stale policy, and no matching policy must all be **DENY**.
 The harness is not set up until you have seen a denial.
+
+`KEI_PROXY_DISABLED=true` is a valid setting, but it turns permits off: a
+disabled, missing, or misconfigured kei-proxy denies **every** governed call
+(fail-closed, HAI-249) — it never permits a tool call. Tests that need an allow
+inject a fake evaluator instead (see the `agentware-sdk` skill); a production
+harness should not run with kei-proxy disabled.
 
 ## 6. Enrolling chat users (claim links)
 

@@ -242,7 +242,7 @@ exempt from it. This is **not** a client-facing scheme.
 - **CLI bearer (a):** the CLI-facing routes the web app exposes (`/api/cli/device/*`, `/api/cli/runtime-installations*`). The API's `/api/v1/internal/runtime-installations*` and `/api/v1/internal/cli-device-authorizations*` are called **by the web proxy** (service credential + org scope), never directly by the CLI with its bearer token.
 - **Harness bearer (b):** `/api/v1/runtime/*` (whoami, agents, heartbeat, credential-bindings, credential-delivery, model-profiles) and `/api/v1/authorize` (`harness_token` body field).
 - **Browser session (c):** everything the web UI drives, forwarded by the web proxy with `org_id` scope from the session.
-- **Everything else** is reached by a client through the web proxy, which requires a valid session (c) or CLI login (a) and forwards to the engine with the service credential plus org scope.
+- **Everything else** (the `/api/v1/*` collection routes the SPA drives) is reached by a client through the web proxy, which requires a valid **browser session (c)** and forwards to the engine with the service credential plus org scope. The **CLI bearer (a) does not work here**: the proxy stamps caller identity from the signed session and refuses a request with no session subject with `401 an authenticated user is required`. A `kei login` token on a `/api/v1/*` route is not a substitute for a session — the CLI bearer is accepted only on the `/api/cli/*` routes.
 
 ## Cross-tenant 404 is intentional
 

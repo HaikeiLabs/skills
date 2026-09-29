@@ -67,6 +67,16 @@
         "The response says to attach an agent to the installation if versions are current.",
         "The response does not suggest guessing or supplying a fallback agent ID."
       ]
+    },
+    {
+      "id": 8,
+      "prompt": "Every single governed tool call in our harness is being denied, even the ones that used to work. We assume a policy was changed. What should I check first?",
+      "expected_output": "Checks whether kei-proxy is disabled or misconfigured before assuming a policy change: KEI_PROXY_DISABLED=true turns permits off, so a disabled, missing, or misconfigured proxy denies every governed call (fail-closed, HAI-249). Verifies the harness environment has KEI_PROXY_DISABLED unset/false and KEI_RUNTIME_TOKEN and KEI_RUNTIME_CONTROL_PLANE_URL present, then confirms with one kei-proxy authorize for a known-permitted tool.",
+      "expectations": [
+        "The response checks KEI_PROXY_DISABLED / kei-proxy disabled or misconfigured before blaming a policy change.",
+        "The response explains that a disabled, missing, or misconfigured proxy denies every governed call and never permits one.",
+        "The response uses read-only environment checks and a single kei-proxy authorize probe rather than mutating anything."
+      ]
     }
   ]
 }

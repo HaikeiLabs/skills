@@ -31,6 +31,16 @@
         "The response recommends kei runtime bootstrap on the workstation after kei setup.",
         "The response says ongoing heartbeat is kei-proxy runtime heartbeat."
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "We set KEI_PROXY_DISABLED=true in our harness so the agent can act freely while we wire up policy. Is that safe? Also, which of our tools actually need to go through kei-proxy at all?",
+      "expected_output": "Explains that a disabled kei-proxy fails closed and denies every governed tool call (it never permits), so the agent cannot act freely; tests that need an allow inject a fake evaluator instead (agentware-sdk), and production should not run disabled. Distinguishes governed calls (touch tenant data, external systems, or credentials; go through kei-proxy authorize / KeiProxyEvaluator, policy decides, audited, enrollment/approval can apply) from non-governed local calls that never reach Kei.",
+      "expectations": [
+        "The response says a disabled, missing, or misconfigured kei-proxy denies every governed call and never permits one.",
+        "The response says production should not run with kei-proxy disabled and that tests inject a fake evaluator for an allow.",
+        "The response distinguishes governed calls (tenant data, external systems, or credentials) from non-governed local calls that never reach Kei."
+      ]
     }
   ]
 }
