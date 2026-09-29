@@ -10,7 +10,7 @@ orchestrator and tool execution: it **intercepts every tool call, enforces
 policy, records an audit, and redacts args**, then lets the call proceed only
 when a decision allows it. It is language-agnostic and ships three ports: Go
 (`github.com/soypete/pedro-agentware/go`), Python (package `pedro_agentware`,
-src layout), and TypeScript (`@pedro/agentware`). This skill is about the
+src layout), and TypeScript (\`@haikeilabs/agentware\`). This skill is about the
 library and its seams.
 
 ## General middleware principles
@@ -54,7 +54,8 @@ explicit integration environments.
 
 - `python/` — package `pedro_agentware` (src layout) under `python/src/pedro_agentware/`.
 - `go/` — module `github.com/soypete/pedro-agentware/go`.
-- `typescript/` — TS SDK `@pedro/agentware` (jest; `zod` + `minimatch`).
+- \`typescript/\` — TS SDK \`@haikeilabs/agentware\` v0.4.0 (published to npm; jest; \`zod\` + \`minimatch\`).  
+  Async KeiProxyAuthorizeClient ships in 0.5.0 (see below).
 - `docs/engineering-design.md` — the language-agnostic design; `docs/middleware-llm-guide.md`
   the harness guide; `docs/harness-contract.md` the third-party harness contract;
   `docs/tenant-proxy-reference.md` the authoritative architecture;
@@ -88,11 +89,9 @@ against the repo README, `python/pyproject.toml`, `go/go.mod`, and
 
 ### TypeScript
 
-- Source: `typescript/`, package `@pedro/agentware` v0.1.0.
-- Install: **not published to npm** — D-008 defers that decision. Consume it
-  from the repo, not from a registry: `cd typescript && npm install && npm run
-  build` (emits `dist/`), then reference it from your project.
-- Runtime dependencies (`typescript/package.json`): `minimatch`, `zod`. No peer
+- Source: \`typescript/\`, package \`@haikeilabs/agentware\` v0.4.0.
+- Install: \`npm install @haikeilabs/agentware\`. Published to npm.
+- Runtime dependencies (\`typescript/package.json\`): \`minimatch\`, \`zod\`. No peer
   dependencies. Requires Node >=18.
 
 ## The core pattern (same in all three ports)
@@ -146,8 +145,10 @@ token counts, latency, and success/error. `resources_touched` makes
   `ThreadingHTTPServer` implementing `/auth/exchange`, `/auth/refresh`, `/auth/revoke`,
   `/config`) plus `contract_test.py`, `auth_test.py`, `config_test.py`, `proxy_test.py`.
   Fixture: `fixtures/kei/harness-v1.json`.
-- There is **no** Go or TypeScript KEI module on main; KEI work lives in Python only.
-  Do not assume parity.
+- Go (\`go/kei/evaluator/\`) and TypeScript (\`typescript/src/kei/\`) now have
+  parity KeiProxyEvaluator modules. All three ports follow the shared parity
+  table in \`fixtures/kei/authorize-cases.v1.json\`; see
+  \`docs/kei-proxy-evaluator-parity.md\`.
 
 ### Runtime environment for the harness and proxy
 
@@ -231,12 +232,222 @@ closed on every path that is not an explicit `permit`/`allow`**.
 Fail-closed rules: unknown policy decision → DENY; unreachable proxy → DENY; missing
 credential → DENY; expired token → DENY.
 
-> **Pending (agentware PR #150, HAI-155):** `KeiProxyEvaluator` will carry the
-> `enrollment` object from `kei-proxy authorize` on DENY decisions for unlinked
-> chat-platform users. Until that PR merges, the evaluator does not surface
-> `enrollment` to the harness. The `kei-proxy` binary itself already returns
-> `enrollment` in its stdout JSON (shipped, HAI-209); only the agentware
-> evaluator layer is pending.
+\`KeiProxyEvaluator\` carries the \`enrollment\` object from \`kei-proxy authorize\`
+on DENY decisions for unlinked chat-platform users. Access it through
+\`decision.enrollment\` — a dict/object or \`None\`. Show \`enrollment.url\`
+privately, never log it, never cache an expired link, always use the latest
+response.
+
+## KeiProxyEvaluator per language
+
+\`KeiProxyEvaluator\` is a \`PolicyEvaluator\` that asks \`kei-proxy authorize\`
+before every tool call and fails closed on anything that is not an explicit
+\`allow\`/\`permit\`. It lives in all three agentware SDK ports and is the one
+enforcement seam a harness or adapter needs.
+
+### Decision table
+
+The shared parity table (\`fixtures/kei/authorize-cases.v1.json\`) governs every
+port. Every reason reads \`kei-proxy <class>\` or \`kei-proxy <class>: <detail>\`.
+\`rule\` is the output's \`policy_id\` (or \`policy\`) when present, else \`kei-proxy\`.
+
+| Proxy result | Action | Reason class | Enrollment |
+|---|---|---|---|
+| \`allow\` / \`permit\` (any case), exit 0 | ALLOW | \`allow\` | — |
+| \`deny\` | DENY | \`deny\` | carried when it is a JSON object |
+| \`deny\` + \`enrollment_required\` (legacy) | DENY | \`enrollment_required\` | carried when it is a JSON object |
+| \`decision\` missing, null or \`""\` | DENY | \`no_decision\` | — |
+| any other decision, or a non-string one | DENY | \`unknown_decision\` | — |
+| \`allow\` with exit 1 | DENY | \`exit_mismatch\` | — |
+| exit code other than 0 or 1 | DENY | \`proxy_error\` | — |
+| exit 1 with empty stdout | DENY | \`proxy_error\` | — |
+| exit 0 with empty stdout | DENY | \`empty_response\` | — |
+| stdout not JSON, or JSON but not an object | DENY | \`malformed_response\` | — |
+| binary missing or not executable | DENY | \`proxy_unavailable\` | — |
+| binary executable does not match sha256 pin | DENY | \`pin_mismatch\` | — |
+| no answer within the timeout | DENY | \`proxy_timeout\` | — |
+| no \`KEI_RUNTIME_TOKEN\` (proxy not spawned) | DENY | \`missing_token\` | — |
+
+**Fail closed.** Only an explicit affirmative with exit 0 allows. Everything
+else — every exit code, every parse failure, every missing binary, every
+timeout — produces a DENY.
+
+**No leaks.** The enrollment claim URL, the allow-path credential, stderr,
+and the runtime token never appear in a Decision reason or in a log line.
+Stdout and stderr are never logged.
+
+**Token by env only.** \`KEI_RUNTIME_TOKEN\` reaches the child through its
+environment and never through argv. The child sees only the allowlisted
+parent variables (\`AUTHORIZE_CHILD_ENV_ALLOWLIST\`) plus explicit extra env.
+KEI_PROXY_* identity variables are deliberately excluded — identity travels
+as flags. Secrets such as \`DISCORD_TOKEN\` and inherited \`KEI_PROXY_*\`
+variables are stripped.
+
+**Identity by flags.** \`--user\` is the invoking subject (the human). The
+delegation chain (\`--parent-span\`, \`--delegation-depth\`), agent version,
+framework, \`--tool-args-digest\` (SHA-256 of the sorted-key, compact JSON of
+the args) and \`--resources\` are passed as flags.
+
+**No \`--agent-id\`.** kei-proxy (0.1.11+) resolves the agent from the runtime
+installation, so no client sends \`--agent-id\` even when the caller carries an
+agent id.
+
+### When to use KeiProxyEvaluator vs raw kei-proxy
+
+Use the evaluator when your harness uses agentware's \`AuditedToolClient\`,
+\`MiddlewareImpl\`, or the \`PolicyEvaluator\` interface. It handles spawn,
+timeout, env filtering, decision parsing, enrollment extraction, and all
+fail-closed invariants for you.
+
+Call \`kei-proxy authorize\` directly only when you cannot import the SDK
+(e.g. a bash script or a harness without a language runtime). In that case
+replicate the invariants above manually — every mistake is a security hole.
+
+### Python (main)
+
+\`\`\`python
+from pedro_agentware.kei import KeiProxyAuthorizeClient, KeiProxyEvaluator
+
+# Construction
+client = KeiProxyAuthorizeClient(
+    executable="kei-proxy",          # absolute path preferred; resolved from PATH
+    timeout=10.0,                    # seconds; default 10.0
+    extra_env={},                    # optional extra env vars for the child
+    sha256="abcd...",                # optional binary pin (mismatch → deny)
+)
+evaluator = KeiProxyEvaluator(client)
+
+# Usage — synchronous
+decision = evaluator.evaluate("github.get_issue", {"owner": "acme"}, caller)
+
+# Enrollment
+if decision.enrollment:
+    # Show url privately, never log it
+    harness.send_dm(caller.user_id, decision.enrollment["url"])
+
+# Decision inspection
+if decision.action == "ALLOW":
+    ...  # proceed
+elif decision.enrollment:
+    ...  # show claim link
+else:
+    ...  # deny; decision.reason has the class and detail
+\`\`\`
+
+The child process receives only \`KEI_*\` environment variables (plus
+\`extra_env\`). On timeout the process group is killed.
+
+Exported symbols: \`KeiProxyEvaluator\`, \`KeiProxyAuthorizeClient\`,
+\`AFFIRMATIVE_DECISIONS\`, \`REASON_CLASSES\`, \`KeiProxyAuthorizeError\`,
+\`AuthorizationClient\`, \`AuthorizationResponse\`,
+\`resources_touched\`, \`tool_args_digest\`,
+\`AUTHORIZE_CHILD_ENV_ALLOWLIST\`, \`DEFAULT_AUTHORIZE_TIMEOUT\`,
+\`parse_authorize_output\`.
+
+### Go (main)
+
+\`\`\`go
+import "github.com/soypete/pedro-agentware/go/kei/evaluator"
+
+// CLIClient wraps exec.CommandContext
+client := &evaluator.CLIClient{
+    Executable: "kei-proxy",         // absolute path preferred
+    Timeout:    10 * time.Second,
+    SHA256:     "abcd...",           // optional binary pin ("" = no check)
+}
+
+e := evaluator.NewKeiProxyEvaluator(client)
+// Optional: evaluator.WithDefaultAction("execute"),
+//            evaluator.WithLogger(slog.Default())
+
+decision := e.Evaluate("github.get_issue", args, caller)
+// decision.Action == middleware.ActionAllow / ActionDeny
+// decision.Reason    string — "kei-proxy allow" or "kei-proxy deny: ..."
+// decision.Rule      string — policy_id or "kei-proxy"
+// decision.Enrollment map[string]any — nil on allow
+\`\`\`
+
+The child process receives only \`KEI_*\` environment variables (filtered
+through \`AuthorizeChildEnvAllowlist\`). On timeout the process group is killed.
+The binary path is resolved to absolute before spawn.
+
+Exported symbols: \`KeiProxyEvaluator\`, \`NewKeiProxyEvaluator\`,
+\`WithDefaultAction\`, \`WithLogger\`, \`Client\`, \`CLIClient\`,
+\`AuthorizeRequest\`, \`AuthorizeError\`, \`ReasonClass\` and all \`Reason*\`
+constants, \`ReasonClasses\`, \`Rule\`, \`IsAffirmative\`,
+\`AuthorizeChildEnvAllowlist\`, \`DefaultTimeout\`, \`RuntimeTokenEnv\`,
+\`ResourcesTouched\`, \`ToolArgsDigest\`.
+
+### TypeScript (requires agentware >= 0.5.0 — async only)
+
+Starting in \`@haikeilabs/agentware\` v0.5.0, \`KeiProxyAuthorizeClient\` is
+**async only** (spawn, not spawnSync) and \`KeiProxyEvaluator.evaluate\`
+returns \`Promise<Decision>\`. There is no synchronous \`evaluate()\` —
+harnesses must \`await\` the call before running the tool. This evaluator does
+**not** plug into the sync \`MiddlewareImpl.withPolicy\`; call it directly.
+
+The binary is resolved to an absolute path, pinned by optional SHA-256 digest
+(mismatch produces \`pin_mismatch\` reason and a DENY), and opened with
+\`O_NOFOLLOW\`. Only \`KEI_*\` environment variables reach the child process.
+On timeout the process group is killed.
+
+\`\`\`typescript
+import {
+  KeiProxyAuthorizeClient,
+  KeiProxyEvaluator,
+} from "@haikeilabs/agentware";
+
+const client = new KeiProxyAuthorizeClient({
+  executable: "kei-proxy",   // absolute path preferred; resolved from PATH
+  timeoutMs: 10_000,
+  sha256?: string;           // optional binary pin
+  extraEnv?: Record<string, string>;
+});
+
+const evaluator = new KeiProxyEvaluator(client);
+const decision: Decision = await evaluator.evaluate(tool, args, caller);
+
+if (decision.enrollment) {
+  await harness.sendEphemeral(caller.userId, decision.enrollment.url);
+}
+\`\`\`
+
+Exported symbols: \`KeiProxyEvaluator\`, \`KeiProxyAuthorizeClient\`,
+\`KeiProxyAuthorizeRequest\`, \`KeiProxyAuthorizeError\`,
+\`KeiProxyAuthorizationClient\`, \`KEI_PROXY_AFFIRMATIVE_DECISIONS\`,
+\`AUTHORIZE_CHILD_ENV_ALLOWLIST\`, \`DEFAULT_AUTHORIZE_TIMEOUT_MS\`,
+\`keiProxyAuthorizeArgv\`, \`parseKeiProxyAuthorizeOutput\`.
+
+### Testing with the shared fixture table
+
+All three ports test against \`fixtures/kei/authorize-cases.v1.json\`. Each
+case supplies a fake \`kei-proxy\` stdout, stderr, exit code, and expected
+decision. The fake binary (\`fixtures/kei/fake-kei-proxy.sh\`) prints the
+canned answer and records its argv and env.
+
+| Language | Evaluator | Subprocess client | Table test |
+|---|---|---|---|
+| Python | \`pedro_agentware.kei.KeiProxyEvaluator\` | \`KeiProxyAuthorizeClient\` | \`python/tests/kei/authorize_cases_test.py\` |
+| TypeScript | \`KeiProxyEvaluator\` (\`typescript/src/kei/evaluator.ts\`) | \`KeiProxyAuthorizeClient\` (\`authorizeClient.ts\`) | \`typescript/tests/kei-evaluator.test.ts\` |
+| Go | \`evaluator.KeiProxyEvaluator\` (\`go/kei/evaluator\`) | \`evaluator.CLIClient\` (\`exec.CommandContext\`) | \`go/kei/evaluator/evaluator_test.go\` |
+
+Python-only tests (the injected-client seam: legacy four-argument clients,
+object-shaped results, arbitrary exceptions) stay in
+\`python/tests/kei/evaluator_test.py\`.
+
+The fixture-integrity checks (every derived case agrees with the seeded policy
+rule it names) run once, in Python.
+
+### Minimum versions
+
+| Language | Package | Minimum version | Where |
+|---|---|---|---|
+| Python | \`pedro-agentware\` | main (\`pip install -e ./python\`) | Not on PyPI; consume from git |
+| TypeScript | \`@haikeilabs/agentware\` | \`>=0.5.0\` (async only) | npm; 0.5.0 not yet published |
+| Go | \`github.com/soypete/pedro-agentware/go\` | latest main | Go module proxy; \`go get\` |
+
+The Go module is published through the Go module proxy; no separate registry
+login is needed.
 
 ## The control-plane and action-tool boundary
 
@@ -301,8 +512,9 @@ cd go && go test ./middleware/... -run ActionToolBoundary -v
   fail-closed on renew; keep it that way.
 - **Do not** resolve connector `secret_refs` or execute providers in the library; that is
   the proxy's job, tenant-side.
-- **Do not** expect Go/TypeScript parity with the Python KEI module; there is no Go or
-  TypeScript KEI module on main.
+- **Do** expect Go/TypeScript parity with the Python KeiProxyEvaluator. All
+  three ports follow the same parity table; a bug report must name which port
+  and which fixture case it fails.
 - The tool-adapter/governor tool-lane pattern (closed catalogs, branded governor
   proposals, typed registries) is specific to the DVL Assistant's developer skills, not
   part of this generic SDK skill.

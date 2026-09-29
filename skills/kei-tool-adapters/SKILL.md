@@ -86,7 +86,7 @@ triggers `constraint-widening` and denies until an ADR ratifies the widening.
   rendered per model in `src/pedro_service/tool_definitions.py` (`ModelFormat`: OpenAI /
   Anthropic / Ollama). `config/tools.yaml` and `config/roles.yaml` configure role→tool gates;
   `config/kei-proxy-registry.yaml` maps tools to Kei services.
-- **pedro-agentware TS SDK** (`HaikeiLabs/Agentware`, package `@pedro/agentware`): `tools/`
+- **pedro-agentware TS SDK** (`HaikeiLabs/Agentware`, package `@haikeilabs/agentware`): `tools/`
   (Tool, Result, ToolRegistry), `toolformat/`, `memory/` (async wiki-memory MCP client,
   `memoryTools()` in Vercel AI SDK zod shape). See `agentware-sdk` for the generic middleware.
 
