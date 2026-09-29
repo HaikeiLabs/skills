@@ -150,6 +150,24 @@ Use `kei logout` to clear a stale or wrong local session. If that command is
 unavailable, explain the OS credential-store reset and ask before clearing it;
 do not ask for a session token.
 
+### Troubleshooting `kei login`
+
+`kei login` is a device flow: it prints an activation URL and a verification
+code and blocks until an owner or admin approves the code in a signed-in
+browser. These are the local and approval-flow failures that show up during it.
+
+| Symptom | Cause | Fix | Verify |
+|---|---|---|---|
+| `kei login` prints kubectl or AWS credential errors instead of a URL and code | oh-my-zsh's kubectl plugin defines `alias kei='kubectl edit ingress'`, which shadows the Kei CLI | Run `type -a kei`; if an alias is listed, `unalias kei` after `source $ZSH/oh-my-zsh.sh` in `~/.zshrc`, or run `command kei login` or the full path `~/.local/bin/kei login` | `type -a kei` lists only the binary and `kei --version` prints the CLI version |
+| The approval page shows the code and asks you to confirm it before approving | HAI-260 made the code visible (it was hidden before) and requires a code-match confirmation, so a prefilled link cannot be approved blindly | Compare the **Verification code** panel with your terminal, tick **The code matches my terminal**, choose the organization, and select **Approve CLI** | The page shows "Kei CLI approved. You can return to your terminal." and the CLI stops polling |
+| After email sign-in the browser lands back in the web app and the CLI keeps polling | The sign-in redirect returned to the SPA instead of the server-rendered approval page (fixed in HAI-260) | Reopen the activation URL from the terminal while you are signed in; the CLI keeps polling until the code is approved | The approval page loads and `kei login` completes |
+
+The approval page can also return **Code not recognized** (404 — the code was
+never issued or was already consumed), **Code expired** (409 — the code expired
+or was already used), and **Approval not allowed** (403 — the account is not an
+owner or admin of the organization). For the first two, run `kei login` again
+for a fresh code; for the third, have an owner or admin approve.
+
 ## 3. Check Kei state
 
 Only after an installation ID is known:
@@ -226,6 +244,14 @@ installation, or the versions are too old to report agent identity.
 
 If agent identity is unavailable, the harness must deny governed calls at the
 SDK boundary — never guess or supply a fallback agent ID.
+
+If **every** governed tool call is denied, check whether kei-proxy is disabled
+or misconfigured before assuming a policy problem. `KEI_PROXY_DISABLED=true`
+turns permits off, so a disabled, missing, or misconfigured proxy denies every
+governed call (fail-closed, HAI-249) — it never permits one. Read-only checks:
+confirm the harness environment has `KEI_PROXY_DISABLED` unset (or `false`) and
+that `KEI_RUNTIME_TOKEN` and `KEI_RUNTIME_CONTROL_PLANE_URL` are present, then
+run one `kei-proxy authorize` for a known-permitted tool and expect an allow.
 
 ## 5. Apply approved remediation
 

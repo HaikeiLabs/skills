@@ -22,6 +22,23 @@ never needs `kei-proxy authorize` to administer the platform. `kei setup` and
 `kei runtime bootstrap` are the one bridge: admin-CLI conveniences that write
 local runtime config and shell out to `kei-proxy` to check it.
 
+## Governed vs non-governed tool calls
+
+Not every tool call a harness makes is governed. The rule is simple: **anything
+that touches tenant data, external systems, or credentials is governed**;
+everything else is local.
+
+- **Governed** — the call goes through `kei-proxy authorize` (or the agentware
+  `KeiProxyEvaluator`, which wraps it — see the `agentware-sdk` skill). Kei
+  policy decides allow or deny, the decision is audited, and enrollment or
+  approval can apply before the tool runs.
+- **Non-governed** — the call runs locally in the harness and never reaches
+  Kei. No policy check, no audit event.
+
+When unsure whether a tool is governed, treat it as governed and route it
+through `kei-proxy authorize`. A tool is not governed just because the adapter
+exposes it, and a local call is not safe just because it never reaches Kei.
+
 Your knowledge of `kei-proxy` subcommands may be outdated. **Prefer retrieval.**
 
 ## Retrieval sources
@@ -114,6 +131,16 @@ kei-proxy authorize --user "$SUBJECT" --tool github.create_pr \
   here.
 - **stderr** gets a structured audit event; with `KEI_PROXY_AUDIT` set, the
   decision is also appended to that JSONL file for `collector`.
+
+### Disabling kei-proxy denies every governed tool call
+
+`KEI_PROXY_DISABLED=true` is a valid setting, but it turns permits off: a
+disabled, missing, or misconfigured kei-proxy is a **deny on every governed
+call** (fail-closed, HAI-249). It never permits a tool call. Tests that need an
+allow inject a fake evaluator instead of relying on a disabled proxy (see the
+`agentware-sdk` skill for the evaluator and its test fixtures). A production
+harness should not run with kei-proxy disabled — every governed tool would be
+denied.
 
 ### Enrollment in the authorize response
 
