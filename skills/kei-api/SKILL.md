@@ -87,7 +87,7 @@ package for it.
 | Agents | `/api/v1/agents` | Create/list/get/update/delete agents; start/stop/reconcile |
 | Access levels | `/api/v1/access-levels`, `/api/v1/organizations/{id}/access-levels` | Per-user database and agent access (`allowed_databases`, `allowed_agents`) |
 | Roles | `/api/v1/orgs/{org_id}/roles`, `/api/v1/roles/{id}`, `/api/v1/service-principals`, `/api/v1/role-requests` | Custom org roles; role service principals; role requests and approve/deny |
-| Authorization | `/api/v1/authorize` | The ABAC decision endpoint: subject/action/resource → `allow`/`deny` |
+| Authorization (legacy) | `/api/v1/authorize` | The ABAC decision endpoint: subject/action/resource → `allow`/`deny`. Legacy control-plane path; ADR-011's target is a local PDP in the runtime (see `kei-proxy`) |
 | Consents | `/api/v1/consents`, `/api/v1/consent-requests` | Provider consent grants and consent requests (confirm via `/{token}/confirm`) |
 | Audit | `/api/v1/audit`, `/api/v1/audit/query*` | List audit logs/events/records; governed, ABAC-checked audit queries |
 | Runtime | `/api/v1/runtime/*` | Harness-facing: `whoami`, `agents`, `heartbeat`, `credential-bindings`, `credential-delivery/claim|ack`, `credential-sync-keys`, `model-profiles` |
@@ -95,6 +95,14 @@ package for it.
 | Internal | `/api/v1/internal/*` | Device-authorization flow, harness-identity, runtime-installations and lifecycle (bind/disable/revoke/rotate) |
 
 ## How authorization is decided
+
+> **Legacy / transition.** This control-plane decision endpoint is the current
+> production path — the `kei-proxy authorize` CLI calls it per governed tool
+> call — but it is the transitional design. ADR-011's target is a local PDP in
+> the runtime proxy that evaluates a signed policy bundle locally, retiring the
+> per-request round trip. The socket-based tool authorize and the Agentware
+> migration are tracked by HAI-272 (blocked on HAI-124). The endpoint below
+> remains valid reference material until that cutover.
 
 `POST /api/v1/authorize` is the ABAC decision endpoint. The request carries the
 harness token (or user identity) plus `action`, `resource`, `service`, `agent_id`,

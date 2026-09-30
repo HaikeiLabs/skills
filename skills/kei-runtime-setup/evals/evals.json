@@ -24,12 +24,12 @@
     {
       "id": 3,
       "prompt": "Can you give me the docker run command to pull the official kei-proxy image and run it as a sidecar service listening on a port?",
-      "expected_output": "Explains there is no public image; build kei-proxy:local from the Kei repo root. The one-shot CLI mode runs as a subprocess co-located with the harness. The daemon mode (kei-proxy serve) can run as a same-pod sidecar over a Unix socket, but governed authorize still uses the one-shot CLI subprocess (HAI-272 not shipped). Do not expose a TCP port for governed calls outside the validated daemon contract.",
+      "expected_output": "Explains there is no public image; build kei-proxy:local from the Kei repo root. The one-shot CLI mode runs as a subprocess co-located with the harness. The daemon mode (kei-proxy serve) runs as a same-host daemon (bare metal) or same-container daemon (Docker), with an optional same-pod companion container on Kubernetes, over a Unix socket — but governed tool authorize still uses the one-shot CLI subprocess (HAI-272 not shipped). Do not expose a TCP port for governed calls outside the validated daemon contract.",
       "expectations": [
         "The response does not invent a registry URL for a kei-proxy image.",
-        "The response distinguishes one-shot CLI (subprocess per call) from daemon mode (Unix socket sidecar).",
-        "The response says governed authorize uses the CLI subprocess, not the socket, until HAI-272 ships.",
-        "The response does not describe a network-exposed sidecar or TCP listener for governed calls."
+        "The response distinguishes one-shot CLI (subprocess per call) from daemon mode (Unix socket; same-host or same-container daemon).",
+        "The response says governed tool authorize uses the CLI subprocess, not the socket, until HAI-272 ships.",
+        "The response does not describe a network-exposed listener or TCP port for governed calls."
       ]
     }
   ]
