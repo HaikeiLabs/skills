@@ -18,7 +18,7 @@ forever, which is the cost being avoided.
 ## The conventions
 
 **Collections are plural, lowercase, kebab-case.** `policies`,
-`connector-bindings`, `approval-requests`, `service-principals`. Not
+`connector-bindings`, `approval-requests` (identity access-request flow; not per-call approval — see ADR-027), `service-principals`. Not
 `policy`, not `connector_bindings`, not `connectorBindings`.
 
 **A resource is identified by its path.** `/api/v1/policies/{id}`, and a

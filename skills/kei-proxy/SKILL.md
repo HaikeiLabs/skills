@@ -79,7 +79,7 @@ all runtime operations.
 | Task | Command |
 | --- | --- |
 | Decide a tool call (and fetch its credential on allow) | `kei-proxy authorize --user U --tool T --action A --resource R` |
-| Invoke a governed data connector | `kei-proxy connector invoke --connector ID --capability C --action A --resource R [--approval-id ID]` |
+| Invoke a governed data connector | `kei-proxy connector invoke --connector ID --capability C --action A --resource R [--idempotency-key KEY]` |
 | Verify installation + first heartbeat | `kei-proxy runtime bootstrap` |
 | Keep liveness current | `kei-proxy runtime heartbeat --interval 1m` |
 | Ship local audit JSONL | `kei-proxy collector [--poll --poll-interval 1m]` |
@@ -169,11 +169,10 @@ parameters, and never log the credential `authorize` returns.
 
 ## connector invoke
 
-For governed data connectors. Mutating capabilities need an approval
-reference (`--approval-id`) from an approved request in the console's
-**Approvals**; an approval is bound to org, workspace, agent, connector,
-capability, and resource and cannot be reused elsewhere. Pass
-`--idempotency-key` for retried writes.
+For governed data connectors. Per ADR-027, per-call approval is removed;
+approvals now grant workspace access, not per-call permission. The
+`--approval-id` flag is no longer available. Pass `--idempotency-key`
+for retried writes.
 
 ## Listeners
 
