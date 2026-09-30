@@ -1,6 +1,6 @@
 ---
 name: kei-proxy
-description: The `kei-proxy` runtime executable (kei-connector-runtime) — what an agent harness calls at run time to get a governed decision: `kei-proxy authorize` before a tool call, `connector invoke` for governed data, `runtime bootstrap|heartbeat`, `collector` for audit shipping, `model`, `credential sync`, and `serve`. Load whenever code or config in a harness, adapter, container, or agent calls kei-proxy, sets KEI_RUNTIME_* or KEI_PROXY_* variables, reads its exit codes or JSON, or someone asks how an agent's tool call gets allowed or denied by Kei. Not for platform administration (logins, installations, credentials) — that is the `kei` CLI (kei-cli skill).
+description: The `kei-proxy` runtime executable (kei-connector-runtime) — what an agent harness calls at run time to get a governed decision: `kei-proxy authorize` before a tool call (one-shot CLI), `kei-proxy serve` to run as a long-lived daemon exposing HTTP over a Unix socket (readiness, model routes; governed authorize route tracked by HAI-272), `connector invoke` for governed data, `runtime bootstrap|heartbeat`, `collector` for audit shipping, `model`, and `credential sync`. Load whenever code or config in a harness, adapter, container, or agent calls kei-proxy, sets KEI_RUNTIME_* or KEI_PROXY_* variables, reads its exit codes or JSON, or someone asks how an agent's tool call gets allowed or denied by Kei. Not for platform administration (logins, installations, credentials) — that is the `kei` CLI (kei-cli skill).
 ---
 
 # kei-proxy (runtime for agent interaction)
@@ -10,11 +10,11 @@ settle which one a task needs before anything else:
 
 | | `kei` — platform admin CLI | `kei-proxy` — runtime |
 | --- | --- | --- |
-| Who runs it | A person: org `owner`/`admin`, on a workstation | The harness, as a subprocess, per governed operation |
+| Who runs it | A person: org `owner`/`admin`, on a workstation | The harness, as a one-shot CLI subprocess per operation OR as a long-running daemon (`kei-proxy serve`) over a Unix socket |
 | Authenticates with | `kei login` device flow → CLI token in the OS keychain | `KEI_RUNTIME_TOKEN` (runtime credential only) from the environment |
 | Talks to | The control plane's admin APIs | The control plane's runtime APIs, plus local secret stores and providers |
-| Jobs | Log in, create/inspect/bind/delete runtime installations, emit/rotate runtime credentials | Decide allow/deny for a tool call, run allowed connector work locally, bootstrap + heartbeat, ship audit |
-| Lives | Operator's laptop | Same container/host as the harness |
+| Jobs | Log in, create/inspect/bind/delete runtime installations, emit/rotate runtime credentials | Decide allow/deny for a tool call, run allowed connector work locally, bootstrap + heartbeat, ship audit, serve readiness + model endpoints over a Unix socket (daemon mode) |
+| Lives | Operator's laptop | Same container/host as the harness, same-pod sidecar in container deployments |
 | Skill | `kei-cli` | this one |
 
 An agent never runs `kei login` or `kei bot …` to do its work, and a person
@@ -50,6 +50,7 @@ Your knowledge of `kei-proxy` subcommands may be outdated. **Prefer retrieval.**
 | Console: Runtime installations | `https://app.haikeilabs.com/#/docs/add-a-workspace` | Runtime env, bootstrap output, container build |
 | Console: Audit logs | `https://app.haikeilabs.com/#/docs/groups-policies-users` | `collector` |
 | Source | `HaikeiLabs/kei-connector-runtime` (private): `main.go` usage | Ground truth |
+| Socket contract | [`docs/unix-socket.md`](https://github.com/HaikeiLabs/kei-connector-runtime/blob/main/docs/unix-socket.md) in the runtime repo | Socket path, lifecycle, auth, current vs future routes |
 
 ## FIRST: confirm it is present and configured
 
@@ -74,6 +75,12 @@ KEI_RUNTIME_CONTROL_PLANE_URL=https://YOUR_KEI_GATEWAY   # no /api/v1 suffix
 KEI_RUNTIME_TOKEN=<runtime credential from the secret manager>  # never an argument
 KEI_RUNTIME_VERSION=<runtime version>
 ```
+
+When running in daemon mode (`kei-proxy serve`), the socket path defaults to
+`/run/kei-proxy/runtime.sock` and can be overridden with `KEI_RUNTIME_SOCKET_PATH`.
+The daemon also accepts `KEI_PROXY_LISTEN_ADDR` (TCP, default `:8085`) for
+existing same-container deployments. See `docs/unix-socket.md` in the runtime
+repo for the full socket contract.
 
 The token determines installation, organization, and workspace scope. Do not
 pass org, tenant, or workspace IDs as scope. `--key` exists on some commands
@@ -102,7 +109,7 @@ all runtime operations.
 | Ship local audit JSONL | `kei-proxy collector [--poll --poll-interval 1m]` |
 | Sync credential-store metadata | `kei-proxy credential sync` |
 | Model profile / invocation | `kei-proxy model profile …`, `kei-proxy model  # uses runtime identity (no key flag needed)` (request JSON on stdin) |
-| Local OpenAI-compatible endpoint | `kei-proxy serve` (listens on `KEI_PROXY_LISTEN_ADDR`, default `:8085`) |
+| Long-running daemon (Unix socket + optional TCP) | `kei-proxy serve` (`KEI_RUNTIME_SOCKET_PATH`, default `/run/kei-proxy/runtime.sock`; TCP on `KEI_PROXY_LISTEN_ADDR`, default `:8085`, for existing Docker same-container deployments). Current socket routes: `GET /health`, model endpoints. Governed authorize route tracked by HAI-272. See `docs/unix-socket.md`. |
 
 `kei-proxy org` and `kei-proxy init` also exist. They call the Kei API
 directly with a service secret and are Haikei-internal provisioning tools, not
@@ -201,14 +208,28 @@ approvals now grant workspace access, not per-call permission. The
 `--approval-id` flag is no longer available. Pass `--idempotency-key`
 for retried writes.
 
-## Listeners
+## Runtime modes: one-shot CLI vs daemon
 
-Governed tool calls go through per-call subprocess invocations; there is no
-listener for them, and nothing should reach `authorize` over the network.
-`kei-proxy serve` is the one exception: an opt-in, runtime-owned
-OpenAI-compatible HTTP adapter (`GET /v1/models`, `POST /v1/chat/completions`)
-for harnesses that want a model endpoint. Bind it to localhost or a private
-interface; it is not a public service.
+`kei-proxy` supports two modes. Understand which one a task needs before
+writing config or code:
+
+| Mode | Invocation | Listener | Governed authorize | Harness integration |
+| --- | --- | --- | --- | --- |
+| **One-shot CLI** (default) | `kei-proxy authorize ...` per call | None; spawned per call, reads decision from stdout+exit code | Yes — current production path. Agentware `KeiProxyEvaluator` / `KeiProxyAuthorizeClient` spawn the CLI subprocess. | Simplest: harness execs the binary and parses JSON. No listener management needed. |
+| **Daemon** (opt-in) | `kei-proxy serve` (long-lived) | Unix socket (`KEI_RUNTIME_SOCKET_PATH`, default `/run/kei-proxy/runtime.sock`) + optional TCP (`KEI_PROXY_LISTEN_ADDR`) | **Not yet.** The daemon currently exposes readiness (`GET /health`) and model routes. `POST /v1/authorize` on the socket is tracked by [HAI-272](https://linear.app/company/issue/HAI-272) (blocked on HAI-124 local-PDP contract). Agentware harnesses still spawn the CLI subprocess for authorize. | Sidecar or same-pod companion sharing a tmpfs volume for the socket file. No TLS — access control is socket file mode 0600 and UID matching. |
+
+The current (HAI-201, PR #40) socket contract is documented in
+[`docs/unix-socket.md`](https://github.com/HaikeiLabs/kei-connector-runtime/blob/main/docs/unix-socket.md).
+A draft daemon-socket authorize route (PR #65) was closed because it forwarded
+decisions to the catalog `/api/v1/authorize` and accepted an unauthenticated
+caller-subject — incompatible with ADR-011 (local PDP) and HAI-124 (caller
+identity contract). HAI-272 will supersede it with a local-PDP-backed socket
+authorize API and corresponding Agentware/harness migration.
+
+Until HAI-272 ships, treat `kei-proxy authorize` (the CLI subprocess) as the
+production path for governed tool decisions. Do not wire harnesses to call
+authorization over the socket, and do not describe the socket authorize route
+as available or describe the local-PDP migration as complete.
 
 ## Validation commands
 

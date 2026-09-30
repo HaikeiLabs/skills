@@ -53,11 +53,23 @@ bootstrap` (which drive the bundled `kei-proxy` for you), in a deployed runtime
 with `kei-proxy` directly. Step 7 is the runtime answering real calls. The
 runtime never needs `kei login`.
 
-Governed tool calls have **no network listener**: `kei-proxy` runs in the same
-container or on the same host as the harness, which invokes it per operation
-and reads the decision from its output. Do not design a sidecar service or
-expose a port for governed calls. (`kei-proxy serve` is a separate, opt-in
-local OpenAI-compatible model endpoint; see the `kei-proxy` skill.)
+Governed tool calls are decided on the same host as the harness. `kei-proxy`
+supports two modes:
+
+- **One-shot CLI (default)** — the harness spawns `kei-proxy authorize` per
+  operation and reads the decision from its stdout+exit code. No listener, no
+  sidecar. This is the current production path; Agentware evaluators use it.
+- **Daemon mode (opt-in)** — `kei-proxy serve` runs as a long-lived daemon
+  exposing HTTP over a Unix socket (`KEI_RUNTIME_SOCKET_PATH`). Same-pod
+  sidecar deployment is possible. The daemon currently serves readiness and
+  model routes; the governed authorize route on the socket is tracked by
+  HAI-272 (blocked on HAI-124). **Do not wire authorized over the socket
+  until HAI-272 ships** — rely on the one-shot CLI for governed decisions.
+
+See the `kei-proxy` skill for the full CLI/daemon comparison and
+`docs/unix-socket.md` in the kei-connector-runtime repo for the socket
+contract. Do not design a network-exposed sidecar or bind a port for governed
+calls outside of the validated daemon contract.
 
 ## Before you start
 
@@ -176,11 +188,12 @@ most deployments do not need it at all.
 There are two supported paths. They end in the same place (the installation
 verified and heartbeating); they differ in where the runtime settings live.
 
-| | **Workstation / local harness (current default)** | **Deployed runtime (container, server)** |
-| --- | --- | --- |
-| Get `kei-proxy` | Comes with `kei`: since kei-cli v0.1.4 the release installer also installs a pinned `kei-proxy` next to `kei` | Build `kei-proxy:local` from the Kei repo (below) or copy the bundled binary into the image |
-| Settings live in | `~/.config/kei.yaml` (mode `0600`), written by `kei setup` | Harness process environment, from the secret manager |
-| Bootstrap with | `kei runtime bootstrap` | `kei-proxy runtime bootstrap` |
+| | **Workstation / local harness (current default)** | **Deployed runtime — one-shot CLI** | **Deployed runtime — daemon / sidecar** |
+| --- | --- | --- | --- |
+| Get `kei-proxy` | Comes with `kei`: since kei-cli v0.1.4 the release installer also installs a pinned `kei-proxy` next to `kei` | Build `kei-proxy:local` from the Kei repo (below) or copy the bundled binary into the image | Same as one-shot CLI; the daemon is the same binary invoked via `kei-proxy serve` |
+| Settings live in | `~/.config/kei.yaml` (mode `0600`), written by `kei setup` | Harness process environment, from the secret manager | Harness process environment; daemon inherits `KEI_RUNTIME_SOCKET_PATH` |
+| Bootstrap with | `kei runtime bootstrap` | `kei-proxy runtime bootstrap` | `kei-proxy runtime bootstrap` before starting `serve` |
+| Governed calls | `kei-proxy authorize` subprocess | `kei-proxy authorize` subprocess | `kei-proxy authorize` subprocess (HAI-272 pending; do not use socket for authorize yet) |
 
 ### Path A: workstation — `kei setup` then `kei runtime bootstrap`
 
@@ -237,6 +250,30 @@ the runtime, before the harness accepts work:
 ```sh
 kei-proxy runtime bootstrap
 ```
+
+#### Optional: run as a daemon sidecar
+
+Instead of spawning `kei-proxy authorize` per call via the CLI, the harness
+can start `kei-proxy serve` as a long-lived companion. The daemon shares the
+harness lifecycle (same pod, same host) and communicates over a Unix domain
+socket. This is optional and opt-in; governed authorization still uses the
+one-shot CLI subprocess until HAI-272 ships. Current daemon socket routes are
+readiness and model endpoints — do not wire authorization over the socket.
+
+Add `KEI_RUNTIME_SOCKET_PATH` to the environment (default
+`/run/kei-proxy/runtime.sock`). In a Kubernetes pod, mount an `emptyDir`
+volume at the socket directory path so both containers can access it. The
+socket file mode is `0600` — both containers must run as the same UID.
+
+```sh
+# Start the daemon after bootstrap
+kei-proxy serve
+```
+
+The daemon also accepts `KEI_PROXY_LISTEN_ADDR` (TCP, default `:8085`) for
+existing same-container OpenWebUI deployments that cannot use a Unix socket.
+See `docs/unix-socket.md` in the kei-connector-runtime repo for the full
+socket contract.
 
 ### Check the bootstrap output (both paths)
 
@@ -300,6 +337,9 @@ kei-proxy help                               # confirms runtime subcommands and 
 kei bot status --installation INSTALLATION_ID
 kei runtime bootstrap | jq '{installation_id, status, binding_status, workspace_id}'        # workstation
 kei-proxy runtime bootstrap | jq '{installation_id, status, binding_status, workspace_id}'  # deployed runtime
+# Daemon mode: confirm socket is listening (after kei-proxy serve is running)
+curl -s --unix-socket /run/kei-proxy/runtime.sock http://localhost/health || \
+  echo "socket not ready — check KEI_RUNTIME_SOCKET_PATH and daemon logs"
 ```
 
 ## Realistic usage boundaries
