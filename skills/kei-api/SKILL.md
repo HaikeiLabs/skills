@@ -99,9 +99,12 @@ package for it.
 > **Legacy / transition.** This control-plane decision endpoint is the current
 > production path — the `kei-proxy authorize` CLI calls it per governed tool
 > call — but it is the transitional design. ADR-011's target is a local PDP in
-> the runtime proxy that evaluates a signed policy bundle locally, retiring the
-> per-request round trip. The socket-based tool authorize and the Agentware
-> migration are tracked by HAI-272 (blocked on HAI-124). The endpoint below
+> the runtime that makes each decision locally (no per-invocation approval or
+> subject-resolution call), evaluating a signed policy bundle that syncs in the
+> background, with identity/grants resolved through a separate session flow
+> outside the daemon. Bundle trust, the identity/grant representation, and
+> freshness/revocation are pending G0. The socket-based tool authorize and the
+> Agentware migration are tracked by HAI-272 (Backlog). The endpoint below
 > remains valid reference material until that cutover.
 
 `POST /api/v1/authorize` is the ABAC decision endpoint. The request carries the

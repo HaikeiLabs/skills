@@ -69,10 +69,12 @@ supports two modes:
   **Do not wire tool authorization over the socket until HAI-272 ships** —
   rely on the one-shot CLI for governed decisions.
 
-See the `kei-proxy` skill for the full CLI/daemon comparison and
-`docs/unix-socket.md` in the kei-connector-runtime repo for the socket
-contract. Do not design a network-exposed listener or bind a port for governed
-calls outside of the validated daemon contract.
+See the `kei-proxy` skill for the full CLI/daemon comparison, the socket
+contract (`docs/unix-socket.md` in the kei-connector-runtime repo), and the
+ADR-011 target (local PDP: a local per-invocation decision, background bundle
+sync, and a separate identity/grant session flow — not yet implemented). Do not
+design a network-exposed listener or bind a port for governed calls outside of
+the validated daemon contract.
 
 ## Before you start
 

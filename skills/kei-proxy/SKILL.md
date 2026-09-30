@@ -231,6 +231,38 @@ production path for governed tool decisions. Do not wire harnesses to call
 authorization over the socket, and do not describe the socket authorize route
 as available or describe the local-PDP migration as complete.
 
+## ADR-011 target: local PDP (not yet implemented)
+
+The one-shot CLI path above is the **present-day** production behavior.
+ADR-011's target is a tenant-side **local PDP** in the runtime. When it ships,
+the runtime will:
+
+- Make the allow/deny decision **locally on each governed invocation** — with
+  **no synchronous catalog approval call and no per-invocation
+  subject-resolution call**.
+- Evaluate a **signed policy bundle that syncs in the background** (periodic
+  refresh), not a policy fetched per call.
+- Resolve **identity and grants through a separate session flow outside the
+  daemon** (identity claim/enrollment and the access-request/grant workflow),
+  not a per-call round trip.
+- Treat a **deny as final for that invocation**. A later durable grant —
+  requested separately after repeated denials — affects only **later** calls.
+  The runtime never pauses or retries the call.
+- Leave **workflow preflight and prompts to the harness**; the runtime does not
+  own that UX.
+
+**Pending G0 — do not treat as implemented:** bundle trust (signature
+verification), the identity-proof/grant representation (how an approved grant
+becomes trusted local subject attributes, and how pending, denied, revoked,
+unlinked, and cross-workspace identities resolve), and freshness/revocation
+bounds.
+
+**Present-day truth:** the CLI `authorize` path remains the current production
+path until local-PDP runtime support ships. HAI-272 (Backlog) tracks the socket
+tool-authorize migration; the socket authorize route is **not available**. Do
+not describe the local PDP, bundle verification, or bundle refresh as
+implemented.
+
 ## Validation commands
 
 ```sh
