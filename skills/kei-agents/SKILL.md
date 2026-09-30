@@ -131,9 +131,9 @@ endpoint, and credentials at invocation time.
 
 `src/agents/policy.py`:
 
-- `AuthorizationResult` — `ALLOW`, `DENY`, `REQUIRE_APPROVAL`.
+- `AuthorizationResult` — `ALLOW`, `DENY`, `REQUIRE_APPROVAL` (retained for compatibility; per ADR-027, per-call approval is removed).
 - `PolicyDecision` — result + reason + required_permission + metadata.
-- `PermissionContext` — user_id, permissions set, roles set, approval_context;
+- `PermissionContext` — user_id, permissions set, roles set, approval_context (retained for compatibility; see ADR-027 for the current approval model);
   `has_permission`/`add_permission`/`remove_permission`.
 - `PolicyEngine` — `evaluate(tool, context)` (default: allow iff the context holds the
   tool's permission, else deny); `register_policy(tool_name, fn)` for custom policies;
