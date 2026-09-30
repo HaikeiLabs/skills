@@ -12,7 +12,7 @@ time; that is `kei-proxy`.
 
 | | `kei` — platform admin (this skill) | `kei-proxy` — runtime for agent interaction |
 | --- | --- | --- |
-| Who runs it | A person: org `owner`/`admin` | The harness, as a subprocess, per governed operation |
+| Who runs it | A person: org `owner`/`admin` | The harness — as a one-shot CLI subprocess per governed operation, or as a `kei-proxy serve` daemon over a Unix socket |
 | Auth | `kei login` → CLI token in the OS keychain | `KEI_RUNTIME_TOKEN` in the harness environment |
 | Jobs | Login, installations, runtime credentials, bind, agents-on-installation | Allow/deny each tool call (`kei-proxy authorize`), governed connector calls (`kei-proxy connector invoke`), heartbeat, audit shipping |
 | Skill | `kei-cli` | `kei-proxy` |
