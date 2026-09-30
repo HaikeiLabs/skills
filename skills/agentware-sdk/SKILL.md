@@ -1,6 +1,6 @@
 ---
 name: agentware-sdk
-description: Use the open-source agentware SDK (pedro-agentware) — policy enforcement and audit middleware for agent tool calls, in Go, Python, and TypeScript. Use when working with middleware policy/audit, AuditedToolClient, ToolExecutor, CallerContext, Action ALLOW/DENY/FILTER, rate limits, guardrails (response validator, step enforcer, error tracker, nudge), KEI_RUNTIME_TOKEN, OpaqueTokenProvider/JWTTokenProvider, HarnessManifest, KeiProxyEvaluator, kei-proxy, delegation, the third-party harness contract, or the action-tool/connector boundary. This is generic agentware guidance; the tool-adapter/governor lane pattern lives in the assistant's developer skills, and no invented APIs are allowed — the code and docs in the repo are the source of truth.
+description: Use the open-source agentware SDK (pedro-agentware) — policy enforcement and audit middleware for agent tool calls, in Go, Python, and TypeScript. Use when working with middleware policy/audit, AuditedToolClient, ToolExecutor, CallerContext, Action ALLOW/DENY/FILTER, rate limits, guardrails (response validator, step enforcer, error tracker, nudge), KEI_RUNTIME_TOKEN, OpaqueTokenProvider/JWTTokenProvider, HarnessManifest, KeiProxyEvaluator, kei-proxy, delegation, KeiScope, GovernedTool, tool-manifest export, the third-party harness contract, or the action-tool/connector boundary. This is generic agentware guidance; the tool-adapter/governor lane pattern lives in the assistant's developer skills, and no invented APIs are allowed — the code and docs in the repo are the source of truth.
 ---
 
 # Open-source agentware (pedro-agentware)
@@ -54,14 +54,14 @@ explicit integration environments.
 
 - `python/` — package `pedro_agentware` (src layout) under `python/src/pedro_agentware/`.
 - `go/` — module `github.com/soypete/pedro-agentware/go`.
-- \`typescript/\` — TS SDK \`@haikeilabs/agentware\` v0.4.0 (published to npm; jest; \`zod\` + \`minimatch\`).  
-  Async KeiProxyAuthorizeClient ships in 0.5.0 (see below).
+- \`typescript/\` — TS SDK \`@haikeilabs/agentware\` v0.7.0 (published to npm; jest; \`zod\` + \`minimatch\`).
 - `docs/engineering-design.md` — the language-agnostic design; `docs/middleware-llm-guide.md`
   the harness guide; `docs/harness-contract.md` the third-party harness contract;
   `docs/tenant-proxy-reference.md` the authoritative architecture;
   `docs/action-tool-boundary.md` the enforcement/execution boundary.
-- `docs/{python,go,typescript}/README.md` show OLD APIs (`middleware_py`,
-  `LangGraphToolWrapper`) that no longer exist — trust the code and tests, not those docs.
+- \`docs/{python,go,typescript}/README.md\` show OLD APIs (\`middleware_py\`,
+  \`LangGraphToolWrapper\`) that no longer exist — trust the code and tests, not those docs.
+  \`docs/kei-tool-manifest.md\` documents the 0.7.0 declare-export-load flow.
 
 ## Install and dependencies
 
@@ -89,7 +89,7 @@ against the repo README, `python/pyproject.toml`, `go/go.mod`, and
 
 ### TypeScript
 
-- Source: \`typescript/\`, package \`@haikeilabs/agentware\` v0.4.0.
+- Source: \`typescript/\`, package \`@haikeilabs/agentware\` v0.7.0.
 - Install: \`npm install @haikeilabs/agentware\`. Published to npm.
 - Runtime dependencies (\`typescript/package.json\`): \`minimatch\`, \`zod\`. No peer
   dependencies. Requires Node >=18.
@@ -177,7 +177,7 @@ discovers it automatically (see below).
 ## Reading agent identity from the runtime
 
 Since agentware SDK 0.4.0 (`@haikeilabs/agentware`, Python `pedro_agentware`,
-Go `github.com/haikeilabs/agentware`) and kei-proxy 0.1.11, the agent identity
+Go `github.com/soypete/pedro-agentware/go`) and kei-proxy 0.1.11, the agent identity
 assigned to a runtime installation is available through the runtime identity
 event — not from an environment variable. The harness only needs
 `KEI_RUNTIME_TOKEN` and the control-plane URL; the SDK discovers the agent
@@ -199,7 +199,7 @@ default_agent_id = identity.default_agent_id  # str | None
 agents = identity.agents                      # list[Agent] | None
 ```
 
-**Go** (`github.com/haikeilabs/agentware`):
+**Go** (`github.com/soypete/pedro-agentware/go`):
 
 ```go
 identity := link.Identity()
@@ -232,11 +232,18 @@ closed on every path that is not an explicit `permit`/`allow`**.
 Fail-closed rules: unknown policy decision → DENY; unreachable proxy → DENY; missing
 credential → DENY; expired token → DENY.
 
-\`KeiProxyEvaluator\` carries the \`enrollment\` object from \`kei-proxy authorize\`
-on DENY decisions for unlinked chat-platform users. Access it through
-\`decision.enrollment\` — a dict/object or \`None\`. Show \`enrollment.url\`
-privately, never log it, never cache an expired link, always use the latest
-response.
+\`KeiProxyEvaluator\` carries two opaque payloads from \`kei-proxy authorize\`
+on DENY decisions:
+
+- \`decision.enrollment\` — for unlinked chat-platform users who must link
+  their identity first. Contains \`url\` (one-time claim link), \`provider\`,
+  \`provider_user_id\`, \`org_id\`, \`workspace_id\`. Show \`url\` privately,
+  never log it, never cache an expired link.
+- \`decision.connect\` — for users whose connector OAuth session has expired
+  or needs reconnection. Contains \`url\` (one-time reconnect link), \`provider\`,
+  \`connector_id\`, \`expires_at\`, \`reason\`. Show \`url\` privately, never
+  log it. The harness must deliver the link to the user and never expose it
+  outside the private channel.
 
 ## KeiProxyEvaluator per language
 
@@ -251,30 +258,30 @@ The shared parity table (\`fixtures/kei/authorize-cases.v1.json\`) governs every
 port. Every reason reads \`kei-proxy <class>\` or \`kei-proxy <class>: <detail>\`.
 \`rule\` is the output's \`policy_id\` (or \`policy\`) when present, else \`kei-proxy\`.
 
-| Proxy result | Action | Reason class | Enrollment |
-|---|---|---|---|
-| \`allow\` / \`permit\` (any case), exit 0 | ALLOW | \`allow\` | — |
-| \`deny\` | DENY | \`deny\` | carried when it is a JSON object |
-| \`deny\` + \`enrollment_required\` (legacy) | DENY | \`enrollment_required\` | carried when it is a JSON object |
-| \`decision\` missing, null or \`""\` | DENY | \`no_decision\` | — |
-| any other decision, or a non-string one | DENY | \`unknown_decision\` | — |
-| \`allow\` with exit 1 | DENY | \`exit_mismatch\` | — |
-| exit code other than 0 or 1 | DENY | \`proxy_error\` | — |
-| exit 1 with empty stdout | DENY | \`proxy_error\` | — |
-| exit 0 with empty stdout | DENY | \`empty_response\` | — |
-| stdout not JSON, or JSON but not an object | DENY | \`malformed_response\` | — |
-| binary missing or not executable | DENY | \`proxy_unavailable\` | — |
-| binary executable does not match sha256 pin | DENY | \`pin_mismatch\` | — |
-| no answer within the timeout | DENY | \`proxy_timeout\` | — |
-| no \`KEI_RUNTIME_TOKEN\` (proxy not spawned) | DENY | \`missing_token\` | — |
+| Proxy result | Action | Reason class | Enrollment | Connect |
+|---|---|---|---|---|---|
+| \`allow\` / \`permit\` (any case), exit 0 | ALLOW | \`allow\` | — | — |
+| \`deny\` | DENY | \`deny\` | carried when JSON | carried when JSON |
+| \`deny\` + \`enrollment_required\` (legacy) | DENY | \`enrollment_required\` | carried when JSON | carried when JSON |
+| \`decision\` missing, null or \`""\` | DENY | \`no_decision\` | — | — |
+| any other decision, or a non-string one | DENY | \`unknown_decision\` | — | — |
+| \`allow\` with exit 1 | DENY | \`exit_mismatch\` | — | — |
+| exit code other than 0 or 1 | DENY | \`proxy_error\` | — | — |
+| exit 1 with empty stdout | DENY | \`proxy_error\` | — | — |
+| exit 0 with empty stdout | DENY | \`empty_response\` | — | — |
+| stdout not JSON, or JSON but not an object | DENY | \`malformed_response\` | — | — |
+| binary missing or not executable | DENY | \`proxy_unavailable\` | — | — |
+| binary executable does not match sha256 pin | DENY | \`pin_mismatch\` | — | — |
+| no answer within the timeout | DENY | \`proxy_timeout\` | — | — |
+| no \`KEI_RUNTIME_TOKEN\` (proxy not spawned) | DENY | \`missing_token\` | — | — |
 
 **Fail closed.** Only an explicit affirmative with exit 0 allows. Everything
 else — every exit code, every parse failure, every missing binary, every
 timeout — produces a DENY.
 
-**No leaks.** The enrollment claim URL, the allow-path credential, stderr,
-and the runtime token never appear in a Decision reason or in a log line.
-Stdout and stderr are never logged.
+**No leaks.** The enrollment claim URL, the connect reconnect URL, the
+allow-path credential, stderr, and the runtime token never appear in a
+Decision reason or in a log line. Stdout and stderr are never logged.
 
 **Token by env only.** \`KEI_RUNTIME_TOKEN\` reaches the child through its
 environment and never through argv. The child sees only the allowlisted
@@ -320,16 +327,15 @@ evaluator = KeiProxyEvaluator(client)
 # Usage — synchronous
 decision = evaluator.evaluate("github.get_issue", {"owner": "acme"}, caller)
 
-# Enrollment
-if decision.enrollment:
-    # Show url privately, never log it
-    harness.send_dm(caller.user_id, decision.enrollment["url"])
-
 # Decision inspection
 if decision.action == "ALLOW":
     ...  # proceed
+elif decision.connect:
+    # Show reconnect link privately, never log it
+    harness.send_dm(caller.user_id, decision.connect["url"])
 elif decision.enrollment:
-    ...  # show claim link
+    # Show claim link privately, never log it
+    harness.send_dm(caller.user_id, decision.enrollment["url"])
 else:
     ...  # deny; decision.reason has the class and detail
 \`\`\`
@@ -337,12 +343,15 @@ else:
 The child process receives only \`KEI_*\` environment variables (plus
 \`extra_env\`). On timeout the process group is killed.
 
-Exported symbols: \`KeiProxyEvaluator\`, \`KeiProxyAuthorizeClient\`,
-\`AFFIRMATIVE_DECISIONS\`, \`REASON_CLASSES\`, \`KeiProxyAuthorizeError\`,
-\`AuthorizationClient\`, \`AuthorizationResponse\`,
-\`resources_touched\`, \`tool_args_digest\`,
-\`AUTHORIZE_CHILD_ENV_ALLOWLIST\`, \`DEFAULT_AUTHORIZE_TIMEOUT\`,
-\`parse_authorize_output\`.
+Exported symbols (kei module): `KeiProxyEvaluator`, `KeiProxyAuthorizeClient`,
+`AFFIRMATIVE_DECISIONS`, `REASON_CLASSES`, `KeiProxyAuthorizeError`,
+`AuthorizationClient`, `AuthorizationResponse`,
+`resources_touched`, `tool_args_digest`,
+`AUTHORIZE_CHILD_ENV_ALLOWLIST`, `DEFAULT_AUTHORIZE_TIMEOUT`,
+`parse_authorize_output`.
+
+Exported symbols (tools module): `ToolRegistry`, `KeiScope`, `GovernedTool`,
+`Result`, `ToolRegistry.export_kei_tool_manifest()`.
 
 ### Go (main)
 
@@ -361,26 +370,32 @@ e := evaluator.NewKeiProxyEvaluator(client)
 //            evaluator.WithLogger(slog.Default())
 
 decision := e.Evaluate("github.get_issue", args, caller)
-// decision.Action == middleware.ActionAllow / ActionDeny
-// decision.Reason    string — "kei-proxy allow" or "kei-proxy deny: ..."
-// decision.Rule      string — policy_id or "kei-proxy"
+// decision.Action     == middleware.ActionAllow / ActionDeny
+// decision.Reason     string — "kei-proxy allow" or "kei-proxy deny: ..."
+// decision.Rule       string — policy_id or "kei-proxy"
 // decision.Enrollment map[string]any — nil on allow
+// decision.Connect    map[string]any — nil on allow
 \`\`\`
 
 The child process receives only \`KEI_*\` environment variables (filtered
 through \`AuthorizeChildEnvAllowlist\`). On timeout the process group is killed.
 The binary path is resolved to absolute before spawn.
 
-Exported symbols: \`KeiProxyEvaluator\`, \`NewKeiProxyEvaluator\`,
-\`WithDefaultAction\`, \`WithLogger\`, \`Client\`, \`CLIClient\`,
-\`AuthorizeRequest\`, \`AuthorizeError\`, \`ReasonClass\` and all \`Reason*\`
-constants, \`ReasonClasses\`, \`Rule\`, \`IsAffirmative\`,
-\`AuthorizeChildEnvAllowlist\`, \`DefaultTimeout\`, \`RuntimeTokenEnv\`,
-\`ResourcesTouched\`, \`ToolArgsDigest\`.
+Exported symbols (kei/evaluator): `KeiProxyEvaluator`, `NewKeiProxyEvaluator`,
+`WithDefaultAction`, `WithLogger`, `Client`, `CLIClient`,
+`AuthorizeRequest`, `AuthorizeError`, `ReasonClass` and all `Reason*`
+constants, `ReasonClasses`, `Rule`, `IsAffirmative`,
+`AuthorizeChildEnvAllowlist`, `DefaultTimeout`, `RuntimeTokenEnv`,
+`ResourcesTouched`, `ToolArgsDigest`, `middleware.Decision.Connect`.
 
-### TypeScript (requires agentware >= 0.5.0 — async only)
+Exported symbols (tools): `tools.KeiScope`, `tools.GovernedTool`,
+`tools.NewToolRegistry`, `tools.ToolRegistry.Register`,
+`tools.ToolRegistry.ExportKeiToolManifest`, `tools.ToolRegistry.Get`,
+`tools.Result`.
 
-Starting in \`@haikeilabs/agentware\` v0.5.0, \`KeiProxyAuthorizeClient\` is
+### TypeScript (requires agentware >= 0.7.0 — async only)
+
+Starting in `@haikeilabs/agentware` v0.7.0, `KeiProxyAuthorizeClient` is
 **async only** (spawn, not spawnSync) and \`KeiProxyEvaluator.evaluate\`
 returns \`Promise<Decision>\`. There is no synchronous \`evaluate()\` —
 harnesses must \`await\` the call before running the tool. This evaluator does
@@ -407,16 +422,303 @@ const client = new KeiProxyAuthorizeClient({
 const evaluator = new KeiProxyEvaluator(client);
 const decision: Decision = await evaluator.evaluate(tool, args, caller);
 
-if (decision.enrollment) {
-  await harness.sendEphemeral(caller.userId, decision.enrollment.url);
+if (decision.action === Action.ALLOW) {
+  // proceed
+} else if (decision.connect) {
+  await harness.sendEphemeral(caller.userId, decision.connect.url as string);
+} else if (decision.enrollment) {
+  await harness.sendEphemeral(caller.userId, decision.enrollment.url as string);
 }
 \`\`\`
 
-Exported symbols: \`KeiProxyEvaluator\`, \`KeiProxyAuthorizeClient\`,
-\`KeiProxyAuthorizeRequest\`, \`KeiProxyAuthorizeError\`,
-\`KeiProxyAuthorizationClient\`, \`KEI_PROXY_AFFIRMATIVE_DECISIONS\`,
-\`AUTHORIZE_CHILD_ENV_ALLOWLIST\`, \`DEFAULT_AUTHORIZE_TIMEOUT_MS\`,
-\`keiProxyAuthorizeArgv\`, \`parseKeiProxyAuthorizeOutput\`.
+Exported symbols (kei): `KeiProxyEvaluator`, `KeiProxyAuthorizeClient`,
+`KeiProxyAuthorizeRequest`, `KeiProxyAuthorizeError`,
+`KeiProxyAuthorizationClient`, `KEI_PROXY_AFFIRMATIVE_DECISIONS`,
+`AUTHORIZE_CHILD_ENV_ALLOWLIST`, `DEFAULT_AUTHORIZE_TIMEOUT_MS`,
+`keiProxyAuthorizeArgv`, `parseKeiProxyAuthorizeOutput`.
+
+Exported symbols (tools): `KeiScope`, `GovernedTool`, `ToolRegistry`,
+`Result`, `ToolRegistry.exportKeiToolManifest()`.
+
+## Making governed tool calls (0.7.0)
+
+Agentware 0.7.0 introduces **KeiScope** and **GovernedTool** — a standard
+way to declare which Kei service, action, and resource patterns a tool touches,
+plus an **ExportKeiToolManifest** function that produces a JSON manifest an
+admin loads into the Kei policy catalog's tool registry (`POST /api/v1/tools`).
+
+The flow is:
+
+```
+1. Declare  →  tool implements GovernedTool with a KeiScope
+2. Register →  add governed tools (and any plain tools) to a ToolRegistry
+3. Export   →  registry.ExportKeiToolManifest() produces deterministic JSON
+4. Load     →  admin imports the JSON into the catalog (kei CLI or skill)
+5. Call     →  harness calls authorize by tool name only; catalog resolves resources
+6. Handle   →  allow / deny / enrollment_required / connect
+```
+
+The harness **never passes an authorize resource** (`--resource` /
+`authorize_resource`). The catalog is authoritative for resource patterns from
+the registered scope.
+
+### 1. Declare a governed tool
+
+Each language defines `KeiScope` and `GovernedTool` so existing tools compile
+unchanged — only tools that explicitly declare a scope appear in the manifest.
+
+#### Go
+
+```go
+import "github.com/soypete/pedro-agentware/go/tools"
+
+type getIssueTool struct{}
+
+func (t *getIssueTool) Name() string        { return "github.get_issue" }
+func (t *getIssueTool) Description() string { return "Fetch an issue from a GitHub repository" }
+func (t *getIssueTool) Execute(ctx context.Context, args map[string]any) (*tools.Result, error) {
+    // execution logic
+    return &tools.Result{Success: true, Data: issue}, nil
+}
+func (t *getIssueTool) KeiScope() tools.KeiScope {
+    return tools.KeiScope{
+        Service:   "github",
+        Action:    "read",
+        Resources: []string{"repo:haikeilabs/*", "issue:*"},
+    }
+}
+```
+
+#### Python
+
+```python
+from pedro_agentware.tools import KeiScope, GovernedTool, Result
+
+class GetIssueTool:
+    @property
+    def name(self) -> str:
+        return "github.get_issue"
+
+    @property
+    def description(self) -> str:
+        return "Fetch an issue from a GitHub repository"
+
+    def execute(self, args: dict) -> Result:
+        # execution logic
+        return Result(success=True, data=issue)
+
+    def kei_scope(self) -> KeiScope:
+        return KeiScope(
+            service="github",
+            action="read",
+            resources=["repo:haikeilabs/*", "issue:*"],
+        )
+```
+
+#### TypeScript
+
+```typescript
+import type { GovernedTool, KeiScope } from "@haikeilabs/agentware";
+import { Result } from "@haikeilabs/agentware";
+
+const getIssueTool: GovernedTool = {
+  name: "github.get_issue",
+  description: "Fetch an issue from a GitHub repository",
+  execute(args: Record<string, unknown>): Result {
+    // execution logic
+    return new Result(true, issue);
+  },
+  keiScope(): KeiScope {
+    return {
+      service: "github",
+      action: "read",
+      resources: ["repo:haikeilabs/*", "issue:*"],
+    };
+  },
+};
+```
+
+### 2. Register and call through KeiProxyEvaluator
+
+Register tools on a `ToolRegistry`. The evaluator authorizes by **tool name
+only** — never pass a resource.
+
+#### Python
+
+```python
+from pedro_agentware.tools import ToolRegistry
+from pedro_agentware.kei import KeiProxyAuthorizeClient, KeiProxyEvaluator
+
+# Register governed (and plain) tools
+registry = ToolRegistry()
+registry.register(get_issue_tool)
+
+# Set up the evaluator
+client = KeiProxyAuthorizeClient(
+    executable="kei-proxy",
+    timeout=10.0,
+)
+evaluator = KeiProxyEvaluator(client)
+
+# Authorize by tool name only — never pass resources
+decision = evaluator.evaluate("github.get_issue", {"owner": "acme"}, caller)
+
+if decision.action == "ALLOW":
+    result = get_issue_tool.execute({"owner": "acme"})
+elif decision.connect:
+    # OAuth reconnect required — deliver link privately, never log
+    harness.send_dm(caller.user_id, decision.connect["url"])
+elif decision.enrollment:
+    # User must link their identity first
+    harness.send_dm(caller.user_id, decision.enrollment["url"])
+else:
+    logger.info("Denied: %s", decision.reason)
+```
+
+#### Go
+
+```go
+import (
+    "github.com/soypete/pedro-agentware/go/kei/evaluator"
+    "github.com/soypete/pedro-agentware/go/tools"
+    "github.com/soypete/pedro-agentware/go/middleware"
+)
+
+registry := tools.NewToolRegistry()
+registry.Register(&getIssueTool{})
+
+client := &evaluator.CLIClient{
+    Executable: "kei-proxy",
+    Timeout:    10 * time.Second,
+}
+e := evaluator.NewKeiProxyEvaluator(client)
+
+decision := e.Evaluate("github.get_issue", args, caller)
+
+switch {
+case decision.Action == middleware.ActionAllow:
+    result, _ := registry.Get("github.get_issue")
+    // execute...
+case decision.Connect != nil:
+    // OAuth reconnect — deliver url privately, never log
+    harness.SendDM(caller.UserID, decision.Connect["url"].(string))
+case decision.Enrollment != nil:
+    // Identity linking — deliver url privately, never log
+    harness.SendDM(caller.UserID, decision.Enrollment["url"].(string))
+default:
+    slog.Info("denied", "reason", decision.Reason)
+}
+```
+
+#### TypeScript
+
+```typescript
+import {
+  ToolRegistry,
+  KeiProxyAuthorizeClient,
+  KeiProxyEvaluator,
+  Action,
+} from "@haikeilabs/agentware";
+
+const registry = new ToolRegistry();
+registry.register(getIssueTool);
+
+const client = new KeiProxyAuthorizeClient({
+  executable: "kei-proxy",
+  timeoutMs: 10_000,
+});
+const evaluator = new KeiProxyEvaluator(client);
+
+const decision = await evaluator.evaluate("github.get_issue", args, caller);
+
+if (decision.action === Action.ALLOW) {
+  const tool = registry.get("github.get_issue");
+  // execute...
+} else if (decision.connect) {
+  await harness.sendEphemeral(caller.userId, decision.connect.url as string);
+} else if (decision.enrollment) {
+  await harness.sendEphemeral(caller.userId, decision.enrollment.url as string);
+} else {
+  console.log("Denied:", decision.reason);
+}
+```
+
+### 3. Export the tool manifest
+
+Export governed tools to a JSON manifest that an admin loads into the Kei
+policy catalog. Only tools implementing `GovernedTool` appear in the output.
+The manifest is deterministic (sorted by tool name).
+
+#### Python
+
+```python
+manifest_json = registry.export_kei_tool_manifest()
+# Write to file for the admin
+with open("tool-manifest.json", "w") as f:
+    f.write(manifest_json)
+```
+
+#### Go
+
+```go
+manifestJSON, err := registry.ExportKeiToolManifest()
+if err != nil {
+    // handle error
+}
+os.WriteFile("tool-manifest.json", manifestJSON, 0644)
+```
+
+#### TypeScript
+
+```typescript
+const manifest = registry.exportKeiToolManifest();
+const manifestJSON = JSON.stringify(manifest, null, 2);
+// Write to file or pass to admin
+```
+
+#### Output shape
+
+```json
+{
+  "tools": [
+    {
+      "name": "github.get_issue",
+      "service": "github",
+      "description": "Fetch an issue from a GitHub repository",
+      "action": "read",
+      "resources": ["repo:haikeilabs/*", "issue:*"],
+      "enabled": true
+    }
+  ]
+}
+```
+
+Server-generated fields (`id`, `workspace_id`, `org_id`, `version`,
+`created_at`, `updated_at`) are omitted. An admin loads the manifest via:
+
+```bash
+kei tools import --file tool-manifest.json
+```
+
+After loading, the catalog is authoritative for resource patterns per tool
+name. The harness sends only the tool name (`--tool`) on authorize.
+
+### Runtime boundary
+
+- **Agentware never calls `POST /api/v1/tools` at runtime.** The manifest
+  export is a build-time / deployment-time action only.
+- **Harnesses never pass an authorize resource.** The `authorize` call sends
+  the tool name only; the catalog resolves resources from the declared scope.
+- **Non-governed tools are excluded.** Tools that do not implement
+  `GovernedTool` / `kei_scope()` / `keiScope()` are silently omitted from the
+  manifest. They continue to work locally but are not registered in the catalog.
+- **Deterministic output.** Entries are sorted by tool name so the manifest can
+  be committed and diffed.
+- **Opt-in.** Existing tools compile unchanged. Only tools that explicitly
+  declare a `KeiScope` appear in the manifest.
+
+See the shared fixture at `fixtures/kei/tool-manifest.v1.json` for a complete
+example with five governed tools across GitHub, Linear, email, and Slack.
 
 ### Testing with the shared fixture table
 
@@ -441,9 +743,9 @@ rule it names) run once, in Python.
 ### Minimum versions
 
 | Language | Package | Minimum version | Where |
-|---|---|---|---|
+|---|---|---|---|---|
 | Python | \`pedro-agentware\` | main (\`pip install -e ./python\`) | Not on PyPI; consume from git |
-| TypeScript | \`@haikeilabs/agentware\` | \`>=0.5.0\` (async only) | npm; 0.5.0 not yet published |
+| TypeScript | \`@haikeilabs/agentware\` | \`>=0.7.0\` | npm |
 | Go | \`github.com/soypete/pedro-agentware/go\` | latest main | Go module proxy; \`go get\` |
 
 The Go module is published through the Go module proxy; no separate registry
@@ -503,7 +805,8 @@ cd go && go test ./middleware/... -run ActionToolBoundary -v
 
 - **Do not** invent an agentware API that is not in the code. The README and
   `docs/{python,go,typescript}/README.md` drift from the source (`middleware_py`,
-  `LangGraphToolWrapper` no longer exist); the tests and `python/src/evals` are the ground truth.
+  `LangGraphToolWrapper` no longer exist); the tests, `docs/kei-tool-manifest.md`,
+  and `python/src/evals` are the ground truth.
 - **Do not** run an agent loop inside the middleware. Middleware decides and audits tool
   calls; the harness (`middleware/inference.py`, `evals`, adapters) owns the loop.
 - **Do not** grant anything on a manifest. `BINDINGS_GRANT_PERMISSIONS = False` and
@@ -512,6 +815,12 @@ cd go && go test ./middleware/... -run ActionToolBoundary -v
   fail-closed on renew; keep it that way.
 - **Do not** resolve connector `secret_refs` or execute providers in the library; that is
   the proxy's job, tenant-side.
+- **Do not pass authorize resources.** The harness sends only the tool name on
+  `authorize`; the catalog resolves resource patterns from the registered scope.
+  See `docs/kei-tool-manifest.md` and the 0.7.0 section above.
+- **Do not expose connect or enrollment URLs outside a private channel.**
+  Both are one-time claim links. Deliver them privately to the user and never
+  log them, never cache an expired link.
 - **Do** expect Go/TypeScript parity with the Python KeiProxyEvaluator. All
   three ports follow the same parity table; a bug report must name which port
   and which fixture case it fails.
@@ -524,4 +833,7 @@ cd go && go test ./middleware/... -run ActionToolBoundary -v
 - `kei-agents` — agent definitions and governed connector read schemas that the harness
   renders; provider-neutral and schema-only.
 - `kei-api` — the control-plane API that mints harness keys and decides
-  metadata-only policy.
+  metadata-only policy, including `POST /api/v1/tools` where an admin loads the
+  tool manifest exported by `export_kei_tool_manifest()`.
+- `kei-proxy` — the runtime that evaluates `authorize` calls and returns
+  allow/deny/enrollment/connect decisions.
