@@ -1,0 +1,55 @@
+{
+  "harness": "claude",
+  "model": null,
+  "created_at": "2026-10-01T17:53:44.732Z",
+  "results": [
+    {
+      "skill": "discord-connector",
+      "id": 1,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 1,
+      "total": 3,
+      "pass_rate": 0.6666666666666666
+    },
+    {
+      "skill": "discord-connector",
+      "id": 1,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 3,
+      "total": 3,
+      "pass_rate": 0
+    },
+    {
+      "skill": "discord-connector",
+      "id": 2,
+      "config": "with_skill",
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "pass_rate": 1
+    },
+    {
+      "skill": "discord-connector",
+      "id": 2,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 3,
+      "total": 3,
+      "pass_rate": 0
+    }
+  ],
+  "by_skill": {
+    "discord-connector": {
+      "with_skill": {
+        "passed": 5,
+        "total": 6
+      },
+      "without_skill": {
+        "passed": 0,
+        "total": 6
+      }
+    }
+  }
+}

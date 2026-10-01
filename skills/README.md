@@ -7,8 +7,10 @@ the scripts in `scripts/` (see the repo README).
 | Skill | Description |
 | --- | --- |
 | `agentware-sdk` | Policy/audit middleware for agent tool calls in Go, Python, and TypeScript |
+| `discord-connector` | Governed Discord connector — REST API, guild/channel/thread/message model, policy types |
 | `github-connector` | Governed GitHub connector — `gh` CLI, REST API, entity model, policy types |
 | `google-drive-connector` | Governed Google Drive connector — Drive API v3, file/folder model, export patterns |
+| `grafana-connector` | Governed Grafana connector — REST API, folder/dashboard/panel/datasource model, policy types |
 | `haikei` | Router skill — discovers and routes to the right Haikei product skill |
 | `kei-agents` | Agent tool definitions, schemas, permissions, governed connector read schemas |
 | `kei-api` | Governed Kei API contracts for organizations, workspaces, connectors, policies |

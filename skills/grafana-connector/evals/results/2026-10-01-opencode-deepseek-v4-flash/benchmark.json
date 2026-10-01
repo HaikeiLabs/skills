@@ -1,0 +1,55 @@
+{
+  "harness": "claude",
+  "model": null,
+  "created_at": "2026-10-01T17:54:32.824Z",
+  "results": [
+    {
+      "skill": "grafana-connector",
+      "id": 1,
+      "config": "with_skill",
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "pass_rate": 1
+    },
+    {
+      "skill": "grafana-connector",
+      "id": 1,
+      "config": "without_skill",
+      "passed": 2,
+      "failed": 1,
+      "total": 3,
+      "pass_rate": 0.6666666666666666
+    },
+    {
+      "skill": "grafana-connector",
+      "id": 2,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 1,
+      "total": 3,
+      "pass_rate": 0.6666666666666666
+    },
+    {
+      "skill": "grafana-connector",
+      "id": 2,
+      "config": "without_skill",
+      "passed": 2,
+      "failed": 1,
+      "total": 3,
+      "pass_rate": 0.6666666666666666
+    }
+  ],
+  "by_skill": {
+    "grafana-connector": {
+      "with_skill": {
+        "passed": 5,
+        "total": 6
+      },
+      "without_skill": {
+        "passed": 4,
+        "total": 6
+      }
+    }
+  }
+}
