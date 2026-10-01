@@ -1,0 +1,74 @@
+[
+  {
+    "name": "allow herdr orchestration",
+    "description": "Permit herdr commands for dispatching and managing worker agents",
+    "src_pattern": "*",
+    "dst_pattern": "shell:herdr",
+    "effect": "permit",
+    "priority": 100,
+    "enabled": true
+  },
+  {
+    "name": "allow wiki commands",
+    "description": "Permit wiki CLI (search, capture, stats, audit) for durable memory access",
+    "src_pattern": "*",
+    "dst_pattern": "shell:wiki",
+    "effect": "permit",
+    "priority": 100,
+    "enabled": true
+  },
+  {
+    "name": "allow gh stack commands",
+    "description": "Permit gh stack init, add, submit for PR stacking",
+    "src_pattern": "*",
+    "dst_pattern": "shell:gh stack",
+    "effect": "permit",
+    "priority": 100,
+    "enabled": true
+  },
+  {
+    "name": "allow gh pr view",
+    "description": "Permit gh pr view for orchestrator PR verification",
+    "src_pattern": "*",
+    "dst_pattern": "shell:gh pr view",
+    "effect": "permit",
+    "priority": 100,
+    "enabled": true
+  },
+  {
+    "name": "allow git worktree",
+    "description": "Permit git worktree add/remove for per-worker worktrees",
+    "src_pattern": "*",
+    "dst_pattern": "shell:git worktree",
+    "effect": "permit",
+    "priority": 100,
+    "enabled": true
+  },
+  {
+    "name": "allow npm test",
+    "description": "Permit npm test for worker verification",
+    "src_pattern": "*",
+    "dst_pattern": "shell:npm test",
+    "effect": "permit",
+    "priority": 100,
+    "enabled": true
+  },
+  {
+    "name": "allow go test",
+    "description": "Permit go test for worker verification",
+    "src_pattern": "*",
+    "dst_pattern": "shell:go test",
+    "effect": "permit",
+    "priority": 100,
+    "enabled": true
+  },
+  {
+    "name": "deny arbitrary shell",
+    "description": "Deny any shell command not explicitly permitted above; priority 1 ensures it loses to more specific permits",
+    "src_pattern": "*",
+    "dst_pattern": "shell:*",
+    "effect": "deny",
+    "priority": 1,
+    "enabled": true
+  }
+]
