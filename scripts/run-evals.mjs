@@ -19,7 +19,9 @@
  * Usage:
  *   node scripts/run-evals.mjs [--skill NAME ...] [--harness claude|codex|opencode]
  *                              [--out DIR] [--no-baseline] [--jobs N] [--model M]
+ *                              [--grader-model M]
  *   node scripts/run-evals.mjs --grade-only DIR    # (re)grade existing DIR/<eval>/<config>/outputs/response.md
+ *                              [--grader-model M]
  */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -74,7 +76,7 @@ const HARNESSES = {
 };
 
 function parseArgs(argv) {
-  const opts = { skills: [], harness: 'claude', out: null, baseline: true, jobs: 4, model: null, gradeOnly: null };
+  const opts = { skills: [], harness: 'claude', out: null, baseline: true, jobs: 4, model: null, graderModel: null, gradeOnly: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--skill') opts.skills.push(argv[++i]);
@@ -83,6 +85,7 @@ function parseArgs(argv) {
     else if (a === '--no-baseline') opts.baseline = false;
     else if (a === '--jobs') opts.jobs = Number(argv[++i]);
     else if (a === '--model') opts.model = argv[++i];
+    else if (a === '--grader-model') opts.graderModel = argv[++i];
     else if (a === '--grade-only') opts.gradeOnly = argv[++i];
     else if (a === '-h' || a === '--help') {
       console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('*/')[0]);
@@ -213,7 +216,7 @@ async function gradeExisting(dir, opts) {
         if (!fs.existsSync(responsePath)) continue;
         tasks.push(async () => {
           process.stderr.write(`grading ${evalName} ${config}\n`);
-          const g = await grade(meta.prompt, meta.assertions, fs.readFileSync(responsePath, 'utf8'), runDir, opts.model);
+          const g = await grade(meta.prompt, meta.assertions, fs.readFileSync(responsePath, 'utf8'), runDir, opts.graderModel);
           return { skill: meta.skill ?? evalName, id: meta.eval_id, config, ...g.summary };
         });
       }
@@ -287,7 +290,7 @@ async function main() {
           process.stderr.write(`running ${skill} #${ev.id} ${config}\n`);
           const { response, error } = await answer(skill, ev.prompt, config === 'with_skill', opts, runDir);
           if (error) return { skill, id: ev.id, config, passed: 0, failed: 0, total: 0, error };
-          const grading = await grade(ev.prompt, ev.expectations, response, runDir, opts.model);
+          const grading = await grade(ev.prompt, ev.expectations, response, runDir, opts.graderModel);
           return { skill, id: ev.id, config, ...grading.summary };
         });
       }
