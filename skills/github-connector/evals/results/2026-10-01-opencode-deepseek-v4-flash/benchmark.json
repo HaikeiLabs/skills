@@ -1,0 +1,109 @@
+{
+  "harness": "claude",
+  "model": null,
+  "created_at": "2026-10-01T17:40:53.772Z",
+  "results": [
+    {
+      "skill": "github-connector",
+      "id": 1,
+      "config": "with_skill",
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "pass_rate": 1
+    },
+    {
+      "skill": "github-connector",
+      "id": 1,
+      "config": "without_skill",
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "pass_rate": 1
+    },
+    {
+      "skill": "github-connector",
+      "id": 2,
+      "config": "with_skill",
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "pass_rate": 1
+    },
+    {
+      "skill": "github-connector",
+      "id": 2,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 3,
+      "total": 3,
+      "pass_rate": 0
+    },
+    {
+      "skill": "github-connector",
+      "id": 3,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 0,
+      "total": 2,
+      "pass_rate": 1
+    },
+    {
+      "skill": "github-connector",
+      "id": 3,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 2,
+      "total": 2,
+      "pass_rate": 0
+    },
+    {
+      "skill": "github-connector",
+      "id": 4,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 1,
+      "total": 3,
+      "pass_rate": 0.6666666666666666
+    },
+    {
+      "skill": "github-connector",
+      "id": 4,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 3,
+      "total": 3,
+      "pass_rate": 0
+    },
+    {
+      "skill": "github-connector",
+      "id": 5,
+      "config": "with_skill",
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "pass_rate": 1
+    },
+    {
+      "skill": "github-connector",
+      "id": 5,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 3,
+      "total": 3,
+      "pass_rate": 0
+    }
+  ],
+  "by_skill": {
+    "github-connector": {
+      "with_skill": {
+        "passed": 13,
+        "total": 14
+      },
+      "without_skill": {
+        "passed": 3,
+        "total": 14
+      }
+    }
+  }
+}

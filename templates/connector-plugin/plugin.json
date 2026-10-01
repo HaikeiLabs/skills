@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "CONNECTOR_NAME",
+  "version": "0.1.0",
+  "description": "CONNECTOR_DESCRIPTION — Haikei governed connector plugin",
+  "author": "HaikeiLabs <support@haikei.ai>",
+  "homepage": "https://github.com/HaikeiLabs/skills",
+  "license": "MIT",
+  "keywords": ["haikei", "kei", "connector", "CONNECTOR_KEYWORD"],
+  "skills": "./skills/",
+  "$comment": "Fork this for a standalone connector plugin. Replace CONNECTOR_NAME, CONNECTOR_DESCRIPTION, and CONNECTOR_KEYWORD. Point skills to the directory containing your SKILL.md."
+}

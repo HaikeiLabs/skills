@@ -1,0 +1,109 @@
+{
+  "harness": "claude",
+  "model": null,
+  "created_at": "2026-10-01T17:41:33.276Z",
+  "results": [
+    {
+      "skill": "google-drive-connector",
+      "id": 1,
+      "config": "with_skill",
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "pass_rate": 1
+    },
+    {
+      "skill": "google-drive-connector",
+      "id": 1,
+      "config": "without_skill",
+      "passed": 1,
+      "failed": 2,
+      "total": 3,
+      "pass_rate": 0.3333333333333333
+    },
+    {
+      "skill": "google-drive-connector",
+      "id": 2,
+      "config": "with_skill",
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "pass_rate": 1
+    },
+    {
+      "skill": "google-drive-connector",
+      "id": 2,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 3,
+      "total": 3,
+      "pass_rate": 0
+    },
+    {
+      "skill": "google-drive-connector",
+      "id": 3,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 0,
+      "total": 2,
+      "pass_rate": 1
+    },
+    {
+      "skill": "google-drive-connector",
+      "id": 3,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 2,
+      "total": 2,
+      "pass_rate": 0
+    },
+    {
+      "skill": "google-drive-connector",
+      "id": 4,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 1,
+      "total": 3,
+      "pass_rate": 0.6666666666666666
+    },
+    {
+      "skill": "google-drive-connector",
+      "id": 4,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 3,
+      "total": 3,
+      "pass_rate": 0
+    },
+    {
+      "skill": "google-drive-connector",
+      "id": 5,
+      "config": "with_skill",
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "pass_rate": 1
+    },
+    {
+      "skill": "google-drive-connector",
+      "id": 5,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 3,
+      "total": 3,
+      "pass_rate": 0
+    }
+  ],
+  "by_skill": {
+    "google-drive-connector": {
+      "with_skill": {
+        "passed": 13,
+        "total": 14
+      },
+      "without_skill": {
+        "passed": 1,
+        "total": 14
+      }
+    }
+  }
+}

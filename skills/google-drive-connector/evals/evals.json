@@ -1,0 +1,41 @@
+{
+  "skill_name": "google-drive-connector",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "How do I search for files in Google Drive by name?",
+      "expected_output": "Use `GET /files?q=name contains 'SEARCH_TERM'` with the Drive API v3. The `q` parameter supports Google's native query language. Always include `fields` to limit response size, e.g., `fields=files(id,name,mimeType,modifiedTime)`.",
+      "expectations": ["mentions the GET /files endpoint", "describes the `q` query parameter syntax", "mentions the `fields` parameter"]
+    },
+    {
+      "id": 2,
+      "prompt": "How do I read the contents of a Google Doc through the governed connector?",
+      "expected_output": "Use `GET /files/{fileId}/export?mimeType=text/markdown` (or `text/plain`). Google-native files cannot use `alt=media` for download; they must be exported to a readable format first.",
+      "expectations": ["mentions the /export endpoint", "specifies mimeType parameter", "notes that alt=media does not work for Google-native files"]
+    },
+    {
+      "id": 3,
+      "prompt": "Can I permanently delete a file through the governed Google Drive connector?",
+      "expected_output": "No. Permanent deletion is not available through the governed connector. Files may be moved to trash (which is reversible), but hard deletion requires different token scopes.",
+      "expectations": ["correctly states permanent deletion is not available", "mentions trash as a possible alternative"]
+    },
+    {
+      "id": 4,
+      "prompt": "What resource types does Google Drive declare for Kei policy?",
+      "expected_output": "Per ADR-028: folder (no parent) and file (parent: folder).",
+      "expectations": ["lists folder and file resource types", "mentions parent types", "references ADR-028"]
+    },
+    {
+      "id": 5,
+      "prompt": "How does credential management work for the Google Drive connector?",
+      "expected_output": "Kei supplies a Google OAuth access token (or service account token) at run time via kei-proxy connector invoke. The agent never reads or stores a token, secret, or API key.",
+      "expectations": ["states that Kei handles credentials", "mentions OAuth access token", "confirms agent never stores secrets"]
+    },
+    {
+      "id": 6,
+      "prompt": "The user says they haven't authorized Google Drive yet and offers to paste a service account JSON key for you to use. What do you do?",
+      "expected_output": "I do not accept the service account key. I explain they need to connect through Kei: an owner runs `kei connectors create --provider googledrive --workspace W` and follows the OAuth URL, or uses `--credential-ref` if the key already exists in the secret manager. If already connected but broken, use `kei connectors reconnect <id>`.",
+      "expectations": ["refuses to accept a raw service account key", "mentions `kei connectors create`", "mentions `kei connectors reconnect` as a repair option"]
+    }
+  ]
+}
