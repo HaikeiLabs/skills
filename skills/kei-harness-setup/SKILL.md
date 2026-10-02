@@ -148,7 +148,34 @@ At run time the harness process needs `KEI_RUNTIME_TOKEN` and
 spawns for each call inherits them. Load them from the secret manager; do not
 put the token in a harness config file in a repo.
 
-## 3. Pass identity on every governed call
+## 3. Register the harness and sync its tools
+
+> **Prerequisite:** `kei policies` and `kei harness` ship in kei >v0.1.6,
+> unreleased as of 2026-10-01. Skip this step if the installed version predates
+> it. Load **`kei-harness-policy`** for the full command reference.
+
+Register the harness type so the control plane knows which native config format
+to render:
+
+```sh
+kei harness add --name "my-laptop" --type claude --path ~/.claude
+```
+
+Then sync the tools the harness discovers from its installed skills:
+
+```sh
+kei harness sync --harness HARNESS_ID
+```
+
+After sync, Kei can render the policy bundle into the harness's native config
+format (e.g. `~/.claude/settings.json` → `permissions.allow`). The first render
+happens on sync; subsequent policy changes re-render through the periodic bundle
+refresh.
+
+**Back up the existing native config before the first sync** — `kei harness
+sync` overwrites the config file at the path specified during `kei harness add`.
+
+## 4. Pass identity on every governed call
 
 A tool call is **governed** when it touches tenant data, external systems, or
 credentials: it goes through `kei-proxy authorize` (or the agentware
@@ -199,7 +226,7 @@ is allowed. A local allow list is stale on deploy and invisible to audit.
 > the runtime boots with the bundle it fetched at bootstrap. `KeiProxyEvaluator`
 > works the same way either way — it asks `kei-proxy` every time.
 
-## 4. Register tools and bind connectors (console)
+## 5. Register tools and bind connectors (console)
 
 Registering the harness's skills and tool IDs against the installation, and
 binding connectors and capabilities to an agent, happen in the web app today
@@ -208,7 +235,7 @@ resource-oriented API yet. A tool is not allowed just because the adapter
 exposes it; baseline tools like `search_wiki` and `web_search` are
 policy-governed too.
 
-## 5. Prove it fails closed
+## 6. Prove it fails closed
 
 Run one permitted, disposable call and one deliberately unbound call:
 
@@ -222,13 +249,34 @@ redacted audit metadata. Missing bindings, an unregistered harness, invalid
 installation scope, stale policy, and no matching policy must all be **DENY**.
 The harness is not set up until you have seen a denial.
 
+If you configured harness command policies (step 3), also verify the native
+config was rendered correctly:
+
+```sh
+# Claude Code — check permissions.allow contains expected entries
+cat ~/.claude/settings.json | jq '.permissions.allow'
+
+# OpenCode — check permission.bash
+cat opencode.json | jq '.permission.bash'
+```
+
+Run a command that should be permitted and one that should be denied:
+
+```sh
+# Should be allowed (if shell:git is in your policies)
+git status
+
+# Should be denied (if shell:* deny is in your policies)
+curl example.com
+```
+
 `KEI_PROXY_DISABLED=true` is a valid setting, but it turns permits off: a
 disabled, missing, or misconfigured kei-proxy denies **every** governed call
 (fail-closed, HAI-249) — it never permits a tool call. Tests that need an allow
 inject a fake evaluator instead (see the `agentware-sdk` skill); a production
 harness should not run with kei-proxy disabled.
 
-## 6. Enrolling chat users (claim links)
+## 7. Enrolling chat users (claim links)
 
 When a chat-platform user (Teams, Slack, or Discord) is not yet linked to a
 Kei user, the authorize endpoint returns `decision: "enrollment_required"`
@@ -294,6 +342,7 @@ ls "$SKILLS_DIR" | grep '^kei'                          # skills installed
 head -3 "$SKILLS_DIR/kei-cli/SKILL.md"                  # frontmatter starts with ---
 kei-proxy runtime bootstrap | jq '.workspace_id'        # runtime scoped to a workspace
 kei-proxy authorize --user U --tool T --action A --resource R; echo $?
+kei harness list --json | jq '.[].name'                 # registered harnesses (kei >v0.1.6)
 ```
 
 ## Realistic usage boundaries

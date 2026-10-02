@@ -1,6 +1,6 @@
 ---
 name: kei-cli
-description: The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade, `kei login` device-flow auth, runtime installations (`kei bot init|credential|agents|status|bind|delete`), and local runtime config (`kei setup`, `kei runtime bootstrap`). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something "from the CLI" in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org, agent, connector, policy, or user commands — say so rather than inventing one. (`kei workspaces list` does exist for workspace discovery.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead.
+description: The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade, `kei login` device-flow auth, runtime installations (`kei bot init|credential|agents|status|bind|delete`), harness command policies (`kei policies`), harness registration (`kei harness`), and local runtime config (`kei setup`, `kei runtime bootstrap`). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something "from the CLI" in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org, agent, connector, or user commands — say so rather than inventing one. (`kei workspaces list` does exist for workspace discovery; `kei policies` and `kei harness` ship in >v0.1.6.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead.
 ---
 
 # kei CLI
@@ -114,12 +114,14 @@ authenticate with the runtime token instead.
 ## Key guidelines
 
 - **Nothing outside the usage string exists.** No `kei org`,
-  `agent`, `connector`, `group`, `policy`, `user`, or `key` commands; no
+  `agent`, `connector`, `group`, or `user` commands; no
   `bot install`, `deploy`, `destroy`, or `list`; no `kei setup doctor`. Orgs,
   workspaces, agents, connectors, groups, and policies are managed in the
   web app (or through the HTTP API — see `kei-api`); there are no CLI commands
   to create or change them. Say that plainly instead of guessing a command from
   an API route. `kei workspaces list` does exist for workspace discovery only.
+  **`kei policies` and `kei harness` ship in kei >v0.1.6** — do not present
+  them as available in the installed version.
 - **Credentials never touch the terminal.** `kei bot credential` refuses to
   write to an interactive terminal; pipe it into a secret manager. Never pass a
   token as an argument unless the user accepts shell-history exposure.
@@ -142,6 +144,14 @@ authenticate with the runtime token instead.
 | Activate after first heartbeat | `kei bot bind --installation ID` | yes |
 | List / attach / detach agents | `kei bot agents list\|add\|remove --installation ID [--agent ID] [--default]` | yes |
 | Delete an installation | `kei bot delete --installation ID --yes` | yes |
+| List policies for a workspace | `kei policies list [--workspace WS] [--agent AGENT] [--json]` | yes |
+| Create a harness command policy | `kei policies create --name NAME --src PATTERN --dst DST --effect permit\|deny [--priority N]` | yes |
+| Import native harness rules | `kei policies import --file PATH --format claude\|codex\|opencode [--workspace WS]` | yes |
+| Export to native harness format | `kei policies export --workspace WS --format claude\|codex\|opencode` | yes |
+| Verify policy coverage | `kei policies verify --workspace WS [--deny-unmatched]` | yes |
+| Register a harness | `kei harness add --name NAME --type claude\|codex\|opencode [--path PATH]` | yes |
+| Sync tool registrations | `kei harness sync --harness ID [--dry-run]` | yes |
+| List registered harnesses | `kei harness list [--json]` | yes |
 | Write local runtime config | `kei setup [--config PATH] [--control-plane-url URL]` | no (runtime token) |
 | Verify + heartbeat via local kei-proxy | `kei runtime bootstrap [--config PATH] [--proxy-path PATH]` | no (runtime token) |
 | Upgrade via Go | `kei upgrade [--version VERSION]` | no |
@@ -209,8 +219,10 @@ kei runtime bootstrap          # runs the configured kei-proxy to verify + send 
 ## When resource commands arrive (AIP/CRUD)
 
 The CLI is being extended toward the resource-oriented Kei API contract, but
-no released version has org, agent, connector, group, policy, or
-user commands yet (`kei workspaces list` is a notable early exception).
+no released version has org, agent, connector, group, or
+user commands yet (`kei workspaces list` is a notable early exception;
+`kei policies` and `kei harness` ship in kei >v0.1.6 — unreleased as
+of 2026-10-01).
 Before using or documenting one, confirm it in `kei help`
 for the installed version and check that it follows the contract:
 
@@ -238,11 +250,14 @@ kei bot status --installation INSTALLATION_ID
 
 ## Realistic usage boundaries
 
-- Organization, agent, connector, policy, invitation, and
+- Organization, agent, connector, invitation, and
   approval management happen in the web app today (`kei workspaces list` is
   available for workspace discovery). The CLI will grow
   resource-oriented commands after the API's AIP migration; until a release
   ships one, do not describe it as available.
+  **Exception:** `kei policies` and `kei harness` are the first resource-oriented
+  commands and ship in kei >v0.1.6 (unreleased as of 2026-10-01). For harnessing
+  policy workflows, load the `kei-harness-policy` skill.
 - The CLI token is org-bound and short-lived; it is not a general user token and
   cannot be used by a runtime.
 - The **Keys** page no longer exists. Agent keys were deprecated in favor of

@@ -1,6 +1,6 @@
 ---
 name: haikei
-description: Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime installation credential (KEI_RUNTIME_TOKEN); connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing the DVL Assistant ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring; reading or writing data through governed connectors (discover which connectors the workspace has via `kei connectors list --workspace W` — requires kei newer than v0.1.6, unreleased as of 2026-10-01 — fallback to `GET /api/v1/data-connectors`); or creating a new connector skill from templates. Routes the task to the right skill: kei-cli, kei-proxy, kei-runtime-setup, kei-credential-rotation, kei-harness-setup, kei-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-assistant-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, kei-api-conventions, the matching `<provider>-connector` skill (discovered at runtime), or templates/connector-skill.
+description: "Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime installation credential (KEI_RUNTIME_TOKEN); connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing the DVL Assistant ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring; reading or writing data through governed connectors (discover which connectors the workspace has via `kei connectors list --workspace W` — requires kei newer than v0.1.6, unreleased as of 2026-10-01 — fallback to `GET /api/v1/data-connectors`); creating or importing harness command policies; registering harnesses and syncing tool registrations; or creating a new connector skill from templates. Routes the task to the right skill: kei-cli, kei-proxy, kei-runtime-setup, kei-credential-rotation, kei-harness-setup, kei-harness-policy, kei-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-assistant-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, kei-api-conventions, the matching `<provider>-connector` skill (discovered at runtime), or templates/connector-skill."
 ---
 
 # Discover and build with Haikei
@@ -48,6 +48,7 @@ Need to operate Kei from a terminal?
 ├─ Rotate / revoke a runtime credential (KEI_RUNTIME_TOKEN) — agent keys deprecated for runtime → kei-credential-rotation
 ├─ Existing installation misbehaving → kei-setup-doctor
 ├─ Connector (list, create, get, reconnect, delete) → `kei connectors` subcommand (requires kei >v0.1.6, unreleased as of 2026-10-01; fallback to Kei API)
+├─ Manage harness policies (import, create, verify, export) or register a harness (add, sync) → kei-harness-policy
 └─ Org, workspace, agent, policy, user → web app (no CLI); HTTP API → kei-api
 
 Need a coding agent governed by Kei?
@@ -88,6 +89,7 @@ exist in the code today.
 | Build or extend a tool lane, governor proposal, or tool adapter | Tool adapters and governor pattern | Add a new tool lane (schema/client/guard/envelope/renderer/runtime + proposal + registry), modify the governor stdio protocol, or develop the chat harness agent tools and tool-definition renderers | `kei-tool-adapters` |
 | Run or extend headless deterministic evals | Headless evaluation harnesses | Work with EvalSuite fixtures, ScriptedBackend, the assistant eval CLI, the chat harness eval_harness.py, or the agentware eval suites in Python/Go/TypeScript | `kei-headless-evals` |
 | Wire an OpenAI-compatible LLM backend | OpenAI-compatible backends | Configure LLM_ENDPOINT/LLM_MODEL, develop model-format tool renderers, write eval ModelBackend integrations, or work with the Kei local docker stack (abac-engine, oidc-bridge) | `kei-openai-backends` |
+| Import, create, verify, or export harness command policies; register a harness and sync tool registrations | kei-harness-policy | Manage `shell:`/`skill:`/`path:` policies (ADR-029), import native harness config, export to native format, register harness types and sync tool metadata. Requires kei >v0.1.6 for `kei policies` and `kei harness` subcommands | `kei-harness-policy` |
 | Read or write data through a governed connector (GitHub, Linear, Drive, or any connector in the workspace) | Provider connector skill | Discover which connectors the workspace has via `kei connectors list --workspace W` (requires kei >v0.1.6, unreleased as of 2026-10-01; fallback `GET /api/v1/data-connectors`), then load `skills/<provider>-connector/` | `<provider>-connector` (discovered at runtime) |
 | Create a new governed connector skill from a template | Connector skill templates | Fork the connector-skill template to build a new governed data-source skill following the Lexicon/Pragmatics/Semantics pattern | `templates/connector-skill` |
 
@@ -101,6 +103,7 @@ exist in the code today.
 | agentware SDK | `pedro-agentware` (`go/`, `python/`, `typescript/`) | Policy/audit middleware, delegation, harness contract, kei auth/proxy modules | Connector execution, credential resolution, control-plane data |
 | kei-agents | `kei-agents` (`src/agents/`) | Agent tool definitions, schemas, permissions, governed connector read schemas | Provider clients, credential resolution, writes as connector capabilities |
 | setup doctor (workflow, not a command) | the `kei-cli` binary + the customer's environment | Read-only diagnosis of an installation: control-plane target, runtime health, credential destination, handoff | Any `kei setup doctor` subcommand — none exists; provisioning decisions, org management, remediation without consent |
+| harness command policy | the `kei-cli` repository (`kei policies`, `kei harness` subcommands — >v0.1.6) | Harness command policies (`shell:`/`skill:`/`path:` dst), native config import/export, harness registration and tool sync, policy coverage verification | Tool-call policy (kei-proxy ABAC); org-level ABAC policy management (Kei API); report-only hook implementation (follow-up) |
 | assistant security | `DVL-Group/assistant` (`src/`) | Fail-closed ingress: master switches, auth gates, SSO exchange, governor, pseudonymous audit, enrollment, idempotency, deployment contract | `sso-card` lane composition, middleware pattern for other repos |
 | Teams / Bot Framework | assistant (`src/teams/`) + chat harness (`teams_main.py`) | Activity parsing, Connector auth, SSO/OAuthCard, mention/audience gate, reply routing, outbound sends, manifest, Teams adapter | The invite-only MS Teams library (`@microsoft/teams.apps`-auth) — not a public dependency |
 | tool adapters / governor | assistant (`src/tools/`, `src/governor/`) + chat harness (`tool_definitions.py`, agent tools) | Tool lane stacks, governor proposals and stdio protocol, registry, chat harness tool-format renderers and KEI proxy integration | LLM-driven dynamic tool selection; free-form endpoint selection |
@@ -173,6 +176,11 @@ exist in the code today.
   templates. Fork `templates/connector-skill/`, fill in the Lexicon/Pragmatics/
   Semantics placeholders, add eval cases, and register the resource types per
   ADR-028.
+- **"Import my Claude Code allow list into Kei and keep it in sync."** →
+  `kei-harness-policy`. Use `kei policies import --format claude` to read the
+  existing `permissions.allow` into Kei policies, then register the harness with
+  `kei harness add --type claude` and set up `kei harness sync` to re-render
+  native config from the policy bundle. Requires kei >v0.1.6.
 
 ## Routing notes
 
@@ -190,6 +198,10 @@ exist in the code today.
   `PrintUsage` usage string in `kei-cli`'s `internal/app/app.go`). The
   `connectors` subcommand requires kei >v0.1.6 (unreleased as of 2026-10-01);
   if the installed version predates it, fall back to the Kei API.
+- **`kei policies` and `kei harness` are unreleased.** They ship in kei >v0.1.6.
+  Do not present them as available in the current version. If the installed
+  version predates them, route policy management to the web console or the Kei
+  API. The `kei-harness-policy` skill documents the planned surface.
 - **`kei setup doctor` is not a command.** `kei-setup-doctor` is a skill that
   drives real commands; never present it, or any `doctor` subcommand, as CLI
   syntax. Likewise there is no `kei bot install`, `deploy`, `destroy`, or
