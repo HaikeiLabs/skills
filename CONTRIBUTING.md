@@ -29,6 +29,14 @@ instead of maintaining another copy of it.
 
 ## Adding or changing a skill
 
+For **governed connector skills** (skills that wrap a third-party API or CLI
+for use with `kei-proxy connector invoke`), start from the connector-skill
+template. The [`templates/connector-skill/TUTORIAL.md`](templates/connector-skill/TUTORIAL.md)
+walks through every step: fork the template, fill in Lexicon/Pragmatics/Semantics,
+write evals, run verification, and open a PR.
+
+For all other skills:
+
 1. Read the source of truth for the subject matter and verify each command,
    endpoint, and flag against the code.
 2. Put depth in `skills/<name>/references/`; keep `SKILL.md` roughly

@@ -127,6 +127,13 @@ skill.
 | [kei-tool-adapters](skills/kei-tool-adapters/SKILL.md) | Tool adapters and the governor tool-lane pattern: schema/client/guard/envelope/renderer/runtime stacks, GovernorClient proposals and stdio protocol, the typed tool-lane registry, and the chat harness's agent tools and tool-definition renderers |
 | [kei-headless-evals](skills/kei-headless-evals/SKILL.md) | Headless, deterministic evaluation harnesses: EvalSuite/EvalCase/EvalTrace/EvalReport, ScriptedBackend, golden fixtures, the assistant CLI, and the chat harness and agentware eval harnesses |
 | [kei-openai-backends](skills/kei-openai-backends/SKILL.md) | OpenAI-compatible LLM backend integration: LLM_ENDPOINT/LLM_MODEL wiring, pydantic-ai OpenAIChatModel, tool-definition format renderers, eval ModelBackend, and the Kei local docker stack |
+## Templates
+
+| Template | Use |
+|----------|-----|
+| [connector-skill](templates/connector-skill/TUTORIAL.md) | Fork this to create a new governed-connector skill. See the [tutorial](templates/connector-skill/TUTORIAL.md) for the full walkthrough from fork to published PR. |
+| [connector-plugin](templates/connector-plugin/plugin.json) | Standalone plugin manifest for a connector skill published outside the monorepo. Fork the `plugin.json` alongside your skill folder. |
+
 ## What is deliberately absent
 
 - **No CLI commands that do not exist.** The `kei` CLI — the standalone
