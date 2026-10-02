@@ -253,6 +253,23 @@ confirm the harness environment has `KEI_PROXY_DISABLED` unset (or `false`) and
 that `KEI_RUNTIME_TOKEN` and `KEI_RUNTIME_CONTROL_PLANE_URL` are present, then
 run one `kei-proxy authorize` for a known-permitted tool and expect an allow.
 
+### 4a. Check bundle expiry (harness command policies)
+
+Every policy bundle carries a `not_after` expiry (ADR-026 §4). When the bundle
+expires, `kei-proxy` denies every governed call with
+`reason_code: policy_bundle_expired`. Harness command policies (shell:/skill:/path:)
+expire at the same time.
+
+| Symptom | Likely cause | Check | Fix |
+|---------|-------------|-------|-----|
+| All governed calls denied with `policy_bundle_expired` | Bundle `not_after` has passed | `kei-proxy runtime bootstrap --json \| jq '.policy_bundle.not_after'` or check the runtime logs for `bundle_expired` | Re-establish connectivity and run `kei-proxy runtime bootstrap` to force a fresh bundle fetch; then `kei harness sync --harness ID --dry-run` to preview the re-rendered native config. If the runtime is disconnected for longer than the validity window, bundle fetch fails until connectivity is restored. |
+| Native harness config outdated but tool-call policies still work | The harness native config was rendered from a stale bundle | Compare `kei harness list --json` metadata with `kei-proxy runtime bootstrap` bundle timestamp | `kei harness sync --harness ID` to re-render native config from the fresh bundle. Requires kei >v0.1.6. |
+| `kei harness sync` fails with `bundle_expired` | Sync also needs a valid bundle to determine the policy set | Re-fetch the bundle first (`kei-proxy runtime bootstrap`), then retry sync | Follow the bundle-renewal fix above, then retry. |
+
+The bundle refresh is automatic on the periodic heartbeat cycle. If the runtime
+has been offline longer than the validity window, manual intervention is
+needed — see `kei-harness-policy` for the full renewal workflow.
+
 ## 5. Apply approved remediation
 
 For each failure, report the evidence, likely cause, smallest remediation,

@@ -1,0 +1,72 @@
+{
+  "skill_name": "kei-harness-policy",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have a Claude Code project with an existing settings.json that has permissions.allow rules. I want to import those rules into Kei so they become governed policies. What commands would you use, and what should you be careful about? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "Use `kei policies import --format claude --file ~/.claude/settings.json` to read permissions.allow into Kei policies, then register the harness with `kei harness add --type claude --path ~/.claude` and sync with `kei harness sync`. Warn that kei >v0.1.6 is required and the commands are unreleased as of 2026-10-01. Back up the existing config before sync because `kei harness sync` overwrites the native config file.",
+      "expectations": [
+        "mentions `kei policies import --format claude`",
+        "mentions `kei harness add --type claude`",
+        "mentions `kei harness sync`",
+        "warns that the commands ship in kei >v0.1.6 and are unreleased as of 2026-10-01",
+        "recommends backing up the existing native config before sync"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I want to create a policy that allows git commands but denies curl in my OpenCode harness. How do I write the policy using the shell: dst scheme? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "Use `kei policies create --name allow-git --src 'shell:git *' --dst shell:git --effect permit` and `kei policies create --name deny-curl --src 'shell:curl *' --dst shell:curl --effect deny --priority 1`. The shell: prefix governs bash commands; the src pattern matches the command string and dst scopes the effect. Explain that in OpenCode this maps to permission.bash rules, and in Claude Code it maps to permissions.allow/shell after harness sync.",
+      "expectations": [
+        "uses `kei policies create` with `--src` and `--dst` flags",
+        "uses shell: prefix in both src and dst",
+        "explains src matches the command string and dst scopes the policy effect",
+        "mentions that after `kei harness sync` the policy renders into native harness config"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Before I run `kei harness sync` for the first time, I want to preview what it will write to my native config file. Is there a dry-run option? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "Yes, use `kei harness sync --harness HARNESS_ID --dry-run`. This renders the policy bundle to stdout without overwriting the native config file. Review the output before running the real sync. Requires kei >v0.1.6.",
+      "expectations": [
+        "mentions `--dry-run` flag on `kei harness sync`",
+        "explains dry-run renders to stdout without overwriting",
+        "notes kei >v0.1.6 requirement"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "All my governed tool calls started failing with reason_code: policy_bundle_expired. What happened and how do I fix it? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "The policy bundle fetched at bootstrap has a not_after expiry that has passed. Run `kei-proxy runtime bootstrap` to force a fresh bundle fetch from the control plane, then run `kei harness sync --harness ID` to re-render the native config from the fresh bundle. If the runtime has been offline longer than the validity window, restore connectivity first; the bundle fetch will fail without it. The bundle refreshes automatically on the periodic heartbeat cycle when the runtime is connected.",
+      "expectations": [
+        "explains the bundle has a `not_after` expiry (ADR-026 §4)",
+        "mentions `kei-proxy runtime bootstrap` to force a fresh bundle fetch",
+        "mentions `kei harness sync` to re-render native config from the fresh bundle",
+        "notes that offline runtimes cannot fetch new bundles until connectivity is restored",
+        "explains that bundle refresh is normally automatic on heartbeat"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I want to set up a report-only mode where policy violations are logged but not enforced. Can kei-harness-policy do that? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "Not yet. The report-only hook (HP-C6 in ADR-029) is a proposed design: a kei-proxy flag (e.g. --policy-mode report-only) that makes authorize return ALLOW with an annotation instead of DENY, while still auditing the violation. It is not implemented. The current kei-proxy enforce mode denies any call that does not match a permit policy. For now, use `kei policies verify --deny-unmatched` to preview which commands would be denied before deploying policies.",
+      "expectations": [
+        "states report-only is not yet implemented",
+        "mentions HP-C6 or the report-only proposal in ADR-029",
+        "explains what the hook would do (allow with annotation / audit instead of deny)",
+        "offers `kei policies verify --deny-unmatched` as a current alternative to preview denials"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "My agent needs to run a bash command through a harness command policy that requires a credential (like a GitHub token). How does credential resolution work for shell: dst commands? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "Credentials for shell: dst commands follow the same pattern as governed tool calls: Kei resolves credentials through kei-proxy, not in the policy itself. The policy uses kei:// style references (e.g. kei://workspace/credential/github-token) when a command needs a credential; at run time kei-proxy injects the resolved value into the agent's environment. The agent never reads or stores the raw credential. This is the same mechanism used by connector invoke for data-source credentials.",
+      "expectations": [
+        "explains credentials are resolved through kei-proxy, not embedded in policies",
+        "mentions kei:// reference syntax for credential references",
+        "states the agent never reads or stores raw credentials",
+        "notes this follows the same pattern as governed connector calls"
+      ]
+    }
+  ]
+}

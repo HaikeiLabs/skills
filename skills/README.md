@@ -18,6 +18,7 @@ the scripts in `scripts/` (see the repo README).
 | `kei-assistant-security` | DVL Assistant ingress boundary security invariants |
 | `kei-cli` | `kei` CLI platform-administration commands |
 | `kei-credential-rotation` | Rotate runtime installation credentials |
+| `kei-harness-policy` | Harness command policies — import, create, verify, and export shell:/skill:/path: policies; register harnesses and sync tool registrations |
 | `kei-harness-setup` | Connect coding-agent harnesses to Kei governance |
 | `kei-headless-evals` | Headless deterministic evaluation harnesses |
 | `kei-openai-backends` | OpenAI-compatible LLM backend integration |
