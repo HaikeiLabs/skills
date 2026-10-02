@@ -13,6 +13,20 @@ permissions:
   contents: read
 
 jobs:
+  yaml-lint:
+    name: yaml-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      - name: Install yamllint
+        run: pip install yamllint==1.38.0
+      - name: Lint YAML files and SKILL.md frontmatter
+        run: |
+          yamllint -c .yamllint.yml --no-warnings .
+          node scripts/lint-frontmatter.mjs
+
   verify:
     name: verify-skills-repo
     runs-on: ubuntu-latest
