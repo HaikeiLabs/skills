@@ -57,13 +57,15 @@ For all other skills:
 6. Run the verification suite before committing:
 
 ```bash
+yamllint -c .yamllint.yml --no-warnings .
+node scripts/lint-frontmatter.mjs
 node scripts/verify-skills.mjs
 node scripts/verify-manifests.mjs
 node scripts/check-internal-links.mjs
 node scripts/verify-evals.mjs
 ```
 
-These run in CI as well (Node 22), on pull requests and pushes to `main`.
+These run in CI as well (Node 22, Python yamllint), on pull requests and pushes to `main`.
 
 7. Run the evals for any skill you add or change, with and without the skill,
    and include the pass rates in the pull request:
