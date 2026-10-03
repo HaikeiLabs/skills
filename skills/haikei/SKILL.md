@@ -1,6 +1,6 @@
 ---
 name: haikei
-description: "Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime installation credential (KEI_RUNTIME_TOKEN); connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing the DVL Assistant ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring; reading or writing data through governed connectors (discover which connectors the workspace has via `kei connectors list --workspace W` — requires kei newer than v0.1.6, unreleased as of 2026-10-01 — fallback to `GET /api/v1/data-connectors`); creating or importing harness command policies; registering harnesses and syncing tool registrations; or creating a new connector skill from templates. Routes the task to the right skill: kei-cli, kei-proxy, kei-runtime-setup, kei-credential-rotation, kei-harness-setup, kei-harness-policy, kei-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-assistant-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, kei-api-conventions, the matching `<provider>-connector` skill (discovered at runtime), or templates/connector-skill."
+description: "Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime installation credential (KEI_RUNTIME_TOKEN); connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing the DVL Assistant ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring; reading or writing data through governed connectors (discover which connectors the workspace has via `kei connectors list --workspace W` — requires kei newer than v0.1.6, unreleased as of 2026-10-01 — fallback to `GET /api/v1/data-connectors`); creating or importing harness command policies; registering harnesses and syncing tool registrations; or creating a new connector skill from templates. Routes the task to the right skill: kei-cli, kei-proxy, kei-runtime-setup, kei-credential-rotation, kei-harness-setup, kei-harness-policy, kei-audit-encryption, kei-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-assistant-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, kei-api-conventions, the matching `<provider>-connector` skill (discovered at runtime), or templates/connector-skill."
 ---
 
 # Discover and build with Haikei
@@ -49,6 +49,7 @@ Need to operate Kei from a terminal?
 ├─ Existing installation misbehaving → kei-setup-doctor
 ├─ Connector (list, create, get, reconnect, delete) → `kei connectors` subcommand (requires kei >v0.1.6, unreleased as of 2026-10-01; fallback to Kei API)
 ├─ Manage harness policies (list, get, create, update, delete, import) or register a harness (add, sync, list, remove) → kei-harness-policy
+├─ Encrypt audit args / manage audit encryption keys (kei audit keys create|list|disable, kei audit decrypt) → kei-audit-encryption
 └─ Org, workspace, agent, policy, user → web app (no CLI); HTTP API → kei-api
 
 Need a coding agent governed by Kei?
@@ -90,6 +91,7 @@ exist in the code today.
 | Run or extend headless deterministic evals | Headless evaluation harnesses | Work with EvalSuite fixtures, ScriptedBackend, the assistant eval CLI, the chat harness eval_harness.py, or the agentware eval suites in Python/Go/TypeScript | `kei-headless-evals` |
 | Wire an OpenAI-compatible LLM backend | OpenAI-compatible backends | Configure LLM_ENDPOINT/LLM_MODEL, develop model-format tool renderers, write eval ModelBackend integrations, or work with the Kei local docker stack (abac-engine, oidc-bridge) | `kei-openai-backends` |
 | List, get, create, update, delete, or import harness command policies; register an agent-keyed harness and sync tool registrations | kei-harness-policy | Manage `shell:`/`skill:`/`path:` policies (ADR-029), import native harness config, render native config via `kei harness sync`, register agent-keyed harnesses (kinds claude_code|codex|opencode|custom) and sync tool metadata. Requires kei >v0.1.6 for `kei policies` and `kei harness` subcommands | `kei-harness-policy` |
+| Encrypt audit tool-call arguments; create, list, disable, or rotate audit encryption keys; decrypt an audit record locally | kei-audit-encryption | Opt-in, customer-held age (X25519) encryption of audit args (ADR-030, HAI-342 rev2): `kei audit keys create\|list\|disable`, `kei audit decrypt`, the audit-encryption-keys AIP resource, the keyed `args_digest`, opt-in semantics, rotation, escrow (off by default). `kei audit` ships in the next kei release (unreleased as of 2026-10-03) | `kei-audit-encryption` |
 | Read or write data through a governed connector (GitHub, Linear, Drive, or any connector in the workspace) | Provider connector skill | Discover which connectors the workspace has via `kei connectors list --workspace W` (requires kei >v0.1.6, unreleased as of 2026-10-01; fallback `GET /api/v1/data-connectors`), then load `skills/<provider>-connector/` | `<provider>-connector` (discovered at runtime) |
 | Create a new governed connector skill from a template | Connector skill templates | Fork the connector-skill template to build a new governed data-source skill following the Lexicon/Pragmatics/Semantics pattern | `templates/connector-skill` |
 
@@ -104,6 +106,7 @@ exist in the code today.
 | kei-agents | `kei-agents` (`src/agents/`) | Agent tool definitions, schemas, permissions, governed connector read schemas | Provider clients, credential resolution, writes as connector capabilities |
 | setup doctor (workflow, not a command) | the `kei-cli` binary + the customer's environment | Read-only diagnosis of an installation: control-plane target, runtime health, credential destination, handoff | Any `kei setup doctor` subcommand — none exists; provisioning decisions, org management, remediation without consent |
 | harness command policy | the `kei-cli` repository (`kei policies`, `kei harness` subcommands — >v0.1.6) | Harness command policies (`shell:`/`skill:`/`path:` dst), native config import and render (via `kei harness sync`), agent-keyed harness registration and tool sync | Tool-call policy (kei-proxy ABAC); org-level ABAC policy management (Kei API); report-only hook implementation (follow-up) |
+| audit-args encryption | the `kei-cli` repository (`kei audit` subcommands — unreleased as of 2026-10-03) + the catalog `audit-encryption-keys` resource | Opt-in customer-held age (X25519) encryption of audit tool-call arguments (ADR-030): local identity generation, public-key registration, local decrypt, rotation (add-new-then-disable-old), escrow setting (off by default) | Kei-side decryption (removed; no Kei path reads args by default); the keyed `args_digest` (Kei-held, never customer-facing); runtime credential rotation (`kei-credential-rotation`) |
 | assistant security | `DVL-Group/assistant` (`src/`) | Fail-closed ingress: master switches, auth gates, SSO exchange, governor, pseudonymous audit, enrollment, idempotency, deployment contract | `sso-card` lane composition, middleware pattern for other repos |
 | Teams / Bot Framework | assistant (`src/teams/`) + chat harness (`teams_main.py`) | Activity parsing, Connector auth, SSO/OAuthCard, mention/audience gate, reply routing, outbound sends, manifest, Teams adapter | The invite-only MS Teams library (`@microsoft/teams.apps`-auth) — not a public dependency |
 | tool adapters / governor | assistant (`src/tools/`, `src/governor/`) + chat harness (`tool_definitions.py`, agent tools) | Tool lane stacks, governor proposals and stdio protocol, registry, chat harness tool-format renderers and KEI proxy integration | LLM-driven dynamic tool selection; free-form endpoint selection |
@@ -182,6 +185,15 @@ exist in the code today.
   with `kei harness add --installation ID --kind claude_code --agent ID` and
   set up `kei harness sync --harness claude_code` to re-render native config
   from the policy bundle. Requires kei >v0.1.6.
+- **"Make sure only we can read the arguments our agents pass to tools in the
+  audit trail."** → `kei-audit-encryption`. Opt-in, customer-held age
+  encryption (ADR-030): `kei audit keys create` generates the identity locally
+  and uploads only the public key (back up the identity file), the first key
+  turns encryption on, and `kei audit decrypt --record ID --identity PATH
+  --out FILE` recovers one record locally. Kei never receives or stores a
+  private key, and there is no Kei-side decrypt path. The `kei audit`
+  subcommands ship in the next kei release (unreleased as of 2026-10-03);
+  until then use the console (Settings → Audit encryption).
 
 ## Routing notes
 
@@ -203,6 +215,14 @@ exist in the code today.
   Do not present them as available in the current version. If the installed
   version predates them, route policy management to the web console or the Kei
   API. The `kei-harness-policy` skill documents the planned surface.
+- **`kei audit` is unreleased.** The audit-args encryption commands
+  (`kei audit keys create|list|disable`, `kei audit decrypt`) ship in the next
+  kei release (kei-cli #62, open as of 2026-10-03; latest release v0.1.8). Do
+  not present them as available in the current version; route to the console
+  (Settings → Audit encryption) or the Kei API in the meantime. The
+  `kei-audit-encryption` skill documents the planned surface, and its
+  boundary: Kei never receives or stores a private key, and no Kei path reads
+  the arguments by default.
 - **`kei setup doctor` is not a command.** `kei-setup-doctor` is a skill that
   drives real commands; never present it, or any `doctor` subcommand, as CLI
   syntax. Likewise there is no `kei bot install`, `deploy`, `destroy`, or

@@ -1,7 +1,7 @@
 {
   "name": "haikei",
   "version": "0.1.0",
-  "description": "Build and operate AI assistants with the Kei platform: ABAC API org management, kei CLI platform administration, kei-proxy runtime for agent tool calls, runtime setup, credential rotation, harness setup for Claude Code/Codex/OpenCode/Pi/Cursor, agentware SDK policy/audit middleware, Kei runtime setup diagnosis, and DVL Assistant development (ingress security, Teams integration, tool adapters, headless evals, OpenAI backends), and resource-oriented API endpoint conventions (AIP-style routes, custom methods, migrations). Includes governed connector skills (discoverable at runtime) and forkable connector skill templates.",
+  "description": "Build and operate AI assistants with the Kei platform: ABAC API org management, kei CLI platform administration, kei-proxy runtime for agent tool calls, runtime setup, credential rotation, harness setup for Claude Code/Codex/OpenCode/Pi/Cursor, agentware SDK policy/audit middleware, Kei runtime setup diagnosis, opt-in customer-held encryption of audit tool-call arguments (kei audit, age, ADR-030), and DVL Assistant development (ingress security, Teams integration, tool adapters, headless evals, OpenAI backends), and resource-oriented API endpoint conventions (AIP-style routes, custom methods, migrations). Includes governed connector skills (discoverable at runtime) and forkable connector skill templates.",
   "author": {
     "name": "Haikei"
   },
@@ -16,6 +16,7 @@
     "agentware",
     "policy",
     "audit",
+    "audit-encryption",
     "connectors",
     "rbac",
     "setup-doctor",
