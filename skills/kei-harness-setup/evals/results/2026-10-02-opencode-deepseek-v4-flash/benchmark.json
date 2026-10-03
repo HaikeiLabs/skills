@@ -1,0 +1,73 @@
+{
+  "harness": "opencode",
+  "model": "ray/deepseek-ai/DeepSeek-V4-Flash",
+  "created_at": "2026-10-03T09:42:55.450Z",
+  "results": [
+    {
+      "skill": "kei-harness-setup",
+      "id": 1,
+      "config": "with_skill",
+      "passed": 0,
+      "failed": 4,
+      "total": 4,
+      "pass_rate": 0
+    },
+    {
+      "skill": "kei-harness-setup",
+      "id": 1,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 4,
+      "total": 4,
+      "pass_rate": 0
+    },
+    {
+      "skill": "kei-harness-setup",
+      "id": 2,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 1,
+      "total": 3,
+      "pass_rate": 0.6666666666666666
+    },
+    {
+      "skill": "kei-harness-setup",
+      "id": 2,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 3,
+      "total": 3,
+      "pass_rate": 0
+    },
+    {
+      "skill": "kei-harness-setup",
+      "id": 3,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 0,
+      "total": 2,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-harness-setup",
+      "id": 3,
+      "config": "without_skill",
+      "passed": 1,
+      "failed": 1,
+      "total": 2,
+      "pass_rate": 0.5
+    }
+  ],
+  "by_skill": {
+    "kei-harness-setup": {
+      "with_skill": {
+        "passed": 4,
+        "total": 9
+      },
+      "without_skill": {
+        "passed": 1,
+        "total": 9
+      }
+    }
+  }
+}

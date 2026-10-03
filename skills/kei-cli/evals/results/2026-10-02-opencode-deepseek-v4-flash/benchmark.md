@@ -2,4 +2,4 @@
 
 | Skill | With skill | Without skill |
 | --- | --- | --- |
-| kei-harness-policy | 64% (16/25) | 0% (0/25) |
+| kei-cli | 73% (8/11) | 22% (2/9) |
