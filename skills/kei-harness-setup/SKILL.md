@@ -154,26 +154,30 @@ put the token in a harness config file in a repo.
 > unreleased as of 2026-10-01. Skip this step if the installed version predates
 > it. Load **`kei-harness-policy`** for the full command reference.
 
-Register the harness type so the control plane knows which native config format
-to render:
+A harness is keyed by the **agent** (3NF): its identity is
+`(installation_id, agent_id)`, and the console labels these harnesses "agents".
+The agent must already be attached to the installation (`kei bot agents add`).
+Register the harness for the agent so the control plane knows which native
+config format to render:
 
 ```sh
-kei harness add --name "my-laptop" --type claude --path ~/.claude
+kei harness add --installation INSTALLATION_ID --kind claude_code --agent AGENT_ID
 ```
 
-Then sync the tools the harness discovers from its installed skills:
+`--kind` is `claude_code`, `codex`, `opencode`, or `custom`. Then sync: fetch
+the policy bundle and render the native config for that kind:
 
 ```sh
-kei harness sync --harness HARNESS_ID
+kei harness sync --harness claude_code
 ```
 
 After sync, Kei can render the policy bundle into the harness's native config
 format (e.g. `~/.claude/settings.json` → `permissions.allow`). The first render
-happens on sync; subsequent policy changes re-render through the periodic bundle
-refresh.
+happens on sync; subsequent policy changes re-render through the background
+bundle refresh in `kei-proxy serve`.
 
 **Back up the existing native config before the first sync** — `kei harness
-sync` overwrites the config file at the path specified during `kei harness add`.
+sync` overwrites the harness's native config file for the matched kind.
 
 ## 4. Pass identity on every governed call
 
@@ -202,7 +206,9 @@ KEI_PROXY_REGISTRY=<tool → service registry path>
 Keep the human who started the task as the invoking subject through every
 subagent hop; it is what the audit trail attributes the call to. Never put a
 tenant, org, or workspace ID in agent-controlled tool parameters — scope comes
-from the runtime token.
+from the runtime token. The `kei-proxy authorize` endpoint does not require a
+`platform_tenant_id` (there is no tenant concept for now); a request without a
+chat subject simply reaches the policy decision.
 
 To read the assigned agent ID at runtime, use the agentware SDK's
 `link.identity()` (see `agentware-sdk` skill). If identity is not available,
@@ -342,7 +348,7 @@ ls "$SKILLS_DIR" | grep '^kei'                          # skills installed
 head -3 "$SKILLS_DIR/kei-cli/SKILL.md"                  # frontmatter starts with ---
 kei-proxy runtime bootstrap | jq '.workspace_id'        # runtime scoped to a workspace
 kei-proxy authorize --user U --tool T --action A --resource R; echo $?
-kei harness list --json | jq '.[].name'                 # registered harnesses (kei >v0.1.6)
+kei harness list --installation INSTALLATION_ID --json | jq '.harnesses[].agent_name'   # registered harnesses (kei >v0.1.6)
 ```
 
 ## Realistic usage boundaries

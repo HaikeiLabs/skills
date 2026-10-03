@@ -4,30 +4,30 @@
     {
       "id": 1,
       "prompt": "I have a Claude Code project with an existing settings.json that has permissions.allow rules. I want to import those rules into Kei so they become governed policies. What commands would you use, and what should you be careful about? Do not execute anything — just explain in text. If you don't know something, just say so.",
-      "expected_output": "Use `kei policies import --format claude --file ~/.claude/settings.json` to read permissions.allow into Kei policies, then register the harness with `kei harness add --type claude --path ~/.claude` and sync with `kei harness sync`. Warn that kei >v0.1.6 is required and the commands are unreleased as of 2026-10-01. Back up the existing config before sync because `kei harness sync` overwrites the native config file.",
+      "expected_output": "Use `kei policies import --from claude --apply` to read permissions.allow into Kei policies (dry run by default; --apply creates them), then register the agent-keyed harness with `kei harness add --installation ID --kind claude_code --agent ID` (the agent must already be attached via kei bot agents add) and sync with `kei harness sync --harness claude_code`. Warn that kei >v0.1.6 is required. Back up the existing config before sync because `kei harness sync` overwrites the native config file.",
       "expectations": [
-        "mentions `kei policies import --format claude`",
-        "mentions `kei harness add --type claude`",
+        "mentions `kei policies import --from claude`",
+        "mentions `kei harness add` with `--installation`, `--kind claude_code`, and `--agent` (agent-keyed; no --name/--type/--path)",
         "mentions `kei harness sync`",
-        "warns that the commands ship in kei >v0.1.6 and are unreleased as of 2026-10-01",
+        "warns that the commands ship in kei >v0.1.6",
         "recommends backing up the existing native config before sync"
       ]
     },
     {
       "id": 2,
       "prompt": "I want to create a policy that allows git commands but denies curl in my OpenCode harness. How do I write the policy using the shell: dst scheme? Do not execute anything — just explain in text. If you don't know something, just say so.",
-      "expected_output": "Use `kei policies create --name allow-git --src 'shell:git *' --dst shell:git --effect permit` and `kei policies create --name deny-curl --src 'shell:curl *' --dst shell:curl --effect deny --priority 1`. The shell: prefix governs bash commands; the src pattern matches the command string and dst scopes the effect. Explain that in OpenCode this maps to permission.bash rules, and in Claude Code it maps to permissions.allow/shell after harness sync.",
+      "expected_output": "Use `kei policies create --name allow-git --src-pattern 'shell:git *' --dst-pattern shell:git --effect permit` and `kei policies create --name deny-curl --src-pattern 'shell:curl *' --dst-pattern shell:curl --effect deny --priority 1`. The shell: prefix governs bash commands; the src-pattern matches the command string and dst-pattern scopes the effect. Explain that in OpenCode this maps to permission.bash rules, and in Claude Code it maps to permissions.allow/shell after harness sync.",
       "expectations": [
-        "uses `kei policies create` with `--src` and `--dst` flags",
-        "uses shell: prefix in both src and dst",
-        "explains src matches the command string and dst scopes the policy effect",
+        "uses `kei policies create` with `--src-pattern` and `--dst-pattern` flags",
+        "uses shell: prefix in both src-pattern and dst-pattern",
+        "explains src-pattern matches the command string and dst-pattern scopes the policy effect",
         "mentions that after `kei harness sync` the policy renders into native harness config"
       ]
     },
     {
       "id": 3,
       "prompt": "Before I run `kei harness sync` for the first time, I want to preview what it will write to my native config file. Is there a dry-run option? Do not execute anything — just explain in text. If you don't know something, just say so.",
-      "expected_output": "Yes, use `kei harness sync --harness HARNESS_ID --dry-run`. This renders the policy bundle to stdout without overwriting the native config file. Review the output before running the real sync. Requires kei >v0.1.6.",
+      "expected_output": "Yes, use `kei harness sync --harness claude_code --dry-run` (the --harness flag takes a kind, not an ID). This renders the policy bundle to stdout without overwriting the native config file. Review the output before running the real sync. Requires kei >v0.1.6.",
       "expectations": [
         "mentions `--dry-run` flag on `kei harness sync`",
         "explains dry-run renders to stdout without overwriting",
@@ -37,24 +37,24 @@
     {
       "id": 4,
       "prompt": "All my governed tool calls started failing with reason_code: policy_bundle_expired. What happened and how do I fix it? Do not execute anything — just explain in text. If you don't know something, just say so.",
-      "expected_output": "The policy bundle fetched at bootstrap has a not_after expiry that has passed. Run `kei-proxy runtime bootstrap` to force a fresh bundle fetch from the control plane, then run `kei harness sync --harness ID` to re-render the native config from the fresh bundle. If the runtime has been offline longer than the validity window, restore connectivity first; the bundle fetch will fail without it. The bundle refreshes automatically on the periodic heartbeat cycle when the runtime is connected.",
+      "expected_output": "The policy bundle fetched at bootstrap has a not_after expiry that has passed. Run `kei-proxy policy sync` (or `kei-proxy runtime bootstrap`) to force a fresh bundle fetch from the control plane, then run `kei harness sync --harness KIND` to re-render the native config from the fresh bundle. If the runtime has been offline longer than the validity window, restore connectivity first; the bundle fetch will fail without it. While `kei-proxy serve` runs, a background refresher keeps the bundle current automatically.",
       "expectations": [
         "explains the bundle has a `not_after` expiry (ADR-026 §4)",
-        "mentions `kei-proxy runtime bootstrap` to force a fresh bundle fetch",
+        "mentions forcing a fresh bundle fetch (kei-proxy policy sync or runtime bootstrap)",
         "mentions `kei harness sync` to re-render native config from the fresh bundle",
         "notes that offline runtimes cannot fetch new bundles until connectivity is restored",
-        "explains that bundle refresh is normally automatic on heartbeat"
+        "explains that bundle refresh is normally automatic (background refresher in serve)"
       ]
     },
     {
       "id": 5,
       "prompt": "I want to set up a report-only mode where policy violations are logged but not enforced. Can kei-harness-policy do that? Do not execute anything — just explain in text. If you don't know something, just say so.",
-      "expected_output": "Not yet. The report-only hook (HP-C6 in ADR-029) is a proposed design: a kei-proxy flag (e.g. --policy-mode report-only) that makes authorize return ALLOW with an annotation instead of DENY, while still auditing the violation. It is not implemented. The current kei-proxy enforce mode denies any call that does not match a permit policy. For now, use `kei policies verify --deny-unmatched` to preview which commands would be denied before deploying policies.",
+      "expected_output": "Not yet. The report-only hook (HP-C6 in ADR-029) is a proposed design: a kei-proxy flag (e.g. --policy-mode report-only) that makes authorize return ALLOW with an annotation instead of DENY, while still auditing the violation. It is not implemented. The current kei-proxy enforce mode denies any call that does not match a permit policy. For now, there is no `kei policies verify` command; list the policies with `kei policies list --workspace WS --json` and check by hand which commands would be denied before deploying.",
       "expectations": [
         "states report-only is not yet implemented",
         "mentions HP-C6 or the report-only proposal in ADR-029",
         "explains what the hook would do (allow with annotation / audit instead of deny)",
-        "offers `kei policies verify --deny-unmatched` as a current alternative to preview denials"
+        "does not offer a non-existent `kei policies verify` command; suggests listing policies to check coverage"
       ]
     },
     {

@@ -52,15 +52,15 @@ is explicitly wanted:
 ```sh
 export PATH="$HOME/.local/bin:$PATH"
 curl -fsSL "https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh" \
-  | bash -s -- -d "$HOME/.local/bin"
+  | sh -s -- -d "$HOME/.local/bin"
 ```
 
-Install a pinned release with `-v VERSION`; the version does not include a
-leading `v`:
+The installer is POSIX `sh`; pipe to `sh`, not `bash`. Install a pinned release
+with `-v VERSION`; the version does not include a leading `v`:
 
 ```sh
 curl -fsSL "https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh" \
-  | bash -s -- -v 0.2.0 -d "$HOME/.local/bin"
+  | sh -s -- -v 0.2.0 -d "$HOME/.local/bin"
 ```
 
 Rerun the installer to upgrade. Verify the command after installation:
@@ -262,13 +262,16 @@ expire at the same time.
 
 | Symptom | Likely cause | Check | Fix |
 |---------|-------------|-------|-----|
-| All governed calls denied with `policy_bundle_expired` | Bundle `not_after` has passed | `kei-proxy runtime bootstrap --json \| jq '.policy_bundle.not_after'` or check the runtime logs for `bundle_expired` | Re-establish connectivity and run `kei-proxy runtime bootstrap` to force a fresh bundle fetch; then `kei harness sync --harness ID --dry-run` to preview the re-rendered native config. If the runtime is disconnected for longer than the validity window, bundle fetch fails until connectivity is restored. |
-| Native harness config outdated but tool-call policies still work | The harness native config was rendered from a stale bundle | Compare `kei harness list --json` metadata with `kei-proxy runtime bootstrap` bundle timestamp | `kei harness sync --harness ID` to re-render native config from the fresh bundle. Requires kei >v0.1.6. |
-| `kei harness sync` fails with `bundle_expired` | Sync also needs a valid bundle to determine the policy set | Re-fetch the bundle first (`kei-proxy runtime bootstrap`), then retry sync | Follow the bundle-renewal fix above, then retry. |
+| All governed calls denied with `policy_bundle_expired` | Bundle `not_after` has passed | `kei-proxy policy show` (offline bundle state) or check the runtime logs for `bundle_expired` | Re-establish connectivity and run `kei-proxy policy sync` (or `kei-proxy runtime bootstrap`) to force a fresh bundle fetch; then `kei harness sync --harness KIND --dry-run` to preview the re-rendered native config. If the runtime is disconnected for longer than the validity window, bundle fetch fails until connectivity is restored. |
+| Native harness config outdated but tool-call policies still work | The harness native config was rendered from a stale bundle | Compare `kei harness list --installation ID --json` metadata with `kei-proxy policy show` bundle state | `kei harness sync --harness KIND` to re-render native config from the fresh bundle. Requires kei >v0.1.6. |
+| `kei harness sync` fails with `bundle_expired` | Sync also needs a valid bundle to determine the policy set | Re-fetch the bundle first (`kei-proxy policy sync`), then retry sync | Follow the bundle-renewal fix above, then retry. |
 
-The bundle refresh is automatic on the periodic heartbeat cycle. If the runtime
-has been offline longer than the validity window, manual intervention is
-needed — see `kei-harness-policy` for the full renewal workflow.
+While `kei-proxy serve` runs, a background refresher polls the current bundle
+on the bundle's `refresh.poll_interval_seconds` (clamped to 30–300 s, with
+jitter) and swaps in a new enforceable bundle; `kei-proxy policy show` reports
+the persisted bundle's state offline and `kei-proxy policy sync` forces a fetch.
+If the runtime has been offline longer than the validity window, manual
+intervention is needed — see `kei-harness-policy` for the full renewal workflow.
 
 ## 5. Apply approved remediation
 
