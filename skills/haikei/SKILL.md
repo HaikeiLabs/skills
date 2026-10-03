@@ -48,7 +48,7 @@ Need to operate Kei from a terminal?
 ├─ Rotate / revoke a runtime credential (KEI_RUNTIME_TOKEN) — agent keys deprecated for runtime → kei-credential-rotation
 ├─ Existing installation misbehaving → kei-setup-doctor
 ├─ Connector (list, create, get, reconnect, delete) → `kei connectors` subcommand (requires kei >v0.1.6, unreleased as of 2026-10-01; fallback to Kei API)
-├─ Manage harness policies (import, create, verify, export) or register a harness (add, sync) → kei-harness-policy
+├─ Manage harness policies (list, get, create, update, delete, import) or register a harness (add, sync, list, remove) → kei-harness-policy
 └─ Org, workspace, agent, policy, user → web app (no CLI); HTTP API → kei-api
 
 Need a coding agent governed by Kei?
@@ -89,7 +89,7 @@ exist in the code today.
 | Build or extend a tool lane, governor proposal, or tool adapter | Tool adapters and governor pattern | Add a new tool lane (schema/client/guard/envelope/renderer/runtime + proposal + registry), modify the governor stdio protocol, or develop the chat harness agent tools and tool-definition renderers | `kei-tool-adapters` |
 | Run or extend headless deterministic evals | Headless evaluation harnesses | Work with EvalSuite fixtures, ScriptedBackend, the assistant eval CLI, the chat harness eval_harness.py, or the agentware eval suites in Python/Go/TypeScript | `kei-headless-evals` |
 | Wire an OpenAI-compatible LLM backend | OpenAI-compatible backends | Configure LLM_ENDPOINT/LLM_MODEL, develop model-format tool renderers, write eval ModelBackend integrations, or work with the Kei local docker stack (abac-engine, oidc-bridge) | `kei-openai-backends` |
-| Import, create, verify, or export harness command policies; register a harness and sync tool registrations | kei-harness-policy | Manage `shell:`/`skill:`/`path:` policies (ADR-029), import native harness config, export to native format, register harness types and sync tool metadata. Requires kei >v0.1.6 for `kei policies` and `kei harness` subcommands | `kei-harness-policy` |
+| List, get, create, update, delete, or import harness command policies; register an agent-keyed harness and sync tool registrations | kei-harness-policy | Manage `shell:`/`skill:`/`path:` policies (ADR-029), import native harness config, render native config via `kei harness sync`, register agent-keyed harnesses (kinds claude_code|codex|opencode|custom) and sync tool metadata. Requires kei >v0.1.6 for `kei policies` and `kei harness` subcommands | `kei-harness-policy` |
 | Read or write data through a governed connector (GitHub, Linear, Drive, or any connector in the workspace) | Provider connector skill | Discover which connectors the workspace has via `kei connectors list --workspace W` (requires kei >v0.1.6, unreleased as of 2026-10-01; fallback `GET /api/v1/data-connectors`), then load `skills/<provider>-connector/` | `<provider>-connector` (discovered at runtime) |
 | Create a new governed connector skill from a template | Connector skill templates | Fork the connector-skill template to build a new governed data-source skill following the Lexicon/Pragmatics/Semantics pattern | `templates/connector-skill` |
 
@@ -103,7 +103,7 @@ exist in the code today.
 | agentware SDK | `pedro-agentware` (`go/`, `python/`, `typescript/`) | Policy/audit middleware, delegation, harness contract, kei auth/proxy modules | Connector execution, credential resolution, control-plane data |
 | kei-agents | `kei-agents` (`src/agents/`) | Agent tool definitions, schemas, permissions, governed connector read schemas | Provider clients, credential resolution, writes as connector capabilities |
 | setup doctor (workflow, not a command) | the `kei-cli` binary + the customer's environment | Read-only diagnosis of an installation: control-plane target, runtime health, credential destination, handoff | Any `kei setup doctor` subcommand — none exists; provisioning decisions, org management, remediation without consent |
-| harness command policy | the `kei-cli` repository (`kei policies`, `kei harness` subcommands — >v0.1.6) | Harness command policies (`shell:`/`skill:`/`path:` dst), native config import/export, harness registration and tool sync, policy coverage verification | Tool-call policy (kei-proxy ABAC); org-level ABAC policy management (Kei API); report-only hook implementation (follow-up) |
+| harness command policy | the `kei-cli` repository (`kei policies`, `kei harness` subcommands — >v0.1.6) | Harness command policies (`shell:`/`skill:`/`path:` dst), native config import and render (via `kei harness sync`), agent-keyed harness registration and tool sync | Tool-call policy (kei-proxy ABAC); org-level ABAC policy management (Kei API); report-only hook implementation (follow-up) |
 | assistant security | `DVL-Group/assistant` (`src/`) | Fail-closed ingress: master switches, auth gates, SSO exchange, governor, pseudonymous audit, enrollment, idempotency, deployment contract | `sso-card` lane composition, middleware pattern for other repos |
 | Teams / Bot Framework | assistant (`src/teams/`) + chat harness (`teams_main.py`) | Activity parsing, Connector auth, SSO/OAuthCard, mention/audience gate, reply routing, outbound sends, manifest, Teams adapter | The invite-only MS Teams library (`@microsoft/teams.apps`-auth) — not a public dependency |
 | tool adapters / governor | assistant (`src/tools/`, `src/governor/`) + chat harness (`tool_definitions.py`, agent tools) | Tool lane stacks, governor proposals and stdio protocol, registry, chat harness tool-format renderers and KEI proxy integration | LLM-driven dynamic tool selection; free-form endpoint selection |
@@ -177,10 +177,11 @@ exist in the code today.
   Semantics placeholders, add eval cases, and register the resource types per
   ADR-028.
 - **"Import my Claude Code allow list into Kei and keep it in sync."** →
-  `kei-harness-policy`. Use `kei policies import --format claude` to read the
-  existing `permissions.allow` into Kei policies, then register the harness with
-  `kei harness add --type claude` and set up `kei harness sync` to re-render
-  native config from the policy bundle. Requires kei >v0.1.6.
+  `kei-harness-policy`. Use `kei policies import --from claude --apply` to read
+  the existing `permissions.allow` into Kei policies, then register the harness
+  with `kei harness add --installation ID --kind claude_code --agent ID` and
+  set up `kei harness sync --harness claude_code` to re-render native config
+  from the policy bundle. Requires kei >v0.1.6.
 
 ## Routing notes
 

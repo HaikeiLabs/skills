@@ -1,6 +1,6 @@
 ---
 name: kei-cli
-description: The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade, `kei login` device-flow auth, runtime installations (`kei bot init|credential|agents|status|bind|delete`), harness command policies (`kei policies`), harness registration (`kei harness`), and local runtime config (`kei setup`, `kei runtime bootstrap`). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something "from the CLI" in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org, agent, connector, or user commands — say so rather than inventing one. (`kei workspaces list` does exist for workspace discovery; `kei policies` and `kei harness` ship in >v0.1.6.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead.
+description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade (including `--proxy-only` and `--uninstall`), `kei login` device-flow auth, runtime installations (`kei bot init|credential|agents|status|bind|delete`), harness command policies (`kei policies`), data connectors (`kei connectors`), harness registration (`kei harness`), and local runtime config (`kei setup`, `kei runtime bootstrap`). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something from the CLI in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org, agent, group, or user commands — say so rather than inventing one. (`kei workspaces list`, `kei connectors`, `kei policies`, and `kei harness` are the early resource-oriented exceptions; the last three ship in >v0.1.6.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
 ---
 
 # kei CLI
@@ -56,15 +56,36 @@ If it is missing, install with the checksum-verifying release installer
 ```sh
 export PATH="$HOME/.local/bin:$PATH"
 curl -fsSL "https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh" \
-  | bash -s -- -d "$HOME/.local/bin"
+  | sh -s -- -d "$HOME/.local/bin"
 kei help && kei --version
 ```
 
-Pin a release with `-v VERSION` (no leading `v`, e.g. `-v 0.1.5`). Rerun the
-installer to upgrade. Since v0.1.4 the release archive also carries a pinned
-`kei-proxy` (the runtime), and the installer puts it next to `kei`, so a
-workstation gets both binaries from one install. `go install` builds only
-`kei`.
+The installer is POSIX `sh` (it runs under `sh`, `bash`, and `dash` alike);
+pipe to `sh`, not `bash`. Pin a release with `-v VERSION` (no leading `v`,
+e.g. `-v 0.1.5`). Rerun the installer to upgrade. Since v0.1.4 the release
+archive also carries a pinned `kei-proxy` (the runtime), and the installer puts
+it next to `kei`, so a workstation gets both binaries from one install. The
+bundled `kei-proxy` version is pinned in the `kei-cli` repo (the
+`KEI_PROXY_VERSION` file) and verified against the release at build time, so the
+proxy version is deterministic per release. `go install` builds only `kei`.
+
+Two more installer modes exist (POSIX `sh`, same checksum verification):
+
+```sh
+# Install only kei-proxy (the runtime), pinned to KEI_PROXY_VERSION by default,
+# with its own -v to pick a different version:
+curl -fsSL "https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh" \
+  | sh -s -- --proxy-only -d "$HOME/.local/bin"
+
+# Remove exactly the files the installer recorded in .kei-install-manifest:
+curl -fsSL "https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh" \
+  | sh -s -- --uninstall -d "$HOME/.local/bin"
+```
+
+`--proxy-only` and `--uninstall` are mutually exclusive. The `--proxy-only`
+default version resolves from the `KEI_PROXY_VERSION` env var, a
+`KEI_PROXY_VERSION` file in the current directory, or the copy published
+alongside `install.sh`.
 
 `go install` also works (Go 1.26+), but the package path depends on the
 release. Through v0.1.5 the command lives at the module root and builds a
@@ -114,14 +135,15 @@ authenticate with the runtime token instead.
 ## Key guidelines
 
 - **Nothing outside the usage string exists.** No `kei org`,
-  `agent`, `connector`, `group`, or `user` commands; no
+  `agent`, `group`, or `user` commands; no
   `bot install`, `deploy`, `destroy`, or `list`; no `kei setup doctor`. Orgs,
-  workspaces, agents, connectors, groups, and policies are managed in the
+  workspaces, agents, groups, and policies are managed in the
   web app (or through the HTTP API — see `kei-api`); there are no CLI commands
   to create or change them. Say that plainly instead of guessing a command from
-  an API route. `kei workspaces list` does exist for workspace discovery only.
-  **`kei policies` and `kei harness` ship in kei >v0.1.6** — do not present
-  them as available in the installed version.
+  an API route. `kei workspaces list` does exist for workspace discovery only,
+  and `kei connectors` / `kei policies` are the early resource-oriented
+  exceptions. **`kei policies` and `kei harness` ship in kei >v0.1.6** — do
+  not present them as available in the installed version.
 - **Credentials never touch the terminal.** `kei bot credential` refuses to
   write to an interactive terminal; pipe it into a secret manager. Never pass a
   token as an argument unless the user accepts shell-history exposure.
@@ -144,20 +166,32 @@ authenticate with the runtime token instead.
 | Activate after first heartbeat | `kei bot bind --installation ID` | yes |
 | List / attach / detach agents | `kei bot agents list\|add\|remove --installation ID [--agent ID] [--default]` | yes |
 | Delete an installation | `kei bot delete --installation ID --yes` | yes |
-| List policies for a workspace | `kei policies list [--workspace WS] [--agent AGENT] [--json]` | yes |
-| Create a harness command policy | `kei policies create --name NAME --src PATTERN --dst DST --effect permit\|deny [--priority N]` | yes |
-| Import native harness rules | `kei policies import --file PATH --format claude\|codex\|opencode [--workspace WS]` | yes |
-| Export to native harness format | `kei policies export --workspace WS --format claude\|codex\|opencode` | yes |
-| Verify policy coverage | `kei policies verify --workspace WS [--deny-unmatched]` | yes |
-| Register a harness | `kei harness add --name NAME --type claude\|codex\|opencode [--path PATH]` | yes |
-| Sync tool registrations | `kei harness sync --harness ID [--dry-run]` | yes |
-| List registered harnesses | `kei harness list [--json]` | yes |
+| List policies for a workspace | `kei policies list [--workspace WS] [--page-size N] [--json]` | yes |
+| Get a policy | `kei policies get ID [--workspace WS] [--json]` | yes |
+| Create a harness command policy | `kei policies create --name NAME --src-pattern PATTERN --dst-pattern DST --effect permit\|deny [--priority N] [--agent-id ID]` | yes |
+| Update a policy | `kei policies update ID [--name N] [--src-pattern P] [--dst-pattern D] [--effect permit\|deny] [--priority N] [--enabled]` | yes |
+| Delete a policy | `kei policies delete ID --yes [--workspace WS]` | yes |
+| Import native harness rules | `kei policies import --from claude\|codex\|opencode [--file PATH] [--src PATTERN] [--out FILE] [--apply] [--workspace WS]` | yes |
+| List data connectors | `kei connectors list [--workspace WS] [--json]` | yes |
+| Create a data connector | `kei connectors create --provider P --name NAME [--account-model M] [--set k=v] [--credential-ref R] [--capabilities a,b] [--workspace WS]` | yes |
+| Get / reconnect / delete a connector | `kei connectors get ID [--json]` / `kei connectors reconnect ID [--no-browser] [--keep-secret]` / `kei connectors delete ID --yes` | yes |
+| Register a harness | `kei harness add --installation ID --kind claude_code\|codex\|opencode\|custom --agent ID` | yes |
+| Sync tool registrations | `kei harness sync [--harness KIND] [--dry-run]` | yes |
+| List registered harnesses | `kei harness list --installation ID [--json]` | yes |
+| Remove a harness | `kei harness remove AGENT_ID --installation ID` | yes |
 | Write local runtime config | `kei setup [--config PATH] [--control-plane-url URL]` | no (runtime token) |
 | Verify + heartbeat via local kei-proxy | `kei runtime bootstrap [--config PATH] [--proxy-path PATH]` | no (runtime token) |
 | Upgrade via Go | `kei upgrade [--version VERSION]` | no |
 
 All `bot` commands accept `--api-url URL` (override the default control-plane
 URL). `bot bind` works but is not listed in `kei help`.
+
+`kei harness` is **keyed by agent**, not by a surrogate harness ID: a harness
+is a property of an installation-agent assignment, so `add` requires `--agent`
+(the agent must already be attached to the installation via `kei bot agents
+add`), and `remove`/`sync` are addressed by the agent. There is no
+`--display-name`/`--name` flag. The console labels these harnesses "agents".
+For the full harness-command-policy workflow, load **`kei-harness-policy`**.
 
 ## Runtime installations
 
@@ -219,10 +253,13 @@ kei runtime bootstrap          # runs the configured kei-proxy to verify + send 
 ## When resource commands arrive (AIP/CRUD)
 
 The CLI is being extended toward the resource-oriented Kei API contract, but
-no released version has org, agent, connector, group, or
-user commands yet (`kei workspaces list` is a notable early exception;
-`kei policies` and `kei harness` ship in kei >v0.1.6 — unreleased as
-of 2026-10-01).
+no released version has org, agent, group, or
+user commands yet (`kei workspaces list`, `kei connectors`, `kei policies`,
+and `kei harness` are the early resource-oriented exceptions — the last two
+ship in kei >v0.1.6, unreleased as of 2026-10-01).
+The first resource-oriented commands call the **shared AIP `/api/v1`
+endpoints**, not a private `/api/cli` backend: `kei policies` uses
+`/api/v1/policies` and `kei connectors` uses `/api/v1/data-connectors`.
 Before using or documenting one, confirm it in `kei help`
 for the installed version and check that it follows the contract:
 
