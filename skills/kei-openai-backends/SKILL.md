@@ -10,20 +10,86 @@ The chat harness and the eval harnesses talk to **any OpenAI-compatible `/v1` en
 SDK dependency: the harness uses pydantic-ai's `OpenAIChatModel` and the eval harnesses use a
 raw `/chat/completions` POST.
 
-### Supported model formats
+### Supported model families
 
-The tool-definition renderer in `tool_definitions.py` produces model-specific schemas:
+Agentware supports five model families across its three ports (Go, Python, TypeScript).
+Each family differs in tool definitions, tool calls, tool results, and reasoning fields.
+The canonical reference is Agentware's `docs/model-format-reference.md` (PR #166, commit
+`8966e82a`), which this section summarises.
 
-| ModelFormat | Tool schema shape | Used by |
+#### Tool-definition schemas
+
+| Model family | Tool type field | Parameters / schema | Tool call shape | Tool result shape |
+|---|---|---|---|---|
+| **OpenAI** | `"function"` | `function.parameters` (JSON Schema) | `tool_calls` array, each with `id`, `type: "function"`, `function.name`, `function.arguments` (JSON string) | `tool_call_id`, `role: "tool"`, `content` |
+| **Anthropic** | `"custom"` | `input_schema` (JSON Schema) | `content` array with `type: "tool_use"` blocks; `id`, `name`, `input` | `content` array with `type: "tool_result"` blocks; `tool_use_id`, `content` |
+| **Qwen** | `"function"` | `function.parameters` (JSON Schema) | `tool_calls` array (OpenAI-compatible shape). QwQ-32B uses `type: "reasoning"` content blocks for thinking (selectors trigger on model tag `qwq`) | `tool_call_id`, `role: "tool"`, `content` |
+| **DeepSeek** | `"function"` | `function.parameters` (JSON Schema) | `tool_calls` array with OpenAI-compatible shape. Reasoner models use `reasoning_content` field alongside `content` for CoT tokens (not a separate content block) | `tool_call_id`, `role: "tool"`, `content` |
+| **GLM** | `"function"` | `function.parameters` (JSON Schema). Tool type is `"function"` but serialized via a dedicated GLM tool schema path | `tool_calls` array (OpenAI-compatible shape). Tool-call arguments as a JSON object (not a string) | `tool_call_id`, `role: "tool"`, `content` |
+
+#### Reasoning / thinking fields
+
+| Model family | Thinking field | Separate content blocks | Notes |
+|---|---|---|---|
+| **OpenAI** | `reasoning` (top-level) | No | `reasoning` contains reasoning tokens; `o1`/`o3` families |
+| **Anthropic** | `thinking` (content block) | Yes — `type: "thinking"` blocks in content array | `thinking` blocks contain the CoT; tool use blocks follow |
+| **Qwen (QwQ)** | `type: "reasoning"` content blocks | Yes — reasoning content blocks in array | Selector triggers on `qwq` in model tag; QwQ-32B |
+| **DeepSeek** | `reasoning_content` field | No — field on the choice delta | Parallel to `content` on the same choice, not a separate block; Reasoner models |
+| **GLM** | None | No | GLM does not expose separate reasoning fields |
+
+#### Tool-call argument shapes
+
+| Model family | Arguments format | Notes |
 |---|---|---|
-| `openai` | OpenAI function-calling format (`type: "function"`, `function.parameters`) | Chat harness `/chat/completions` calls; eval ModelBackend |
-| `anthropic` | Anthropic tool-use format (`type: "custom"`, `input_schema`) | Chat harness when using Anthropic-compatible endpoints |
-| `ollama` | Ollama tools format (simplified function schema) | Chat harness for local Ollama endpoints |
+| **OpenAI** | JSON string | `function.arguments` is a string that must be parsed |
+| **Anthropic** | JSON object | `input` is already a parsed dict |
+| **Qwen** | JSON string | Same as OpenAI; must parse |
+| **DeepSeek** | JSON string | Same as OpenAI; must parse |
+| **Qwen (QwQ)** | JSON string | Same as OpenAI; reasoning blocks precede tool use |
+| **GLM** | JSON object | Pre-parsed object, not a string |
 
-Each format is rendered by a dedicated function in `render_tools()`. Adding a new format
-means adding a new `ModelFormat` enum variant and a new render function; the `FormatAdapter`
-class selects the renderer by format name. The adapter is constructed once in `create_agent()`
-and reused for the agent's lifetime.
+#### Format selection
+
+Each format is rendered by a dedicated function in `render_tools()`. The `ModelFormat` enum
+selects the renderer at construction time (one per agent lifetime). Adding a new family
+means adding a `ModelFormat` variant and a render function; the `FormatAdapter` class
+selects the renderer by format name.
+
+The selectors map model tags to format:
+
+| Selector | Matches | ModelFormat |
+|---|---|---|
+| `gpt`, `o1`, `o3` | OpenAI models | `openai` |
+| `claude` | Anthropic models | `anthropic` |
+| `qwen`, `qwq` | Qwen / QwQ-32B | `qwen` (qwq triggers reasoning block handling) |
+| `deepseek` | DeepSeek models | `deepseek` |
+| `glm` | GLM models | `glm` |
+| `llama`, `ollama`, `llamafile` | Locally served models | `ollama` |
+
+#### Reasoning adapter
+
+The `ReasoningAdapter` in `pedro-agentware` (`reasoning.py` / `reasoning.go` /
+`reasoning.ts`) normalises reasoning fields from each family into a canonical
+`Reasoning` object. The adapter is seeded with the model family name and applied
+to every streaming delta / final choice:
+
+| Adapter variant | Input field | Output shape |
+|---|---|---|
+| OpenAIReasoningAdapter | `choice.delta.reasoning` | `Reasoning(content=..., tokens=...)` |
+| AnthropicReasoningAdapter | `delta.delta.thinking` (content block) | Extracts thinking text from content blocks |
+| DeepSeekReasoningAdapter | `choice.delta.reasoning_content` | Merges delta fragments into continuous reasoning |
+| QwenReasoningAdapter | `choice.delta.content` marked as reasoning | Identifies reasoning blocks by type marker |
+| GLMReasoningAdapter | `choice.delta.reasoning` | Similar to OpenAI adapter; may differ in field name |
+
+The adapter is used by the harness streaming response builder and the eval
+harness result parser.
+
+---
+
+> **Validation reference.** Every claim above is confirmed by the Go/Python/TypeScript
+> fixtures in Agentware PR #166 (`docs/model-format-reference.md`, `testdata/`).
+> Do not add model families that are not listed here; they are not supported
+> by Agentware's formatters.
 
 ### Chat agent capabilities
 

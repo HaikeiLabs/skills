@@ -363,3 +363,13 @@ kei harness list --installation INSTALLATION_ID --json | jq '.harnesses[].agent_
 - The installation-claim handshake (HAI-155) IS available for chat-platform
   identities via the claim-link enrollment flow (see section 6 above), but is
   NOT available for generic harness-to-installation linking.
+
+## Related skills
+
+- `kei-openai-backends` — model format support across five families (OpenAI,
+  Anthropic, Qwen, DeepSeek, GLM), including tool-definition rendering, reasoning
+  adapters, and eval ModelBackend variants.
+- `kei-runtime-setup` — the runtime installation and bootstrap half of the
+  harness setup workflow.
+- `kei-proxy` — the runtime binary the harness calls for governed decisions.
+- `agentware-sdk` — the SDK with `KeiProxyEvaluator` and policy enforcement.

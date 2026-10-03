@@ -30,6 +30,15 @@
         "The response does not claim Windsurf is supported.",
         "The response lists the supported local adapters."
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "I'm setting up Claude Code with Kei and my model uses Anthropic's tool format. Which skill covers the model format differences?",
+      "expected_output": "Points to kei-openai-backends for model format support across five families, including Anthropic's tool-use format with input_schema and thinking content blocks.",
+      "expectations": [
+        "The response references kei-openai-backends for model format details.",
+        "The response mentions Anthropic-specific format features like input_schema and thinking blocks."
+      ]
     }
   ]
 }

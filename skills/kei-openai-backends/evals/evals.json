@@ -3,20 +3,38 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "I'm running the chat harness locally with Ollama as the LLM backend. What env vars do I need to set, and what does the harness do when LLM_ENDPOINT is empty?",
-      "expected_output": "Sets LLM_ENDPOINT and LLM_MODEL to point at the Ollama server; explains that when either is empty FakePedroAgent is used instead.",
+      "prompt": "What tool-call argument format does DeepSeek use — is it a JSON string or a parsed object like Anthropic?",
+      "expected_output": "Explains that DeepSeek uses a JSON string for tool-call arguments (same as OpenAI/Qwen), not a parsed object like Anthropic or GLM.",
       "expectations": [
-        "The response does not assume a specific Ollama URL format beyond the /v1 compatible endpoint.",
-        "The response describes the FakePedroAgent fallback when the endpoint is not configured."
+        "The response correctly classifies DeepSeek's arguments format as a JSON string.",
+        "The response contrasts with Anthropic/GLM which use parsed JSON objects."
       ]
     },
     {
       "id": 2,
-      "prompt": "I want to add GPU-based inference with a provider whose API isn't OpenAI-compatible. Can I wire it into the chat harness's tool_definitions.py and eval_harness.py?",
-      "expected_output": "Explains that the harness only supports OpenAI-compatible /v1 chat/completions endpoints and that a non-compatible provider would need a new ModelFormat and ModelBackend beyond the current contract.",
+      "prompt": "I'm integrating the QwQ-32B model. How does its thinking/reasoning appear in the response compared to DeepSeek's reasoner models?",
+      "expected_output": "Explains that QwQ-32B uses separate type:reasoning content blocks for thinking (selected when model tag contains qwq), while DeepSeek uses a reasoning_content field parallel to content on the same choice delta.",
       "expectations": [
-        "The response confirms the /v1 chat/completions boundary as a hard requirement.",
-        "The response does not suggest implementing a proprietary SDK adapter without a reviewed design."
+        "The response describes QwQ's reasoning content blocks.",
+        "The response contrasts with DeepSeek's reasoning_content field approach."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "How do I add support for a new model family like Mistral to the chat harness?",
+      "expected_output": "Explains that only the five documented model families (OpenAI, Anthropic, Qwen, DeepSeek, GLM) are supported by Agentware's formatters, and a new family requires a ModelFormat variant, render function, and reasoning adapter — not just a selector entry.",
+      "expectations": [
+        "The response does not suggest adding Mistral support by just changing a config file.",
+        "The response references the model-format-reference.md as the canonical source."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I'm building an eval that streams tokens from an Anthropic-compatible endpoint. How does the reasoning adapter handle thinking content blocks?",
+      "expected_output": "Explains that the AnthropicReasoningAdapter extracts thinking text from type:thinking content blocks in the delta stream, producing a Reasoning object with the CoT content.",
+      "expectations": [
+        "The response describes Anthropic's thinking content block structure.",
+        "The response explains how the reasoning adapter normalises it."
       ]
     }
   ]
