@@ -1,0 +1,163 @@
+{
+  "harness": "opencode",
+  "model": "ray/deepseek-ai/DeepSeek-V4-Flash",
+  "created_at": "2026-10-03T09:42:55.450Z",
+  "results": [
+    {
+      "skill": "kei-setup-doctor",
+      "id": 1,
+      "config": "with_skill",
+      "passed": 1,
+      "failed": 1,
+      "total": 2,
+      "pass_rate": 0.5
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 1,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "error": "The user rejected permission to use this specific tool call."
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 2,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 0,
+      "total": 2,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 2,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 2,
+      "total": 2,
+      "pass_rate": 0
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 3,
+      "config": "with_skill",
+      "passed": 1,
+      "failed": 2,
+      "total": 3,
+      "pass_rate": 0.3333333333333333
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 3,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 3,
+      "total": 3,
+      "pass_rate": 0
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 4,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 0,
+      "total": 2,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 4,
+      "config": "without_skill",
+      "passed": 1,
+      "failed": 1,
+      "total": 2,
+      "pass_rate": 0.5
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 5,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 0,
+      "total": 2,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 5,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 2,
+      "total": 2,
+      "pass_rate": 0
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 6,
+      "config": "with_skill",
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 6,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "error": "The user rejected permission to use this specific tool call."
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 7,
+      "config": "with_skill",
+      "passed": 4,
+      "failed": 0,
+      "total": 4,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 7,
+      "config": "without_skill",
+      "passed": 1,
+      "failed": 3,
+      "total": 4,
+      "pass_rate": 0.25
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 8,
+      "config": "with_skill",
+      "passed": 0,
+      "failed": 3,
+      "total": 3,
+      "pass_rate": 0
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 8,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 3,
+      "total": 3,
+      "pass_rate": 0
+    }
+  ],
+  "by_skill": {
+    "kei-setup-doctor": {
+      "with_skill": {
+        "passed": 15,
+        "total": 21
+      },
+      "without_skill": {
+        "passed": 2,
+        "total": 16
+      }
+    }
+  }
+}

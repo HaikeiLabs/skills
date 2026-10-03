@@ -13,7 +13,7 @@ node scripts/run-evals.mjs --skill kei-harness-policy --harness opencode \
 
 | Config | Pass rate | Errors |
 | --- | --- | --- |
-| with_skill | 64% (16/25) | 0 |
+| with_skill | 84% (21/25) | 0 |
 | without_skill | 0% (0/25) | 0 |
 
-See `results/2026-10-01-opencode-deepseek-v4-flash/` for detailed outputs.
+See `results/2026-10-02-opencode-deepseek-v4-flash/` for detailed outputs.
