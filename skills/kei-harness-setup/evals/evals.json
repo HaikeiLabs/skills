@@ -39,6 +39,17 @@
         "The response references kei-openai-backends for model format details.",
         "The response mentions Anthropic-specific format features like input_schema and thinking blocks."
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "I'm setting up a DeepSeek-powered harness with Kei. Can you tell me what model format the DeepSeek model uses and how the harness passes identity on governed calls?",
+      "expected_output": "DeepSeek uses OpenAI-compatible JSON function-calling (same format as OpenAI) with reasoning_content and optional [THINK]...[/THINK] tags for text-mode reasoning. For governed calls, the harness passes KEI_PROXY_FRAMEWORK=opencode (or the appropriate harness type) and KEI_PROXY_INVOKING_SUBJECT for audit attribution. Points to kei-openai-backends for model format details and kei-runtime-setup for runtime pairing.",
+      "expectations": [
+        "The response correctly identifies DeepSeek's format as OpenAI-compatible JSON.",
+        "The response mentions reasoning_content and [THINK] tags.",
+        "The response covers governed call identity (KEI_PROXY_FRAMEWORK, KEI_PROXY_INVOKING_SUBJECT).",
+        "The response cross-references kei-openai-backends and kei-runtime-setup for details."
+      ]
     }
   ]
 }
