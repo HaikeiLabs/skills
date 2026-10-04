@@ -12,82 +12,98 @@ raw `/chat/completions` POST.
 
 ### Supported model families
 
-Agentware supports five model families across its three ports (Go, Python, TypeScript).
-Each family differs in tool definitions, tool calls, tool results, and reasoning fields.
-The canonical reference is Agentware's `docs/model-format-reference.md` (PR #166, commit
-`8966e82a`), which this section summarises.
+Agentware supports **five model families** (OpenAI, Anthropic, Qwen, DeepSeek, GLM)
+across its three ports (Go, Python, TypeScript). Each family has a dedicated `ToolFormatter`
+that handles tool-definition rendering, tool-call parsing, tool-result formatting, and
+reasoning-field extraction. The canonical reference is Agentware's
+`docs/model-format-reference.md` (PR #166, commit `8966e82a`); the tables below
+summarise it.
+
+Models not in these five families (Llama, Mistral, Nemotron, etc.) fall through to
+`GenericFormatter`, which produces the same OpenAI-compatible JSON function-calling
+format as `OpenAIFOrmatter`.
 
 #### Tool-definition schemas
 
-| Model family | Tool type field | Parameters / schema | Tool call shape | Tool result shape |
-|---|---|---|---|---|
-| **OpenAI** | `"function"` | `function.parameters` (JSON Schema) | `tool_calls` array, each with `id`, `type: "function"`, `function.name`, `function.arguments` (JSON string) | `tool_call_id`, `role: "tool"`, `content` |
-| **Anthropic** | `"custom"` | `input_schema` (JSON Schema) | `content` array with `type: "tool_use"` blocks; `id`, `name`, `input` | `content` array with `type: "tool_result"` blocks; `tool_use_id`, `content` |
-| **Qwen** | `"function"` | `function.parameters` (JSON Schema) | `tool_calls` array (OpenAI-compatible shape). QwQ-32B uses `type: "reasoning"` content blocks for thinking (selectors trigger on model tag `qwq`) | `tool_call_id`, `role: "tool"`, `content` |
-| **DeepSeek** | `"function"` | `function.parameters` (JSON Schema) | `tool_calls` array with OpenAI-compatible shape. Reasoner models use `reasoning_content` field alongside `content` for CoT tokens (not a separate content block) | `tool_call_id`, `role: "tool"`, `content` |
-| **GLM** | `"function"` | `function.parameters` (JSON Schema). Tool type is `"function"` but serialized via a dedicated GLM tool schema path | `tool_calls` array (OpenAI-compatible shape). Tool-call arguments as a JSON object (not a string) | `tool_call_id`, `role: "tool"`, `content` |
-
-#### Reasoning / thinking fields
-
-| Model family | Thinking field | Separate content blocks | Notes |
+| Family | Definitions format | Tool calls (response) | Tool result shape |
 |---|---|---|---|
-| **OpenAI** | `reasoning` (top-level) | No | `reasoning` contains reasoning tokens; `o1`/`o3` families |
-| **Anthropic** | `thinking` (content block) | Yes — `type: "thinking"` blocks in content array | `thinking` blocks contain the CoT; tool use blocks follow |
-| **Qwen (QwQ)** | `type: "reasoning"` content blocks | Yes — reasoning content blocks in array | Selector triggers on `qwq` in model tag; QwQ-32B |
-| **DeepSeek** | `reasoning_content` field | No — field on the choice delta | Parallel to `content` on the same choice, not a separate block; Reasoner models |
-| **GLM** | None | No | GLM does not expose separate reasoning fields |
+| **OpenAI** | JSON: `{type: "function", function: {name, description, parameters}}` | `tool_calls` array: `{id, type: "function", function: {name, arguments (JSON string)}}` | `tool_call_id`, `role: "tool"`, `content` |
+| **Anthropic** | JSON: `{type: "function", function: {name, description, parameters}}` | `content` array with `type: "tool_use"` blocks: `{id, name, input (parsed dict)}` | `content` array with `type: "tool_result"` blocks: `{tool_use_id, content}` |
+| **Qwen** | XML: `<tool_description><tool_name>name</tool_name><parameters>...</parameters></tool_description>` | `tool_calls` array (OpenAI-compatible); or XML: `<tool_call><tool name="name">JSON args</tool></tool_call>` | `tool_call_id`, `role: "tool"`, `content` |
+| **DeepSeek** | JSON: `{type: "function", function: {name, description, parameters}}` | `tool_calls` array with OpenAI-compatible shape; `reasoning_content` parallel to `content` | `tool_call_id`, `role: "tool"`, `content` |
+| **GLM** | JSON: `{type: "function", function: {name, description, parameters}}` (dedicated GLM schema path) | `tool_calls` array (OpenAI-compatible shape); arguments as JSON object (not string) | `tool_call_id`, `role: "tool"`, `content` |
 
-#### Tool-call argument shapes
+OpenAI, DeepSeek, and GLM all use the same JSON function-calling format for
+definitions, calls, and results; they differ only in reasoning fields and
+thinking tags.
 
-| Model family | Arguments format | Notes |
+#### Reasoning and thinking fields
+
+| Family | Reasoning field | Inline thinking tags | Notes |
+|---|---|---|---|
+| **OpenAI** | `reasoning_content` (top-level on choice message) | None | o-series models; field is in the known set, no registration needed |
+| **Anthropic** | `thinking` (content block `type: "thinking"` in Messages API) | None | Extended thinking is a structured content block with signature; adapter also recognises `thinking_content` |
+| **Qwen** | `reasoning_content` (top-level) | `<thinking>...</thinking>` in content text; QwQ-32B uses `type: "reasoning"` content blocks | Both field and tags are handled generically |
+| **DeepSeek** | `reasoning_content` (native field) | `[THINK]...[/THINK]` in text mode | Unbalanced `[THINK]` is a fail-closed error; guardrails response validator strips as secondary rescue |
+| **GLM** | `reasoning_content` (native field) | None | Same field format as OpenAI; no inline tags |
+
+The adapter's known field set (priority order): `reasoning_content`, `thinking`,
+`thinking_content`, `reasoning`. Arbitrary additional field names can be
+registered per model via `RegisterModelField` / `register_model_field`.
+
+#### Tool-call argument format
+
+OpenAI, DeepSeek, and GLM encode arguments as a JSON **parsed object** in the
+response (`"arguments": {"location": "Tokyo"}`). Anthropic and Qwen arguments
+arrive as a JSON **string** embedded in XML attributes/text and must be
+unmarshalled by the formatter.
+
+#### Format selector
+
+The harness selects the formatter by model name (prefix matching,
+case-insensitive). The `ModelFormat` enum drives `render_tools()` at
+construction time (one per agent lifetime); the `FormatAdapter` class
+selects the renderer by format name:
+
+| Model tag | Formatter struct | Notes |
 |---|---|---|
-| **OpenAI** | JSON string | `function.arguments` is a string that must be parsed |
-| **Anthropic** | JSON object | `input` is already a parsed dict |
-| **Qwen** | JSON string | Same as OpenAI; must parse |
-| **DeepSeek** | JSON string | Same as OpenAI; must parse |
-| **Qwen (QwQ)** | JSON string | Same as OpenAI; reasoning blocks precede tool use |
-| **GLM** | JSON object | Pre-parsed object, not a string |
+| `gpt-*`, `o1-*`, `o3-*` | `OpenAIFOrmatter` | `reasoning` field (o-series); also `reasoning_content` |
+| `claude-*`, `anthropic-*` | `AnthropicFormatter` | `thinking` content block |
+| `qwen-*`, `qwq-*` | `QwenFormatter` | QwQ prefix triggers `type: "reasoning"` content block handling |
+| `deepseek-*` | `DeepSeekFormatter` | `reasoning_content` + `[THINK]` tags |
+| `glm-*`, `chatglm-*` | `GLMFormatter` | Arguments as JSON object |
+| `llama-*`, `ollama-*`, `llamafile-*` | `GenericFormatter` | Same JSON format as OpenAI |
+| Everything else | `GenericFormatter` | Fallback |
 
-#### Format selection
-
-Each format is rendered by a dedicated function in `render_tools()`. The `ModelFormat` enum
-selects the renderer at construction time (one per agent lifetime). Adding a new family
-means adding a `ModelFormat` variant and a render function; the `FormatAdapter` class
-selects the renderer by format name.
-
-The selectors map model tags to format:
-
-| Selector | Matches | ModelFormat |
-|---|---|---|
-| `gpt`, `o1`, `o3` | OpenAI models | `openai` |
-| `claude` | Anthropic models | `anthropic` |
-| `qwen`, `qwq` | Qwen / QwQ-32B | `qwen` (qwq triggers reasoning block handling) |
-| `deepseek` | DeepSeek models | `deepseek` |
-| `glm` | GLM models | `glm` |
-| `llama`, `ollama`, `llamafile` | Locally served models | `ollama` |
+Adding a new family means adding a `ModelFormat` enum variant, a dedicated
+formatter struct, a selector entry, and reasoning-adapter model-field
+registration if the model uses a non-standard reasoning field name.
 
 #### Reasoning adapter
 
-The `ReasoningAdapter` in `pedro-agentware` (`reasoning.py` / `reasoning.go` /
-`reasoning.ts`) normalises reasoning fields from each family into a canonical
-`Reasoning` object. The adapter is seeded with the model family name and applied
+The adapter (`go/reasoning/adapter.go`, `reasoning.py`, `reasoning.ts`) is
+model-agnostic and handles all five families through the same code path.
+It normalises reasoning fields into a canonical `Reasoning` object, applied
 to every streaming delta / final choice:
 
-| Adapter variant | Input field | Output shape |
+| Variant | Input field | Behavior |
 |---|---|---|
-| OpenAIReasoningAdapter | `choice.delta.reasoning` | `Reasoning(content=..., tokens=...)` |
-| AnthropicReasoningAdapter | `delta.delta.thinking` (content block) | Extracts thinking text from content blocks |
-| DeepSeekReasoningAdapter | `choice.delta.reasoning_content` | Merges delta fragments into continuous reasoning |
-| QwenReasoningAdapter | `choice.delta.content` marked as reasoning | Identifies reasoning blocks by type marker |
-| GLMReasoningAdapter | `choice.delta.reasoning` | Similar to OpenAI adapter; may differ in field name |
+| **OpenAI** | `choice.delta.reasoning_content` | No tag stripping needed |
+| **Anthropic** | `delta.delta.thinking` (content block) | Also recognises `thinking_content` for alternative SDK naming |
+| **Qwen** | `choice.delta.reasoning_content` | Strips `<thinking>...</thinking>` from content text |
+| **DeepSeek** | `choice.delta.reasoning_content` | Strips `[THINK]...[/THINK]` from text-mode output; unbalanced `[THINK]` returns `ErrUnbalancedThinking` |
+| **GLM** | `choice.delta.reasoning` | Similar to OpenAI; no tag stripping needed |
 
-The adapter is used by the harness streaming response builder and the eval
-harness result parser.
-
----
+All formatters share the `ToolFormatter` interface (5 methods:
+`FormatToolDefinitions`, `ParseToolCalls`, `FormatToolResult`, `ModelFamily`,
+`ValidateFormat`). Implementation files in Agentware at
+`go/toolformat/{family}.go`, `python/.../toolformat/formatter.py`,
+`typescript/src/toolformat/formatter.ts`. Shared fixtures at
+`fixtures/toolformat/{family}-cases.json` and `fixtures/reasoning/{family}-cases.json`.
 
 > **Validation reference.** Every claim above is confirmed by the Go/Python/TypeScript
-> fixtures in Agentware PR #166 (`docs/model-format-reference.md`, `testdata/`).
+> fixtures in Agentware PR #166 (`docs/model-format-reference.md`,
+> `fixtures/toolformat/`, `fixtures/reasoning/`).
 > Do not add model families that are not listed here; they are not supported
 > by Agentware's formatters.
 

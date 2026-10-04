@@ -36,6 +36,47 @@
         "The response describes Anthropic's thinking content block structure.",
         "The response explains how the reasoning adapter normalises it."
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "I'm using DeepSeek as my model backend. What tool-call argument format does it use, and does it have any inline thinking tags I need to handle?",
+      "expected_output": "DeepSeek uses standard OpenAI-compatible JSON function-calling (JSON array of {id, name, arguments}) for tool calls and results. It has reasoning_content as the native reasoning field, and in text-completion mode it wraps reasoning in [THINK]...[/THINK] tags that the reasoning adapter strips (unbalanced [THINK] is a fail-closed error).",
+      "expectations": [
+        "The response states DeepSeek uses the same JSON function-calling format as OpenAI.",
+        "The response describes reasoning_content as the native reasoning field.",
+        "The response mentions [THINK]...[/THINK] tags and the unbalanced-tag fail-closed behavior."
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "What's the difference between Qwen/QwQ reasoning and DeepSeek reasoning in terms of inline thinking tags?",
+      "expected_output": "Both use reasoning_content as their native reasoning field. Qwen uses <thinking>...</thinking> XML tags that may appear in content text alongside tool calls; DeepSeek uses [THINK]...[/THINK] tags (primarily in text-completion mode). The reasoning adapter strips both, but DeepSeek treats unbalanced [THINK] as a fail-closed error.",
+      "expectations": [
+        "The response states both families use reasoning_content.",
+        "The response correctly distinguishes Qwen's XML <thinking> tags from DeepSeek's [THINK] tags.",
+        "The response mentions the fail-closed behavior for unbalanced DeepSeek [THINK] tags."
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "I need to add support for a new model family (e.g., Cohere) to the chat harness. What components need to change?",
+      "expected_output": "Explains that adding a new family requires: a ModelFormat enum variant, a dedicated ToolFormatter struct (implementing FormatToolDefinitions, ParseToolCalls, FormatToolResult, ModelFamily, ValidateFormat), a selector entry in get_formatter()/GetFormatter()/getFormatter(), reasoning-adapter model-field registration if the model uses a non-standard reasoning field name, and shared test fixtures.",
+      "expectations": [
+        "The response mentions all three ports (Go, Python, TypeScript) need changes.",
+        "The response includes the ToolFormatter interface (5 methods).",
+        "The response references Agentware's docs/model-format-reference.md for the canonical format spec.",
+        "The response mentions shared fixtures at fixtures/toolformat/ and fixtures/reasoning/."
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "How does the reasoning adapter handle Anthropic's extended thinking? Does it just use reasoning_content like all the other families?",
+      "expected_output": "No, Anthropic uses a 'thinking' content block (type: 'thinking') in the Messages API response, not reasoning_content. The adapter reads the 'thinking' field from the structured content block. It also recognises 'thinking_content' as an alternative SDK naming. The adapter has no inline tag stripping for Anthropic since extended thinking uses structured content blocks, not inline tags.",
+      "expectations": [
+        "The response correctly states Anthropic uses 'thinking' as a structured content block, not reasoning_content.",
+        "The response mentions that 'thinking_content' is also recognised as an alternative.",
+        "The response states there are no inline thinking tags for Anthropic."
+      ]
     }
   ]
 }
