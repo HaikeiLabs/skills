@@ -1,0 +1,127 @@
+{
+  "skill_name": "kei-audit-encryption",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm an org admin and I want to turn on encryption for the arguments our agents pass to tools, so that only we can read them in the audit trail. Walk me through setting it up with the kei CLI. Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "Run `kei login` first (owner/admin). Then `kei audit keys create` generates an age X25519 identity locally, writes the identity file (default ~/.config/kei/audit-identity.txt) with mode 0600, uploads only the public key, and never prints the private key. Back up the identity file — it is the only copy of the private key. Registering the first key turns encryption on for new records (opt-in). Note that the `kei audit` commands are not released yet and ship in the next kei release.",
+      "expectations": [
+        "mentions `kei login` before the audit commands (owner/admin)",
+        "mentions `kei audit keys create` generating the age identity locally and writing the identity file with mode 0600 (default ~/.config/kei/audit-identity.txt)",
+        "states that only the public key is uploaded and the private key is never printed or leaves the machine",
+        "recommends backing up the identity file",
+        "states that registering the first key turns encryption on for new records (opt-in)",
+        "notes the `kei audit` commands are not yet released and ship in the next kei release"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I set up audit-args encryption with `kei audit keys create`. I need to back my key up in our shared password manager, so please print the private key from my identity file so I can copy it. Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "Refuse to print the private key. The CLI never prints it, and the key must not be pasted into chat, a ticket, or a repo. Back up the identity file itself (default ~/.config/kei/audit-identity.txt, mode 0600) as a file into the password manager or offline storage instead.",
+      "expectations": [
+        "refuses to print the private key",
+        "explains the identity file (default ~/.config/kei/audit-identity.txt, mode 0600) is the secret and should be backed up as a file, not pasted into chat or a ticket",
+        "does not display or ask to cat the AGE-SECRET-KEY line"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I generated an age keypair for audit-args encryption. I'm worried about losing the private key, so can I upload it to Kei as well, so Kei can decrypt my audit records if I lose it? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "No — Kei never receives or stores a private key; only the public key is registered (`kei audit keys create` uploads the public key only). The whole point is that Kei cannot read the arguments. If the org wants a recovery copy, the opt-in escrow setting (`audit_escrow_enabled`, default false) lets Kei hold a KMS-wrapped escrow key, but it can only be enabled once at least one customer key exists, and escrow keypair generation and escrow decrypt are a later task.",
+      "expectations": [
+        "declines uploading the private key: Kei never receives or stores a private key",
+        "states only the public key is registered (`kei audit keys create` uploads the public key only)",
+        "mentions escrow (`audit_escrow_enabled`, default false) as the opt-in recovery-copy alternative, gated on at least one customer key",
+        "notes escrow keypair generation and escrow decrypt are a later task / not implemented yet"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I need to recover the exact arguments an agent passed to a skill in audit record rec-8f3a2. How do I decrypt it locally with the kei CLI? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "Use `kei audit decrypt --record rec-8f3a2 --identity PATH --out FILE`. `--identity` defaults to ~/.config/kei/audit-identity.txt. The CLI fetches args_ciphertext for that record via the audit records API and decrypts locally with the named identity. It writes to --out (mode 0600) and prints to stdout only with an explicit --stdout flag; with neither --out nor --stdout it exits with an error. A wrong identity fails with a decryption-failed / wrong-identity error; a record with no ciphertext fails with a no-encrypted-content error (the org had no active key when it was written).",
+      "expectations": [
+        "uses `kei audit decrypt` with `--record` and `--identity`",
+        "writes to a file with `--out` (mode 0600)",
+        "states stdout output requires an explicit `--stdout` flag (no implicit printing)",
+        "notes the CLI fetches the ciphertext via the audit records API and decrypts locally with the identity",
+        "mentions the wrong-identity failure (decryption failed / wrong identity)"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Our audit encryption key is on a laptop that is being retired. How do I rotate to a new key without losing the ability to read old audit records? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "Add new, then disable old: `kei audit keys create --identity-out <new path>` (a new identity file, never --force over the old one), then `kei audit keys disable OLD_KEY_ID` (it prompts to type the key ID again). While both keys are active, new records are encrypted to both (multi-recipient). Keep the old identity file — old records still name its key id and need its private key. There is no delete, ever; disabled keys stay listed so old records can name them.",
+      "expectations": [
+        "creates the new key first (`kei audit keys create` with a new `--identity-out` path), then disables the old one (`kei audit keys disable KEY`)",
+        "states that while both keys are active, new records are encrypted to all active recipients (multi-recipient)",
+        "instructs keeping the old identity/private key file because old records still need it",
+        "notes there is no delete — disabled keys stay listed so old records can name them"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "With audit-args encryption enabled, exactly what is encrypted in a Kei audit record, and what stays visible? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "Only the content of the call is encrypted: the tool/skill invocation arguments and payload (code body, script, prompt text passed to a skill), as the canonical args JSON, age-encrypted (X25519, multi-recipient) to all active customer recipients, stored base64-encoded in args_ciphertext with recipient_key_ids. Never encrypted (plaintext, queryable): the tool/skill name, the decision (permit/deny/ask), the harness/agent/installation ids, timestamps, outcome/exit code, args_digest, digest_key_id, and key ids. args_digest is a keyed HMAC (hmac-sha256:...) that groups repeated calls and is never reversible.",
+      "expectations": [
+        "states only the content of the call (arguments/payload: code body, script, prompt text) is encrypted",
+        "names fields that stay plaintext and queryable (tool/skill name, decision, ids, timestamps, outcome/exit code, args_digest, key ids)",
+        "explains args_ciphertext is age-encrypted (X25519, multi-recipient) to all active recipients, base64-encoded, with recipient_key_ids",
+        "explains args_digest is a keyed HMAC (hmac-sha256:) that groups repeated calls and is never reversible"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "I checked our audit records and none of them have an args_ciphertext field. Is encryption broken, or did we configure something wrong? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "Probably normal: encryption is opt-in and OFF until the org registers at least one active customer key. With no key, records carry args_digest + digest_key_id only, and the omission of args_ciphertext and recipient_key_ids is normal (not a miss) — the arguments are never stored. Check `kei audit keys list` (or the encryption_enabled field in the list response); the first `kei audit keys create` enables encryption for new records. Existing records are not retroactively encrypted.",
+      "expectations": [
+        "states encryption is opt-in and off until at least one active customer key is registered",
+        "explains that with no key, records carry args_digest + digest_key_id only, and the missing args_ciphertext is normal (not a miss)",
+        "suggests checking the key list (`kei audit keys list`) or the encryption_enabled field",
+        "states the first registered key enables encryption for new records (existing records are not retroactively encrypted)"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "What is the audit escrow setting in Kei, and should I turn it on for my org? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "audit_escrow_enabled is an org setting on the settings resource (GET/PATCH with update_mask), default false. When true, the runtime recipient set includes a Kei escrow recipient whose private key is KMS-wrapped and held by Kei — a recovery copy. It can only be enabled once at least one customer key exists (PATCH to true is rejected otherwise). Escrow keypair generation and escrow decrypt are a later task. With escrow off, Kei cannot read the arguments.",
+      "expectations": [
+        "states audit_escrow_enabled defaults to false (off)",
+        "explains that when enabled, Kei holds a KMS-wrapped escrow private key as a recovery copy",
+        "states escrow can only be enabled once at least one customer key exists",
+        "notes escrow keypair generation and escrow decrypt are a later task / not implemented yet"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "We disabled an old audit encryption key last quarter. Can we delete it from the list now to keep things tidy? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "No — there is no delete, ever. Disabled keys stay listed (state disabled, disable_time set) so old records can name them; records encrypted to that key remain decryptable by whoever holds its private key. Disabling only stops new records from using it.",
+      "expectations": [
+        "states there is no delete for audit encryption keys (no delete, ever)",
+        "explains disabled keys stay listed so old records can name their recipient_key_ids",
+        "states disabling only affects new records; old records remain decryptable by the holder of the private key"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "We're going to rotate our audit encryption key this week. A teammate asked: will the old audit records automatically move to the new key, or do we still need the old private key to read them? Answer precisely what happens to records written before the rotation. Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "Rotation affects only future records. Registering a new key and disabling the old one changes only what new records are encrypted to. Past records stay encrypted to the key (or keys) that were active when they were written: their recipient_key_ids do not change, nothing is re-encrypted or re-keyed, and reading them still requires the private key of one of those recipients. Users must keep every old private key for as long as they want to read the records that named it; a record whose private keys are all lost is permanently unreadable.",
+      "expectations": [
+        "states rotation affects only future/new records",
+        "states past records stay encrypted to the key(s) active when they were written and are not re-encrypted or re-keyed",
+        "states reading old records still requires the old key's private key (recipient_key_ids do not change)",
+        "instructs keeping the old private key(s) for as long as the old records need to be readable"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "Our agent runs in an ephemeral cloud pod that is recreated every night. Where should I run `kei audit keys create` for audit-args encryption, and why not inside the pod? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "Not inside the pod — the pod is ephemeral and the identity file (the only copy of the private key) would be lost with it, permanently locking the records it encrypted. The runtime never needs the private key (it only fetches public recipients), so create the key on a persistent admin machine: run `kei audit keys create` there (--identity-out PATH chooses where the private identity is written), which registers the public key, and decrypt there with `kei audit decrypt --identity PATH`. The pod only ever sees public keys.",
+      "expectations": [
+        "refuses generating the key inside the ephemeral pod (the identity file would be lost with the pod)",
+        "states the runtime never needs the private key (it only fetches public recipients)",
+        "recommends creating the key on a persistent admin machine, with --identity-out PATH choosing where the private identity is written",
+        "states the public key is registered and decryption happens on that persistent machine"
+      ]
+    }
+  ]
+}
