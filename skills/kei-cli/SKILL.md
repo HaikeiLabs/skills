@@ -132,6 +132,49 @@ Commands that do **not** need `kei login`: `kei setup`, `kei runtime
 bootstrap`, `kei upgrade`, `kei help`, `kei --version`. The first two
 authenticate with the runtime token instead.
 
+## Troubleshooting: `kei login`
+
+### 1. Browser lands on the Dashboard and the CLI keeps waiting
+
+**Symptom:** You run `kei login`, the browser opens to the Kei
+Dashboard instead of the approval page, and the CLI hangs waiting for approval.
+
+**Cause:** You were not already signed in at `app.haikeilabs.com`. The SSO
+sign-in flow loses the OAuth return address — a known bug (HAI-370).
+
+**Fix:** Sign in at `app.haikeilabs.com` first, then run `kei login` again
+and approve on the "Kei CLI approved" page.
+
+### 2. macOS dialog "Keychain Not Found … app.haikeilabs.com"
+
+**Symptom:** During `kei login` a macOS dialog appears saying "Keychain Not
+Found" or referencing `app.haikeilabs.com`.
+
+**Cause:** The `HOME` environment variable is overridden (common in sandbox
+or CI environments), so macOS cannot find `~/Library/Keychains`.
+
+**Fix:** Run `kei` with your real `HOME`, or — for a sandbox `HOME` —
+create a symlink so the sandbox points to your real keychain:
+
+```sh
+ln -s ~/Library/Keychains /path/to/sandbox/Library/Keychains
+```
+
+Click **Cancel** on the dialog. **Never click "Reset To Defaults"** — that
+recreates the login keychain and can break other applications.
+
+### 3. "organization owner or admin role is required" (403)
+
+**Symptom:** The approval page shows `403 organization owner or admin role
+is required`.
+
+**Cause:** Only org owners and admins can approve the `kei login` device
+flow. A user with the `member` role (or no org membership) is refused.
+
+**Fix:** Ask an org owner or admin to run `kei login` and approve it. The
+CLI token is bound to the approver's org, not to the caller's browser
+session.
+
 ## Key guidelines
 
 - **Nothing outside the usage string exists.** No `kei org`,

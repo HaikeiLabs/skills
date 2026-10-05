@@ -46,6 +46,36 @@
         "The response says the kei CLI is the platform admin CLI and is not how an agent checks permission at run time.",
         "The response names kei-proxy authorize as the per-call check."
       ]
+    },
+    {
+      "id": 6,
+      "prompt": "I ran `kei login` and the browser opened to the Kei Dashboard instead of the approval page. The CLI is just sitting there waiting. What went wrong?",
+      "expected_output": "Explains that the user was not signed in at app.haikeilabs.com first, so the SSO flow lost the return address (HAI-370). Tells them to sign in first, then run kei login again and approve on the 'Kei CLI approved' page.",
+      "expectations": [
+        "The response identifies that the user needs to sign in at app.haikeilabs.com before running kei login.",
+        "The response mentions the lost return address or HAI-370 as the root cause.",
+        "The response tells the user to run kei login again after signing in."
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "During `kei login` on macOS I got a dialog that says 'Keychain Not Found' for app.haikeilabs.com. How do I fix this?",
+      "expected_output": "Explains HOME is overridden so macOS cannot find ~/Library/Keychains. Recommends running kei with real HOME or symlinking sandbox/Library/Keychains to real keychain. Warns to click Cancel, not Reset To Defaults.",
+      "expectations": [
+        "The response identifies that HOME being overridden is the cause.",
+        "The response recommends running kei with the real HOME or creating a symlink for the sandbox keychain.",
+        "The response warns to click Cancel and not Reset To Defaults."
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "I tried to approve `kei login` but the page says '403 organization owner or admin role is required'. What does this mean?",
+      "expected_output": "Explains only org owners and admins can approve the device flow. A member role or unauthenticated user is refused. Tells the user to ask an org owner or admin to run and approve kei login instead.",
+      "expectations": [
+        "The response explains that only org owners and admins can approve the login flow.",
+        "The response says a member role gets this error.",
+        "The response tells the user to ask an org owner or admin to run kei login and approve it."
+      ]
     }
   ]
 }
