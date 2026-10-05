@@ -2,4 +2,4 @@
 
 | Skill | With skill | Without skill |
 | --- | --- | --- |
-| kei-cli | 79% (23/29) | 8% (2/24) |
+| kei-harness-setup | 60% (12/20) | 0% (0/6) |

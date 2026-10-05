@@ -50,6 +50,18 @@
         "The response covers governed call identity (KEI_PROXY_FRAMEWORK, KEI_PROXY_INVOKING_SUBJECT).",
         "The response cross-references kei-openai-backends and kei-runtime-setup for details."
       ]
+    },
+    {
+      "id": 6,
+      "prompt": "My kei-proxy logs say 'policy bundle candidate rejected: invalid policy bundle schema ... dst_pattern web_search does not match' and all governed calls are being denied. What went wrong and how do I fix it?",
+      "expected_output": "Explains that a harness command policy targets a bare tool name (e.g. web_search) but the schema requires a tool: prefix (e.g. tool:web_search). Recommends updating the dst_pattern to tool:<name> in the console or via kei policies update. Notes that kei-proxy fails closed until fixed. References HAI-372.",
+      "expectations": [
+        "The response identifies that the dst_pattern uses a bare name instead of the tool: prefix.",
+        "The response recommends updating the policy's dst_pattern to tool:<name> in the console.",
+        "The response mentions that kei-proxy fails closed (denies everything) when the schema is invalid.",
+        "The response references HAI-372 as the known bug.",
+        "The response suggests re-running kei runtime bootstrap or restarting kei-proxy serve after the fix."
+      ]
     }
   ]
 }
