@@ -15,11 +15,17 @@ permissions:
 jobs:
   yaml-lint:
     name: yaml-lint
-    runs-on: ubuntu-latest
+    runs-on: kei-docker-ci
     steps:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
       - name: Install yamllint
         run: pip install yamllint==1.38.0
       - name: Lint YAML files and SKILL.md frontmatter
@@ -29,7 +35,7 @@ jobs:
 
   verify:
     name: verify-skills-repo
-    runs-on: ubuntu-latest
+    runs-on: kei-docker-ci
     steps:
       - uses: actions/checkout@v5
         with:
@@ -37,6 +43,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install Python deps
+        run: pip install pyyaml
       - name: Lint skill frontmatter and required sections
         run: node scripts/verify-skills.mjs
       - name: Validate plugin manifests against their schema shape
