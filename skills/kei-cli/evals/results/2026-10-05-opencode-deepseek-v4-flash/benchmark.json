@@ -1,12 +1,21 @@
 {
   "harness": "opencode",
   "model": "ray/deepseek-ai/DeepSeek-V4-Flash",
-  "created_at": "2026-10-05T06:45:44.863Z",
+  "created_at": "2026-10-05T14:30:35.078Z",
   "results": [
     {
       "skill": "kei-cli",
       "id": 1,
       "config": "with_skill",
+      "passed": 2,
+      "failed": 1,
+      "total": 3,
+      "pass_rate": 0.6666666666666666
+    },
+    {
+      "skill": "kei-cli",
+      "id": 1,
+      "config": "without_skill",
       "passed": 0,
       "failed": 3,
       "total": 3,
@@ -14,12 +23,12 @@
     },
     {
       "skill": "kei-cli",
-      "id": 1,
-      "config": "without_skill",
-      "passed": 0,
-      "failed": 0,
-      "total": 0,
-      "error": "The user rejected permission to use this specific tool call."
+      "id": 10,
+      "config": "with_skill",
+      "passed": 4,
+      "failed": 1,
+      "total": 5,
+      "pass_rate": 0.8
     },
     {
       "skill": "kei-cli",
@@ -34,10 +43,10 @@
       "skill": "kei-cli",
       "id": 2,
       "config": "without_skill",
-      "passed": 1,
-      "failed": 1,
+      "passed": 0,
+      "failed": 2,
       "total": 2,
-      "pass_rate": 0.5
+      "pass_rate": 0
     },
     {
       "skill": "kei-cli",
@@ -53,110 +62,128 @@
       "id": 3,
       "config": "without_skill",
       "passed": 0,
-      "failed": 0,
-      "total": 0,
-      "error": "The user rejected permission to use this specific tool call."
-    },
-    {
-      "skill": "kei-cli",
-      "id": 4,
-      "config": "with_skill",
-      "passed": 2,
-      "failed": 0,
-      "total": 2,
-      "pass_rate": 1
-    },
-    {
-      "skill": "kei-cli",
-      "id": 4,
-      "config": "without_skill",
-      "passed": 0,
-      "failed": 0,
-      "total": 0,
-      "error": "The user rejected permission to use this specific tool call."
-    },
-    {
-      "skill": "kei-cli",
-      "id": 5,
-      "config": "with_skill",
-      "passed": 2,
-      "failed": 0,
-      "total": 2,
-      "pass_rate": 1
-    },
-    {
-      "skill": "kei-cli",
-      "id": 5,
-      "config": "without_skill",
-      "passed": 0,
-      "failed": 0,
-      "total": 0,
-      "error": "The user rejected permission to use this specific tool call."
-    },
-    {
-      "skill": "kei-cli",
-      "id": 6,
-      "config": "with_skill",
-      "passed": 3,
-      "failed": 0,
-      "total": 3,
-      "pass_rate": 1
-    },
-    {
-      "skill": "kei-cli",
-      "id": 6,
-      "config": "without_skill",
-      "passed": 0,
-      "failed": 0,
-      "total": 0,
-      "error": "The user rejected permission to use this specific tool call."
-    },
-    {
-      "skill": "kei-cli",
-      "id": 7,
-      "config": "with_skill",
-      "passed": 3,
-      "failed": 0,
-      "total": 3,
-      "pass_rate": 1
-    },
-    {
-      "skill": "kei-cli",
-      "id": 7,
-      "config": "without_skill",
-      "passed": 0,
-      "failed": 0,
-      "total": 0,
-      "error": "The user rejected permission to use this specific tool call."
-    },
-    {
-      "skill": "kei-cli",
-      "id": 8,
-      "config": "with_skill",
-      "passed": 3,
-      "failed": 0,
-      "total": 3,
-      "pass_rate": 1
-    },
-    {
-      "skill": "kei-cli",
-      "id": 8,
-      "config": "without_skill",
-      "passed": 1,
       "failed": 2,
+      "total": 2,
+      "pass_rate": 0
+    },
+    {
+      "skill": "kei-cli",
+      "id": 4,
+      "config": "with_skill",
+      "passed": 1,
+      "failed": 1,
+      "total": 2,
+      "pass_rate": 0.5
+    },
+    {
+      "skill": "kei-cli",
+      "id": 4,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 2,
+      "total": 2,
+      "pass_rate": 0
+    },
+    {
+      "skill": "kei-cli",
+      "id": 5,
+      "config": "with_skill",
+      "passed": 1,
+      "failed": 1,
+      "total": 2,
+      "pass_rate": 0.5
+    },
+    {
+      "skill": "kei-cli",
+      "id": 5,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 2,
+      "total": 2,
+      "pass_rate": 0
+    },
+    {
+      "skill": "kei-cli",
+      "id": 6,
+      "config": "with_skill",
+      "passed": 3,
+      "failed": 0,
       "total": 3,
-      "pass_rate": 0.3333333333333333
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-cli",
+      "id": 6,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 3,
+      "total": 3,
+      "pass_rate": 0
+    },
+    {
+      "skill": "kei-cli",
+      "id": 7,
+      "config": "with_skill",
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-cli",
+      "id": 7,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 3,
+      "total": 3,
+      "pass_rate": 0
+    },
+    {
+      "skill": "kei-cli",
+      "id": 8,
+      "config": "with_skill",
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-cli",
+      "id": 8,
+      "config": "without_skill",
+      "passed": 2,
+      "failed": 1,
+      "total": 3,
+      "pass_rate": 0.6666666666666666
+    },
+    {
+      "skill": "kei-cli",
+      "id": 9,
+      "config": "with_skill",
+      "passed": 4,
+      "failed": 0,
+      "total": 4,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-cli",
+      "id": 9,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 4,
+      "total": 4,
+      "pass_rate": 0
     }
   ],
   "by_skill": {
     "kei-cli": {
       "with_skill": {
-        "passed": 15,
-        "total": 20
+        "passed": 23,
+        "total": 29
       },
       "without_skill": {
         "passed": 2,
-        "total": 5
+        "total": 24
       }
     }
   }

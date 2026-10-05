@@ -341,6 +341,48 @@ you re-prompt, show the link from the latest response, not a cached one.
 The claim-link lifecycle is documented in detail at the canonical API contract:
 `kei-policy-catalog docs/chat-identity-claims.md`.
 
+## Troubleshooting
+
+### 1. "policy bundle candidate rejected: invalid policy bundle schema" — dst_pattern does not match
+
+**Symptom:** `kei-proxy` logs or `kei-proxy runtime bootstrap` returns:
+```
+policy bundle candidate rejected: invalid policy bundle schema ... dst_pattern 'web_search' does not match
+```
+
+The harness cannot make any governed calls — every `kei-proxy authorize`
+returns a denial (fail-closed).
+
+**Cause:** A harness command policy targets a bare tool name as its
+`dst_pattern` (e.g. `web_search`), but the policy bundle schema requires a
+`tool:` prefix (e.g. `tool:web_search`). The bare name fails schema
+validation and kei-proxy rejects the entire bundle, denying everything
+(HAI-372).
+
+**Fix:** Update the policy's `dst_pattern` from the bare name to
+`tool:<name>` in the Kei console (**Policies →** select the policy → edit
+the destination pattern). For example, change `web_search` to
+`tool:web_search` and `read_file` to `tool:read_file`.
+
+```text
+# Before (bundle rejected)
+dst_pattern: web_search
+
+# After (bundle accepted)
+dst_pattern: tool:web_search
+```
+
+If the policy was created through the CLI, re-create or update it:
+
+```sh
+kei policies update <name-or-id> --workspace WS --dst-pattern tool:web_search
+```
+
+Once the fix is applied, re-run `kei runtime bootstrap` or restart
+`kei-proxy serve` to reload the bundle. A future `kei-proxy` release will
+accept bare names as aliases; until then kei-proxy fails closed (denies
+everything) when the schema does not match.
+
 ## Validation commands
 
 ```sh

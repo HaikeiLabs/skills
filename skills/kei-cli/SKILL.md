@@ -175,6 +175,60 @@ flow. A user with the `member` role (or no org membership) is refused.
 CLI token is bound to the approver's org, not to the caller's browser
 session.
 
+## Troubleshooting
+
+### 4. `kei runtime bootstrap` fails with "mkdir /var/lib/kei-proxy: permission denied" on macOS
+
+**Symptom:** Running `kei runtime bootstrap` on macOS fails immediately with
+a filesystem error about `/var/lib/kei-proxy`:
+```
+Error: mkdir /var/lib/kei-proxy: permission denied
+```
+
+**Cause:** `kei-proxy` defaults to a Linux-style state directory
+(`/var/lib/kei-proxy`) that does not exist on macOS and requires root to
+create. The hard-coded default is a known bug (HAI-374).
+
+**Fix:** Set `KEI_RUNTIME_STATE_DIR` to a user-writable directory with
+restrictive permissions before running bootstrap:
+
+```sh
+export KEI_RUNTIME_STATE_DIR="$HOME/.kei/state"
+mkdir -p "$KEI_RUNTIME_STATE_DIR"
+chmod 0700 "$KEI_RUNTIME_STATE_DIR"
+kei runtime bootstrap
+```
+
+The workaround is safe until a `kei-proxy` release ships a macOS-aware
+default. The state dir holds transient runtime data (policy bundle cache,
+heartbeat timestamps); `0700` ensures other processes on the machine cannot
+read it.
+
+### 5. `kei policies list` returns a decode error on kei ≤ 0.1.10
+
+**Symptom:**
+```
+kei policies list --workspace my-workspace
+```
+returns a JSON decode error or a stack trace instead of the policy list.
+
+**Cause:** `kei policies` before v0.1.11 sent a malformed request that the
+server could not decode. The command crashes before printing any results
+(HAI-373).
+
+**Fix:** Upgrade kei to v0.1.11 or later. If you cannot upgrade, use the
+web app at `app.haikeilabs.com` to view and manage policies.
+
+After upgrading to v0.1.11+, `kei policies list` works and all `kei policies`
+subcommands accept a policy **name** in addition to ID:
+
+```sh
+kei policies list --workspace my-workspace --json
+kei policies update my-policy-name --workspace my-workspace --dst-pattern tool:web_search
+kei policies get my-policy-name --workspace my-workspace
+kei policies delete my-policy-name --workspace my-workspace --yes
+```
+
 ## Key guidelines
 
 - **Nothing outside the usage string exists.** No `kei org`,
@@ -210,10 +264,10 @@ session.
 | List / attach / detach agents | `kei bot agents list\|add\|remove --installation ID [--agent ID] [--default]` | yes |
 | Delete an installation | `kei bot delete --installation ID --yes` | yes |
 | List policies for a workspace | `kei policies list [--workspace WS] [--page-size N] [--json]` | yes |
-| Get a policy | `kei policies get ID [--workspace WS] [--json]` | yes |
+| Get a policy | `kei policies get <name-or-id> [--workspace WS] [--json]` | yes |
 | Create a harness command policy | `kei policies create --name NAME --src-pattern PATTERN --dst-pattern DST --effect permit\|deny [--priority N] [--agent-id ID]` | yes |
-| Update a policy | `kei policies update ID [--name N] [--src-pattern P] [--dst-pattern D] [--effect permit\|deny] [--priority N] [--enabled]` | yes |
-| Delete a policy | `kei policies delete ID --yes [--workspace WS]` | yes |
+| Update a policy | `kei policies update <name-or-id> [--name N] [--src-pattern P] [--dst-pattern D] [--effect permit\|deny] [--priority N] [--enabled]` | yes |
+| Delete a policy | `kei policies delete <name-or-id> --yes [--workspace WS]` | yes |
 | Import native harness rules | `kei policies import --from claude\|codex\|opencode [--file PATH] [--src PATTERN] [--out FILE] [--apply] [--workspace WS]` | yes |
 | List data connectors | `kei connectors list [--workspace WS] [--json]` | yes |
 | Create a data connector | `kei connectors create --provider P --name NAME [--account-model M] [--set k=v] [--credential-ref R] [--capabilities a,b] [--workspace WS]` | yes |

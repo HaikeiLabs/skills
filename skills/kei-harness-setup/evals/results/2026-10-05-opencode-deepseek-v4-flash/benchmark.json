@@ -1,0 +1,127 @@
+{
+  "harness": "opencode",
+  "model": "ray/deepseek-ai/DeepSeek-V4-Flash",
+  "created_at": "2026-10-05T14:44:49.016Z",
+  "results": [
+    {
+      "skill": "kei-harness-setup",
+      "id": 1,
+      "config": "with_skill",
+      "passed": 0,
+      "failed": 4,
+      "total": 4,
+      "pass_rate": 0
+    },
+    {
+      "skill": "kei-harness-setup",
+      "id": 1,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "error": "\u001b[91m\u001b[1mError: \u001b[0mThe user rejected permission to use this specific tool call."
+    },
+    {
+      "skill": "kei-harness-setup",
+      "id": 2,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 1,
+      "total": 3,
+      "pass_rate": 0.6666666666666666
+    },
+    {
+      "skill": "kei-harness-setup",
+      "id": 2,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "error": "\u001b[91m\u001b[1mError: \u001b[0mThe user rejected permission to use this specific tool call."
+    },
+    {
+      "skill": "kei-harness-setup",
+      "id": 3,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 0,
+      "total": 2,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-harness-setup",
+      "id": 3,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "error": "\u001b[91m\u001b[1mError: \u001b[0mThe user rejected permission to use this specific tool call."
+    },
+    {
+      "skill": "kei-harness-setup",
+      "id": 4,
+      "config": "with_skill",
+      "passed": 1,
+      "failed": 1,
+      "total": 2,
+      "pass_rate": 0.5
+    },
+    {
+      "skill": "kei-harness-setup",
+      "id": 4,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 2,
+      "total": 2,
+      "pass_rate": 0
+    },
+    {
+      "skill": "kei-harness-setup",
+      "id": 5,
+      "config": "with_skill",
+      "passed": 3,
+      "failed": 1,
+      "total": 4,
+      "pass_rate": 0.75
+    },
+    {
+      "skill": "kei-harness-setup",
+      "id": 5,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 4,
+      "total": 4,
+      "pass_rate": 0
+    },
+    {
+      "skill": "kei-harness-setup",
+      "id": 6,
+      "config": "with_skill",
+      "passed": 4,
+      "failed": 1,
+      "total": 5,
+      "pass_rate": 0.8
+    },
+    {
+      "skill": "kei-harness-setup",
+      "id": 6,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "error": "\u001b[91m\u001b[1mError: \u001b[0mThe user rejected permission to use this specific tool call."
+    }
+  ],
+  "by_skill": {
+    "kei-harness-setup": {
+      "with_skill": {
+        "passed": 12,
+        "total": 20
+      },
+      "without_skill": {
+        "passed": 0,
+        "total": 6
+      }
+    }
+  }
+}

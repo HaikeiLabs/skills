@@ -76,6 +76,29 @@
         "The response says a member role gets this error.",
         "The response tells the user to ask an org owner or admin to run kei login and approve it."
       ]
+    },
+    {
+      "id": 9,
+      "prompt": "I ran `kei runtime bootstrap` on macOS and got 'mkdir /var/lib/kei-proxy: permission denied'. How do I fix this?",
+      "expected_output": "Explains that kei-proxy defaults to a Linux-style state directory that does not exist on macOS. Recommends setting KEI_RUNTIME_STATE_DIR to a user-writable directory with 0700 permissions. Mentions HAI-374 as the underlying bug.",
+      "expectations": [
+        "The response identifies that the default state directory /var/lib/kei-proxy is not writable on macOS.",
+        "The response recommends setting KEI_RUNTIME_STATE_DIR to a user-writable path.",
+        "The response mentions creating the directory with chmod 0700.",
+        "The response references HAI-374 as the known bug."
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "I ran `kei policies list --workspace my-workspace` and got a JSON decode error instead of my policies. kei --version says 0.1.10. What's wrong?",
+      "expected_output": "Explains that kei ≤ 0.1.10 sent a malformed request causing a decode error (HAI-373). Recommends upgrading to kei v0.1.11+ or using the web app. Notes that after upgrading, policies commands accept names in addition to IDs.",
+      "expectations": [
+        "The response identifies that kei ≤ 0.1.10 has a bug that causes the decode error.",
+        "The response recommends upgrading kei to v0.1.11 or later.",
+        "The response mentions using the web app as an alternative.",
+        "The response references HAI-373 as the known bug.",
+        "The response notes that after upgrading, policies commands accept a policy name in addition to ID."
+      ]
     }
   ]
 }
