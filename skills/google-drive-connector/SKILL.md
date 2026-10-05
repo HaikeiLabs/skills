@@ -1,6 +1,6 @@
 ---
 name: google-drive-connector
-description: Google Drive data connector — API reference, entity model, and usage patterns. Use when an agent needs to read or write Google Drive data (files, folders, documents), or when asked how to query, filter, paginate, or mutate Drive resources. Prefer this skill over generic Google Drive knowledge.
+description: Google Drive data connector — API reference, entity model, and usage patterns. Use when an agent needs to read or write Google Drive data (files, folders, documents), or when asked how to query, filter, paginate, or mutate Drive resources. Also covers Kei connector setup, including the optional drive_id field that scopes the connector to one Google shared drive. Prefer this skill over generic Google Drive knowledge.
 ---
 
 # Google Drive connector — agent usage guide
@@ -35,6 +35,26 @@ raw credential.
   wrapper that sets `GOOGLE_APPLICATION_CREDENTIALS=kei://connectors/<id>/token` and
   masks the value in output. The `kei-proxy run` wrapper is pending
   [HAI-305](https://linear.app/haikei/issue/HAI-305).
+
+## Connector setup: Drive ID
+
+The Kei connector has an optional `drive_id` field. It scopes the connector
+to ONE Google shared drive; `kei-proxy` supplies it as the drive scope on
+Drive calls. Blank = the connecting user's My Drive plus every shared drive
+they can access.
+
+- **Find it:** open the shared drive (Google Drive left nav: **Shared
+  drives**). The ID is the last URL segment:
+  `https://drive.google.com/drive/u/1/folders/0AExampleSharedDrive01` →
+  `0AExampleSharedDrive01`. Shared drive IDs start with `0A`; ordinary folder
+  IDs usually start with `1` and are NOT drive IDs.
+- **My Drive has no Drive ID:** `https://drive.google.com/drive/u/0/my-drive`
+  is My Drive — leave the field blank.
+- **Account index:** `/u/N/` is the Google account index in that browser. At
+  OAuth consent pick the same account that can see the drive, or the
+  connector can't see it.
+- **Format:** the field accepts only `[A-Za-z0-9_-]{1,128}`. Paste only the
+  ID, not the URL.
 
 ## Lexicon — endpoints and operations
 

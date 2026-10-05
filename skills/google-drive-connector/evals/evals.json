@@ -36,6 +36,24 @@
       "prompt": "The user says they haven't authorized Google Drive yet and offers to paste a service account JSON key for you to use. What do you do?",
       "expected_output": "I do not accept the service account key. I explain they need to connect through Kei: an owner runs `kei connectors create --provider googledrive --workspace W` and follows the OAuth URL, or uses `--credential-ref` if the key already exists in the secret manager. If already connected but broken, use `kei connectors reconnect <id>`.",
       "expectations": ["refuses to accept a raw service account key", "mentions `kei connectors create`", "mentions `kei connectors reconnect` as a repair option"]
+    },
+    {
+      "id": 7,
+      "prompt": "What is a Drive ID for the Kei Google Drive connector, and how do I find it?",
+      "expected_output": "A Drive ID is the optional drive_id field that scopes the Kei connector to one Google shared drive; kei-proxy supplies it as the drive scope on Drive calls. Blank means the connecting user's My Drive plus every shared drive they can access. Find it by opening the shared drive in Google Drive (left nav: Shared drives); the ID is the last URL segment of the drive's folders URL. Shared drive IDs start with 0A; ordinary folder IDs usually start with 1 and are not drive IDs.",
+      "expectations": ["states that drive_id scopes the connector to one shared drive", "says blank means My Drive plus every shared drive the user can access", "explains the ID is the last URL segment of the shared drive URL", "notes shared drive IDs start with 0A while ordinary folder IDs usually start with 1"]
+    },
+    {
+      "id": 8,
+      "prompt": "I want to connect the Kei Google Drive connector to my personal files. My Drive URL is https://drive.google.com/drive/u/0/my-drive. What do I enter for the Drive ID?",
+      "expected_output": "Leave the drive_id field blank. /u/0/my-drive is My Drive and has no Drive ID; a blank field covers the user's My Drive plus every shared drive they can access.",
+      "expectations": ["says to leave the field blank", "explains that My Drive has no Drive ID"]
+    },
+    {
+      "id": 9,
+      "prompt": "Here is the URL of our team's shared drive: https://drive.google.com/drive/u/1/folders/0AExampleSharedDrive01. What do I enter for the Drive ID field?",
+      "expected_output": "Enter 0AExampleSharedDrive01 — the last URL segment. Paste only the ID, not the URL; the field accepts only [A-Za-z0-9_-]{1,128}. Note that /u/1/ is the Google account index in the browser: at OAuth consent pick the same account that can see the drive, or the connector can't see it.",
+      "expectations": ["gives 0AExampleSharedDrive01 as the value to enter", "says to paste only the ID, not the URL", "mentions picking the same Google account at OAuth consent that can see the drive"]
     }
   ]
 }

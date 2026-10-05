@@ -1,6 +1,8 @@
 # google-drive-connector evals
 
-Eval cases for the Google Drive connector skill.
+Eval cases for the Google Drive connector skill. Covers API usage,
+governed-connector boundaries, and connector setup — including the optional
+`drive_id` field that scopes the connector to one Google shared drive.
 
 ## Running
 
