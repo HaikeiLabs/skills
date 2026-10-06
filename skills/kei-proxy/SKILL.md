@@ -109,11 +109,18 @@ all runtime operations.
 | Ship local audit JSONL | `kei-proxy collector [--poll --poll-interval 1m]` |
 | Sync credential-store metadata | `kei-proxy credential sync` |
 | Model profile / invocation | `kei-proxy model profile …`, `kei-proxy model  # uses runtime identity (no key flag needed)` (request JSON on stdin) |
+| Show bundle state | `kei-proxy policy show` (reads persisted state; never contacts control plane) |
+| Force bundle refresh | `kei-proxy policy sync` (bypasses normal poll schedule) |
 | Long-running daemon (Unix socket + optional TCP) | `kei-proxy serve` (`KEI_RUNTIME_SOCKET_PATH`, default `/run/kei-proxy/runtime.sock`; TCP on `KEI_PROXY_LISTEN_ADDR`, default `:8085`, for existing Docker same-container deployments). Current socket routes: `GET /healthz`, `GET /readyz`, `GET /v1/models`, `POST /v1/chat/completions`. Governed tool authorize route tracked by HAI-272. See `docs/unix-socket.md`. |
 
 `kei-proxy org` and `kei-proxy init` also exist. They call the Kei API
 directly with a service secret and are Haikei-internal provisioning tools, not
 part of a customer harness. Don't wire them into an agent.
+
+For the full lifecycle of bundle identity, polling, state machine, and
+troubleshooting, see [`bundle-versioning.md`](../kei-harness-policy/references/bundle-versioning.md)
+in the kei-harness-policy skill.
+
 ## authorize: the per-call decision
 
 > **If your harness uses the agentware SDK**, prefer `KeiProxyEvaluator`
