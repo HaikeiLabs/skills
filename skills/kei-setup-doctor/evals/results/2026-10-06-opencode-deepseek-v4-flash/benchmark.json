@@ -1,0 +1,199 @@
+{
+  "harness": "opencode",
+  "model": "ray/deepseek-ai/DeepSeek-V4-Flash",
+  "created_at": "2026-10-06T20:27:40.806Z",
+  "results": [
+    {
+      "skill": "kei-setup-doctor",
+      "id": 1,
+      "config": "with_skill",
+      "passed": 0,
+      "failed": 2,
+      "total": 2,
+      "pass_rate": 0
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 1,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "error": "\u001b[91m\u001b[1mError: \u001b[0mThe user rejected permission to use this specific tool call."
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 2,
+      "config": "with_skill",
+      "passed": 1,
+      "failed": 1,
+      "total": 2,
+      "pass_rate": 0.5
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 2,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 2,
+      "total": 2,
+      "pass_rate": 0
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 3,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 1,
+      "total": 3,
+      "pass_rate": 0.6666666666666666
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 3,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "error": "\u001b[0m\u2731 \u001b[0mGlob \"**/*\"\u001b[90m in . \u00b7 0 matches\u001b[0m"
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 4,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 0,
+      "total": 2,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 4,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "error": "\u001b[91m\u001b[1mError: \u001b[0mThe user rejected permission to use this specific tool call."
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 5,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 0,
+      "total": 2,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 5,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "error": "\u001b[91m\u001b[1mError: \u001b[0mThe user rejected permission to use this specific tool call."
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 6,
+      "config": "with_skill",
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 6,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "error": "\u001b[91m\u001b[1mError: \u001b[0mThe user rejected permission to use this specific tool call."
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 7,
+      "config": "with_skill",
+      "passed": 4,
+      "failed": 0,
+      "total": 4,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 7,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "error": "\u001b[91m\u001b[1mError: \u001b[0mThe user rejected permission to use this specific tool call."
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 8,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 1,
+      "total": 3,
+      "pass_rate": 0.6666666666666666
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 8,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "error": "\u001b[91m\u001b[1mError: \u001b[0mThe user rejected permission to use this specific tool call."
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 9,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 2,
+      "total": 4,
+      "pass_rate": 0.5
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 9,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "error": "\u001b[0m\u2731 \u001b[0mGlob \"**/*kei*\"\u001b[90m in . \u00b7 0 matches\u001b[0m"
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 10,
+      "config": "with_skill",
+      "passed": 4,
+      "failed": 0,
+      "total": 4,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-setup-doctor",
+      "id": 10,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 4,
+      "total": 4,
+      "pass_rate": 0
+    }
+  ],
+  "by_skill": {
+    "kei-setup-doctor": {
+      "with_skill": {
+        "passed": 22,
+        "total": 29
+      },
+      "without_skill": {
+        "passed": 0,
+        "total": 6
+      }
+    }
+  }
+}

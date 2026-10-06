@@ -33,6 +33,25 @@ the platform admin CLI a person runs once to set things up (`kei-cli` skill);
 (`kei-proxy` skill). The agent itself only ever talks to `kei-proxy`. Load
 **`kei-runtime-setup`** for the runtime half of the setup.
 
+### Per-harness setup scripts
+
+This skill includes portable setup scripts in `scripts/` for each supported
+coding-agent harness. Each script is self-contained POSIX `sh` (with a shared
+`setup-lib.sh`) that checks prerequisites, creates a runtime installation if
+the machine does not have one, registers and syncs the harness, and runs
+`verify.sh` to confirm the setup is valid.
+
+| Script | Harness |
+| --- | --- |
+| `scripts/setup-claude-code.sh` | Claude Code |
+| `scripts/setup-codex.sh` | Codex |
+| `scripts/setup-opencode.sh` | OpenCode |
+| `scripts/verify.sh <kind>` | All (run after any setup or as a standalone check) |
+
+The scripts are safe to re-run (idempotent) and never print a runtime
+credential to the terminal — tokens are piped directly from `kei bot
+credential` into `kei setup`.
+
 ## Retrieval sources
 
 | Source | How to retrieve | Use for |
@@ -341,9 +360,147 @@ you re-prompt, show the link from the latest response, not a cached one.
 The claim-link lifecycle is documented in detail at the canonical API contract:
 `kei-policy-catalog docs/chat-identity-claims.md`.
 
-## Troubleshooting
+## Troubleshooting setup
 
-### 1. "policy bundle candidate rejected: invalid policy bundle schema" — dst_pattern does not match
+This section catalogs real failures observed during harness setup (e2e,
+2026-10-05/06). Each entry lists the symptom, root cause, and fix. The
+matching `kei-setup-doctor` skill has a condensed version for diagnosis
+workflows.
+
+### 1. oh-my-zsh alias shadows the Kei CLI
+
+**Symptom:** `kei` runs `kubectl edit ingress` (oh-my-zsh kubectl plugin)
+instead of the Kei CLI. `kei --version` returns kubectl help.
+
+**Cause:** oh-my-zsh defines `alias kei='kubectl edit ingress'`, which
+shadows the Kei binary on `PATH`.
+
+**Fix:** `unalias kei` in the current shell, or add `unalias kei` after
+`source $ZSH/oh-my-zsh.sh` in `~/.zshrc`. Use `command kei` to bypass
+aliases.
+
+### 2. kei or kei-proxy not installed, or wrong version
+
+**Symptom:** `command -v kei` fails, or `kei --version` reports `< 0.1.13`
+(resp. `kei-proxy --version` `< 0.1.26`).
+
+**Cause:** The installer was not run, or the installed binary is outdated.
+
+**Fix:** Re-run the installer and ensure `~/.local/bin` is on `PATH`:
+
+```sh
+curl -fsSL https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh | bash -s -- -d ~/.local/bin
+```
+
+### 3. Not logged in
+
+**Symptom:** `kei workspaces list` fails with a login error.
+
+**Cause:** No valid Kei session. `kei login` uses device-code flow — a
+person must approve in the browser.
+
+**Fix:** Run `kei login` and approve the code in the browser. The approving
+account must be an owner or admin of the organization.
+
+### 4. No runtime installation (new machine)
+
+**Symptom:** `~/.config/kei.yaml` does not exist, or `kei runtime bootstrap`
+returns 401.
+
+**Cause:** This machine has never been set up with Kei, or its credential was
+revoked. Each machine needs its own runtime installation and credential —
+credentials are never shared across machines.
+
+**Fix:** The setup scripts (`setup-*.sh`) create a new installation
+automatically. Manual path:
+
+```sh
+INSTALL_NAME="<kind>@$(hostname -s)"
+WS_ID=$(kei workspaces list | grep -oE '[a-f0-9-]{36}' | head -1)
+INSTALL_ID=$(kei bot init --platform cli --name "$INSTALL_NAME" --workspace "$WS_ID" | grep -oE '[a-f0-9-]{36}' | head -1)
+kei bot credential --installation "$INSTALL_ID" --workspace "$WS_ID" | kei setup --control-plane-url https://app.haikeilabs.com
+kei runtime bootstrap
+```
+
+The credential is piped directly into `kei setup` and is never printed to the
+terminal or stored in a file.
+
+### 5. "pending" installation status (no heartbeat yet)
+
+**Symptom:** `kei bot status` shows `"status":"pending"`.
+
+**Cause:** The runtime has not sent its first heartbeat. `pending` is not an
+error — it simply means heartbeat has not arrived yet.
+
+**Fix:** Wait for the next heartbeat cycle. If it stays `pending` after
+several minutes, check network outbound from the runtime to the control plane
+and verify `KEI_RUNTIME_TOKEN` is present in the environment. Do not attempt
+to bind, rotate credentials, or restart the runtime for a `pending` status
+alone.
+
+### 6. Background heartbeat service not installed
+
+**Symptom:** No `kei runtime service` command, or the service is not
+running. The runtime may stop heartbeating after the terminal session ends.
+
+**Cause:** `kei runtime service install` ships in HAI-406 (not yet released).
+
+**Fix:** After upgrading kei to a version that includes `kei runtime service
+install`, run:
+
+```sh
+kei runtime service install
+```
+
+Until then, ensure the process has a supervision mechanism (systemd unit,
+launchd plist, container restart policy) that keeps it running.
+
+### 7. "No registered harnesses selected" after harness add
+
+**Symptom:** `kei harness sync --harness <kind>` prints "No registered
+harnesses selected" even though `kei harness add` succeeded.
+
+**Cause:** The policy bundle cached by `kei-proxy` is stale (HAI-403). The
+new harness registration is not reflected in the bundle until the next
+refresh cycle (background poll interval, or a manual policy edit).
+
+**Fix:** Any policy edit (e.g. adding or removing a harness command policy)
+triggers a bundle refresh. If no policy edit is available, wait for the
+background refresh (up to 6 hours — see `kei-harness-policy
+references/bundle-versioning.md`). Workaround:
+
+```sh
+# Force a bundle refresh by touching a policy
+kei policies update <any-policy> --workspace WS --description "no-op refresh"
+kei harness sync --harness <kind>
+```
+
+### 8. Policy bundle version rollback after switching installations
+
+**Symptom:** After switching to a different runtime installation (new
+credential, new bootstrap), the policy bundle loaded by `kei-proxy` is a
+stale version from the previous installation. Governed calls use incorrect
+(or empty) policy rules.
+
+**Cause:** `kei-proxy` caches the policy bundle on disk at
+`~/Library/Application Support/kei-proxy` (macOS) or
+`~/.local/share/kei-proxy` (Linux) keyed by installation ID. When the
+installation changes, the old cached bundle may be loaded if the cache
+directory is not cleared (HAI-404).
+
+**Fix:** Move the proxy cache directory aside before bootstrapping with the
+new installation:
+
+```sh
+mv ~/Library/Application\ Support/kei-proxy ~/Library/Application\ Support/kei-proxy.bak.$(date +%s)
+# or on Linux:
+# mv ~/.local/share/kei-proxy ~/.local/share/kei-proxy.bak.$(date +%s)
+kei runtime bootstrap
+```
+
+After confirming the new bundle is correct, remove the backup directory.
+
+### 9. "policy bundle candidate rejected: invalid policy bundle schema" — dst_pattern does not match
 
 **Symptom:** `kei-proxy` logs or `kei-proxy runtime bootstrap` returns:
 ```
@@ -382,6 +539,70 @@ Once the fix is applied, re-run `kei runtime bootstrap` or restart
 `kei-proxy serve` to reload the bundle. A future `kei-proxy` release will
 accept bare names as aliases; until then kei-proxy fails closed (denies
 everything) when the schema does not match.
+
+### 10. Every governed tool call denied (fail-closed)
+
+**Symptom:** Every `kei-proxy authorize` returns a non-zero exit. Tools that
+previously worked are now denied.
+
+**Cause:** `KEI_PROXY_DISABLED=true` is set, `KEI_RUNTIME_TOKEN` is missing,
+`KEI_RUNTIME_CONTROL_PLANE_URL` is wrong, or kei-proxy is not on `PATH`.
+When kei-proxy is disabled, misconfigured, or unreachable, it denies every
+governed call (fail-closed, HAI-249).
+
+**Fix:** Check environment variables:
+
+```sh
+echo "KEI_PROXY_DISABLED=${KEI_PROXY_DISABLED:-unset}"
+echo "KEI_RUNTIME_TOKEN=${KEI_RUNTIME_TOKEN:+present}"
+echo "KEI_RUNTIME_CONTROL_PLANE_URL=${KEI_RUNTIME_CONTROL_PLANE_URL:-unset}"
+command -v kei-proxy
+```
+
+Unset `KEI_PROXY_DISABLED` or set it to `false`, inject the token from the
+secret manager, and confirm the URL is `https://app.haikeilabs.com` (no
+trailing `/api/v1`). Then test with a known-permitted tool:
+
+```sh
+kei-proxy authorize --user U --tool T --action A --resource R; echo $?
+```
+
+### 11. Native config is stale after policy update
+
+**Symptom:** Policy changes in the console are not reflected in the
+harness's native config (e.g. `~/.claude/settings.json` still has old
+`permissions.allow` entries).
+
+**Cause:** The background bundle refresher updates `kei-proxy`'s in-memory
+policy, but does not re-render the native config. Re-rendering needs an
+explicit `kei harness sync`.
+
+**Fix:**
+
+```sh
+kei harness sync --dry-run --harness <kind>   # preview changes
+kei harness sync --harness <kind>             # apply
+```
+
+See `kei-harness-policy references/bundle-versioning.md` for the 6-hour
+refresh window and versioning model.
+
+### 12. Runtime credential was lost (no recovery)
+
+**Symptom:** The `KEI_RUNTIME_TOKEN` environment variable is missing, and
+the secret manager no longer has the value. There is no backup.
+
+**Cause:** The credential was shown once at creation and never stored.
+
+**Fix:** Kei stores only a hash — the plaintext cannot be recovered. Rotate
+the credential:
+
+```sh
+kei bot credential --installation <ID> --rotate | <secret-manager import>
+```
+
+Update the environment variable on every consumer, then restart or reload the
+runtime. Each rotation invalidates the previous credential immediately.
 
 ## Validation commands
 

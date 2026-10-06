@@ -77,6 +77,28 @@
         "The response explains that a disabled, missing, or misconfigured proxy denies every governed call and never permits one.",
         "The response uses read-only environment checks and a single kei-proxy authorize probe rather than mutating anything."
       ]
+    },
+    {
+      "id": 9,
+      "prompt": "My customer ran kei harness add for their OpenCode harness successfully, but kei harness sync --harness opencode says 'No registered harnesses selected'. They've tried running it four times. What's wrong?",
+      "expected_output": "Diagnoses a stale policy bundle (HAI-403): the new registration is not reflected until the bundle refreshes. Explains the bundle cache is held by kei-proxy and refresh happens on policy edit or background poll (up to 6 hours). Suggests a no-op policy edit as a workaround rather than retrying sync. References the Troubleshooting checklist and kei-harness-policy references/bundle-versioning.md.",
+      "expectations": [
+        "The response identifies HAI-403 (stale policy bundle) as the likely cause.",
+        "The response explains that retrying sync without refreshing the bundle will not help.",
+        "The response suggests a policy edit as the workaround, or waiting for the 6-hour background refresh.",
+        "The response does not suggest creating a new installation or re-registering the harness."
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "A customer switched their Kei installation to a new credential and now the policy bundle seems wrong — old rules are applying that shouldn't be. They're on macOS. What should I check?",
+      "expected_output": "Checks for stale proxy cache (HAI-404): kei-proxy caches the bundle on disk at ~/Library/Application Support/kei-proxy keyed by installation ID. Recommends moving that directory aside before re-bootstrapping. References the Troubleshooting checklist and kei-harness-setup for the full fix.",
+      "expectations": [
+        "The response identifies the likely cause as a stale proxy bundle cache (HAI-404).",
+        "The response gives the correct macOS cache path (~/Library/Application Support/kei-proxy).",
+        "The response recommends moving the cache directory aside before re-bootstrapping, not deleting it.",
+        "The response does not suggest re-creating the installation or rotating the credential again."
+      ]
     }
   ]
 }
