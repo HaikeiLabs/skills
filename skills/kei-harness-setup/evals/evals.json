@@ -62,6 +62,28 @@
         "The response references HAI-372 as the known bug.",
         "The response suggests re-running kei runtime bootstrap or restarting kei-proxy serve after the fix."
       ]
+    },
+    {
+      "id": 7,
+      "prompt": "I have a fresh macOS machine and want to set up Claude Code with Kei. Walk me through using the setup script.",
+      "expected_output": "Directs the user to run skills/kei-harness-setup/scripts/setup-claude-code.sh, explains it checks prerequisites (kei/kei-proxy on PATH, login), creates a new runtime installation if none exists, registers and syncs the harness, and runs verify.sh. Warns that credentials are never printed to the terminal.",
+      "expectations": [
+        "The response references the scripts/ directory and setup-claude-code.sh.",
+        "The response explains the script handles a fresh machine: no existing ~/.config/kei.yaml triggers automatic installation creation.",
+        "The response notes that credentials are piped directly from kei bot credential into kei setup and never printed.",
+        "The response mentions verify.sh runs at the end to confirm the setup is valid."
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "I just added my harness with kei harness add but kei harness sync says 'No registered harnesses selected'. What's going on?",
+      "expected_output": "Explains the policy bundle cached by kei-proxy is stale (HAI-403) and the new registration is not reflected until the next refresh. Suggests any policy edit triggers a refresh, or waiting for the background poll. Mentions the 6-hour bundle refresh window and references kei-harness-policy references/bundle-versioning.md.",
+      "expectations": [
+        "The response identifies the cause as a stale policy bundle (HAI-403).",
+        "The response suggests a policy edit as a workaround to force a bundle refresh.",
+        "The response mentions the 6-hour background refresh window.",
+        "The response references kei-harness-policy references/bundle-versioning.md for versioning details."
+      ]
     }
   ]
 }

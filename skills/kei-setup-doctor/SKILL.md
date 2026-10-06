@@ -312,3 +312,46 @@ metadata check does not replace a real runtime heartbeat.
 Report the target, CLI/provider versions and sources consulted, passed checks,
 failed or inconclusive checks, actions performed, actions not performed, and
 the smallest next step. Use `READY`, `ACTION REQUIRED`, or `BLOCKED`.
+
+## Troubleshooting checklist
+
+This is a condensed reference for the 12 real e2e failures observed during
+harness setup (2026-10-05/06). Each entry maps symptom → likely cause + fix.
+The `kei-harness-setup` skill has the full version with exact commands.
+
+### Alias / path / login
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `kei` runs `kubectl edit ingress` | oh-my-zsh kubectl plugin alias | `unalias kei` in `.zshrc` after `source $ZSH/oh-my-zsh.sh`; use `command kei` |
+| `command -v kei` fails, or version < 0.1.13 | Not installed or outdated | Re-run install.sh; check `~/.local/bin` on `PATH` |
+| `kei workspaces list` fails | Not logged in (device-code flow) | `kei login`; account must be org owner/admin |
+| `~/.config/kei.yaml` missing or bootstrap 401 | New machine; no installation yet | Create one: `kei bot init --platform cli --name "<kind>@<hostname>" --workspace <WS>`, pipe credential into `kei setup` |
+
+### Runtime / heartbeat
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `kei bot status` shows `pending` | No first heartbeat yet | Wait; check outbound connectivity. Do not bind/rotate for pending alone |
+| No heartbeat after terminal exits | `kei runtime service install` not available (HAI-406) | Use systemd/launchd/container restart policy as workaround; run `kei runtime service install` when available |
+| Every governed call denied | `KEI_PROXY_DISABLED=true`, missing token, wrong URL, or kei-proxy not on `PATH` | Unset `KEI_PROXY_DISABLED`, inject token from secret manager, confirm URL (no `/api/v1`), test with `kei-proxy authorize` |
+
+### Harness registration / sync
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `kei harness sync` says "No registered harnesses selected" after `kei harness add` | Stale policy bundle (HAI-403) | Any policy edit triggers refresh; or wait for background poll (up to 6h) |
+| Native config stale after policy update | Re-render needs explicit sync | `kei harness sync --harness <kind>` |
+| Policy bundle rollback after switching installations | Cached bundle from old installation (HAI-404) | Move `~/Library/Application Support/kei-proxy` or `~/.local/share/kei-proxy` aside before bootstrap |
+
+### Policy bundle
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `policy bundle candidate rejected: invalid policy bundle schema` | `dst_pattern` uses bare name instead of `tool:` prefix (HAI-372) | Update `dst_pattern` to `tool:<name>` in console or via `kei policies update`; re-bootstrap |
+
+### Credential
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `KEI_RUNTIME_TOKEN` lost, no backup | Plaintext shown once at creation; Kei stores only hash | Rotate: `kei bot credential --installation <ID> --rotate \| <import>` |
