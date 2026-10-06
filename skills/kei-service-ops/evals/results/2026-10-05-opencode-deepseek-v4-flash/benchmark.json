@@ -1,0 +1,127 @@
+{
+  "harness": "opencode",
+  "model": "ray/deepseek-ai/DeepSeek-V4-Flash",
+  "created_at": "2026-10-06T05:27:50.977Z",
+  "results": [
+    {
+      "skill": "kei-service-ops",
+      "id": 1,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 0,
+      "total": 2,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-service-ops",
+      "id": 1,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "error": "\u001b[91m\u001b[1mError: \u001b[0mThe user rejected permission to use this specific tool call."
+    },
+    {
+      "skill": "kei-service-ops",
+      "id": 2,
+      "config": "with_skill",
+      "passed": 3,
+      "failed": 0,
+      "total": 3,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-service-ops",
+      "id": 2,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "error": "\u001b[91m\u001b[1mError: \u001b[0mThe user rejected permission to use this specific tool call."
+    },
+    {
+      "skill": "kei-service-ops",
+      "id": 3,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 1,
+      "total": 3,
+      "pass_rate": 0.6666666666666666
+    },
+    {
+      "skill": "kei-service-ops",
+      "id": 3,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 3,
+      "total": 3,
+      "pass_rate": 0
+    },
+    {
+      "skill": "kei-service-ops",
+      "id": 4,
+      "config": "with_skill",
+      "passed": 1,
+      "failed": 1,
+      "total": 2,
+      "pass_rate": 0.5
+    },
+    {
+      "skill": "kei-service-ops",
+      "id": 4,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "error": "\u001b[91m\u001b[1mError: \u001b[0mThe user rejected permission to use this specific tool call."
+    },
+    {
+      "skill": "kei-service-ops",
+      "id": 5,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 0,
+      "total": 2,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-service-ops",
+      "id": 5,
+      "config": "without_skill",
+      "passed": 0,
+      "failed": 0,
+      "total": 0,
+      "error": "\u001b[91m\u001b[1mError: \u001b[0mThe user rejected permission to use this specific tool call."
+    },
+    {
+      "skill": "kei-service-ops",
+      "id": 6,
+      "config": "with_skill",
+      "passed": 2,
+      "failed": 0,
+      "total": 2,
+      "pass_rate": 1
+    },
+    {
+      "skill": "kei-service-ops",
+      "id": 6,
+      "config": "without_skill",
+      "passed": 2,
+      "failed": 0,
+      "total": 2,
+      "pass_rate": 1
+    }
+  ],
+  "by_skill": {
+    "kei-service-ops": {
+      "with_skill": {
+        "passed": 12,
+        "total": 14
+      },
+      "without_skill": {
+        "passed": 2,
+        "total": 5
+      }
+    }
+  }
+}
