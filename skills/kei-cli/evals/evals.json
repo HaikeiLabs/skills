@@ -99,6 +99,30 @@
         "The response references HAI-373 as the known bug.",
         "The response notes that after upgrading, policies commands accept a policy name in addition to ID."
       ]
+    },
+    {
+      "id": 11,
+      "prompt": "Create a Kei model profile from the CLI for our vLLM server at https://spark.example.ts.net/v1, model dvl-default, with an API key, and assign it to agent 3f2c9a1e-0000-4000-8000-000000000001 in workspace Main. The key is in our secret manager.",
+      "expected_output": "Uses `kei model-profiles create --workspace Main --agent <agent id> --display-name ... --endpoint https://spark.example.ts.net/v1 --default-model dvl-default --auth-type api_key` with the key piped from the secret manager on stdin, never as a flag or echoed. Notes the credential store must exist first (`kei credential-store put`), that writes need an org admin, and that `readiness` checks whether runtimes can reach the provider. Uses kei v0.1.13 or later.",
+      "expectations": [
+        "The response pipes the API key into `kei model-profiles create` on stdin and never passes it as a flag or prints it.",
+        "The response includes `--default-model dvl-default` and `--auth-type api_key`.",
+        "The response scopes the profile with `--workspace Main` and `--agent` set to the agent ID.",
+        "The response says the credential store must exist first, created with `kei credential-store put`.",
+        "The response suggests `kei model-profiles readiness` to check the result.",
+        "The response does not invent flags or commands absent from the kei usage string."
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "I'm on kei 0.1.12. `kei model-profiles list` fails, and I want to test that a profile can actually reach the model. What should I do?",
+      "expected_output": "Explains that kei 0.1.12 and earlier call retired console routes for model profiles, so the user should upgrade to v0.1.13 or later. Says `kei model-profiles test` is not available yet because the Kei API has no test endpoint, and that `kei model-profiles readiness PROFILE --workspace WS` is the way to check whether runtimes can reach the provider.",
+      "expectations": [
+        "The response recommends upgrading kei to v0.1.13 or later.",
+        "The response says `kei model-profiles test` is not available yet.",
+        "The response recommends `kei model-profiles readiness` with `--workspace` instead.",
+        "The response does not claim the test command calls the server."
+      ]
     }
   ]
 }

@@ -1,6 +1,6 @@
 ---
 name: kei-cli
-description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade (including `--proxy-only` and `--uninstall`), `kei login` device-flow auth, runtime installations (`kei bot init|credential|agents|status|bind|delete`), harness command policies (`kei policies`), data connectors (`kei connectors`), harness registration (`kei harness`), and local runtime config (`kei setup`, `kei runtime bootstrap`). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something from the CLI in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org, agent, group, or user commands — say so rather than inventing one. (`kei workspaces list`, `kei connectors`, `kei policies`, and `kei harness` are the early resource-oriented exceptions; the last three ship in >v0.1.6.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
+description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade (including `--proxy-only` and `--uninstall`), `kei login` device-flow auth, runtime installations (`kei bot init|credential|agents|status|bind|delete`), harness command policies (`kei policies`), data connectors (`kei connectors`), model profiles and the credential store (`kei model-profiles`, `kei credential-store`), harness registration (`kei harness`), and local runtime config (`kei setup`, `kei runtime bootstrap`). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something from the CLI in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org, agent, group, or user commands — say so rather than inventing one. (`kei workspaces list`, `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and `kei credential-store` are the resource-oriented exceptions; use v0.1.13 or later.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
 ---
 
 # kei CLI
@@ -238,9 +238,9 @@ kei policies delete my-policy-name --workspace my-workspace --yes
   web app (or through the HTTP API — see `kei-api`); there are no CLI commands
   to create or change them. Say that plainly instead of guessing a command from
   an API route. `kei workspaces list` does exist for workspace discovery only,
-  and `kei connectors` / `kei policies` are the early resource-oriented
-  exceptions. **`kei policies` and `kei harness` ship in kei >v0.1.6** — do
-  not present them as available in the installed version.
+  and `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and
+  `kei credential-store` are the resource-oriented exceptions. Check `kei help`
+  for the installed version before presenting any of them as available.
 - **Credentials never touch the terminal.** `kei bot credential` refuses to
   write to an interactive terminal; pipe it into a secret manager. Never pass a
   token as an argument unless the user accepts shell-history exposure.
@@ -276,6 +276,15 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 | Sync tool registrations | `kei harness sync [--harness KIND] [--dry-run]` | yes |
 | List registered harnesses | `kei harness list --installation ID [--json]` | yes |
 | Remove a harness | `kei harness remove AGENT_ID --installation ID` | yes |
+| List / get model profiles | `kei model-profiles list [--workspace WS]` / `kei model-profiles get PROFILE [--workspace WS]` | yes |
+| Create a model profile (no credential) | `kei model-profiles create [--workspace WS] --display-name NAME --endpoint URL --default-model MODEL --auth-type none [--workspace-default]` | yes |
+| Create an API-key model profile | `<secret-manager read> \| kei model-profiles create --workspace WS --agent AGENT_ID --display-name NAME --endpoint URL --default-model MODEL --auth-type api_key` | yes |
+| Update / rotate a profile key | `kei model-profiles update PROFILE [--workspace WS] [--default-model M]` / `<secret-manager read> \| kei model-profiles update PROFILE --workspace WS --rotate-key` | yes |
+| Set the default profile | `kei model-profiles set-default PROFILE [--workspace WS]` | yes |
+| Assign / unassign / show an agent's profile | `kei model-profiles assign PROFILE --workspace WS --agent AGENT_ID` / `unassign\|assignment --workspace WS --agent AGENT_ID` | yes |
+| Can runtimes reach the provider? | `kei model-profiles readiness PROFILE --workspace WS` | yes |
+| Delete a model profile | `kei model-profiles delete PROFILE [--workspace WS] --yes` | yes |
+| Credential store | `kei credential-store get` / `put` (creates it) / `update` (PATCH) | yes |
 | Write local runtime config | `kei setup [--config PATH] [--control-plane-url URL]` | no (runtime token) |
 | Verify + heartbeat via local kei-proxy | `kei runtime bootstrap [--config PATH] [--proxy-path PATH]` | no (runtime token) |
 | Upgrade via Go | `kei upgrade [--version VERSION]` | no |
@@ -289,6 +298,29 @@ is a property of an installation-agent assignment, so `add` requires `--agent`
 add`), and `remove`/`sync` are addressed by the agent. There is no
 `--display-name`/`--name` flag. The console labels these harnesses "agents".
 For the full harness-command-policy workflow, load **`kei-harness-policy`**.
+
+## Model profiles and the credential store
+
+Model profiles and the credential store are organization resources
+(`/api/v1/organizations/{org}/...`); the organization is the one your `kei
+login` token is bound to. Pass `--workspace` (name or ID) for a workspace's
+profiles; omit it for organization-level profiles. `PROFILE` is an ID or a
+display name; `--agent` takes an agent ID. Writes require an org admin.
+
+- **API keys come from stdin only.** They are never accepted as a flag and
+  never printed. Pipe them from a secret manager (or type them at the no-echo
+  prompt). The CLI seals the key to the runtimes in the profile's scope (the
+  agent's runtimes, or the workspace's for a workspace default) with the same
+  KMP1 envelope as connector secrets, and sends only the sealed copies. If no
+  runtime is eligible, `create` fails before creating anything.
+- `create` requires `--default-model`; `--auth-type` is `none` or `api_key`.
+- The credential store must exist before an API-key profile: `kei
+  credential-store put` creates it, `update` changes it.
+- `kei model-profiles test` is **not available yet**: the Kei API has no test
+  endpoint, so it exits with an error without contacting the server. Use
+  `readiness` instead.
+- **kei ≤ 0.1.12:** `kei model-profiles` and `kei credential-store` call
+  retired console routes and fail. Upgrade to v0.1.13 or later.
 
 ## Runtime installations
 
@@ -352,11 +384,13 @@ kei runtime bootstrap          # runs the configured kei-proxy to verify + send 
 The CLI is being extended toward the resource-oriented Kei API contract, but
 no released version has org, agent, group, or
 user commands yet (`kei workspaces list`, `kei connectors`, `kei policies`,
-and `kei harness` are the early resource-oriented exceptions — the last two
-ship in kei >v0.1.6, unreleased as of 2026-10-01).
+`kei harness`, `kei model-profiles` and `kei credential-store` are the
+resource-oriented exceptions; all ship in v0.1.13).
 The first resource-oriented commands call the **shared AIP `/api/v1`
 endpoints**, not a private `/api/cli` backend: `kei policies` uses
-`/api/v1/policies` and `kei connectors` uses `/api/v1/data-connectors`.
+`/api/v1/policies`, `kei connectors` uses `/api/v1/data-connectors`, and
+`kei model-profiles` uses `/api/v1/organizations/{org}/model-profiles` (with
+`:setDefault`; model-profile update is still `PUT` in the API today).
 Before using or documenting one, confirm it in `kei help`
 for the installed version and check that it follows the contract:
 
@@ -389,9 +423,9 @@ kei bot status --installation INSTALLATION_ID
   available for workspace discovery). The CLI will grow
   resource-oriented commands after the API's AIP migration; until a release
   ships one, do not describe it as available.
-  **Exception:** `kei policies` and `kei harness` are the first resource-oriented
-  commands and ship in kei >v0.1.6 (unreleased as of 2026-10-01). For harnessing
-  policy workflows, load the `kei-harness-policy` skill.
+  **Exception:** `kei policies`, `kei harness`, `kei model-profiles` and `kei
+  credential-store` are released resource-oriented commands (v0.1.13). For
+  harness policy workflows, load the `kei-harness-policy` skill.
 - The CLI token is org-bound and short-lived; it is not a general user token and
   cannot be used by a runtime.
 - The **Keys** page no longer exists. Agent keys were deprecated in favor of

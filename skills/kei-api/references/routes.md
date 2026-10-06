@@ -18,19 +18,30 @@ reached through the trusted web proxy.
 | POST | `/api/v1/organizations` |
 | DELETE | `/api/v1/organizations/{id}` (test-org teardown) |
 | POST | `/api/v1/onboarding/organizations` |
-| PUT | `/api/v1/organizations/{id}/default-model-profile` |
+| PUT | `/api/v1/organizations/{id}/default-model-profile` (deprecated: use `POST …/model-profiles:setDefault`; not reachable through the console) |
 | GET | `/api/v1/organizations/{id}/members` |
 | POST | `/api/v1/organizations/{id}/members` |
 | DELETE | `/api/v1/organizations/{id}/members/{user_id}` |
 | PUT | `/api/v1/organizations/{id}/members/{user_id}` |
 | GET | `/api/v1/organizations/{id}/credential-store` |
-| PUT | `/api/v1/organizations/{id}/credential-store` |
+| PUT | `/api/v1/organizations/{id}/credential-store` (deprecated except to create the store: `PATCH` returns 404 when none exists) |
+| PATCH | `/api/v1/organizations/{id}/credential-store` (update mask) |
 | GET | `/api/v1/organizations/{id}/credential-store/recipients` |
 | GET | `/api/v1/organizations/{id}/model-profiles` |
 | POST | `/api/v1/organizations/{id}/model-profiles` |
 | GET | `/api/v1/organizations/{id}/model-profiles/{profile_id}` |
 | PUT | `/api/v1/organizations/{id}/model-profiles/{profile_id}` |
 | DELETE | `/api/v1/organizations/{id}/model-profiles/{profile_id}` |
+| POST | `/api/v1/organizations/{id}/model-profiles:setDefault` (organization default; body `{"profile_id"}`) |
+| GET | `/api/v1/organizations/{id}/workspaces/{workspace_id}/model-profiles` |
+| POST | `/api/v1/organizations/{id}/workspaces/{workspace_id}/model-profiles` |
+| GET | `/api/v1/organizations/{id}/workspaces/{workspace_id}/model-profiles/{profile_id}` |
+| PUT | `/api/v1/organizations/{id}/workspaces/{workspace_id}/model-profiles/{profile_id}` (also sets the workspace default via `is_workspace_default`) |
+| DELETE | `/api/v1/organizations/{id}/workspaces/{workspace_id}/model-profiles/{profile_id}` |
+| GET | `/api/v1/organizations/{id}/workspaces/{workspace_id}/model-profiles/{profile_id}/readiness` |
+| GET | `/api/v1/organizations/{id}/workspaces/{workspace_id}/agents/{agent_id}/model-profiles` (agent's assigned profile) |
+| PUT | `/api/v1/organizations/{id}/workspaces/{workspace_id}/agents/{agent_id}/model-profiles` |
+| DELETE | `/api/v1/organizations/{id}/workspaces/{workspace_id}/agents/{agent_id}/model-profiles` |
 | GET | `/api/v1/organizations/{id}/credential-bindings` |
 | POST | `/api/v1/organizations/{id}/credential-bindings` |
 | GET | `/api/v1/organizations/{id}/credential-bindings/{user_id}/{service}` |
@@ -226,6 +237,7 @@ reached through the trusted web proxy.
 | GET | `/api/v1/runtime/credential-bindings/{user_id}/{service}` |
 | PUT | `/api/v1/runtime/credential-sync-keys` |
 | GET | `/api/v1/runtime/model-profiles/{profile_id}` |
+| POST | `/api/v1/runtime/model-profiles/{profile_id}/readiness-checks` |
 | POST | `/api/v1/runtime/credential-delivery/claim` |
 | POST | `/api/v1/runtime/credential-delivery/ack` |
 
