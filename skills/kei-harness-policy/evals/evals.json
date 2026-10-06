@@ -67,6 +67,38 @@
         "states the agent never reads or stores raw credentials",
         "notes this follows the same pattern as governed connector calls"
       ]
+    },
+    {
+      "id": 7,
+      "prompt": "My kei-proxy policy show says the bundle state is STALE_BUT_VALID. What does this mean and is it a problem? How do I fix it? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "STALE_BUT_VALID means the bundle is still within its not_after window but the background refresher has not received a successful polling response within stale_after_seconds (default 300 s, configured in the bundle's refresh.stale_after_seconds). The bundle is still enforced, but connectivity to the control plane may be impaired. Fix by checking network connectivity to the control-plane URL and the runtime token, then run `kei-proxy policy sync` to force an immediate fetch. If sync succeeds, the state returns to ACTIVE on the next refresh cycle.",
+      "expectations": [
+        "explains STALE_BUT_VALID means refresh overdue but bundle still valid",
+        "mentions stale_after_seconds and not_after",
+        "suggests checking connectivity and runtime token",
+        "recommends `kei-proxy policy sync` to force a fresh fetch"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "I see that kei-proxy has bundle version 42 persisted but the catalog tried to serve version 41. What happened and what does the proxy do? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "The proxy has rollback protection: it persists the highest bundle_version ever activated and rejects any candidate with bundle_version <= that value. Version 41 is a rollback from 42 — the proxy discards it, logs a rollback rejection, and continues enforcing with version 42. Check whether the installation credential targets the correct workspace and run `kei-proxy policy sync` to force a fresh issuance from the catalog.",
+      "expectations": [
+        "explains rollback protection (monotonic bundle_version per installation)",
+        "states the proxy rejects bundle_version <= max_activated_version",
+        "suggests checking the credential workspace and running kei-proxy policy sync"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "What is the difference between bundle_id, bundle_version, and policy_revision in a Kei policy bundle? When does each one change? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "bundle_id is a UUIDv7 unique per issuance — every mint gets a new one. bundle_version is a strictly increasing counter per runtime installation, bumped on every issuance (even re-issue at half-life without policy changes). policy_revision is a workspace-wide counter that increases only on policy-affecting changes (create, update, delete, reorder). Two bundles can share the same policy_revision (same policy content) but have different bundle_id/bundle_version if the first was re-issued at the half-life mark. The catalog reuses a stored bundle when revision is unchanged, the bundle is unexpired, and it was issued within 6 hours.",
+      "expectations": [
+        "explains bundle_id is UUIDv7 unique per issuance",
+        "explains bundle_version is per-installation monotonic counter bumped on every issuance",
+        "explains policy_revision is workspace-wide bumped only on policy changes",
+        "mentions the catalog's 6-hour reuse window and re-issue at half-life"
+      ]
     }
   ]
 }
