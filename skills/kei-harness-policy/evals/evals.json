@@ -99,6 +99,28 @@
         "explains policy_revision is workspace-wide bumped only on policy changes",
         "mentions the catalog's 6-hour reuse window and re-issue at half-life"
       ]
+    },
+    {
+      "id": 10,
+      "prompt": "If Claude runs a command with no matching policy (permit or deny), what does Kei's permissions model allow? Does it deny the command or let it through? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "The command falls through to the harness's own native permission logic. If the command has no matching entry in the native config (neither allow nor deny), the harness uses its built-in default behavior, which is usually `ask` (prompt the user). Kei does not deny it — the harness's own entries and permission mode decide. For custom harnesses and governed connectors, unmatched commands are denied (fail-closed by kei-proxy).",
+      "expectations": [
+        "explains that unmatched commands fall through to harness native permissions",
+        "mentions the harness's default permission mode (usually ask)",
+        "clarifies that Kei does not deny unmatched commands for native harnesses",
+        "notes that custom harnesses and connectors deny by default"
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "I want Kei to be the only source of permissions for my Claude Code harness. How do I remove my own allow/deny entries without breaking things? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "First preview with `kei harness sync --harness claude_code --dry-run` to see what Kei will write. Then run the real sync to establish Kei's entries. Remove your own allow/deny entries from `~/.claude/settings.json` by hand (Kei only edits entries it owns, marked with a comment). Keep the harness in its default permission mode (usually `ask`), not `allow-all`. Run sync again to confirm only Kei-managed entries remain. Kei keeps a backup at `settings.json.kei-backup-<timestamp>` before each write — restore from it if something goes wrong.",
+      "expectations": [
+        "mentions `kei harness sync --dry-run` to preview",
+        "explains Kei only edits entries it owns (hand-written entries must be removed manually)",
+        "advises keeping harness in default ask mode",
+        "mentions the kei-backup file Kei creates before each write"
+      ]
     }
   ]
 }

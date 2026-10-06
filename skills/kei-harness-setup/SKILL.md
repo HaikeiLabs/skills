@@ -629,6 +629,11 @@ kei harness list --installation INSTALLATION_ID --json | jq '.harnesses[].agent_
 
 ## Related skills
 
+- `kei-harness-policy` — authoring harness command policies, importing native
+  rules, and syncing the rendered config. See also the
+  [permissions model reference](../kei-harness-policy/references/permissions-model.md)
+  for how Kei compiles policies into native config, the audit-only hook, and
+  Kei-only permission management.
 - `kei-openai-backends` — model format support across five families (OpenAI,
   Anthropic, Qwen, DeepSeek, GLM), including tool-definition rendering, reasoning
   adapters, and eval ModelBackend variants.

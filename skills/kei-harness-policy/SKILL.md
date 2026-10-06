@@ -275,13 +275,30 @@ production harness until the follow-up (HAI-{followup}) ships. As a workaround,
 list the policies (`kei policies list --workspace WS --json`) and check by hand
 which commands would be denied before deploying.
 
-## Validation commands
+## How Kei manages harness permissions
 
-```sh
-kei --version                                          # needs > 0.1.6
-kei policies list --workspace WS --json | jq 'length'  # non-empty policy set
-kei harness list --installation INSTALLATION_ID --json | jq '.harnesses[].agent_name'   # registered harnesses
-```
+For a full walkthrough of the permissions model — how Kei compiles policies
+into native harness config, the audit-only hook, Kei-only permission management,
+known limitations, and bug reporting — see
+[`references/permissions-model.md`](references/permissions-model.md).
+
+Key points to keep in mind:
+
+- **`kei harness sync` renders the bundle** into native config (Claude Code
+  `permissions.allow`, Codex `prefix_rule`, OpenCode `permission.bash`). Only
+  `shell:` policies have a native equivalent; `skill:` and `path:` policies are
+  governance-only.
+- **The Kei hook is audit-only** — it reports the tool name, phase, native
+  decision, and an HMAC args digest (args are encrypted to customer keys,
+  never logged raw); it always exits 0 and never blocks or decides.
+- **Unmatched commands fall through** to the harness's own entries and permission
+  mode (usually `ask`). The command can still be allowed if your own settings
+  permit it. Custom harnesses and connectors deny by default (fail-closed).
+- **Sync is manual** — run `kei harness sync` after every policy change. The
+  runtime reuses the current bundle while policies and harnesses are unchanged
+  (up to 6 hours).
+
+## Validation commands
 
 ## Realistic usage boundaries
 
