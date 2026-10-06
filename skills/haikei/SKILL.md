@@ -1,6 +1,6 @@
 ---
 name: haikei
-description: "Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime installation credential (KEI_RUNTIME_TOKEN); connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing the DVL Assistant ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring; reading or writing data through governed connectors (discover which connectors the workspace has via `kei connectors list --workspace W` — requires kei newer than v0.1.6, unreleased as of 2026-10-01 — fallback to `GET /api/v1/data-connectors`); creating or importing harness command policies; registering harnesses and syncing tool registrations; or creating a new connector skill from templates. Routes the task to the right skill: kei-cli, kei-proxy, kei-runtime-setup, kei-credential-rotation, kei-harness-setup, kei-harness-policy, kei-audit-encryption, kei-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-assistant-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, kei-api-conventions, the matching `<provider>-connector` skill (discovered at runtime), or templates/connector-skill."
+description: "Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime installation credential (KEI_RUNTIME_TOKEN); connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing the DVL Assistant ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring; reading or writing data through governed connectors (discover which connectors the workspace has via `kei connectors list --workspace W` — requires kei newer than v0.1.6, unreleased as of 2026-10-01 — fallback to `GET /api/v1/data-connectors`); creating or importing harness command policies; registering harnesses and syncing tool registrations; or creating a new connector skill from templates; operating Kei's own platform services from the operator's view (deploying or rolling back oidc-bridge/catalog, goose migrations on the private RDS, identity signing keys, KMS token re-encryption, KeiIdentity* alerts). Routes the task to the right skill: kei-cli, kei-proxy, kei-runtime-setup, kei-credential-rotation, kei-harness-setup, kei-harness-policy, kei-audit-encryption, kei-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-service-ops, kei-assistant-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, kei-api-conventions, the matching `<provider>-connector` skill (discovered at runtime), or templates/connector-skill."
 ---
 
 # Discover and build with Haikei
@@ -47,6 +47,7 @@ Need to operate Kei from a terminal?
 ├─ New runtime next to a harness (installation, credential, bootstrap, bind) → kei-runtime-setup
 ├─ Rotate / revoke a runtime credential (KEI_RUNTIME_TOKEN) — agent keys deprecated for runtime → kei-credential-rotation
 ├─ Existing installation misbehaving → kei-setup-doctor
+├─ Operating Kei's own services (deploy/rollback oidc-bridge, migrations, signing keys, KeiIdentity* alerts) → kei-service-ops
 ├─ Connector (list, create, get, reconnect, delete) → `kei connectors` subcommand (requires kei >v0.1.6, unreleased as of 2026-10-01; fallback to Kei API)
 ├─ Manage harness policies (list, get, create, update, delete, import) or register a harness (add, sync, list, remove) → kei-harness-policy
 ├─ Encrypt audit args / manage audit encryption keys (kei audit keys create|list|disable, kei audit decrypt) → kei-audit-encryption
@@ -85,6 +86,7 @@ exist in the code today.
 | Define agent tools and schemas for the assistant | kei-agents | Describe agent capabilities, permission gates, and multi-model tool rendering | `kei-agents` |
 | Define governed connector read schemas | kei-agents | Express what an agent may read through a governed connector, with delegated context | `kei-agents` |
 | Diagnose a broken or unverified Kei installation | kei CLI (`setup`, `runtime bootstrap`, `bot status`) driven as a workflow | An installation already exists (or is being stood up) and needs read-only diagnosis, verification, or handoff across local, AWS, or Azure | `kei-setup-doctor` |
+| Operate Kei's own platform services (the operator's view, not tenant use) | Service repos + helm/kubectl on the Kei cluster | Deploy or roll back oidc-bridge/catalog (merge = deploy, ADR-031), run or reach a goose migration on the private RDS, bootstrap/rotate/retire identity signing keys, re-encrypt tokens at rest with KMS, explain east-west `X-KEI-API-Key` auth, or respond to a `KeiIdentity*` alert | `kei-service-ops` |
 | Develop or review the DVL Assistant ingress boundary | DVL Assistant security invariants | Work on the assistant's fail-closed auth, SSO, governor, auditor, or enrollment gates; security reviews of `src/app.ts`, `src/config.ts`, `src/verifier.ts`, `src/authz/`, `src/governor/` | `kei-assistant-security` |
 | Wire Teams/Bot Framework activities, SSO, or OAuthCards | Teams / Bot Framework ingress | Integrate Bot Framework activity parsing, Connector auth, SSO tokenExchange, mention gate, or outbound Connector sends in either the assistant or the chat harness | `kei-teams-ingress` |
 | Build or extend a tool lane, governor proposal, or tool adapter | Tool adapters and governor pattern | Add a new tool lane (schema/client/guard/envelope/renderer/runtime + proposal + registry), modify the governor stdio protocol, or develop the chat harness agent tools and tool-definition renderers | `kei-tool-adapters` |
@@ -105,6 +107,7 @@ exist in the code today.
 | agentware SDK | `pedro-agentware` (`go/`, `python/`, `typescript/`) | Policy/audit middleware, delegation, harness contract, kei auth/proxy modules | Connector execution, credential resolution, control-plane data |
 | kei-agents | `kei-agents` (`src/agents/`) | Agent tool definitions, schemas, permissions, governed connector read schemas | Provider clients, credential resolution, writes as connector capabilities |
 | setup doctor (workflow, not a command) | the `kei-cli` binary + the customer's environment | Read-only diagnosis of an installation: control-plane target, runtime health, credential destination, handoff | Any `kei setup doctor` subcommand — none exists; provisioning decisions, org management, remediation without consent |
+| service operations (operator's view) | each service's own repo (chart + `deploy.yaml`, migrations, scripts) + the Kei cluster | Deploy (merge = deploy, ADR-031), rollback (helm/kubectl, catalog `credentialRelease.authMode`), goose migrations (relay pod + port-forward to private RDS), signing keys (dry-run only for agents), KMS re-encryption, `X-KEI-API-Key` east-west auth (ADR-009), `KeiIdentity*` alert response | Tenant-facing work (customer runtimes, credentials, installations — that is `kei-runtime-setup`/`kei-credential-rotation`/`kei-setup-doctor`); applying terraform or mutating prod (human-only); printing secrets |
 | harness command policy | the `kei-cli` repository (`kei policies`, `kei harness` subcommands — >v0.1.6) | Harness command policies (`shell:`/`skill:`/`path:` dst), native config import and render (via `kei harness sync`), agent-keyed harness registration and tool sync | Tool-call policy (kei-proxy ABAC); org-level ABAC policy management (Kei API); report-only hook implementation (follow-up) |
 | audit-args encryption | the `kei-cli` repository (`kei audit` subcommands — unreleased as of 2026-10-03) + the catalog `audit-encryption-keys` resource | Opt-in customer-held age (X25519) encryption of audit tool-call arguments: local identity generation, public-key registration, local decrypt, rotation (add-new-then-disable-old), escrow setting (off by default) | Kei-side decryption (removed; no Kei path reads args by default); the keyed `args_digest` (Kei-held, never customer-facing); runtime credential rotation (`kei-credential-rotation`) |
 | assistant security | `DVL-Group/assistant` (`src/`) | Fail-closed ingress: master switches, auth gates, SSO exchange, governor, pseudonymous audit, enrollment, idempotency, deployment contract | `sso-card` lane composition, middleware pattern for other repos |
@@ -149,6 +152,18 @@ exist in the code today.
   binary, then load only the provider reference (`references/aws.md` or
   `references/azure.md`) that matches the environment. This is a workflow the agent
   runs, **not** a `kei setup doctor` command. Standing up a *new* runtime is `kei-cli`.
+- **"The last oidc-bridge deploy broke token issuance — roll it back."** →
+  `kei-service-ops`. Operator's view of Kei's own services: find the last good
+  revision with `helm -n kei history oidc-bridge`, roll back with
+  `helm -n kei rollback oidc-bridge <rev>` (or `kubectl rollout undo`). If the
+  breaking change was an auth-mode change, the rollback is reverting the
+  catalog's `credentialRelease.authMode`, not a helm rollback. Deploy side: a
+  merge to the service repo's main *is* the deploy (service-owned chart,
+  ADR-031); identity deploys on push to main when `ENABLE_DEPLOY=true`.
+- **"KeiIdentityDown fired and new pods are stuck with FailedCreatePodSandBox
+  after our VPC CNI change."** → `kei-service-ops`. Check the aws-node
+  daemonset before blaming the service — a CNI change blocks new pod creation
+  while existing pods keep running.
 - **"Add a new environment variable for the assistant that controls a gate."** →
   `kei-assistant-security`. The master-switch must be strict-equality, fail-closed,
   and dark by non-construction; the gate must follow the slice pattern, pseudonymous
@@ -277,6 +292,12 @@ against the relevant product repo (see each skill's `## Validation commands`).
 - **Do not** route a *new* runtime deployment to `kei-setup-doctor`, or an
   existing broken installation to `kei-cli`. The doctor diagnoses before it
   changes anything, and asks before any remediation.
+- `kei-service-ops` is the **operator's view of Kei's own platform services**
+  (deploy, rollback, migrations, signing keys, `KeiIdentity*` alerts). Do not
+  route tenant-facing work there — customer runtime setup, credential
+  rotation, and installation diagnosis go to `kei-runtime-setup`,
+  `kei-credential-rotation`, and `kei-setup-doctor`. Agents never apply
+  terraform or mutate prod, and never print secrets.
 - `kei-assistant-security` owns the assistant's ingress gates and invariants; do not
   route generic middleware policy questions there — those go to `agentware-sdk`.
 - `kei-teams-ingress` covers Bot Framework mechanics; do not use it for OBO token
