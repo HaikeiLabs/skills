@@ -309,12 +309,16 @@ Replace the placeholders (`CONNECTOR_NAME`, `PROVIDER_NAME`, `CLI_COMMAND`,
 `EXPECTED_FLAGS_AND_NOTES`, `RESOURCE_TYPE`, `PARENT_TYPE`, etc.) with values
 for your provider.
 
-**Expectations must be checkable by the grader alone.** The grader (always
-`claude -p`, see `run-evals.mjs` line 171) receives the prompt and the
-harness's answer. It does not have network access, so expectations like
-"names a command from the skill" work because the skill is installed in the
-`with_skill` run. Expectations like "uses the correct API endpoint" work if
-the answer names it.
+Semantics describe what provider entities are, their parent relationships, and
+their stable identifiers. Keep those facts separate from authorization: the
+resource model describes the data, while Kei policy determines allowed actions.
+
+Every expectation must have one corresponding entry in `checks`. Checks are
+deterministic and case-insensitive: `contains_all` and `contains_any` use a
+`values` array, `not_contains` uses a `value`, and `regex` uses a `pattern`.
+Make checks assert observable response text; they do not infer intent or facts
+that the answer does not state. For example, check for the explicit command or
+resource type the response should name.
 
 After editing, validate the file:
 ```bash
@@ -323,6 +327,8 @@ node scripts/verify-evals.mjs
 
 This checks: valid JSON, `skill_name` matches folder, ≥ 2 evals, unique
 integer ids, every case has `prompt`, `expected_output`, and `expectations`.
+During fixture migration, `checks` are optional unless `--strict` is passed;
+strict mode requires exactly one valid check per expectation.
 
 ---
 
@@ -376,18 +382,19 @@ Once verification passes, run the eval suite against a real harness to confirm
 the skill actually changes agent behavior:
 
 ```bash
-node scripts/run-evals.mjs \
-  --skill pagerduty-connector \
-  --harness opencode \
-  --model ray/deepseek-ai/DeepSeek-V4-Flash \
-  --grader-model claude-sonnet-4-20250514 \
-  --out evals-out/pagerduty-connector-deepseek-$(date +%F) \
-  --jobs 2
+node scripts/run-evals.mjs --skill pagerduty-connector \
+  --model-profile deepseek-v4-flash --jobs 1
+node scripts/run-evals.mjs --skill pagerduty-connector \
+  --model-profile qwen3.8-27b --jobs 1
 ```
 
-This runs each eval case twice: once with the skill installed in a scratch
-project, once without (baseline). The grader (`claude -p` with
-`--grader-model`) judges every expectation and writes a benchmark.
+This runs each eval case with the model, once with the skill installed in a
+scratch project and once without (baseline). Model responses can vary between
+runs. Deterministic checks grade each expectation; there is no LLM grader. Use
+`--repeats N` to repeat model runs (default 1); a case passes only if every
+repeat passes. The runner writes `benchmark.json` (`haikei.eval-benchmark.v1`)
+and `benchmark.md`. The default threshold is 0.9 for each skill's with-skill
+case pass rate.
 
 **Flags explained:**
 
@@ -395,14 +402,15 @@ project, once without (baseline). The grader (`claude -p` with
 | --- | --- | --- |
 | `--skill` | Which skill to test | `pagerduty-connector` |
 | `--harness` | Which harness CLI to use | `opencode`, `claude`, `codex` |
-| `--model` | Model the harness uses | `ray/deepseek-ai/DeepSeek-V4-Flash` |
-| `--grader-model` | Model the grader uses | `claude-sonnet-4-20250514` |
+| `--model-profile` | Named OpenCode model profile | `deepseek-v4-flash`, `qwen3.8-27b` |
+| `--model` | Explicit OpenCode model override | `provider/model` |
+| `--threshold` | Required with-skill pass rate | `0.9` |
+| `--repeats` | Number of model runs per case and config | `1` |
 | `--out` | Output directory | `evals-out/...` |
 | `--jobs` | Parallel eval cases | `2` |
 
-The script exits non-zero if any skill passes fewer than half of its
-expectations with the skill installed. Include the pass rates in your pull
-request description.
+The script exits non-zero if any skill's with-skill pass rate is below the
+threshold. Include both profiles' pass rates in your pull request description.
 
 ---
 
@@ -454,7 +462,7 @@ Before opening the PR, confirm:
       (ADR-029) dialects.
 - [ ] Plugin JSON (if standalone) has correct name, description, keywords.
 - [ ] Verification suite passes on a clean checkout.
-- [ ] Eval suite runs and passes ≥ 50% of expectations (include in PR).
+- [ ] Eval suite runs with both profiles and meets the 0.9 default threshold (include pass rates in PR).
 - [ ] One commit, one PR, `templates/` excluded from diff.
 - [ ] No absolute paths, no screenshots, no tailnet references, no wiki
       dependencies.
@@ -492,9 +500,9 @@ The owner films a walkthrough of this tutorial. Suggested segments:
 8. **Evals (60s):** Walk through the six template cases. Explain what each
    tests. Replace placeholders. Run `verify-evals.mjs`.
 
-9. **Verification + run (60s):** Run the four verify scripts. Then
-   `run-evals.mjs` with `--harness opencode --model` flags. Explain
-   `--grader-model`.
+9. **Verification + run (60s):** Run the verify scripts. Then run
+   `run-evals.mjs` with both `--model-profile` values. Explain deterministic
+   checks and the per-skill threshold.
 
 10. **PR (45s):** Commit, push (show the HTTPS command), `gh pr create`.
     Remove template changes from the diff.

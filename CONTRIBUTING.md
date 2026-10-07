@@ -67,23 +67,33 @@ node scripts/verify-evals.mjs
 
 These run in CI as well (Node 22, Python yamllint), on pull requests and pushes to `main`.
 
-7. Run the evals for any skill you add or change, with and without the skill,
-   and include the pass rates in the pull request:
+7. Run the evals for any skill you add or change with the required model
+   profiles, with and without the skill, and include both pass rates in the PR:
 
 ```bash
-node scripts/run-evals.mjs --skill <name>                     # Claude Code (default)
-node scripts/run-evals.mjs --skill <name> --harness codex     # or opencode
+node scripts/run-evals.mjs --skill <name> --model-profile deepseek-v4-flash --jobs 1 --repeats 1
+node scripts/run-evals.mjs --skill <name> --model-profile qwen3.8-27b --jobs 1 --repeats 1
+node scripts/run-evals.mjs --skills-dir ~/code/haikei/ev-wt/sk-int-kei/skills \
+  --skill kei-api-gateway --harness opencode --model-profile deepseek-v4-flash --jobs 1
 ```
 
+`--skills-dir` defaults to this repository's `skills/`; point it at another
+repo's `skills/` directory or at `.agents/skills` to run an internal skill.
+The selected source directory is read for skill files and eval fixtures, while
+all generated results stay under `--out` (or the default `evals-out/`).
+
 Each case runs in a scratch project with the skill installed in that harness's
-project skill directory (`.claude/skills`, `.agents/skills`, `.opencode/skills`)
-and again without it. The harness gets read-only tools, and a `claude -p`
-grader checks every expectation. Results go to `evals-out/` (ignored by git).
-Open them with skill-creator's `eval-viewer/generate_review.py`. The script
-exits non-zero if the skill passes under half of its expectations. It calls
-models, so it is not part of CI. Write expectations the grader can check from
-the answer alone: name the allowed commands instead of "commands in the CLI
-help", because the grader cannot see the help output.
+project skill directory (`.opencode/skills`) and again without it. The runner
+uses the selected model to generate responses, so responses can vary between
+runs. It grades them with deterministic, case-insensitive checks from each
+eval's `checks` array; there is no LLM grader. A case passes only when every
+repeat passes. Results go to `evals-out/` (ignored by git), including
+`benchmark.json` and `benchmark.md`. The default threshold is 0.9. The profiles
+resolve their OpenCode model names from `evals/model-profiles.yaml`; `--model`
+can select an explicit model, and `--repeats N` controls response repetitions
+(default 1). CI currently runs `verify-evals` non-strict while
+skill eval fixtures migrate. Use `node scripts/verify-evals.mjs --strict` to
+require one check per expectation.
 
 ## Licensing and naming
 

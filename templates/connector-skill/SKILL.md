@@ -108,6 +108,10 @@ declares its resource types:
 | `RESOURCE_TYPE` | `PARENT_TYPE` | `EXAMPLE_ID` |
 | `RESOURCE_TYPE` | `PARENT_TYPE` | `EXAMPLE_ID` |
 
+Describe the provider's actual entity relationships and stable identifiers.
+Keep resource semantics separate from permissions: resource types explain what
+an entity is and its parent, while policy decides which actions are allowed.
+
 ### Key fields
 
 | Entity | Field | Type | Meaning |
