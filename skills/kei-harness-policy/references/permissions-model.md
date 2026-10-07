@@ -56,9 +56,9 @@ policies into the harness's native config format:
 
 | Harness | Native config file | Permits rendered as | Denies rendered as |
 | --- | --- | --- | --- |
-| Claude Code | `~/.claude/settings.json` | `permissions.allow` array entries | `permissions.deny` array entries |
-| Codex | `~/.codex/rules/kei.rules` | `prefix_rule` entries | Deny `prefix_rule` entries |
-| OpenCode | `opencode.json` | `permission.bash` array entries | `permission.deny` array entries |
+| Claude Code | `~/.claude/settings.json` | `permissions.allow` array entries | **Not yet written** (see known limitations) |
+| Codex | `~/.codex/rules/kei.rules` | `prefix_rule` entries | **Not yet written** (see known limitations) |
+| OpenCode | `opencode.json` | `permission.bash` array entries | **Not yet written** (see known limitations) |
 
 Only `shell:` policies have a native equivalent in the harness config. `skill:`
 and `path:` policies are not yet rendered into native config for Claude Code,
@@ -142,9 +142,11 @@ Always preview what sync will change before writing:
 kei harness sync --harness <kind> --dry-run
 ```
 
-This renders the policy bundle to stdout without overwriting the native config
-file. Review the output carefully — especially note any entries that would be
-removed.
+This prints a unified diff to stdout (`--- <file>` / `+++ <file> (Kei render)`)
+without overwriting the native config file. Note: because the renderer
+reformats the entire file, the diff may be large even when only one entry
+changes. Review the output carefully — especially note any entries that would
+be removed.
 
 ### Remove your own allow/deny entries
 
@@ -175,12 +177,23 @@ not create. This means:
 
 ## Known limitations (as of 2026-10-06)
 
-### Deny policies and skill: permits not rendered into Claude settings
+### Deny policies not rendered into Claude Code permissions.deny
 
-Claude Code's `settings.json` supports a `permissions.deny` array, but the
-current `kei harness sync` renderer does not write deny entries into it. Deny
-policies and `skill:` permits are **not reflected in Claude Code's native
-config**; a fix is in progress.
+The current `kei harness sync` renderer does not write deny entries into
+Claude Code `permissions.deny`, Codex `blocked_prefixes`, or OpenCode
+`permission.deny`. Only `permit` entries are rendered. This is tracked in
+HAI-400 (renderer PR).
+
+Until HAI-400 ships, a deny policy's practical effect is limited:
+
+- A **permitted** command that is also covered by a deny is **allowed** (the
+  deny is invisible to the harness, so the permit wins).
+- A **denied** command that has no permit falls through to the harness's native
+  permission mode (usually `ask`) — it is **not blocked** by Kei.
+
+This is why a catch-all `shell:* deny` is harmful: the renderer would write
+`*` into `permissions.deny`, and Claude Code's deny-beats-allow semantics would
+then block every permitted command too.
 
 ### Stale Kei hook after harness or agent change
 

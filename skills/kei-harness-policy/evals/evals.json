@@ -16,11 +16,12 @@
     {
       "id": 2,
       "prompt": "I want to create a policy that allows git commands but denies curl in my OpenCode harness. How do I write the policy using the shell: dst scheme? Do not execute anything — just explain in text. If you don't know something, just say so.",
-      "expected_output": "Use `kei policies create --name allow-git --src-pattern 'shell:git *' --dst-pattern shell:git --effect permit` and `kei policies create --name deny-curl --src-pattern 'shell:curl *' --dst-pattern shell:curl --effect deny --priority 1`. The shell: prefix governs bash commands; the src-pattern matches the command string and dst-pattern scopes the effect. Explain that in OpenCode this maps to permission.bash rules, and in Claude Code it maps to permissions.allow/shell after harness sync.",
+      "expected_output": "Use `kei policies create --name allow-git --src-pattern 'harness:opencode' --dst-pattern shell:git --effect permit` and `kei policies create --name deny-curl --src-pattern 'harness:opencode' --dst-pattern shell:curl --effect deny --priority 1`. The shell: dst governs bash commands; the src-pattern identifies the subject (which harness / group / user) and dst-pattern scopes the command prefix. Explain that in OpenCode this maps to permission.bash rules after harness sync.",
       "expectations": [
         "uses `kei policies create` with `--src-pattern` and `--dst-pattern` flags",
-        "uses shell: prefix in both src-pattern and dst-pattern",
-        "explains src-pattern matches the command string and dst-pattern scopes the policy effect",
+        "uses src-pattern with a subject value (harness:opencode, harness:claude_code, group:<name>, user:* or *) not shell:",
+        "uses dst-pattern with shell: prefix (shell:git, shell:curl)",
+        "explains src-pattern identifies the subject and dst-pattern scopes the command prefix",
         "mentions that after `kei harness sync` the policy renders into native harness config"
       ]
     },

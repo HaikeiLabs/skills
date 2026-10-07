@@ -1,6 +1,6 @@
 ---
 name: kei-harness-policy
-description: "Govern harness command execution through Kei policies — import native allow/deny rules from Claude Code, Codex, or OpenCode into Kei policy bundles; create/update/delete shell:/skill:/path: policies; register agent-keyed harnesses and sync tool registrations. Use when running `kei policies list|get|create|update|delete|import` or `kei harness add|sync|list|remove`. Covers ADR-029 harness-command-policy (3NF harness resource keyed by agent; kinds claude_code|codex|opencode|custom), ADR-028 kei.match/v1, HP-C1 rev1 policy API shape, HP-C3 harness adapter/tool discovery, HP-C5 bundle trust, and HP-C6 report-only hook."
+description: "Govern harness command execution through Kei policies — import native allow/deny rules from Claude Code, Codex, or OpenCode into Kei policy bundles; create/update/delete shell:/skill:/path: policies; register agent-keyed harnesses and sync tool registrations; credential injection via kei:// references. Use when running `kei policies list|get|create|update|delete|import` or `kei harness add|sync|list|remove`. Covers ADR-029 harness-command-policy (3NF harness resource keyed by agent; kinds claude_code|codex|opencode|custom), ADR-028 kei.match/v1, HP-C1 rev1 policy API shape, HP-C3 harness adapter/tool discovery, HP-C5 bundle trust, HP-C6 report-only hook, and credential resolution for shell: dst commands."
 ---
 
 # Harness command policy
@@ -27,7 +27,7 @@ OpenCode `permission.bash`).
 | Term | Meaning |
 | --- | --- |
 | **Harness command policy** | A Kei ABAC policy whose `dst` follows the `shell:`, `skill:`, or `path:` scheme — governs what commands and skills a harness agent may run on the host without asking (ADR-029 §2). |
-| **`shell:` dst** | A command prefix the harness may run without asking. `shell:git` permits any `git` invocation; `shell:herdr` permits herdr commands. The `*` wildcard permits any command (use with deny-as-default). |
+| **`shell:` dst** | A command prefix the harness may run without asking. `shell:git` permits any `git` invocation; `shell:herdr` permits herdr commands. |
 | **`skill:` dst** | A skill name the harness may load without asking. `skill:kei-agents` permits the Kei agents skill. |
 | **`path:` dst** | A filesystem path prefix the harness may read or write without asking. `path:/workspace/project` permits access under that directory. |
 | **`kei.harness-match/v1`** | The match dialect for harness command policies. Same matching rules as `kei.match/v1` (ADR-028 §5) but with the harness-specific dst candidates above. A policy never combines `shell:`, `skill:`, and `path:` in one dst — write separate policies. |
@@ -83,7 +83,6 @@ default control-plane URL.
 | Scheme | Matches | Example | Effect |
 | --- | --- | --- | --- |
 | `shell:<prefix>` | A command whose first token (after shell normalization) equals `<prefix>`, or begins `<prefix> ` | `shell:git` | Permits all `git` subcommands |
-| `shell:*` | Any shell command — typically used with `effect: deny` at low priority to implement deny-as-default | `shell:*` | Deny any command not explicitly permitted |
 | `skill:<name>` | A loaded skill by its registered name | `skill:kei-agents` | Permits the agent to load and use that skill |
 | `path:<prefix>` | A file path the harness may access | `path:/workspace/acme` | Permits read/write under that directory |
 
@@ -110,35 +109,74 @@ A star anywhere else is a literal. `shell:git*` matches only the literal string
 3. then policy `id` ascending.
 
 The first eligible policy whose `src` and `dst` both match decides. If no
-policy matches, the harness falls through to its own native default (which
-should be deny-as-default).
+policy matches, the harness falls through to its own native permission mode
+(usually `ask` for native harnesses; custom harnesses and connectors deny by
+default).
 
-### Example: allow herdr + deny everything else
+### Pattern semantics
+
+In a harness command policy, **src-pattern** is the **subject** — which harness,
+group, or user this policy applies to. **dst-pattern** is the **command prefix**
+the policy governs.
+
+| Field | What it identifies | Examples |
+| --- | --- | --- |
+| src-pattern | Subject — harness kind, group, user, or `*` for any | `harness:claude_code`, `harness:opencode`, `group:developers`, `user:alice@corp.com`, `*` |
+| dst-pattern | Command prefix after shell normalization | `shell:git`, `shell:herdr`, `shell:rm`, `skill:kei-agents`, `path:/workspace` |
+
+A policy's src and dst are independent: `src=harness:opencode dst=shell:git`
+means "for the OpenCode harness, permit/deny git commands".
+
+### Examples
+
+**Allow git + deny curl for OpenCode:**
 
 ```sh
-# 1. Permit herdr commands
+# 1. Permit git commands from the OpenCode harness
 kei policies create \
-  --name "allow herdr orchestration" \
-  --src-pattern "*" \
-  --dst-pattern "shell:herdr" \
+  --name "allow git" \
+  --src-pattern "harness:opencode" \
+  --dst-pattern "shell:git" \
   --effect permit \
   --priority 100
 
-# 2. Permit git worktree
+# 2. Deny curl commands from the OpenCode harness
 kei policies create \
-  --name "allow git worktree" \
-  --src-pattern "*" \
-  --dst-pattern "shell:git worktree" \
-  --effect permit \
-  --priority 100
-
-# 3. Deny everything else (catsh)
-kei policies create \
-  --name "deny arbitrary shell" \
-  --src-pattern "*" \
-  --dst-pattern "shell:*" \
+  --name "deny curl" \
+  --src-pattern "harness:opencode" \
+  --dst-pattern "shell:curl" \
   --effect deny \
-  --priority 1
+  --priority 100
+```
+
+At equal priority a deny beats a permit (ADR-028 §2), so `deny curl` would
+override any broad permit covering curl — but since `shell:curl` and
+`shell:git` are distinct dst schemes, no conflict occurs here. After creating
+the policies, run `kei harness sync` to render them into the native harness
+config.
+
+**Allow git for any harness (`*` src):**
+
+```sh
+# Permit git for any harness connected to this installation
+kei policies create \
+  --name "allow git" \
+  --src-pattern "*" \
+  --dst-pattern "shell:git" \
+  --effect permit \
+  --priority 100
+```
+
+**Targeted deny — block `rm -rf` for a group:**
+
+```sh
+# Deny dangerous rm -rf for the developers group
+kei policies create \
+  --name "deny rm -rf" \
+  --src-pattern "group:developers" \
+  --dst-pattern "shell:rm -rf" \
+  --effect deny \
+  --priority 200
 ```
 
 ## Importing from native harness config
@@ -188,8 +226,11 @@ kei policies list --workspace my-workspace --json
 
 - Every `shell:` command you expect to allow has a matching `shell:<prefix>`
   permit.
-- A low-priority `shell:* deny` implements deny-as-default.
 - No two `shell:` policies have an identical dst and effect (duplicates).
+- Unmatched commands fall through to the harness's native default (usually
+  `ask`). Do not add a catch-all `shell:* deny` — it would be rendered into
+  Claude Code `permissions.deny`, where deny beats allow and blocks every
+  permitted command too (see "Deny rendering" below).
 
 ## Registering a harness and syncing tools
 
@@ -213,16 +254,21 @@ multiple `custom` harnesses may be registered. `kei harness sync` fetches the
 current policy bundle with the runtime token and renders the native config for
 the matching harness kind; `--harness KIND` limits the sync to one kind.
 
-`--dry-run` shows what would change without writing. Run sync after installing
-new Haikei skills or after a policy change.
+`--dry-run` prints a unified diff to **stdout** showing what `kei harness sync`
+would write (`--- <file>` / `+++ <file> (Kei render)`), without modifying the
+config file. Note: because the current renderer reformats the entire file, the
+diff may be large (every line shown as changed) even when only one entry differs.
+This will improve once an incremental diff renderer is deployed. Run sync after
+installing new Haikei skills or after a policy change. Requires `kei` > v0.1.6
+for `sync`.
 
 ## Bundle renewal
 
 Policy bundles carry a `not_after` expiry (ADR-026 §4). When a bundle expires,
 `kei-proxy` denies every governed call with `reason_code: policy_bundle_expired`.
 The harness command policies in the bundle expire at the same time — the
-harness's native config falls back to its own defaults (which should be
-deny-as-default) until the bundle is renewed.
+harness's native config falls back to its own permission mode (usually `ask`
+for native harnesses) until the bundle is renewed.
 
 While `kei-proxy serve` is running, a background refresher polls the current
 bundle on the bundle's `refresh.poll_interval_seconds` (clamped to 30–300 s,
@@ -249,16 +295,26 @@ When a harness command policy with a `shell:` dst scheme needs a credential
 by embedding the secret in the policy:
 
 - The policy uses a `kei://` reference (e.g. `kei://workspace/credential/github-token`)
-  to declare the credential dependency.
-- At run time, `kei-proxy` resolves the reference and injects the resolved
-  credential into the agent's environment before the command executes.
-- The agent never reads or stores the raw credential value.
-- This follows the same pattern as governed connector calls: connector invoke
-  uses the identical `kei://` reference mechanism for data-source credentials.
+  to declare the credential dependency. The reference syntax is
+  `kei://workspace/credential/<credential-name>` for workspace-scoped
+  credentials or `kei://installation/credential/<name>` for installation-scoped
+  ones.
+- At run time, `kei-proxy` resolves the reference by looking up the named
+  credential from the Kei control plane and injects the resolved value into
+  the agent's environment before the command executes — the agent never reads
+  or stores the raw credential value.
+- The harness command policy author only needs to include the `kei://` reference;
+  the actual secret value is never part of the policy definition, the bundle, or
+  the rendered native config.
+- This follows the same pattern as governed connector calls: `connector invoke`
+  uses the identical `kei://` reference mechanism for data-source credentials
+  (see the `kei-api` skill for creating and managing credentials).
 
-Policy authors declare credential references alongside the dst scheme; the exact
-syntax is workspace-scoped and follows the Kei credential resolution conventions
-defined in the `kei-api` skill.
+**Example:** To let an agent run `git push` with a GitHub token, the policy dst
+is `shell:git` and the credential reference is declared as
+`kei://workspace/credential/github-token`. When the harness runs `git push`,
+kei-proxy injects `GITHUB_TOKEN=gho_***` into the environment — neither the
+policy JSON nor the native config ever contain the token value.
 
 ## Report-only hook (HP-C6)
 
@@ -298,6 +354,26 @@ Key points to keep in mind:
   runtime reuses the current bundle while policies and harnesses are unchanged
   (up to 6 hours).
 
+## Deny rendering
+
+Deny policies (`effect: deny`) are **not yet written** to the harness's native
+deny list (Claude Code `permissions.deny`, Codex `blocked_prefixes`). The
+renderer only writes `permit` entries. This is tracked in HAI-400 (renderer PR).
+
+Until HAI-400 ships, a `deny` policy's effect depends on how the harness
+processes the rendered native config:
+
+| Deny policy effect | What actually happens |
+|---|---|
+| A **permitted** command that is also covered by a deny | **Allowed** — the deny is invisible to the harness, so the permit wins |
+| A **denied** command that has no permit | Falls through to the harness's native permission mode (usually `ask`) — it is **not blocked** by Kei |
+
+This is why a catch-all `shell:* deny` is **harmful**: the renderer would write
+`*` into `permissions.deny`, and Claude Code's deny-beats-allow semantics would
+then block every permitted command too. Until the renderer supports deny
+entries, keep a tightly scoped set of permit policies and rely on the harness's
+native `ask` mode for everything else.
+
 ## Validation commands
 
 ## Realistic usage boundaries
@@ -316,9 +392,9 @@ Key points to keep in mind:
   Do not configure it in a production harness until the follow-up ships.
   List the policies (`kei policies list --workspace WS --json`) and check by
   hand to preview denials instead.
-- **Bash is only governed through `shell:` policies.** There is no
+- **Bash is only governed through `shell:` dst policies.** There is no
   `dst: bash:*` or `dst: sh:*`. The harness normalises the command to its
-  first token, and only `shell:*` policies match.
+  first token, and only `shell:<prefix>` policies match (e.g. `shell:git`).
 - **Native kinds are unique per installation; `custom` is not.** Each runtime
   installation (one `KEI_RUNTIME_TOKEN`) allows one harness per native kind
   (`claude_code`, `codex`, `opencode`); registering a second `claude_code`
