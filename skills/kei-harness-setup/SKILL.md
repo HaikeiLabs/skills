@@ -41,6 +41,36 @@ coding-agent harness. Each script is self-contained POSIX `sh` (with a shared
 the machine does not have one, registers and syncs the harness, and runs
 `verify.sh` to confirm the setup is valid.
 
+**Installing from GitHub (clone + link):**
+
+```sh
+# 1. Clone the Haikei skills repo (once; git pull to update)
+git clone https://github.com/HaikeiLabs/skills.git ~/src/haikei-skills
+
+# 2. Link each skill into the harness's skills directory
+#    (skip already-existing skills — never overwrite without asking)
+SKILLS_DIR=~/.config/opencode/skills   # or the correct dir for your harness
+mkdir -p "$SKILLS_DIR"
+for d in ~/src/haikei-skills/skills/*/; do
+  name=$(basename "$d")
+  dest="$SKILLS_DIR/$name"
+  if [ -e "$dest" ]; then echo "exists, skipping: $name"; continue; fi
+  ln -s "$d" "$dest"
+done
+
+# 3. Verify the harness discovers the skills
+opencode debug skill | jq -r '.[].name' | grep '^kei'
+```
+
+**Using the setup scripts (preferred for first-time setup):**
+
+```sh
+# The per-harness scripts handle everything: prerequisites check,
+# installation creation, credential piping (never printed to terminal),
+# harness registration, sync, and verification.
+bash skills/kei-harness-setup/scripts/setup-opencode.sh
+```
+
 | Script | Harness |
 | --- | --- |
 | `scripts/setup-claude-code.sh` | Claude Code |
@@ -81,6 +111,10 @@ harness, and installing into the wrong one silently does nothing. Then check
 whether the skills are already there (for example a `kei-cli` folder in the
 harness's skills directory, or the harness's skill list) before installing
 again.
+
+> **Installing skills changes what the agent knows, not what it may do.**
+> Policy in the workspace decides that. Until a deny check passes (step 6),
+> the agent can see the Haikei skills but cannot make governed tool calls.
 
 ## 1. Install the Haikei skills
 
@@ -262,17 +296,26 @@ policy-governed too.
 
 ## 6. Prove it fails closed
 
-Run one permitted, disposable call and one deliberately unbound call:
+Run one permitted, disposable call and one deliberately **unbound** call.
+An unbound call has no agent binding, no matching policy, or references a tool
+not registered for this installation — it must be denied:
 
 ```sh
+# Permitted call (agent is bound, tool is registered)
 kei-proxy authorize --user TEST_USER_ID --tool github.create_pr \
   --action github:write --resource repo:acme/widgets; echo "exit=$?"
+
+# Unbound call — no agent binding, no registration, must be DENY
+kei-proxy authorize --user UNBOUND_USER --tool nonexistent.tool \
+  --action unknown:action --resource unknown:resource; echo "exit=$?"
 ```
 
 The unbound call must be denied without any provider call and produce only
-redacted audit metadata. Missing bindings, an unregistered harness, invalid
-installation scope, stale policy, and no matching policy must all be **DENY**.
-The harness is not set up until you have seen a denial.
+redacted audit metadata. Exit code `0` is ALLOW; any non-zero exit is DENY
+(or an error). Missing bindings, an unregistered harness, invalid installation
+scope, stale policy, and no matching policy must all be **DENY**. The harness
+is not set up until you have seen a denial — until then the agent can see the
+Haikei skills but has not proven that governed calls actually go through Kei.
 
 If you configured harness command policies (step 3), also verify the native
 config was rendered correctly:
@@ -636,7 +679,11 @@ kei harness list --installation INSTALLATION_ID --json | jq '.harnesses[].agent_
   Kei-only permission management.
 - `kei-openai-backends` — model format support across five families (OpenAI,
   Anthropic, Qwen, DeepSeek, GLM), including tool-definition rendering, reasoning
-  adapters, and eval ModelBackend variants.
+  adapters, and eval ModelBackend variants. Each family has distinct tool-call
+  formats: Anthropic uses `input_schema` with `thinking` content blocks; OpenAI
+  and DeepSeek use JSON function-calling with `reasoning_content`; Qwen and GLM
+  have their own variants. The skill covers the per-family tool-definition
+  schemas (`render_tools`) and reasoning-content extraction.
 - `kei-runtime-setup` — the runtime installation and bootstrap half of the
   harness setup workflow.
 - `kei-proxy` — the runtime binary the harness calls for governed decisions.
