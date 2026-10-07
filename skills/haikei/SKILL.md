@@ -196,9 +196,9 @@ exist in the code today.
   ADR-028.
 - **"Import my Claude Code allow list into Kei and keep it in sync."** →
   `kei-harness-policy`. Use `kei policies import --from claude --apply` to read
-  the existing `permissions.allow` into Kei policies, then register the harness
-  with `kei harness add --installation ID --kind claude_code --agent ID` and
-  set up `kei harness sync --harness claude_code` to re-render native config
+  the existing `permissions.allow` into Kei policies. Desktop harnesses like
+  Claude Code are auto-discovered — no `kei harness add` needed. Just run
+  `kei harness sync --harness claude_code` to re-render native config
   from the policy bundle. Released in kei (v0.1.13 is current).
 - **"Make sure only we can read the arguments our agents pass to tools in the
   audit trail."** → `kei-audit-encryption`. Opt-in, customer-held age

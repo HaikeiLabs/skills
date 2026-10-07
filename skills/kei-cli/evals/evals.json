@@ -123,6 +123,17 @@
         "The response recommends `kei model-profiles readiness` with `--workspace` instead.",
         "The response does not claim the test command calls the server."
       ]
+    },
+    {
+      "id": 13,
+      "prompt": "My colleague wants to use `kei harness add` for our Claude Code harness. Is that the right command? What about Codex on the same machine? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "No. Claude Code and Codex are desktop coding harnesses — they are sessions of one runtime installation per machine and are auto-discovered by `kei harness sync`. You do NOT run `kei harness add` for them. `kei harness add` is only for custom/SDK harnesses (`--kind custom`). The quick reference in `kei help` now shows `kei harness add --kind custom [--installation ID] [--agent ID]` reflecting this. For desktop harnesses, just run `kei harness sync`.",
+      "expectations": [
+        "states that Claude Code is auto-discovered by sync, no add needed",
+        "clarifies that `kei harness add` is only for custom/SDK harnesses",
+        "mentions Codex on the same machine shares the same installation and does not need add either",
+        "recommends `kei harness sync` for desktop harnesses"
+      ]
     }
   ]
 }

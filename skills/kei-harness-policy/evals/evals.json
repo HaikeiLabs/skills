@@ -4,11 +4,11 @@
     {
       "id": 1,
       "prompt": "I have a Claude Code project with an existing settings.json that has permissions.allow rules. I want to import those rules into Kei so they become governed policies. What commands would you use, and what should you be careful about? Do not execute anything — just explain in text. If you don't know something, just say so.",
-      "expected_output": "Use `kei policies import --from claude --apply` to read permissions.allow into Kei policies (dry run by default; --apply creates them), then register the agent-keyed harness with `kei harness add --installation ID --kind claude_code --agent ID` (the agent must already be attached via kei bot agents add) and sync with `kei harness sync --harness claude_code`. Warn that kei >v0.1.6 is required. Back up the existing config before sync because `kei harness sync` overwrites the native config file.",
+      "expected_output": "Use `kei policies import --from claude --apply` to read permissions.allow into Kei policies (dry run by default; --apply creates them). Desktop harnesses like Claude Code are auto-discovered — no `kei harness add` needed; just run `kei harness sync --harness claude_code` to render the native config from the policy bundle. Warn that kei >v0.1.6 is required. Back up the existing config before sync because `kei harness sync` overwrites the native config file.",
       "expectations": [
         "mentions `kei policies import --from claude`",
-        "mentions `kei harness add` with `--installation`, `--kind claude_code`, and `--agent` (agent-keyed; no --name/--type/--path)",
-        "mentions `kei harness sync`",
+        "mentions `kei harness sync --harness claude_code` instead of `kei harness add` for the desktop harness",
+        "clarifies that desktop harnesses are auto-discovered, no `add` needed",
         "warns that the commands ship in kei >v0.1.6",
         "recommends backing up the existing native config before sync"
       ]
@@ -121,6 +121,17 @@
         "explains Kei only edits entries it owns (hand-written entries must be removed manually)",
         "advises keeping harness in default ask mode",
         "mentions the kei-backup file Kei creates before each write"
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "I installed Codex next to Claude Code on the same machine with one runtime installation. Do I need to run `kei harness add` for Codex? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "No. Desktop coding harnesses (Claude Code, Codex, OpenCode) are sessions of one runtime installation per machine. They are auto-discovered by `kei harness sync` — no separate `kei harness add` needed. Installing Codex next to Claude Code on the same machine means both are sessions of the same runtime installation; run `kei harness sync` and both are detected automatically. `kei harness add` is only for custom/SDK harnesses (`--kind custom`).",
+      "expectations": [
+        "states that desktop harnesses are auto-discovered by sync, no add needed",
+        "explains that both Codex and Claude Code on the same machine share one installation — no new registration",
+        "mentions `kei harness sync` as the correct command",
+        "clarifies that `kei harness add` is only for custom/SDK harnesses"
       ]
     }
   ]

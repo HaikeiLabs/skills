@@ -1,6 +1,6 @@
 ---
 name: kei-harness-policy
-description: "Govern harness command execution through Kei policies — import native allow/deny rules from Claude Code, Codex, or OpenCode into Kei policy bundles; create/update/delete shell:/skill:/path: policies; register agent-keyed harnesses and sync tool registrations; credential injection via kei:// references. Use when running `kei policies list|get|create|update|delete|import` or `kei harness add|sync|list|remove`. Covers ADR-029 harness-command-policy (3NF harness resource keyed by agent; kinds claude_code|codex|opencode|custom), ADR-028 kei.match/v1, HP-C1 rev1 policy API shape, HP-C3 harness adapter/tool discovery, HP-C5 bundle trust, HP-C6 report-only hook, and credential resolution for shell: dst commands."
+description: "Govern harness command execution through Kei policies — import native allow/deny rules from Claude Code, Codex, or OpenCode into Kei policy bundles; create/update/delete shell:/skill:/path: policies; register custom/SDK agent-keyed harnesses and sync tool registrations; credential injection via kei:// references. Use when running `kei policies list|get|create|update|delete|import` or `kei harness add|sync|list|remove`. Covers ADR-029 harness-command-policy (3NF harness resource keyed by agent; kinds claude_code|codex|opencode|custom), ADR-028 kei.match/v1, HP-C1 rev1 policy API shape, HP-C3 harness adapter/tool discovery, HP-C5 bundle trust, HP-C6 report-only hook, and credential resolution for shell: dst commands."
 ---
 
 # Harness command policy
@@ -33,7 +33,8 @@ OpenCode `permission.bash`).
 | **`kei.harness-match/v1`** | The match dialect for harness command policies. Same matching rules as `kei.match/v1` (ADR-028 §5) but with the harness-specific dst candidates above. A policy never combines `shell:`, `skill:`, and `path:` in one dst — write separate policies. |
 | **Native config** | Each harness's own allow/deny list: Claude Code `~/.claude/settings.json` → `permissions.allow`, Codex `~/.codex/rules/default.rules` → `prefix_rule`, OpenCode `opencode.json` → `permission.bash`. |
 | **Report-only hook** | An optional `kei-proxy` sidecar that receives command-execution events and writes them to the audit trail but never blocks execution (HP-C6, ADR-029 §4.2). Implementation is a separate follow-up (HAI-{followup}); this skill describes the config shape. |
-| **`kei harness add` / `kei harness sync`** | Register a harness type so its tools are known to the control plane, then render the policy bundle to the harness's native config format. |
+| **`kei harness add`** | Register a custom/SDK harness type (`--kind custom`) so its tools are known to the control plane. Desktop harnesses (claude_code, codex, opencode) are auto-detected by sync — do NOT use `add` for them. `--installation` and `--agent` are optional with defaults (single installation, default agent). |
+| **`kei harness sync`** | Fetch the policy bundle and render it into the harness's native config format (Claude Code `permissions.allow`, Codex `prefix_rule`, OpenCode `permission.bash`). Auto-discovers desktop harnesses (claude_code, codex, opencode) from the registered runtime installation — no separate `add` needed. |
 
 ## Retrieval sources
 
@@ -68,13 +69,46 @@ policy management.
 | Update a policy | `kei policies update ID [--name N] [--src-pattern P] [--dst-pattern D] [--effect permit\|deny] [--priority N] [--enabled]` | yes |
 | Delete a policy | `kei policies delete ID --yes [--workspace WS]` | yes |
 | Import native harness rules | `kei policies import --from claude\|codex\|opencode [--file PATH] [--src PATTERN] [--out FILE] [--apply] [--workspace WS]` | yes |
-| Register a harness | `kei harness add --installation ID --kind claude_code\|codex\|opencode\|custom --agent ID` | yes |
+| Register a custom/SDK harness | `kei harness add --kind custom [--installation ID] [--agent ID]` | yes |
 | Sync tool registrations | `kei harness sync [--harness KIND] [--dry-run]` | yes |
 | List registered harnesses | `kei harness list --installation ID [--json]` | yes |
 | Remove a harness | `kei harness remove AGENT_ID --installation ID` | yes |
 
 All `policies` and `harness` commands accept `--api-url URL` to override the
 default control-plane URL.
+
+## When to use `kei harness add`
+
+`kei harness add` registers a harness kind so the control plane knows which
+native config format to render. It is **only for custom/SDK harnesses**
+(`--kind custom`).
+
+**Desktop coding harnesses (Claude Code, Codex, OpenCode, Pi) are sessions**
+of one runtime installation per machine. They are auto-discovered by
+`kei harness sync` — you do NOT need to run `kei harness add` for them.
+Installing Codex next to Claude Code on the same machine? Just run
+`kei harness sync`; both are detected from the same installation.
+
+| Use case | Command |
+|---|---|
+| You built a custom SDK harness | `kei harness add --kind custom [--installation ID] [--agent ID]` |
+| Claude Code / Codex / OpenCode / Pi on a workstation | `kei harness sync` (no `add` needed) |
+
+**Flags:**
+
+- `--installation` — defaults to the single installation on this machine
+  (fails with an error if there are multiple).
+- `--agent` — defaults to the default agent on that installation (fails with
+  `no default agent found` if none is set). Set one with
+  `kei bot agents add --default`.
+
+**Errors:**
+
+- `ALREADY_EXISTS` — that agent already has a harness on that installation.
+  The harness identity is `(installation_id, agent_id)`, and it is unique per
+  native kind.
+- `no default agent found` — the installation has agents but none is marked
+  default. Pass `--agent AGENT_ID` or run `kei bot agents add --default`.
 
 ## Authoring harness command policies
 
@@ -237,22 +271,33 @@ kei policies list --workspace my-workspace --json
 A harness is a property of an **installation-agent assignment** (3NF): its
 identity is `(installation_id, agent_id)`, and the console labels these
 harnesses "agents". Before `kei harness sync` can render native config, the
-agent must already be attached to the installation (`kei bot agents add`) and
-the harness registered:
+agent must already be attached to the installation (`kei bot agents add`).
+
+**Desktop harnesses (claude_code, codex, opencode) are auto-discovered.**
+You do NOT need `kei harness add` — just sync:
 
 ```sh
-# 1. Register the harness for an assigned agent (no --name/--display-name)
-kei harness add --installation INSTALLATION_ID --kind claude_code --agent AGENT_ID
-
-# 2. Sync: fetch the policy bundle and render the native config
+# 1. Sync: fetch the policy bundle and render the native config
+#    (desktop harnesses are detected automatically from the installation)
 kei harness sync --harness claude_code
 ```
 
+**Custom/SDK harnesses** need explicit registration first:
+
+```sh
+# 1. Register a custom harness for an assigned agent
+kei harness add --kind custom [--installation ID] [--agent ID]
+
+# 2. Sync: fetch the policy bundle and render the native config
+kei harness sync --harness custom
+```
+
 `--kind` is one of `claude_code`, `codex`, `opencode`, or `custom`. Native
-kinds are unique per installation (one `claude_code` harness per installation);
-multiple `custom` harnesses may be registered. `kei harness sync` fetches the
-current policy bundle with the runtime token and renders the native config for
-the matching harness kind; `--harness KIND` limits the sync to one kind.
+kinds (`claude_code`, `codex`, `opencode`) are unique per installation and
+auto-detected by sync; multiple `custom` harnesses may be registered. `kei
+harness sync` fetches the current policy bundle with the runtime token and
+renders the native config for the matching harness kind; `--harness KIND`
+limits the sync to one kind.
 
 `--dry-run` prints a unified diff to **stdout** showing what `kei harness sync`
 would write (`--- <file>` / `+++ <file> (Kei render)`), without modifying the
@@ -397,9 +442,9 @@ native `ask` mode for everything else.
   first token, and only `shell:<prefix>` policies match (e.g. `shell:git`).
 - **Native kinds are unique per installation; `custom` is not.** Each runtime
   installation (one `KEI_RUNTIME_TOKEN`) allows one harness per native kind
-  (`claude_code`, `codex`, `opencode`); registering a second `claude_code`
-  harness on the same installation is a `409`. Multiple `custom` harnesses may
-  be registered on the same installation.
+  (`claude_code`, `codex`, `opencode`). Desktop native kinds are auto-detected
+  by `kei harness sync` — they are NOT registered with `kei harness add`.
+  Multiple `custom` harnesses may be registered on the same installation.
 - **`kei harness sync` overwrites the native config file.** It writes the
   rendered config to the harness's native location for the matched kind. Back
   up the existing file before the first sync.
