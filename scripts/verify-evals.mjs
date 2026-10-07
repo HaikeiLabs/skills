@@ -10,9 +10,14 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import process from 'node:process';
+import { validateChecks } from './lib/checks.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SKILL_ROOT = join(ROOT, 'skills');
+const strict = process.argv.includes('--strict');
+if (process.argv.some((arg) => arg !== '--strict' && arg !== process.argv[0] && arg !== process.argv[1])) {
+  fail('usage: node scripts/verify-evals.mjs [--strict]');
+}
 
 function fail(message) {
   process.stderr.write(`verify-evals: ${message}\n`);
@@ -59,6 +64,8 @@ for (const skill of skills) {
     if (!Array.isArray(test.expectations) || test.expectations.length === 0) {
       fail(`${skill}: every eval needs one or more expectations`);
     }
+    const checkErrors = validateChecks(test.checks, test.expectations, { strict });
+    if (checkErrors.length) fail(`${skill} eval ${test.id}: ${checkErrors.join('; ')}`);
   }
 }
 

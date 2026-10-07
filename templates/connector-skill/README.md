@@ -27,11 +27,10 @@ skill in the Haikei skills repository.
    node scripts/verify-manifests.mjs
    node scripts/verify-evals.mjs
    ```
-5. Run evals and commit results:
+5. Run evals with both required model profiles:
    ```bash
-   node scripts/run-evals.mjs --skill <your-connector-name> --harness opencode \
-     --model ray/deepseek-ai/DeepSeek-V4-Flash \
-     --out evals-out/<name>-deepseek-$(date +%F) --jobs 2
+   node scripts/run-evals.mjs --skill <your-connector-name> --model-profile deepseek-v4-flash --jobs 1
+   node scripts/run-evals.mjs --skill <your-connector-name> --model-profile qwen3.8-27b --jobs 1
    ```
 
 ## Template placeholders
@@ -44,7 +43,7 @@ skill in the Haikei skills repository.
 | `CLI_COMMAND` | Actual CLI invocation or endpoint |
 | `RESOURCE_TYPE` | Kei policy resource type per ADR-028 |
 | `PARENT_TYPE` | Parent resource type per ADR-028 |
-| `PROVIDER_MODEL` | Default model for evals |
+| `PROVIDER_MODEL` | Provider model reference for eval runner profiles |
 
 ## Conventions
 
