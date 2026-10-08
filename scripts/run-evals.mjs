@@ -36,65 +36,10 @@ import { fileURLToPath } from 'node:url';
 import { gradeChecks } from './lib/checks.mjs';
 import { makeBenchmark, belowThreshold } from './lib/benchmark.mjs';
 import { resolveSkillsDir } from './lib/paths.mjs';
+import { HARNESSES } from './lib/harnesses.mjs';
 import { parseModelProfile, resolveRunTimeoutSeconds, runCommand, runError, timeoutSummary, timingRecord } from './lib/run.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-
-// Project-level skill directory each harness discovers from its cwd.
-//
-// Every harness is also isolated from user-level skills (~/.claude/skills,
-// ~/.agents/skills, ...). Without that, a machine with the Haikei skills
-// installed globally would load them in the "without skill" baseline too,
-// and in "with skill" runs could load the installed copy instead of the one
-// under test.
-const HARNESSES = {
-  claude: {
-    skillDir: '.claude/skills',
-    // Read-only: evals judge the written answer, and must never run kei,
-    // log in, or touch credentials.
-    // project,local: load the scratch project's .claude/skills but not ~/.claude.
-    command: (prompt, model) => ['claude', ['-p', prompt, '--output-format', 'text',
-      '--setting-sources', 'project,local',
-      '--disallowedTools', 'Bash', 'Edit', 'Write', 'NotebookEdit', 'WebFetch', 'WebSearch',
-      ...(model ? ['--model', model] : [])]],
-  },
-  codex: {
-    skillDir: '.agents/skills',
-    command: (prompt, model, cwd, outFile) => ['codex', ['exec', '--skip-git-repo-check',
-      '--ephemeral', '-s', 'read-only', '-C', cwd, '-o', outFile,
-      ...(model ? ['-m', model] : []), prompt]],
-    readsOutputFile: true,
-    // Codex reads user skills from $HOME/.agents/skills; give it an empty HOME
-    // but keep CODEX_HOME so it stays logged in.
-    env: () => ({ HOME: fs.mkdtempSync(path.join(os.tmpdir(), 'skill-eval-home-')),
-      CODEX_HOME: process.env.CODEX_HOME ?? path.join(os.homedir(), '.codex') }),
-  },
-  opencode: {
-    skillDir: '.opencode/skills',
-    command: (prompt, model, cwd) => ['opencode', ['run', '--dir', cwd,
-      ...(model ? ['-m', model] : []), prompt]],
-    // `opencode run` has no tool flags; deny the same tools via inline config.
-    // Skip ~/.claude/skills and ~/.agents/skills; .opencode/skills still loads.
-    env: (opts) => {
-      const envName = opts.baseUrlEnv;
-      const baseURL = envName ? process.env[envName] : null;
-      if (envName && !baseURL) throw new Error(`model profile requires ${envName}`);
-      const config = { permission: { bash: 'deny', edit: 'deny', webfetch: 'deny' } };
-      if (opts.modelProfile) {
-        const [, ...modelParts] = opts.model.split('/');
-        const modelId = modelParts.join('/');
-        config.model = opts.model;
-        config.provider = { eval: { npm: '@ai-sdk/openai-compatible', name: 'Eval model server',
-          options: { baseURL }, models: { [modelId]: { name: modelId } } } };
-      }
-      return {
-        OPENCODE_CONFIG_CONTENT: JSON.stringify(config),
-        OPENCODE_DISABLE_CLAUDE_CODE_SKILLS: '1',
-        OPENCODE_DISABLE_EXTERNAL_SKILLS: '1',
-      };
-    },
-  },
-};
 
 function parseArgs(argv) {
   const opts = { skills: [], skillsDir: null, harness: 'opencode', out: null, baseline: true, jobs: 4, model: null, modelProfile: null, threshold: 0.9, repeats: 1, repeatsProvided: false, gradeOnly: null, runTimeout: null };
@@ -149,7 +94,7 @@ async function answer(skill, prompt, withSkill, opts, runDir) {
   const outFile = path.join(cwd, 'last-message.md');
   const [cmd, args] = HARNESSES[opts.harness].command(prompt, opts.model, cwd, outFile);
   const res = await runCommand(cmd, args, { cwd, timeoutMs: opts.runTimeoutSeconds * 1000,
-    env: HARNESSES[opts.harness].env?.(opts) ?? {} });
+    env: HARNESSES[opts.harness].env?.(opts, { cwd, skill }) ?? {} });
   let response = res.stdout;
   if (HARNESSES[opts.harness].readsOutputFile && fs.existsSync(outFile)) {
     response = fs.readFileSync(outFile, 'utf8');

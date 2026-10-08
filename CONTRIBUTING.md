@@ -102,6 +102,34 @@ error with reason `timeout`, and the runner prints
 `N runs timed out after Xs`. If a whole sweep times out, raise
 `--run-timeout` rather than reading the 0% as a skill failure.
 
+Every run is sandboxed so the score measures what the skill teaches, not what
+the model can find on disk or online. The harness may load the skill and
+answer, and nothing else. The sandbox is the same for `with_skill` and
+`without_skill`; the only difference is whether the skill is installed. The
+configuration lives in `scripts/lib/harnesses.mjs` and is covered by
+`scripts/lib/harnesses.test.mjs`:
+
+- **opencode** (inline config; keys from opencode's config schema):
+  - Permissions deny everything (`"*": "deny"`), so subagents (`task`),
+    `bash`, `edit`/`write`/`patch`, `glob`, `grep`, `list`, `webfetch`,
+    `websearch` and the rest are not offered to the model at all.
+  - `skill` allows only the skill under test.
+  - `read` is allowed only under `.opencode/skills/`, for the skill's own
+    reference files. The `skill` tool injects `SKILL.md` itself.
+  - The run ignores your own opencode setup: an empty config home, no
+    `OPENCODE_CONFIG`, and pure mode. A personal `opencode.json`, its
+    instructions, its `external_directory` allowlist, and global skills and
+    plugins never reach an eval.
+- **Claude Code:** `--tools Skill,Read`, project settings only, and no MCP
+  servers. Headless mode denies reads outside the scratch project.
+- **Codex:** read-only sandbox, with web search, subagents (`multi_agent`),
+  apps, browsing, computer use and image generation disabled. Codex has no
+  per-path read rule and loads skills through its read-only shell, so it can
+  still read other files on disk.
+
+If a skill needs a tool to answer, that's a finding about the skill, not a
+reason to widen the sandbox.
+
 CI currently runs `verify-evals` non-strict while
 skill eval fixtures migrate. Use `node scripts/verify-evals.mjs --strict` to
 require one check per expectation.
