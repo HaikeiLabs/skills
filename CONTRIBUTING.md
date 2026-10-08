@@ -91,7 +91,18 @@ repeat passes. Results go to `evals-out/` (ignored by git), including
 `benchmark.json` and `benchmark.md`. The default threshold is 0.9. The profiles
 resolve their OpenCode model names from `evals/model-profiles.yaml`; `--model`
 can select an explicit model, and `--repeats N` controls response repetitions
-(default 1). CI currently runs `verify-evals` non-strict while
+(default 1).
+
+Each harness run is killed after a timeout, set by `--run-timeout <seconds>`,
+then the profile's `run_timeout_seconds` in `evals/model-profiles.yaml`, then
+600 seconds. `qwen3.8-27b` uses 1800 because opencode runs on the shared GPU
+can exceed 600; `deepseek-v4-flash` uses the default. A run that hits the
+timeout gets `"timed_out": true` in its `timing.json`. It counts as a benchmark
+error with reason `timeout`, and the runner prints
+`N runs timed out after Xs`. If a whole sweep times out, raise
+`--run-timeout` rather than reading the 0% as a skill failure.
+
+CI currently runs `verify-evals` non-strict while
 skill eval fixtures migrate. Use `node scripts/verify-evals.mjs --strict` to
 require one check per expectation.
 

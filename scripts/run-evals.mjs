@@ -16,14 +16,19 @@
  * Unlike the verify-* scripts this calls models, so it is not run in CI.
  * It needs the harness CLI on PATH and logged in.
  *
+ * Each harness run is killed after --run-timeout seconds (default: the model
+ * profile's run_timeout_seconds, else 600). A killed run is recorded as
+ * timed_out in its timing.json and counted as a benchmark error "timeout".
+ *
  * Usage:
  *   node scripts/run-evals.mjs [--skill NAME ...] [--harness claude|codex|opencode]
  *                              [--skills-dir DIR] [--out DIR] [--no-baseline]
  *                              [--jobs N] [--model M]
  *                              [--model-profile NAME] [--threshold N] [--repeats N]
+ *                              [--run-timeout SECONDS]
  *   node scripts/run-evals.mjs --grade-only DIR    # (re)grade existing DIR/<eval>/<config>/outputs/response.md
  */
-import { execFileSync, spawn } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -31,6 +36,7 @@ import { fileURLToPath } from 'node:url';
 import { gradeChecks } from './lib/checks.mjs';
 import { makeBenchmark, belowThreshold } from './lib/benchmark.mjs';
 import { resolveSkillsDir } from './lib/paths.mjs';
+import { parseModelProfile, resolveRunTimeoutSeconds, runCommand, runError, timeoutSummary, timingRecord } from './lib/run.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -91,7 +97,7 @@ const HARNESSES = {
 };
 
 function parseArgs(argv) {
-  const opts = { skills: [], skillsDir: null, harness: 'opencode', out: null, baseline: true, jobs: 4, model: null, modelProfile: null, threshold: 0.9, repeats: 1, repeatsProvided: false, gradeOnly: null };
+  const opts = { skills: [], skillsDir: null, harness: 'opencode', out: null, baseline: true, jobs: 4, model: null, modelProfile: null, threshold: 0.9, repeats: 1, repeatsProvided: false, gradeOnly: null, runTimeout: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--skill') opts.skills.push(argv[++i]);
@@ -105,6 +111,7 @@ function parseArgs(argv) {
     else if (a === '--threshold') opts.threshold = Number(argv[++i]);
     else if (a === '--repeats') { opts.repeats = Number(argv[++i]); opts.repeatsProvided = true; }
     else if (a === '--grade-only') opts.gradeOnly = argv[++i];
+    else if (a === '--run-timeout') opts.runTimeout = argv[++i];
     else if (a === '-h' || a === '--help') {
       console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('*/')[0]);
       process.exit(0);
@@ -116,32 +123,15 @@ function parseArgs(argv) {
   if (!Number.isInteger(opts.repeats) || opts.repeats < 1) throw new Error('--repeats must be a positive integer');
   if (opts.model && opts.modelProfile) throw new Error('use either --model or --model-profile');
   if (opts.modelProfile && opts.harness !== 'opencode') throw new Error('--model-profile requires --harness opencode');
+  let profile = null;
   if (opts.modelProfile) {
-    const profiles = fs.readFileSync(path.join(ROOT, 'evals/model-profiles.yaml'), 'utf8');
-    const profileLines = profiles.split('\n');
-    const profileLine = profileLines.findIndex((line) => line === `  ${opts.modelProfile}:`);
-    const modelLine = profileLines[profileLine + 1] ?? '';
-    const match = modelLine.match(/^    opencode_model:\s*(\S+)\s*$/);
-    if (!match) throw new Error(`unknown model profile ${opts.modelProfile}`);
-    opts.model = match[1];
-    const baseUrlLine = profileLines[profileLine + 2] ?? '';
-    opts.baseUrlEnv = baseUrlLine.match(/^    base_url_env:\s*(\S+)\s*$/)?.[1];
+    profile = parseModelProfile(fs.readFileSync(path.join(ROOT, 'evals/model-profiles.yaml'), 'utf8'), opts.modelProfile);
+    if (!profile) throw new Error(`unknown model profile ${opts.modelProfile}`);
+    opts.model = profile.model;
+    opts.baseUrlEnv = profile.baseUrlEnv;
   }
+  opts.runTimeoutSeconds = resolveRunTimeoutSeconds({ flag: opts.runTimeout, profile: profile?.runTimeoutSeconds });
   return opts;
-}
-
-function run(cmd, args, cwd, timeoutMs = 600_000, env = {}) {
-  return new Promise((resolve) => {
-    const started = Date.now();
-    const child = spawn(cmd, args, { cwd, env: { ...process.env, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
-    let stdout = '';
-    let stderr = '';
-    child.stdout.on('data', (d) => { stdout += d; });
-    child.stderr.on('data', (d) => { stderr += d; });
-    const timer = setTimeout(() => child.kill('SIGTERM'), timeoutMs);
-    child.on('error', (err) => { clearTimeout(timer); resolve({ code: -1, stdout, stderr: String(err), ms: Date.now() - started }); });
-    child.on('close', (code) => { clearTimeout(timer); resolve({ code, stdout, stderr, ms: Date.now() - started }); });
-  });
 }
 
 function scratchProject(skill, skillSource, withSkill, harness) {
@@ -158,24 +148,21 @@ async function answer(skill, prompt, withSkill, opts, runDir) {
   const cwd = scratchProject(skill, path.join(opts.skillsDir, skill), withSkill, opts.harness);
   const outFile = path.join(cwd, 'last-message.md');
   const [cmd, args] = HARNESSES[opts.harness].command(prompt, opts.model, cwd, outFile);
-  const res = await run(cmd, args, cwd, 600_000, HARNESSES[opts.harness].env?.(opts) ?? {});
+  const res = await runCommand(cmd, args, { cwd, timeoutMs: opts.runTimeoutSeconds * 1000,
+    env: HARNESSES[opts.harness].env?.(opts) ?? {} });
   let response = res.stdout;
   if (HARNESSES[opts.harness].readsOutputFile && fs.existsSync(outFile)) {
     response = fs.readFileSync(outFile, 'utf8');
   }
   fs.mkdirSync(path.join(runDir, 'outputs'), { recursive: true });
   fs.writeFileSync(path.join(runDir, 'outputs', 'response.md'), response);
-  fs.writeFileSync(path.join(runDir, 'timing.json'), JSON.stringify({
-    total_duration_seconds: res.ms / 1000, exit_code: res.code,
-  }, null, 2));
+  fs.writeFileSync(path.join(runDir, 'timing.json'), JSON.stringify(timingRecord(res, opts.runTimeoutSeconds), null, 2));
   if (res.code !== 0) fs.writeFileSync(path.join(runDir, 'stderr.txt'), res.stderr);
   fs.rmSync(cwd, { recursive: true, force: true });
-  // A harness failure (auth, usage limit, crash) is not a skill failure:
-  // report it instead of grading an empty answer.
-  if (res.code !== 0 || !response.trim()) {
-    const reason = res.stderr.trim().split('\n').filter(Boolean).pop() ?? `exit ${res.code}`;
-    return { error: reason };
-  }
+  // A harness failure (auth, usage limit, crash, timeout) is not a skill
+  // failure: report it instead of grading an empty or partial answer.
+  const error = runError(res, response);
+  if (error) return { error, timedOut: res.timedOut };
   return { response };
 }
 
@@ -243,6 +230,8 @@ function report(results, out, opts) {
   console.log(lines.join('\n'));
   console.log(`\nresults: ${out}`);
 
+  const timeouts = timeoutSummary(results, opts.runTimeoutSeconds);
+  if (timeouts) console.error(`\n${timeouts}`);
   if (errors.length) {
     console.error(`\n${errors.length} run(s) did not complete (not graded):`);
     for (const e of errors) console.error(`  ${e.skill} #${e.id} ${e.config}: ${e.error}`);
@@ -275,6 +264,7 @@ async function main() {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const out = path.resolve(opts.out ?? path.join(ROOT, 'evals-out', `${opts.harness}-${stamp}`));
   const configs = opts.baseline ? ['with_skill', 'without_skill'] : ['with_skill'];
+  process.stderr.write(`run timeout: ${opts.runTimeoutSeconds}s per harness run\n`);
 
   const tasks = [];
   let n = 0;
@@ -295,8 +285,8 @@ async function main() {
           tasks.push(async () => {
             const runDir = path.join(evalDir, config, `run-${repeat}`);
             process.stderr.write(`running ${skill} #${ev.id} ${config} repeat ${repeat}\n`);
-            const { response, error } = await answer(skill, ev.prompt, config === 'with_skill', opts, runDir);
-            if (error) return { skill, id: ev.id, config, repeat, passed: 0, failed: 0, total: 1, error };
+            const { response, error, timedOut } = await answer(skill, ev.prompt, config === 'with_skill', opts, runDir);
+            if (error) return { skill, id: ev.id, config, repeat, passed: 0, failed: 0, total: 1, error, timedOut };
             const grading = grade(ev.expectations, ev.checks, response, runDir);
             const reason = grading.expectations.filter((item) => !item.passed)
               .map((item) => `${item.text}: ${item.evidence}`).join('; ');
