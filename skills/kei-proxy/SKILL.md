@@ -76,6 +76,13 @@ KEI_RUNTIME_TOKEN=<runtime credential from the secret manager>  # never an argum
 KEI_RUNTIME_VERSION=<runtime version>
 ```
 
+Leave `ABAC_URL` unset in runtime mode. Since kei-proxy 0.1.32, `authorize`
+resolves subjects at `KEI_RUNTIME_CONTROL_PLANE_URL` when `ABAC_URL` is unset;
+an explicit `ABAC_URL` still wins. Production accepts only HTTPS here, so an
+in-cluster plain-HTTP catalog URL in `ABAC_URL` (or one a harness copies into
+the child environment) denies every subject-scoped call with
+`subject_resolution_unavailable` (`request_build`).
+
 When running in daemon mode (`kei-proxy serve`), the socket path defaults to
 `/run/kei-proxy/runtime.sock` and can be overridden with `KEI_RUNTIME_SOCKET_PATH`.
 The daemon also accepts `KEI_PROXY_LISTEN_ADDR` (TCP, default `:8085`) for
@@ -265,7 +272,16 @@ unlinked, and cross-workspace identities resolve), and freshness/revocation
 bounds.
 
 **Present-day truth:** the CLI `authorize` path remains the current production
-path until local-PDP runtime support ships. HAI-272 (Backlog) tracks the socket
+path until local-PDP runtime support ships. It evaluates the locally persisted
+policy bundle and still bootstraps (whoami and heartbeat) on every call.
+Identity is only for credentials: since kei-proxy 0.1.34, it resolves the
+caller's subject online
+(`subject-attributes:resolve`) only when the tool releases a credential, is
+bound to a connector capability, or a policy reached for the call matches on
+subject attributes (`group:`, `org:`, `user:`, `email:`). A tool such as
+`web_search` under a `*` or `agent:` policy is decided with no subject lookup.
+kei-proxy 0.1.33 and earlier resolve the subject for every call that names a
+user. HAI-272 (Backlog) tracks the socket
 tool-authorize migration; the socket authorize route is **not available**. Do
 not describe the local PDP, bundle verification, or bundle refresh as
 implemented.
