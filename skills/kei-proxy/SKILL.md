@@ -142,7 +142,9 @@ kei-proxy authorize --user "$SUBJECT" --tool github.create_pr \
 - **Exit code** `0` = allow. Non-zero = do not run the tool: `1` for a deny,
   and also for any error (bad config, unreachable control plane, stale
   policy). Treat every non-zero exit as a deny — that is what fail-closed means
-  here.
+  here. `reason_code: policy_bundle_expired` (`deny_source: runtime_state`)
+  means the persisted bundle's `not_after` has passed; until [HAI-427](https://linear.app/haikeilabs/issue/HAI-427) ships, any
+  policy edit forces a new bundle (see `kei-setup-doctor` §4a).
 - **stderr** gets a structured audit event; with `KEI_PROXY_AUDIT` set, the
   decision is also appended to that JSONL file for `collector`.
 

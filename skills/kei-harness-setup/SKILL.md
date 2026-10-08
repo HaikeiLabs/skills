@@ -428,7 +428,7 @@ The claim-link lifecycle is documented in detail at the canonical API contract:
 ## Troubleshooting setup
 
 This section catalogs real failures observed during harness setup (e2e,
-2026-10-05/06). Each entry lists the symptom, root cause, and fix. The
+2026-10-05/06) and in production (2026-10-08). Each entry lists the symptom, root cause, and fix. The
 matching `kei-setup-doctor` skill has a condensed version for diagnosis
 workflows.
 
@@ -668,6 +668,40 @@ kei bot credential --installation <ID> --rotate | <secret-manager import>
 
 Update the environment variable on every consumer, then restart or reload the
 runtime. Each rotation invalidates the previous credential immediately.
+
+### 13. Every governed tool call denied with `policy_bundle_expired`
+
+**Symptom:** Every governed tool is denied, including ones that worked
+before and local tools such as `web_search`. The decision carries
+`reason_code: policy_bundle_expired` and `deny_source: runtime_state`. The
+console **Agents** page shows Policy bundle **Not ready** with the reason
+**bundle expired**.
+
+**Cause:** The bundle's `not_after` has passed. The catalog issues bundles
+valid for 12 hours and does not reissue one when it expires ([HAI-427](https://linear.app/haikeilabs/issue/HAI-427)), so
+every runtime in the workspace goes dark 12 hours after the last policy edit,
+even while it is online and refreshing. (A runtime that was offline past
+`not_after` shows the same symptom; restore connectivity first.)
+
+**Check:** Look at the persisted bundle. `<state_dir>` is
+`KEI_RUNTIME_STATE_DIR`, by default `~/Library/Application Support/kei-proxy`
+(macOS) or `~/.local/share/kei-proxy` (Linux).
+
+```sh
+kei-proxy policy show                                   # state: expired
+jq '{bundle_version, issued_at, not_after}' "<state_dir>/policy/bundle.json"
+jq '{state, expires_at, highest_bundle_version}' "<state_dir>/policy/state.json"
+```
+
+`not_after` / `expires_at` in the past confirms it.
+
+**Fix:** Make any policy edit in the workspace, in the console or with
+`kei policies update`. A no-op change is enough: it forces the catalog to
+issue a new bundle. A runtime running `kei-proxy serve` or
+`kei-proxy runtime heartbeat` picks it up on its next poll (60 s by
+default); otherwise run `kei-proxy policy sync`. `kei-proxy policy show`
+should then report an active bundle with a future `not_after`. Until [HAI-427](https://linear.app/haikeilabs/issue/HAI-427)
+ships, this recurs after every 12 hours without a policy edit.
 
 ## Validation commands
 
