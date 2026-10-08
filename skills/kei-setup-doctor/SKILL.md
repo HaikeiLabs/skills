@@ -264,6 +264,7 @@ expire at the same time.
 |---------|-------------|-------|-----|
 | All governed calls denied with `policy_bundle_expired` | Bundle `not_after` has passed | `kei-proxy policy show` (offline bundle state) or check the runtime logs for `bundle_expired` | Re-establish connectivity and run `kei-proxy policy sync` (or `kei-proxy runtime bootstrap`) to force a fresh bundle fetch; then `kei harness sync --harness KIND --dry-run` to preview the re-rendered native config. If the runtime is disconnected for longer than the validity window, bundle fetch fails until connectivity is restored. |
 | Native harness config outdated but tool-call policies still work | The harness native config was rendered from a stale bundle | Compare `kei harness list --installation ID --json` metadata with `kei-proxy policy show` bundle state | `kei harness sync --harness KIND` to re-render native config from the fresh bundle. Requires kei >v0.1.6. |
+| All governed calls denied with `policy_bundle_expired` (`deny_source: runtime_state`) while the runtime is online, and `kei-proxy policy sync` still leaves the bundle expired | The catalog does not reissue a bundle when it expires ([HAI-427](https://linear.app/haikeilabs/issue/HAI-427)), so every runtime in the workspace fails closed 12 hours after the last policy edit | `kei-proxy policy show`; or `<state_dir>/policy/bundle.json` (`not_after`) and `state.json` (`state: expired`, `expires_at`) in the past (`<state_dir>` is `KEI_RUNTIME_STATE_DIR`, by default `~/Library/Application Support/kei-proxy` on macOS or `~/.local/share/kei-proxy` on Linux). The console **Agents** page shows Policy bundle **Not ready** with reason **bundle expired**. | Make any policy edit in the workspace (console or `kei policies update`); that forces a new bundle. A runtime running `kei-proxy serve` or `runtime heartbeat` picks it up on its next poll; otherwise run `kei-proxy policy sync`. Confirm with `kei-proxy policy show`. Repeat after each 12-hour quiet period until [HAI-427](https://linear.app/haikeilabs/issue/HAI-427) ships. |
 | `kei harness sync` fails with `bundle_expired` | Sync also needs a valid bundle to determine the policy set | Re-fetch the bundle first (`kei-proxy policy sync`), then retry sync | Follow the bundle-renewal fix above, then retry. |
 
 While `kei-proxy serve` runs, a background refresher polls the current bundle
@@ -315,8 +316,9 @@ the smallest next step. Use `READY`, `ACTION REQUIRED`, or `BLOCKED`.
 
 ## Troubleshooting checklist
 
-This is a condensed reference for the 12 real e2e failures observed during
-harness setup (2026-10-05/06). Each entry maps symptom → likely cause + fix.
+This is a condensed reference for real failures observed during harness
+setup (e2e, 2026-10-05/06) and in production (2026-10-08). Each entry maps
+symptom → likely cause + fix.
 The `kei-harness-setup` skill has the full version with exact commands.
 
 ### Alias / path / login
@@ -334,6 +336,7 @@ The `kei-harness-setup` skill has the full version with exact commands.
 |---|---|---|
 | `kei bot status` shows `pending` | No first heartbeat yet | Wait; check outbound connectivity. Do not bind/rotate for pending alone |
 | No heartbeat after terminal exits | `kei runtime service install` not available (HAI-406) | Use systemd/launchd/container restart policy as workaround; run `kei runtime service install` when available |
+| Every governed call denied with `reason_code: policy_bundle_expired` | Bundle `not_after` passed; the catalog does not reissue expired bundles ([HAI-427](https://linear.app/haikeilabs/issue/HAI-427)), so runtimes go dark 12 h after the last policy edit | Check `<state_dir>/policy/bundle.json` / `state.json`, or console Agents → Policy bundle **Not ready** (bundle expired). Make any policy edit to force a new bundle, then `kei-proxy policy sync` (see 4a) |
 | Every governed call denied | `KEI_PROXY_DISABLED=true`, missing token, wrong URL, or kei-proxy not on `PATH` | Unset `KEI_PROXY_DISABLED`, inject token from secret manager, confirm URL (no `/api/v1`), test with `kei-proxy authorize` |
 
 ### Harness registration / sync
