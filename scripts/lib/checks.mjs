@@ -41,6 +41,20 @@ export function validateChecks(checks, expectations, { strict = false } = {}) {
   return errors;
 }
 
+// An eval without deterministic checks cannot be graded. It is recorded as a
+// benchmark error with this reason instead of failing the whole run.
+export const MISSING_CHECKS = 'missing_checks';
+
+export function hasChecks(checks) {
+  return checks !== undefined && checks !== null;
+}
+
+export function missingChecksSummary(results) {
+  const evals = new Set(results.filter((r) => r.error === MISSING_CHECKS).map((r) => `${r.skill}#${r.id}`));
+  if (!evals.size) return null;
+  return `${evals.size} eval${evals.size === 1 ? ' has' : 's have'} no checks — add EV-C1 checks`;
+}
+
 export function gradeChecks(expectations, checks, response) {
   const errs = validateChecks(checks, expectations);
   if (errs.length) throw new Error(errs.join('; '));

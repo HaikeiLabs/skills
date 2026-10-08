@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'nod
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { gradeChecks, validateChecks } from './checks.mjs';
+import { gradeChecks, validateChecks, hasChecks, MISSING_CHECKS, missingChecksSummary } from './checks.mjs';
 import { makeBenchmark, belowThreshold } from './benchmark.mjs';
 
 test('contains_any checks match case-insensitively', () => {
@@ -88,4 +88,21 @@ test('grade-only exits non-zero below threshold and writes contract benchmark fi
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('an eval without checks is a missing_checks error, not a crash, and gets one summary line', () => {
+  assert.equal(hasChecks(undefined), false);
+  assert.equal(hasChecks([]), true);
+  const rows = [
+    { skill: 's', id: 1, config: 'with_skill', repeat: 1, passed: 0, failed: 0, total: 1, error: MISSING_CHECKS },
+    { skill: 's', id: 1, config: 'without_skill', repeat: 1, passed: 0, failed: 0, total: 1, error: MISSING_CHECKS },
+    { skill: 's', id: 2, config: 'with_skill', repeat: 1, passed: 0, failed: 0, total: 1, error: MISSING_CHECKS },
+    { skill: 's', id: 3, config: 'with_skill', repeat: 1, passed: 1, failed: 0, total: 1, casePassed: true },
+  ];
+  const [suite] = makeBenchmark(rows, { harness: 'opencode', gitSha: 'abc' }).results;
+  assert.deepEqual([suite.passed, suite.failed, suite.errors, suite.total], [1, 0, 2, 3]);
+  assert.equal(suite.cases.find((c) => c.id === 1).reason, 'repeat 1: missing_checks');
+  assert.equal(missingChecksSummary(rows), '2 evals have no checks — add EV-C1 checks');
+  assert.equal(missingChecksSummary(rows.slice(2)), '1 eval has no checks — add EV-C1 checks');
+  assert.equal(missingChecksSummary(rows.slice(3)), null);
 });
