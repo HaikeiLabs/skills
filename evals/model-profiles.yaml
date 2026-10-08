@@ -5,3 +5,5 @@ profiles:
   qwen3.8-27b:
     opencode_model: eval/qwen3.8-27b
     base_url_env: EVAL_QWEN_BASE_URL
+    # opencode runs on the shared 5090 can exceed the 600 s default.
+    run_timeout_seconds: 1800
