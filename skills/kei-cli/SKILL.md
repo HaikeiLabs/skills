@@ -1,6 +1,6 @@
 ---
 name: kei-cli
-description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade (including `--proxy-only` and `--uninstall`), `kei login` device-flow auth, runtime installations (`kei bot init|credential|agents|status|bind|delete`), harness command policies (`kei policies`), data connectors (`kei connectors`), model profiles and the credential store (`kei model-profiles`, `kei credential-store`), harness management (`kei harness` — `add` for custom/SDK only, `sync` for all harnesses including auto-discovered desktop), and local runtime config (`kei setup`, `kei runtime bootstrap`). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something from the CLI in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org, agent, group, or user commands — say so rather than inventing one. (`kei workspaces list`, `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and `kei credential-store` are the resource-oriented exceptions; use v0.1.13 or later.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
+description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade (including `--proxy-only` and `--uninstall`), `kei login` device-flow auth, runtime installations (`kei bot init|credential|agents|status|bind|delete`), harness command policies (`kei policies`), data connectors (`kei connectors`), model profiles and the credential store (`kei model-profiles`, `kei credential-store`), harness management (`kei harness` — `add` for custom/SDK only, `sync` for all harnesses including auto-discovered desktop), feedback and diagnostics (`kei feedback`), and local runtime config (`kei setup`, `kei runtime bootstrap`). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something from the CLI in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org, agent, group, or user commands — say so rather than inventing one. (`kei workspaces list`, `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles`, `kei credential-store` and `kei feedback` are the resource-oriented exceptions; use v0.1.13 or later, v0.1.20 for `kei feedback`.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
 ---
 
 # kei CLI
@@ -285,6 +285,10 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 | Can runtimes reach the provider? | `kei model-profiles readiness PROFILE --workspace WS` | yes |
 | Delete a model profile | `kei model-profiles delete PROFILE [--workspace WS] --yes` | yes |
 | Credential store | `kei credential-store get` / `put` (creates it) / `update` (PATCH) | yes |
+| Send feedback / bug report | `kei feedback send --kind bug --description "..."` | yes |
+| List submitted feedback | `kei feedback list [--json]` | yes |
+| Export feedback reports | `kei feedback export --out FILE` | yes |
+| Redact / delete a report | `kei feedback redact ID` | yes |
 | Write local runtime config | `kei setup [--config PATH] [--control-plane-url URL]` | no (runtime token) |
 | Verify + heartbeat via local kei-proxy | `kei runtime bootstrap [--config PATH] [--proxy-path PATH]` | no (runtime token) |
 | Upgrade via Go | `kei upgrade [--version VERSION]` | no |
@@ -363,6 +367,30 @@ kei bot credential --installation ID --workspace WORKSPACE | <secret-manager imp
   immediately. Load **`kei-credential-rotation`** before rotating a runtime
   that is serving traffic.
 
+## Feedback and diagnostics
+
+`kei feedback` sends a diagnostics report to Haikei support. Available in
+kei >= v0.1.20.
+
+```sh
+# Send a bug report — includes runtime token hash, installation ID, kei and
+# kei-proxy versions, OS/platform, and the last 50 lines of kei-proxy logs.
+kei feedback send --kind bug --description "short description of the issue"
+
+# List previously submitted reports
+kei feedback list --json
+
+# Export all reports as JSON lines
+kei feedback export --out ./feedback-export.json
+
+# Redact (delete) a submitted report by ID
+kei feedback redact <report-id>
+```
+
+The report never includes policy contents, connector credentials, or
+conversation data. `--kind` accepts `bug`, `feature`, or `other`. Omit
+`--description` to open the default editor.
+
 ## Local runtime: `kei setup` + `kei runtime bootstrap`
 
 This is the current way to bring up a runtime on a workstation. `kei setup`
@@ -388,8 +416,9 @@ kei runtime bootstrap          # runs the configured kei-proxy to verify + send 
 The CLI is being extended toward the resource-oriented Kei API contract, but
 no released version has org, agent, group, or
 user commands yet (`kei workspaces list`, `kei connectors`, `kei policies`,
-`kei harness`, `kei model-profiles` and `kei credential-store` are the
-resource-oriented exceptions; all ship in v0.1.13).
+`kei harness`, `kei model-profiles`, `kei credential-store` and `kei feedback`
+are the resource-oriented exceptions; `kei feedback` ships in v0.1.20, the rest
+in v0.1.13).
 The first resource-oriented commands call the **shared AIP `/api/v1`
 endpoints**, not a private `/api/cli` backend: `kei policies` uses
 `/api/v1/policies`, `kei connectors` uses `/api/v1/data-connectors`, and
@@ -427,9 +456,10 @@ kei bot status --installation INSTALLATION_ID
   available for workspace discovery). The CLI will grow
   resource-oriented commands after the API's AIP migration; until a release
   ships one, do not describe it as available.
-  **Exception:** `kei policies`, `kei harness`, `kei model-profiles` and `kei
-  credential-store` are released resource-oriented commands (v0.1.13). For
-  harness policy workflows, load the `kei-harness-policy` skill.
+  **Exception:** `kei policies`, `kei harness`, `kei model-profiles`, `kei
+  credential-store`, and `kei feedback` are released resource-oriented commands
+  (`kei feedback` ships in v0.1.20, the rest in v0.1.13). For harness policy
+  workflows, load the `kei-harness-policy` skill.
 - The CLI token is org-bound and short-lived; it is not a general user token and
   cannot be used by a runtime.
 - The **Keys** page no longer exists. Agent keys were deprecated in favor of
