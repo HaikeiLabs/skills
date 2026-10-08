@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { CLAUDE_TOOLS, CODEX_DISABLED_FEATURES, HARNESSES, opencodeConfig } from './harnesses.mjs';
+import { CLAUDE_SETTINGS, CLAUDE_TOOLS, CODEX_DISABLED_FEATURES, HARNESSES, opencodeConfig } from './harnesses.mjs';
 
 const SKILL = 'kei-openai-backends';
 // Tools a skill eval must never use: subagents, search and listing, shell,
@@ -54,6 +54,17 @@ test('opencode sandbox allows only the skill under test and reads inside the ski
   }
 });
 
+test('opencode sandbox denies reads of the eval answer key, even inside the skill directory', () => {
+  const ruleset = rules(opencodeConfig({}, SKILL).permission);
+  for (const file of [`.opencode/skills/${SKILL}/evals/evals.json`,
+    `private/var/folders/x/T/skill-eval-a/.opencode/skills/${SKILL}/evals/evals.json`,
+    `.opencode/skills/${SKILL}/evals/results/benchmark.json`,
+    `Users/me/code/haikei/skills/skills/${SKILL}/evals/evals.json`]) {
+    assert.equal(decide(ruleset, 'read', file), 'deny', file);
+  }
+  assert.equal(decide(ruleset, 'read', `.opencode/skills/${SKILL}/SKILL.md`), 'allow');
+});
+
 test('opencode runs with_skill and without_skill under the same sandbox, isolated from user config', () => {
   const dirs = [mkdtempSync(path.join(tmpdir(), 'sandbox-a-')), mkdtempSync(path.join(tmpdir(), 'sandbox-b-'))];
   try {
@@ -79,6 +90,8 @@ test('claude runs with only Skill and Read, no user settings and no MCP servers'
   assert.equal(args[args.indexOf('--tools') + 1], 'Skill,Read');
   assert.equal(args[args.indexOf('--setting-sources') + 1], 'project,local');
   assert.ok(args.includes('--strict-mcp-config'));
+  assert.deepEqual(JSON.parse(args[args.indexOf('--settings') + 1]), CLAUDE_SETTINGS);
+  assert.ok(CLAUDE_SETTINGS.permissions.deny.includes('Read(**/evals/**)'));
 });
 
 test('codex runs read-only with web search, subagents and browsing disabled', () => {

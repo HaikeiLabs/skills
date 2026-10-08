@@ -5,7 +5,9 @@
  *
  * For every eval in skills/<skill>/evals/evals.json this:
  *   1. creates two scratch projects: one with the skill installed in the
- *      harness's project skill directory, one without;
+ *      harness's project skill directory, one without. Only the skill's
+ *      teaching content is installed: never evals/ (the answer key), results,
+ *      benchmarks or dotfiles;
  *   2. runs the eval prompt headlessly in each with the chosen harness;
  *   3. applies the fixture's deterministic check for each expectation and
  *      requires every repeat to pass a case;
@@ -15,6 +17,9 @@
  *
  * Unlike the verify-* scripts this calls models, so it is not run in CI.
  * It needs the harness CLI on PATH and logged in.
+ *
+ * An eval with no checks is not run: it is recorded as a benchmark error
+ * "missing_checks" and the other evals still run.
  *
  * Each harness run is killed after --run-timeout seconds (default: the model
  * profile's run_timeout_seconds, else 600). A killed run is recorded as
@@ -33,10 +38,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { gradeChecks } from './lib/checks.mjs';
+import { gradeChecks, hasChecks, MISSING_CHECKS, missingChecksSummary } from './lib/checks.mjs';
 import { makeBenchmark, belowThreshold } from './lib/benchmark.mjs';
 import { resolveSkillsDir } from './lib/paths.mjs';
 import { HARNESSES } from './lib/harnesses.mjs';
+import { stageSkill } from './lib/stage.mjs';
 import { parseModelProfile, resolveRunTimeoutSeconds, runCommand, runError, timeoutSummary, timingRecord } from './lib/run.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -84,7 +90,7 @@ function scratchProject(skill, skillSource, withSkill, harness) {
   if (withSkill) {
     const dest = path.join(dir, HARNESSES[harness].skillDir);
     fs.mkdirSync(dest, { recursive: true });
-    fs.cpSync(skillSource, path.join(dest, skill), { recursive: true });
+    stageSkill(skillSource, path.join(dest, skill));
   }
   return dir;
 }
@@ -146,6 +152,9 @@ async function gradeExisting(dir, opts) {
         if (!fs.existsSync(responsePath)) continue;
         const repeat = Number(runDir.match(/run-(\d+)$/)?.[1] ?? 1);
         tasks.push(async () => {
+          if (!hasChecks(meta.checks)) {
+            return { skill: meta.skill ?? evalName, id: meta.eval_id, config, repeat, passed: 0, failed: 0, total: 1, error: MISSING_CHECKS };
+          }
           process.stderr.write(`grading ${evalName} ${config} repeat ${repeat}\n`);
           const g = grade(meta.assertions, meta.checks, fs.readFileSync(responsePath, 'utf8'), runDir);
           const reason = g.expectations.filter((item) => !item.passed).map((item) => `${item.text}: ${item.evidence}`).join('; ');
@@ -177,6 +186,8 @@ function report(results, out, opts) {
 
   const timeouts = timeoutSummary(results, opts.runTimeoutSeconds);
   if (timeouts) console.error(`\n${timeouts}`);
+  const missingChecks = missingChecksSummary(results);
+  if (missingChecks) console.error(`\n${missingChecks}`);
   if (errors.length) {
     console.error(`\n${errors.length} run(s) did not complete (not graded):`);
     for (const e of errors) console.error(`  ${e.skill} #${e.id} ${e.config}: ${e.error}`);
@@ -228,6 +239,7 @@ async function main() {
       for (const config of configs) {
         for (let repeat = 1; repeat <= opts.repeats; repeat++) {
           tasks.push(async () => {
+            if (!hasChecks(ev.checks)) return { skill, id: ev.id, config, repeat, passed: 0, failed: 0, total: 1, error: MISSING_CHECKS };
             const runDir = path.join(evalDir, config, `run-${repeat}`);
             process.stderr.write(`running ${skill} #${ev.id} ${config} repeat ${repeat}\n`);
             const { response, error, timedOut } = await answer(skill, ev.prompt, config === 'with_skill', opts, runDir);

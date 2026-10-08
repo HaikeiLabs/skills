@@ -19,9 +19,15 @@ import path from 'node:path';
 // scratch project, which holds nothing but the skill.
 export const CLAUDE_TOOLS = ['Skill', 'Read'];
 
+// Eval fixtures are the answer key. The runner never stages them (stage.mjs);
+// these deny rules are defense in depth in case one is ever present.
+export const CLAUDE_SETTINGS = { permissions: { deny: ['Read(**/evals/**)'] } };
+export const OPENCODE_READ_DENIED = ['*/evals/*', 'evals/*'];
+
 // Codex features that add tools beyond the read-only shell; each is disabled.
 // Codex 0.160 has no per-path read rule: its read-only sandbox can read the
-// whole disk, and it loads skills through that shell.
+// whole disk, and it loads skills through that shell. It relies on the runner
+// never staging evals/ into the scratch project.
 export const CODEX_DISABLED_FEATURES = ['multi_agent', 'apps', 'browser_use', 'in_app_browser',
   'computer_use', 'image_generation'];
 
@@ -44,7 +50,8 @@ export function opencodePermission(skill) {
     '*': 'deny',
     ...Object.fromEntries(OPENCODE_DENIED.map((name) => [name, 'deny'])),
     skill: { '*': 'deny', [skill]: 'allow' },
-    read: { '*': 'deny', ...Object.fromEntries(OPENCODE_SKILL_READ_PATTERNS.map((p) => [p, 'allow'])) },
+    read: { '*': 'deny', ...Object.fromEntries(OPENCODE_SKILL_READ_PATTERNS.map((p) => [p, 'allow'])),
+      ...Object.fromEntries(OPENCODE_READ_DENIED.map((p) => [p, 'deny'])) },
   };
 }
 
@@ -80,7 +87,7 @@ export const HARNESSES = {
     // project,local: load the scratch project's .claude/skills but not ~/.claude.
     command: (prompt, model) => ['claude', ['-p', prompt, '--output-format', 'text',
       '--setting-sources', 'project,local', '--strict-mcp-config',
-      '--tools', CLAUDE_TOOLS.join(','),
+      '--tools', CLAUDE_TOOLS.join(','), '--settings', JSON.stringify(CLAUDE_SETTINGS),
       ...(model ? ['--model', model] : [])]],
   },
   codex: {
