@@ -371,7 +371,33 @@ disabled, missing, or misconfigured kei-proxy denies **every** governed call
 inject a fake evaluator instead (see the `agentware-sdk` skill); a production
 harness should not run with kei-proxy disabled.
 
-## 7. Enrolling chat users (claim links)
+## 7. Make one governed call in the harness (first use)
+
+Shell-level checks (`kei-proxy authorize`, `verify.sh`) prove the plumbing, but
+they do not prove the harness itself makes a governed call. Setup is not
+complete until the harness does.
+
+In the harness, make **one** governed tool call — for example, have Claude Code
+run `git status` (a shell command your policies permit). For desktop harnesses
+the call is decided natively by the harness from the Kei-rendered policy; the
+`kei-proxy` hook records the decision for audit.
+
+Then confirm it in the console:
+
+- **Audit Logs** shows the call, recorded with the harness kind
+  (`claude_code`, `codex`, `opencode`, ...).
+- The installation's card shows the recent activity.
+
+The audit upload needs the runtime service running. Check it with:
+
+```sh
+kei runtime service status
+```
+
+If the service is not running, the call is still governed, but the audit record
+is not uploaded — so it will not appear in Audit Logs.
+
+## 8. Enrolling chat users (claim links)
 
 When a chat-platform user (Teams, Slack, or Discord) is not yet linked to a
 Kei user, the authorize endpoint returns `decision: "enrollment_required"`
@@ -727,9 +753,9 @@ kei harness list --installation INSTALLATION_ID --json | jq '.harnesses[].agent_
 - Agents are created in the console; there is no CLI command for that yet.
 - The explicit Harness resource and short-lived runtime identity in the ADRs
   are planned. Do not present them as available.
-- The installation-claim handshake (HAI-155) IS available for chat-platform
-  identities via the claim-link enrollment flow (see section 6 above), but is
-  NOT available for generic harness-to-installation linking.
+- The installation-claim handshake IS available for chat-platform
+   identities via the claim-link enrollment flow (see section 8 above), but is
+   NOT available for generic harness-to-installation linking.
 
 ## Related skills
 

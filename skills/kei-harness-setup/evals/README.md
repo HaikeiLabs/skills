@@ -5,12 +5,38 @@ Eval cases for the harness setup skill.
 ## Running
 
 ```bash
-node scripts/run-evals.mjs --skill kei-harness-setup --harness opencode \
-  --model ray/deepseek-ai/DeepSeek-V4-Flash \
-  --out evals-out/kei-harness-setup-deepseek-$(date +%F) --jobs 2
+EVAL_DEEPSEEK_BASE_URL=<openai-compatible endpoint> \
+  node scripts/run-evals.mjs --skill kei-harness-setup \
+  --model-profile deepseek-v4-flash --jobs 2 --repeats 1
 ```
 
+The runner grades each expectation with the deterministic `checks` array
+(`contains_all`, `contains_any`, `regex`, `not_contains`) — no LLM grader. A
+case passes only when every repeat passes. `--model-profile` requires
+`--harness opencode` (the default) and resolves the model + endpoint from
+`evals/model-profiles.yaml`.
+
 ## Results
+
+### 2026-10-08 (added first-use eval 10)
+
+Eval 10 asks, after a completed setup, what the last step is to prove it works
+end to end. With the skill it points to the new "first use" step; without it
+the model has no answer.
+
+| Config | Pass rate | Notes |
+| --- | --- | --- |
+| with_skill (eval 10) | 100% (4/4) | names the governed call, console confirm, `kei runtime service status` |
+| without_skill (eval 10) | 0% (0/4) | baseline does not know the first-use step |
+
+Eval 10 was run in isolation on DeepSeek-V4-Flash: the opencode harness
+truncates the imperative prompts (evals 1, 7) on tool-permission denials, so a
+full-suite run is flaky. With the skill, eval 10 passed 4/4; without it, 0/4.
+
+Migrated all ten eval cases to the deterministic `checks` convention (one
+check per expectation) so the suite runs under `scripts/run-evals.mjs`.
+
+See `results/2026-10-08-opencode-deepseek-v4-flash/` for the benchmark.
 
 ### 2026-10-06 (eval cases 7-8)
 

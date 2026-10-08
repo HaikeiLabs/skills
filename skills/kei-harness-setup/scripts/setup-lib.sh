@@ -222,3 +222,27 @@ if [ -x "${_SCRIPT_DIR}/verify.sh" ]; then
 else
   _warn "verify.sh not found; skipping verification."
 fi
+
+# --- 8. Next steps: first use ---
+# Reached only when verify.sh passed (set -e exits on a failed check).
+echo ""
+_info "Setup is complete. One last step proves it works end to end:"
+cat <<FIRST_USE_EOF
+  NEXT STEPS - make one governed call in the harness (first use)
+
+  1. In ${HARNESS_NAME}, make ONE governed tool call - for example, have
+     ${HARNESS_NAME} run: git status
+     (a shell command your policies permit). For desktop harnesses the call is
+     decided natively from the Kei-rendered policy; the kei-proxy hook records
+     the decision for audit. This proves the harness itself makes a governed
+     call, not just the shell-level checks above.
+
+  2. Confirm it in the console:
+       - Audit Logs shows the call, recorded with the harness kind (${KIND}).
+       - The installation's card shows the recent activity.
+
+  3. The audit upload needs the runtime service running. Check it with:
+       kei runtime service status
+     If it is not running, the call is still governed but the audit record is
+     not uploaded, so it will not appear in Audit Logs.
+FIRST_USE_EOF

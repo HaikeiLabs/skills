@@ -163,12 +163,12 @@
     {
       "id": 6,
       "prompt": "My kei-proxy logs say 'policy bundle candidate rejected: invalid policy bundle schema ... dst_pattern web_search does not match' and all governed calls are being denied. What went wrong and how do I fix it?",
-      "expected_output": "Explains that a harness command policy targets a bare tool name (e.g. web_search) but the schema requires a tool: prefix (e.g. tool:web_search). Recommends updating the dst_pattern to tool:<name> in the console or via kei policies update. Notes that kei-proxy fails closed until fixed. References HAI-372.",
+      "expected_output": "Explains that a harness command policy targets a bare tool name (e.g. web_search) but the schema requires a tool: prefix (e.g. tool:web_search). Recommends updating the dst_pattern to tool:<name> in the console or via kei policies update. Notes that kei-proxy fails closed until fixed.",
       "expectations": [
         "The response identifies that the dst_pattern uses a bare name instead of the tool: prefix.",
         "The response recommends updating the policy's dst_pattern to tool:<name> in the console.",
         "The response mentions that kei-proxy fails closed (denies everything) when the schema is invalid.",
-        "The response references HAI-372 as the known bug.",
+        "The response identifies the root cause as a policy bundle schema-validation failure.",
         "The response suggests re-running kei runtime bootstrap or restarting kei-proxy serve after the fix."
       ],
       "checks": [
@@ -193,10 +193,10 @@
           "regex": "(?=[\\s\\S]*fails closed)(?=[\\s\\S]*invalid)"
         },
         {
-          "text": "The response references HAI-372 as the known bug.",
+          "text": "The response identifies the root cause as a policy bundle schema-validation failure.",
           "contains_all": [
-            "dst_pattern",
-            "known"
+            "schema",
+            "validat"
           ]
         },
         {
@@ -250,7 +250,7 @@
     {
       "id": 8,
       "prompt": "I ran kei harness sync --harness claude_code but it says 'No registered harnesses selected'. What's going on?",
-      "expected_output": "Explains the policy bundle cached by kei-proxy is stale (HAI-403) and the new installation's harnesses are not reflected until the next refresh. Desktop harnesses are auto-discovered \u2014 no `kei harness add` needed. Suggests any policy edit triggers a refresh, or waiting for the background poll. Mentions the 6-hour bundle refresh window and references kei-harness-policy references/bundle-versioning.md.",
+      "expected_output": "Explains the policy bundle cached by kei-proxy is stale and the new installation's harnesses are not reflected until the next refresh. Desktop harnesses are auto-discovered \u2014 no `kei harness add` needed. Suggests any policy edit triggers a refresh, or waiting for the background poll. Mentions the 6-hour bundle refresh window and references kei-harness-policy references/bundle-versioning.md.",
       "expectations": [
         "The response identifies the cause as a stale policy bundle.",
         "The response suggests a policy edit as a workaround to force a bundle refresh.",
@@ -331,6 +331,47 @@
           "contains_all": [
             "kei harness sync",
             "primary path"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "I just finished the Kei harness setup for Claude Code \u2014 skills installed, runtime bootstrapped, harness registered and synced, verify.sh passed. What's the last thing I should do to be sure the setup actually works end to end?",
+      "expected_output": "Says setup is not complete until the harness itself makes one governed tool call (e.g. have Claude Code run git status) and the call is confirmed in the console: Audit Logs shows the call with the harness kind, and the installation's card shows the recent activity. Notes the runtime service must be running (kei runtime service status) for the audit upload.",
+      "expectations": [
+        "The response instructs making one governed tool call inside the harness itself (for example, having Claude Code run git status) as the final step, rather than stopping at shell-level checks.",
+        "The response says to confirm the call in the console Audit Logs, where it appears with the harness kind recorded.",
+        "The response says the installation's card shows the recent activity.",
+        "The response states the runtime service must be running for the audit upload and gives kei runtime service status to check it."
+      ],
+      "checks": [
+        {
+          "text": "The response instructs making one governed tool call inside the harness itself (for example, having Claude Code run git status) as the final step, rather than stopping at shell-level checks.",
+          "contains_all": [
+            "git status",
+            "governed"
+          ]
+        },
+        {
+          "text": "The response says to confirm the call in the console Audit Logs, where it appears with the harness kind recorded.",
+          "contains_all": [
+            "audit log",
+            "harness kind"
+          ]
+        },
+        {
+          "text": "The response says the installation's card shows the recent activity.",
+          "contains_all": [
+            "installation",
+            "recent activity"
+          ]
+        },
+        {
+          "text": "The response states the runtime service must be running for the audit upload and gives kei runtime service status to check it.",
+          "contains_all": [
+            "kei runtime service status",
+            "running"
           ]
         }
       ]
