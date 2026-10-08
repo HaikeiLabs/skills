@@ -80,13 +80,14 @@
     },
     {
       "id": 9,
-      "prompt": "My customer ran kei harness add for their OpenCode harness successfully, but kei harness sync --harness opencode says 'No registered harnesses selected'. They've tried running it four times. What's wrong?",
-      "expected_output": "Diagnoses a stale policy bundle (HAI-403): the new registration is not reflected until the bundle refreshes. Explains the bundle cache is held by kei-proxy and refresh happens on policy edit or background poll (up to 6 hours). Suggests a no-op policy edit as a workaround rather than retrying sync. References the Troubleshooting checklist and kei-harness-policy references/bundle-versioning.md.",
+      "prompt": "My customer ran kei harness sync --harness opencode and got 'No registered harnesses selected'. The harness is OpenCode on a workstation. What's wrong?",
+      "expected_output": "Diagnoses a stale policy bundle (HAI-403): the policy bundle cached by kei-proxy is stale and does not yet reflect the OpenCode harness on this installation. Explains the bundle cache is held by kei-proxy and refresh happens on policy edit or background poll (up to 6 hours). Suggests a no-op policy edit as a workaround rather than retrying sync. Desktop harnesses like OpenCode are auto-discovered — no `kei harness add` needed. References the Troubleshooting checklist and kei-harness-policy references/bundle-versioning.md.",
       "expectations": [
         "The response identifies HAI-403 (stale policy bundle) as the likely cause.",
         "The response explains that retrying sync without refreshing the bundle will not help.",
         "The response suggests a policy edit as the workaround, or waiting for the 6-hour background refresh.",
-        "The response does not suggest creating a new installation or re-registering the harness."
+        "The response does not suggest running `kei harness add` for a desktop harness.",
+        "The response clarifies that desktop harnesses are auto-discovered."
       ]
     },
     {

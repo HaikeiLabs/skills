@@ -1,6 +1,6 @@
 ---
 name: kei-cli
-description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade (including `--proxy-only` and `--uninstall`), `kei login` device-flow auth, runtime installations (`kei bot init|credential|agents|status|bind|delete`), harness command policies (`kei policies`), data connectors (`kei connectors`), model profiles and the credential store (`kei model-profiles`, `kei credential-store`), harness registration (`kei harness`), and local runtime config (`kei setup`, `kei runtime bootstrap`). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something from the CLI in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org, agent, group, or user commands — say so rather than inventing one. (`kei workspaces list`, `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and `kei credential-store` are the resource-oriented exceptions; use v0.1.13 or later.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
+description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade (including `--proxy-only` and `--uninstall`), `kei login` device-flow auth, runtime installations (`kei bot init|credential|agents|status|bind|delete`), harness command policies (`kei policies`), data connectors (`kei connectors`), model profiles and the credential store (`kei model-profiles`, `kei credential-store`), harness management (`kei harness` — `add` for custom/SDK only, `sync` for all harnesses including auto-discovered desktop), and local runtime config (`kei setup`, `kei runtime bootstrap`). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something from the CLI in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org, agent, group, or user commands — say so rather than inventing one. (`kei workspaces list`, `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and `kei credential-store` are the resource-oriented exceptions; use v0.1.13 or later.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
 ---
 
 # kei CLI
@@ -272,7 +272,7 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 | List data connectors | `kei connectors list [--workspace WS] [--json]` | yes |
 | Create a data connector | `kei connectors create --provider P --name NAME [--account-model M] [--set k=v] [--credential-ref R] [--capabilities a,b] [--workspace WS]` | yes |
 | Get / reconnect / delete a connector | `kei connectors get ID [--json]` / `kei connectors reconnect ID [--no-browser] [--keep-secret]` / `kei connectors delete ID --yes` | yes |
-| Register a harness | `kei harness add --installation ID --kind claude_code\|codex\|opencode\|custom --agent ID` | yes |
+| Register a custom/SDK harness | `kei harness add --kind custom [--installation ID] [--agent ID]` | yes |
 | Sync tool registrations | `kei harness sync [--harness KIND] [--dry-run]` | yes |
 | List registered harnesses | `kei harness list --installation ID [--json]` | yes |
 | Remove a harness | `kei harness remove AGENT_ID --installation ID` | yes |
@@ -293,11 +293,15 @@ All `bot` commands accept `--api-url URL` (override the default control-plane
 URL). `bot bind` works but is not listed in `kei help`.
 
 `kei harness` is **keyed by agent**, not by a surrogate harness ID: a harness
-is a property of an installation-agent assignment, so `add` requires `--agent`
-(the agent must already be attached to the installation via `kei bot agents
-add`), and `remove`/`sync` are addressed by the agent. There is no
-`--display-name`/`--name` flag. The console labels these harnesses "agents".
-For the full harness-command-policy workflow, load **`kei-harness-policy`**.
+is a property of an installation-agent assignment, so `add` is for custom/SDK
+harnesses (`--kind custom`) and requires `--agent` (the agent must already be
+attached to the installation via `kei bot agents add`). Desktop harnesses
+(`claude_code`, `codex`, `opencode`) are **auto-discovered** by `kei harness
+sync` — do NOT use `add` for them. `--installation` and `--agent` are optional
+with defaults (single installation, default agent). `remove`/`sync` are
+addressed by the agent. There is no `--display-name`/`--name` flag. The console
+labels these harnesses "agents". For the full harness-command-policy workflow,
+load **`kei-harness-policy`**.
 
 ## Model profiles and the credential store
 

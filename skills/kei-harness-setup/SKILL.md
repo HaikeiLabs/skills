@@ -1,6 +1,6 @@
 ---
 name: kei-harness-setup
-description: Connect a coding-agent harness — Claude Code, Codex, OpenCode, Pi, or Cursor — to Kei governance. Install the Haikei skills into the right skills directory, pair the harness with a runtime installation and kei-proxy, pass agent identity to each governed call, and prove that unbound calls are denied. Use whenever someone wants to "set up Kei in Claude Code/Codex/OpenCode/Pi/Cursor", install or update the Haikei skills, onboard a harness or adapter, or asks which harnesses Kei supports. Also covers the product harnesses Assistant, PDE, and Discord at the routing level.
+description: "Connect a coding-agent harness — Claude Code, Codex, OpenCode, Pi, or Cursor — to Kei governance. Install the Haikei skills into the right skills directory, pair the harness with a runtime installation and kei-proxy, pass agent identity to each governed call, and prove that unbound calls are denied. Desktop harnesses use `kei harness sync` (auto-detected, no registration needed); custom/SDK harnesses use `kei harness add`. Use whenever someone wants to \"set up Kei in Claude Code/Codex/OpenCode/Pi/Cursor\", install or update the Haikei skills, onboard a harness or adapter, or asks which harnesses Kei supports. Also covers the product harnesses Assistant, PDE, and Discord at the routing level."
 ---
 
 # Set up a harness with Kei
@@ -38,8 +38,9 @@ the platform admin CLI a person runs once to set things up (`kei-cli` skill);
 This skill includes portable setup scripts in `scripts/` for each supported
 coding-agent harness. Each script is self-contained POSIX `sh` (with a shared
 `setup-lib.sh`) that checks prerequisites, creates a runtime installation if
-the machine does not have one, registers and syncs the harness, and runs
-`verify.sh` to confirm the setup is valid.
+the machine does not have one, syncs the harness (desktop kinds are
+auto-detected — no separate registration needed), and runs `verify.sh` to
+confirm the setup is valid.
 
 **Installing from GitHub (clone + link):**
 
@@ -67,7 +68,7 @@ opencode debug skill | jq -r '.[].name' | grep '^kei'
 ```sh
 # The per-harness scripts handle everything: prerequisites check,
 # installation creation, credential piping (never printed to terminal),
-# harness registration, sync, and verification.
+# harness sync (desktop kinds auto-detected), and verification.
 bash skills/kei-harness-setup/scripts/setup-opencode.sh
 ```
 
@@ -201,24 +202,45 @@ At run time the harness process needs `KEI_RUNTIME_TOKEN` and
 spawns for each call inherits them. Load them from the secret manager; do not
 put the token in a harness config file in a repo.
 
-## 3. Register the harness and sync its tools
+## 3. Sync the harness (auto-discovery) or register a custom harness
 
 > **Prerequisite:** `kei policies` and `kei harness` ship in kei >v0.1.6,
 > unreleased as of 2026-10-01. Skip this step if the installed version predates
 > it. Load **`kei-harness-policy`** for the full command reference.
 
+### When to use `kei harness add`
+
+`kei harness add` is **only for custom/SDK harnesses** (`--kind custom`).
+Desktop coding harnesses (Claude Code, Codex, OpenCode, Pi) are **sessions**
+of one runtime installation per machine. They are auto-discovered by
+`kei harness sync` — you do NOT need to run `kei harness add` for them.
+
+| Use case | Action |
+|---|---|
+| Desktop harness on a workstation | `kei harness sync` — no `add` needed |
+| Custom/SDK harness you built | `kei harness add --kind custom [--installation ID] [--agent ID]` |
+
+Flags: `--installation` defaults to the single installation on this machine;
+`--agent` defaults to the default agent. Errors: `ALREADY_EXISTS` means the
+agent already has a harness on that installation; `no default agent found`
+means set a default agent with `kei bot agents add --default` or pass
+`--agent`.
+
+### Desktop harnesses: auto-discovered by sync
+
 A harness is keyed by the **agent** (3NF): its identity is
 `(installation_id, agent_id)`, and the console labels these harnesses "agents".
 The agent must already be attached to the installation (`kei bot agents add`).
-Register the harness for the agent so the control plane knows which native
-config format to render:
+
+For desktop harnesses (`claude_code`, `codex`, `opencode`), you skip `add`
+entirely — `sync` auto-discovers them:
 
 ```sh
-kei harness add --installation INSTALLATION_ID --kind claude_code --agent AGENT_ID
+kei harness sync --harness claude_code
 ```
 
-`--kind` is `claude_code`, `codex`, `opencode`, or `custom`. Then sync: fetch
-the policy bundle and render the native config for that kind:
+`--kind` is `claude_code`, `codex`, `opencode`, or `custom`. Sync fetches
+the policy bundle and renders the native config for that kind:
 
 ```sh
 kei harness sync --harness claude_code

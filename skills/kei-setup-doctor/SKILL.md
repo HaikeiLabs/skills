@@ -340,7 +340,7 @@ The `kei-harness-setup` skill has the full version with exact commands.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `kei harness sync` says "No registered harnesses selected" after `kei harness add` | Stale policy bundle (HAI-403) | Any policy edit triggers refresh; or wait for background poll (up to 6h) |
+| `kei harness sync` says "No registered harnesses selected" after `kei harness add` (custom/SDK harness) | Stale policy bundle (HAI-403) | Any policy edit triggers refresh; or wait for background poll (up to 6h). Desktop harnesses are auto-discovered — no `add` needed, just sync. |
 | Native config stale after policy update | Re-render needs explicit sync | `kei harness sync --harness <kind>` |
 | Policy bundle rollback after switching installations | Cached bundle from old installation (HAI-404) | Move `~/Library/Application Support/kei-proxy` or `~/.local/share/kei-proxy` aside before bootstrap |
 

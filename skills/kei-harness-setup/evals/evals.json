@@ -66,7 +66,7 @@
     {
       "id": 7,
       "prompt": "I have a fresh macOS machine and want to set up Claude Code with Kei. Walk me through using the setup script.",
-      "expected_output": "Directs the user to run skills/kei-harness-setup/scripts/setup-claude-code.sh, explains it checks prerequisites (kei/kei-proxy on PATH, login), creates a new runtime installation if none exists, registers and syncs the harness, and runs verify.sh. Warns that credentials are never printed to the terminal.",
+      "expected_output": "Directs the user to run skills/kei-harness-setup/scripts/setup-claude-code.sh, explains it checks prerequisites (kei/kei-proxy on PATH, login), creates a new runtime installation if none exists, syncs the harness (desktop kinds auto-detected), and runs verify.sh. Warns that credentials are never printed to the terminal.",
       "expectations": [
         "The response references the scripts/ directory and setup-claude-code.sh.",
         "The response explains the script handles a fresh machine: no existing ~/.config/kei.yaml triggers automatic installation creation.",
@@ -76,13 +76,25 @@
     },
     {
       "id": 8,
-      "prompt": "I just added my harness with kei harness add but kei harness sync says 'No registered harnesses selected'. What's going on?",
-      "expected_output": "Explains the policy bundle cached by kei-proxy is stale (HAI-403) and the new registration is not reflected until the next refresh. Suggests any policy edit triggers a refresh, or waiting for the background poll. Mentions the 6-hour bundle refresh window and references kei-harness-policy references/bundle-versioning.md.",
+      "prompt": "I ran kei harness sync --harness claude_code but it says 'No registered harnesses selected'. What's going on?",
+      "expected_output": "Explains the policy bundle cached by kei-proxy is stale (HAI-403) and the new installation's harnesses are not reflected until the next refresh. Desktop harnesses are auto-discovered — no `kei harness add` needed. Suggests any policy edit triggers a refresh, or waiting for the background poll. Mentions the 6-hour bundle refresh window and references kei-harness-policy references/bundle-versioning.md.",
       "expectations": [
         "The response identifies the cause as a stale policy bundle (HAI-403).",
         "The response suggests a policy edit as a workaround to force a bundle refresh.",
         "The response mentions the 6-hour background refresh window.",
-        "The response references kei-harness-policy references/bundle-versioning.md for versioning details."
+        "The response references kei-harness-policy references/bundle-versioning.md for versioning details.",
+        "The response clarifies that desktop harnesses are auto-discovered — no `add` needed."
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "I installed Codex next to Claude Code on the same machine and both need Kei governance. Do I run `kei harness add` for each? How does the setup script handle this? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "No `kei harness add` needed for either. Desktop coding harnesses (Claude Code, Codex, OpenCode) are sessions of the same runtime installation and are auto-discovered by `kei harness sync`. The setup script (setup-lib.sh) calls `kei harness add` with `|| true` for backward compatibility, but its primary path is `kei harness sync` which detects all desktop harnesses automatically. `kei harness add` is only for custom/SDK harnesses (`--kind custom`).",
+      "expectations": [
+        "states that desktop harnesses do not need `kei harness add`",
+        "explains both Codex and Claude Code on the same machine share one installation and are auto-discovered by sync",
+        "mentions that the setup script calls `kei harness add` with `|| true` for backward compatibility",
+        "says `kei harness sync` is the primary path for desktop harnesses"
       ]
     }
   ]
