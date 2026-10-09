@@ -15,7 +15,7 @@ permissions:
 jobs:
   yaml-lint:
     name: yaml-lint
-    runs-on: kei-docker-ci
+    runs-on: kei-public-ci
     steps:
       - uses: actions/checkout@v5
         with:
@@ -35,7 +35,7 @@ jobs:
 
   verify:
     name: verify-skills-repo
-    runs-on: kei-docker-ci
+    runs-on: kei-public-ci
     steps:
       - uses: actions/checkout@v5
         with:
