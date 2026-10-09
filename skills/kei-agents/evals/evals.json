@@ -8,6 +8,23 @@
       "expectations": [
         "The response keeps provider execution and credentials out of kei-agents definitions.",
         "The response distinguishes a connector read from a write action with a policy boundary."
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "kei-agents",
+            "tool definitions"
+          ],
+          "text": "The response keeps provider execution and credentials out of kei-agents definitions."
+        },
+        {
+          "contains_all": [
+            "connector",
+            "read",
+            "write"
+          ],
+          "text": "The response distinguishes a connector read from a write action with a policy boundary."
+        }
       ]
     },
     {
@@ -17,6 +34,145 @@
       "expectations": [
         "The response recommends validation before publication or execution.",
         "The response directs the user to the package source and docs as the authority for exact API names."
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "render_tools",
+            "validation"
+          ],
+          "text": "The response recommends validation before publication or execution."
+        },
+        {
+          "contains_all": [
+            "package source",
+            "docs"
+          ],
+          "text": "The response directs the user to the package source and docs as the authority for exact API names."
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I need to define a governed read schema for a GitHub connector that lets agents list repositories and read issues, but not write anything. How do I express this in kei-agents, and what must be delegated context?",
+      "expected_output": "Uses a ToolDefinition with type read for github.list_repositories and github.read_issue, attaches a Permission with ABAC conditions scoped to read, and includes delegated_context so the runtime enforces the human's identity, not the agent's.",
+      "expectations": [
+        "defines ToolDefinition with ABAC read permission and delegated_context for the human's identity",
+        "separates list_repositories and read_issue as distinct tool definitions",
+        "states that delegated_context fields like tenant identifiers must not be supplied as tool parameters"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "ToolDefinition",
+            "ABAC",
+            "delegated_context"
+          ],
+          "text": "defines ToolDefinition with ABAC read permission and delegated_context for the human's identity"
+        },
+        {
+          "contains_all": [
+            "list_repositories",
+            "read_issue"
+          ],
+          "text": "separates list_repositories and read_issue as distinct tool definitions"
+        },
+        {
+          "contains_any": [
+            "tenant",
+            "delegated_context"
+          ],
+          "text": "states that delegated_context fields like tenant identifiers must not be supplied as tool parameters"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I defined a set of tool definitions and want to validate them against the hard invariants in the kei-agents package. What function should I call, and what kind of issues would it catch?",
+      "expected_output": "Calls validate_tool_definitions() from the agents package with ALL_TOOL_DEFINITIONS. It catches missing required fields, invalid model formats, permission gates without ABAC conditions, and delegated_context misconfigurations.",
+      "expectations": [
+        "calls validate_tool_definitions() with ALL_TOOL_DEFINITIONS",
+        "lists at least two types of issues it catches (missing fields, invalid formats, permission issues, delegated_context errors)"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "validate_tool_definitions",
+            "ALL_TOOL_DEFINITIONS"
+          ],
+          "text": "calls validate_tool_definitions() with ALL_TOOL_DEFINITIONS"
+        },
+        {
+          "contains_any": [
+            "missing fields",
+            "invalid model formats",
+            "permission"
+          ],
+          "text": "lists at least two types of issues it catches (missing fields, invalid formats, permission issues, delegated_context errors)"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I'm supporting both OpenAI and Anthropic model formats for the same tool. How does kei-agents handle multi-model rendering, and what happens if a model format is unsupported?",
+      "expected_output": "Uses render_tools() with ModelFormat enum (OPENAI, ANTHROPIC, OLLAMA). Unsupported formats raise or return an error. Points to render_tools source and model_format.py for exact signatures. Warns against guessing supported formats.",
+      "expectations": [
+        "uses render_tools() with ModelFormat enum values for the supported formats",
+        "states unsupported model formats raise an error rather than silently producing bad output",
+        "directs to render_tools source and model_format.py for exact API signatures"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "render_tools",
+            "ModelFormat"
+          ],
+          "text": "uses render_tools() with ModelFormat enum values for the supported formats"
+        },
+        {
+          "contains_all": [
+            "unsupported",
+            "error"
+          ],
+          "text": "states unsupported model formats raise an error rather than silently producing bad output"
+        },
+        {
+          "contains_all": [
+            "model_format.py"
+          ],
+          "text": "directs to render_tools source and model_format.py for exact API signatures"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "I need to bind a connector capability (read GitHub issues) to an agent tool so the runtime enforces policy per call. What is the ToolBinding and how does it reference the connector?",
+      "expected_output": "Uses ToolBinding with tool_name pointing to the ToolDefinition and connector_id referencing abac.connection_presets.id. Explains connector_id values are placeholders and must not be treated as real connector identifiers. Warns against embedding endpoints or credentials in binding config.",
+      "expectations": [
+        "uses ToolBinding with tool_name and connector_id referencing abac.connection_presets.id",
+        "warns connector_id values are placeholders and must not be treated as real identifiers",
+        "states not to embed endpoints or credentials in binding config"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "ToolBinding",
+            "connector_id"
+          ],
+          "text": "uses ToolBinding with tool_name and connector_id referencing abac.connection_presets.id"
+        },
+        {
+          "contains_all": [
+            "abac.connection_presets.id"
+          ],
+          "text": "warns connector_id values are placeholders and must not be treated as real identifiers"
+        },
+        {
+          "contains_all": [
+            "placeholders"
+          ],
+          "text": "states not to embed endpoints or credentials in binding config"
+        }
       ]
     }
   ]

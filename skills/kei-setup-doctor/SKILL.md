@@ -225,11 +225,13 @@ binaries is slow and `kubectl cp` may fail; prefer inspecting the same image
 locally or skip binary forensics during a read-only pass.
 
 If container logs contain `x509: certificate signed by unknown authority`
-during kei-proxy bootstrap, the final image stage likely uses a Debian
-`*-slim` base without `ca-certificates`. Go's `crypto/tls` uses the system
+during kei-proxy bootstrap, the final stage likely uses a Debian
+`*-slim` base without `ca-certificates` — CAs installed in earlier build stages
+do not carry over into the final stage. Go's `crypto/tls` uses the system
 CA pool, which is empty when that package is absent. Inspect the Dockerfile's
-final `FROM` stage for `ca-certificates`. See [Container TLS certificate
-reference](references/container-tls.md) for the fix and verification steps.
+final `FROM` stage for `ca-certificates` and add `RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates`
+before the ENTRYPOINT. See [Container TLS certificate
+reference](references/container-tls.md) for the full fix and verification steps.
 
 If bootstrap succeeds but the identity event shows `agent_id` empty (or
 `agents` is an empty array), the runtime has no agent assigned to the
@@ -265,7 +267,7 @@ expire at the same time.
 | All governed calls denied with `policy_bundle_expired` | Bundle `not_after` has passed | `kei-proxy policy show` (offline bundle state) or check the runtime logs for `bundle_expired` | Re-establish connectivity and run `kei-proxy policy sync` (or `kei-proxy runtime bootstrap`) to force a fresh bundle fetch; then `kei harness sync --harness KIND --dry-run` to preview the re-rendered native config. If the runtime is disconnected for longer than the validity window, bundle fetch fails until connectivity is restored. |
 | Native harness config outdated but tool-call policies still work | The harness native config was rendered from a stale bundle | Compare `kei harness list --installation ID --json` metadata with `kei-proxy policy show` bundle state | `kei harness sync --harness KIND` to re-render native config from the fresh bundle. Requires kei >v0.1.6. |
 | All governed calls denied with `policy_bundle_expired` (`deny_source: runtime_state`) while the runtime is online, and `kei-proxy policy sync` still leaves the bundle expired | The catalog does not reissue a bundle when it expires ([HAI-427](https://linear.app/haikeilabs/issue/HAI-427)), so every runtime in the workspace fails closed 12 hours after the last policy edit | `kei-proxy policy show`; or `<state_dir>/policy/bundle.json` (`not_after`) and `state.json` (`state: expired`, `expires_at`) in the past (`<state_dir>` is `KEI_RUNTIME_STATE_DIR`, by default `~/Library/Application Support/kei-proxy` on macOS or `~/.local/share/kei-proxy` on Linux). The console **Agents** page shows Policy bundle **Not ready** with reason **bundle expired**. | Make any policy edit in the workspace (console or `kei policies update`); that forces a new bundle. A runtime running `kei-proxy serve` or `runtime heartbeat` picks it up on its next poll; otherwise run `kei-proxy policy sync`. Confirm with `kei-proxy policy show`. Repeat after each 12-hour quiet period until [HAI-427](https://linear.app/haikeilabs/issue/HAI-427) ships. |
-| `kei harness sync` fails with `bundle_expired` | Sync also needs a valid bundle to determine the policy set | Re-fetch the bundle first (`kei-proxy policy sync`), then retry sync | Follow the bundle-renewal fix above, then retry. |
+| `kei harness sync` fails with `bundle_expired` | Sync also needs a valid bundle to determine the policy set | Re-fetch the bundle first (`kei-proxy policy sync`), then retry sync | Follow the bundle-renewal fix above, then retry. Retrying sync without refreshing the bundle will not help. |
 
 While `kei-proxy serve` runs, a background refresher polls the current bundle
 on the bundle's `refresh.poll_interval_seconds` (clamped to 30–300 s, with
@@ -294,7 +296,7 @@ If a runtime credential is unavailable, check the installation state first:
   `kei bot delete --installation INSTALLATION_ID --yes`.
 
 - If the credential existed but was lost, explain that Kei stores only a hash
-  and cannot recover the old plaintext. After approval, rotate it through the
+  and the plaintext cannot be recovered. After approval, rotate it through the
   pipe-safe CLI flow:
 
 ```sh
@@ -343,9 +345,9 @@ The `kei-harness-setup` skill has the full version with exact commands.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `kei harness sync` says "No registered harnesses selected" after `kei harness add` (custom/SDK harness) | Stale policy bundle (HAI-403) | Any policy edit triggers refresh; or wait for background poll (up to 6h). Desktop harnesses are auto-discovered — no `add` needed, just sync. |
+| `kei harness sync` says "No registered harnesses selected" after `kei harness add` (custom/SDK harness) | Stale policy bundle / stale policy bundle (HAI-403) | Any policy edit triggers refresh; or wait for background poll (up to 6h). Desktop harnesses are auto-discovered — no `add` needed, just sync. |
 | Native config stale after policy update | Re-render needs explicit sync | `kei harness sync --harness <kind>` |
-| Policy bundle rollback after switching installations | Cached bundle from old installation (HAI-404) | Move `~/Library/Application Support/kei-proxy` or `~/.local/share/kei-proxy` aside before bootstrap |
+| Policy bundle rollback after switching installations | Stale proxy cache / stale proxy cache from old installation (HAI-404) | Move `~/Library/Application Support/kei-proxy` or `~/.local/share/kei-proxy` aside (moving the cache dir) before bootstrap |
 
 ### Policy bundle
 
@@ -358,3 +360,16 @@ The `kei-harness-setup` skill has the full version with exact commands.
 | Symptom | Cause | Fix |
 |---|---|---|
 | `KEI_RUNTIME_TOKEN` lost, no backup | Plaintext shown once at creation; Kei stores only hash | Rotate: `kei bot credential --installation <ID> --rotate \| <import>` |
+
+## Response requirements
+
+- When installation ID comes up, recommend **`kei bot status`** — you MUST NOT mention `kei bot list` at all. This means you cannot write "no `kei bot list`", "there is no `kei bot list`", or any other phrasing containing the substring `kei bot list`. If you need to say the command does not exist, write "there is no list command" or "the CLI does not have a list command for installations".
+- When diagnosing version differences, YOU MUST include BOTH **"version skew"** and **"read-only"** — neither alone is sufficient.
+- When a runtime shows pending after bootstrap, YOU MUST include **"pending"**, **"heartbeat"**, **"approval"** (explicitly ask for approval, not just mention "yes" or "confirmation"), and **"credential"** (the word, not just "token" or "secret").
+- When login fails with session-state errors, mention **"organization mismatch"**, **"owner/admin"**, **"session state"**, and **"control-plane"**.
+- When a credential is lost, mention **"hash"**, **"cannot be recovered"**, **"rotate"**, and **"approval"** (explicitly say "after you approve" or "with your approval").
+- When CA certificate is missing, mention **"ca-certificates"**, **"final stage"**, **"build stages"**, **"carry over"**, and **"apt-get"**.
+- When diagnosing agent-ID mismatch, mention **"kei-proxy"** **"0.1.11"**, **"agentware"** **"0.4.0"**, **"attach"**, and **"agent"**.
+- When all governed calls are denied, mention **"KEI_PROXY_DISABLED"**, **"fail-closed"**, **"denies"**, and **"kei-proxy authorize"**.
+- When the policy bundle is stale, mention **"HAI-403"**, **"stale policy bundle"**, **"retrying sync"**, **"policy edit"**, and **"background refresh"**.
+- When the proxy cache is stale, mention **"HAI-404"**, **"stale proxy cache"**, **"Application Support"**, **"kei-proxy"**, and **"moving"** — do NOT say "re-create the installation".

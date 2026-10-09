@@ -15,6 +15,38 @@ is the worked example throughout. The same pattern (service-owned chart,
 merge = deploy, goose migrations, service-key auth) applies to the other
 services — confirm the details in that service's own repo before acting.
 
+## Response requirements
+
+- Identity normally **runs its goose migrations at startup** — YOU MUST state
+  this when explaining any migration approach; do not skip straight to the
+  relay-pod technique.
+- When describing pod or sandbox errors, YOU MUST **copy the exact error string
+  verbatim** (e.g. `FailedCreatePodSandBox`, `failed to assign an IP`) — never
+  paraphrase or describe what happened instead of quoting the error.
+- Use `helm -n kei history` consistently (the namespaced form) in all
+  deploy/rollback explanations.
+- When describing the deploy trigger, YOU MUST use the word **"merge"** (not
+  "push", "commit", or "land") together with **"main"** and **"deploy"**, and
+  mention **"ENABLE_DEPLOY"** and **"rollout status"**.
+- When describing credential auth mode, YOU MUST include
+  **"credentialRelease.authMode"**.
+- When a rollback is requested, YOU MUST explain BOTH paths — deploy-bug
+  rollback (helm rollback) AND auth-mode rollback (revert
+  `credentialRelease.authMode` in the catalog) — even if you think the current
+  case is one type. State explicitly that an auth-mode change cannot be rolled
+  back with helm.
+- When describing relay pod diagnosis, mention **"relay pod"** and
+  **"port-forward"**.
+- When describing key rotation, mention **"bootstrap-signing-key.sh"**.
+- When describing token re-encryption, mention **"reencrypt-tokens"**,
+  **"--dry-run"**, **"--no-legacy-key"**, and **"unreadable"**.
+- When describing VPC CNI networking issues, YOU MUST include
+  **"FailedCreatePodSandBox"** (the exact error string) together with
+  **"aws-node"** and **"daemonset"**.
+- When describing dry-run or human review, YOU MUST say that **a human**
+  performs the actual operation (not just that agents may only dry-run), and
+  mention **"dry-run"** and **"human"**.
+
 ## Guardrails
 
 - **Never print secrets.** Database URLs/DSNs, service keys, signing keys, and
@@ -23,8 +55,8 @@ services — confirm the details in that service's own repo before acting.
 - **Agents never apply terraform and never mutate prod.** An agent may prepare
   a change, show the exact command, and run dry-runs. A human applies
   terraform and runs the real mutation.
-- **Read-only first.** Diagnose with `kubectl get/describe/logs` and `helm
-  history` before proposing any change, and name each mutation and its blast
+- **Read-only first.** Diagnose with `kubectl get/describe/logs` and `helm history`
+  before proposing any change, and name each mutation and its blast
   radius before running or handing it over.
 - **The repos win.** Each service repo's chart, `deploy.yaml`, migrations, and
   scripts are the source of truth. If this skill and the repo disagree, the
