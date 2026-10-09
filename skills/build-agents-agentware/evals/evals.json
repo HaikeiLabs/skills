@@ -1,0 +1,200 @@
+{
+  "skill_name": "build-agents-agentware",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "In Python, using the kei-agents package and the agentware SDK, how do I load the prebuilt Pedro agent's system prompt and its tools in OpenAI function-tool format so I can pass them to my model client? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Use PEDRO_AGENT with load_system_prompt(PEDRO_AGENT) and render_tools(get_agent_tools(PEDRO_AGENT), ModelFormat.OPENAI); validate with validate_agent_definitions.",
+      "expectations": [
+        "uses load_system_prompt to read the agent prompt",
+        "renders the tools with render_tools and ModelFormat.OPENAI",
+        "resolves the agent's tools with get_agent_tools"
+      ],
+      "checks": [
+        {
+          "text": "uses load_system_prompt to read the agent prompt",
+          "contains_any": [
+            "load_system_prompt"
+          ]
+        },
+        {
+          "text": "renders the tools with render_tools and ModelFormat.OPENAI",
+          "contains_all": [
+            "render_tools",
+            "ModelFormat.OPENAI"
+          ]
+        },
+        {
+          "text": "resolves the agent's tools with get_agent_tools",
+          "contains_any": [
+            "get_agent_tools"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I have a Python agent harness with a few tool functions. I want every tool call checked against a policy that only allows file_bug, search_wiki and web_search, with every other tool denied, and every call audited. How do I do that with the agentware SDK, and what happens when a call is denied? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Wrap calls in AuditedToolClient with a SimplePolicyEvaluator(Policy(rules=[Rule(... action=Action.ALLOW)], default_deny=True)); a denied call raises PermissionError and is still audited.",
+      "expectations": [
+        "uses AuditedToolClient",
+        "sets the policy to default deny",
+        "says a denied call raises PermissionError"
+      ],
+      "checks": [
+        {
+          "text": "uses AuditedToolClient",
+          "contains_any": [
+            "AuditedToolClient"
+          ]
+        },
+        {
+          "text": "sets the policy to default deny",
+          "contains_any": [
+            "default_deny"
+          ]
+        },
+        {
+          "text": "says a denied call raises PermissionError",
+          "contains_any": [
+            "PermissionError"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "My agentware harness uses a local Policy today. How do I switch it so Kei's workspace policy decides each tool call instead, and what happens if the kei-proxy binary is missing or KEI_RUNTIME_TOKEN is not set? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Replace the evaluator with KeiProxyEvaluator(KeiProxyAuthorizeClient(...)) via with_policy; it fails closed — a missing binary (proxy_unavailable) or missing token (missing_token) is a DENY.",
+      "expectations": [
+        "uses KeiProxyEvaluator",
+        "says a missing binary or token results in a deny",
+        "describes the behaviour as fail closed"
+      ],
+      "checks": [
+        {
+          "text": "uses KeiProxyEvaluator",
+          "contains_any": [
+            "KeiProxyEvaluator"
+          ]
+        },
+        {
+          "text": "says a missing binary or token results in a deny",
+          "regex": "den(y|ied|ies)"
+        },
+        {
+          "text": "describes the behaviour as fail closed",
+          "contains_any": [
+            "fail closed",
+            "fails closed",
+            "fail-closed",
+            "fails-closed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "My orchestrator agent spawns subagents that also call governed tools through agentware. How do I make sure the audit trail attributes the subagents' tool calls to the human who asked, not to the bot? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Set invoking_subject to the human at the entry point and derive child contexts with caller.delegate(), which keeps invoking_subject, sets parent_span and increments delegation_depth.",
+      "expectations": [
+        "keeps the human as invoking_subject",
+        "derives the child context with delegate()",
+        "mentions parent_span or delegation_depth"
+      ],
+      "checks": [
+        {
+          "text": "keeps the human as invoking_subject",
+          "contains_any": [
+            "invoking_subject"
+          ]
+        },
+        {
+          "text": "derives the child context with delegate()",
+          "contains_any": [
+            ".delegate(",
+            "delegate()"
+          ]
+        },
+        {
+          "text": "mentions parent_span or delegation_depth",
+          "regex": "parent_span|delegation_depth"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I'm defining a tool for my agent that creates a Linear issue. What arguments should the tool take? Should I add tenant_id or workspace_id arguments so the agent can pick where the issue goes? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Follow the Semantics rule: the child resource takes its parent's id (team_id/team_key); enum values from the key-fields table; never add tenant_id/workspace — that scope is proxy-delegated from the runtime token.",
+      "expectations": [
+        "includes the parent team identifier as an argument",
+        "says tenant or workspace scope is delegated, not an argument",
+        "references the Semantics rule"
+      ],
+      "checks": [
+        {
+          "text": "includes the parent team identifier as an argument",
+          "regex": "team_?(id|key)"
+        },
+        {
+          "text": "says tenant or workspace scope is delegated, not an argument",
+          "contains_any": [
+            "delegated",
+            "runtime token",
+            "from the runtime",
+            "never an argument",
+            "not an argument",
+            "never a tool arg"
+          ]
+        },
+        {
+          "text": "references the Semantics rule",
+          "contains_any": [
+            "semantics"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "When KeiProxyEvaluator denies a tool call, the decision sometimes has a connect object with a url. What is it and what should my chat harness do with it? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "decision.connect means the user's own OAuth connection is missing or expired; send the one-time url privately to that user and never log it.",
+      "expectations": [
+        "says to deliver the link privately to the user",
+        "says never to log the link"
+      ],
+      "checks": [
+        {
+          "text": "says to deliver the link privately to the user",
+          "regex": "privately|private (message|channel|dm)|direct message|\\bDMs?\\b"
+        },
+        {
+          "text": "says never to log the link",
+          "regex": "(never|not|n't|avoid)\\W+(\\w+\\W+){0,3}log"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Can I just run pip install pedro-agentware from PyPI to get the agentware Python SDK? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "No; the Python package is not on public PyPI. Install from a checkout: pip install -e ./python (TypeScript is on npm as @haikeilabs/agentware).",
+      "expectations": [
+        "says to install from a checkout rather than PyPI"
+      ],
+      "checks": [
+        {
+          "text": "says to install from a checkout rather than PyPI",
+          "contains_any": [
+            "pip install -e",
+            "from a checkout",
+            "not on pypi",
+            "not published",
+            "isn't on pypi",
+            "is not on public pypi",
+            "not available on pypi"
+          ]
+        }
+      ]
+    }
+  ]
+}
