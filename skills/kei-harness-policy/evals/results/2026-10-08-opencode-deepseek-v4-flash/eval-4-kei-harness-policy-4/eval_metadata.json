@@ -1,0 +1,41 @@
+{
+  "eval_id": 4,
+  "eval_name": "kei-harness-policy-eval-4",
+  "skill": "kei-harness-policy",
+  "prompt": "All my governed tool calls started failing with reason_code: policy_bundle_expired. What happened and how do I fix it? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+  "assertions": [
+    "explains the bundle has a `not_after` expiry (ADR-026 \u00a74)",
+    "mentions forcing a fresh bundle fetch (kei-proxy policy sync or runtime bootstrap)",
+    "mentions `kei harness sync` to re-render native config from the fresh bundle",
+    "notes that offline runtimes cannot fetch new bundles until connectivity is restored",
+    "explains that bundle refresh is normally automatic (background refresher in serve)"
+  ],
+  "checks": [
+    {
+      "text": "explains the bundle has a `not_after` expiry (ADR-026 \u00a74)",
+      "contains_any": [
+        "not_after",
+        "expir"
+      ]
+    },
+    {
+      "text": "mentions forcing a fresh bundle fetch (kei-proxy policy sync or runtime bootstrap)",
+      "contains_any": [
+        "kei-proxy policy sync",
+        "runtime bootstrap"
+      ]
+    },
+    {
+      "text": "mentions `kei harness sync` to re-render native config from the fresh bundle",
+      "regex": "(?=[\\s\\S]*kei harness sync)(?=[\\s\\S]*native)"
+    },
+    {
+      "text": "notes that offline runtimes cannot fetch new bundles until connectivity is restored",
+      "regex": "(?=[\\s\\S]*connect)(?=[\\s\\S]*(?:offline|lost|unreachable|cannot fetch|no network))"
+    },
+    {
+      "text": "explains that bundle refresh is normally automatic (background refresher in serve)",
+      "regex": "(?=[\\s\\S]*background)(?=[\\s\\S]*(?:automatic|auto|refresh|poll))"
+    }
+  ]
+}

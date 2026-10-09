@@ -1,0 +1,58 @@
+{
+  "expectations": [
+    {
+      "text": "The response correctly identifies DeepSeek's format as OpenAI-compatible JSON.",
+      "passed": true,
+      "evidence": "Found all: DeepSeek, OpenAI-compatible",
+      "check": {
+        "text": "The response correctly identifies DeepSeek's format as OpenAI-compatible JSON.",
+        "contains_all": [
+          "DeepSeek",
+          "OpenAI-compatible"
+        ]
+      }
+    },
+    {
+      "text": "The response mentions reasoning_content and [THINK] tags.",
+      "passed": true,
+      "evidence": "Found all: reasoning_content, THINK",
+      "check": {
+        "text": "The response mentions reasoning_content and [THINK] tags.",
+        "contains_all": [
+          "reasoning_content",
+          "THINK"
+        ]
+      }
+    },
+    {
+      "text": "The response covers governed call identity (KEI_PROXY_FRAMEWORK, KEI_PROXY_INVOKING_SUBJECT).",
+      "passed": true,
+      "evidence": "Found all: KEI_PROXY_FRAMEWORK, KEI_PROXY_INVOKING_SUBJECT",
+      "check": {
+        "text": "The response covers governed call identity (KEI_PROXY_FRAMEWORK, KEI_PROXY_INVOKING_SUBJECT).",
+        "contains_all": [
+          "KEI_PROXY_FRAMEWORK",
+          "KEI_PROXY_INVOKING_SUBJECT"
+        ]
+      }
+    },
+    {
+      "text": "The response cross-references kei-openai-backends and kei-runtime-setup for details.",
+      "passed": false,
+      "evidence": "Missing: kei-openai-backends, kei-runtime-setup",
+      "check": {
+        "text": "The response cross-references kei-openai-backends and kei-runtime-setup for details.",
+        "contains_all": [
+          "kei-openai-backends",
+          "kei-runtime-setup"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 1,
+    "total": 4,
+    "pass_rate": 0.75
+  }
+}

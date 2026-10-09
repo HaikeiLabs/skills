@@ -1,0 +1,56 @@
+{
+  "expectations": [
+    {
+      "text": "The response references the scripts/ directory and setup-claude-code.sh.",
+      "passed": true,
+      "evidence": "Found all: scripts/, setup-claude-code.sh",
+      "check": {
+        "text": "The response references the scripts/ directory and setup-claude-code.sh.",
+        "contains_all": [
+          "scripts/",
+          "setup-claude-code.sh"
+        ]
+      }
+    },
+    {
+      "text": "The response explains the script handles a fresh machine by creating a new runtime installation when none exists.",
+      "passed": true,
+      "evidence": "Found all: fresh, runtime installation",
+      "check": {
+        "text": "The response explains the script handles a fresh machine by creating a new runtime installation when none exists.",
+        "contains_all": [
+          "fresh",
+          "runtime installation"
+        ]
+      }
+    },
+    {
+      "text": "The response notes that credentials are piped directly from kei bot credential into kei setup and never printed.",
+      "passed": false,
+      "evidence": "No match for /(?=[\\s\\S]*kei bot credential)(?=[\\s\\S]*kei setup)(?=[\\s\\S]*(?:pipe|never printed|credential))/i",
+      "check": {
+        "text": "The response notes that credentials are piped directly from kei bot credential into kei setup and never printed.",
+        "regex": "(?=[\\s\\S]*kei bot credential)(?=[\\s\\S]*kei setup)(?=[\\s\\S]*(?:pipe|never printed|credential))"
+      }
+    },
+    {
+      "text": "The response mentions that verification runs at the end to confirm the setup is valid.",
+      "passed": false,
+      "evidence": "Missing: valid",
+      "check": {
+        "text": "The response mentions that verification runs at the end to confirm the setup is valid.",
+        "contains_all": [
+          "verif",
+          "confirm",
+          "valid"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 2,
+    "total": 4,
+    "pass_rate": 0.5
+  }
+}

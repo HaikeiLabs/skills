@@ -1,0 +1,44 @@
+{
+  "eval_id": 10,
+  "eval_name": "kei-setup-doctor-eval-10",
+  "skill": "kei-setup-doctor",
+  "prompt": "A customer switched their Kei installation to a new credential and now the policy bundle seems wrong \u2014 old rules are applying that shouldn't be. They're on macOS. What should I check?",
+  "assertions": [
+    "The response identifies the likely cause as a stale proxy bundle cache (HAI-404).",
+    "The response gives the correct macOS cache path (~/Library/Application Support/kei-proxy).",
+    "The response recommends moving the cache directory aside before re-bootstrapping, not deleting it.",
+    "The response does not suggest re-creating the installation or rotating the credential again."
+  ],
+  "checks": [
+    {
+      "text": "The response identifies the likely cause as a stale proxy bundle cache (HAI-404).",
+      "contains_all": [
+        "stale",
+        "cache"
+      ]
+    },
+    {
+      "text": "The response gives the correct macOS cache path (~/Library/Application Support/kei-proxy).",
+      "contains_all": [
+        "Library",
+        "Application Support",
+        "kei-proxy"
+      ]
+    },
+    {
+      "text": "The response recommends moving the cache directory aside before re-bootstrapping, not deleting it.",
+      "contains_all": [
+        "moving",
+        "cache",
+        "re-bootstrap"
+      ]
+    },
+    {
+      "text": "The response does not suggest re-creating the installation or rotating the credential again.",
+      "contains_all": [
+        "cache",
+        "re-bootstrap"
+      ]
+    }
+  ]
+}

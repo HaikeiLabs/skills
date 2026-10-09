@@ -1,0 +1,69 @@
+{
+  "expectations": [
+    {
+      "text": "The response identifies that the dst_pattern uses a bare name instead of the tool: prefix.",
+      "passed": false,
+      "evidence": "Missing: dst_pattern, tool:, prefix",
+      "check": {
+        "text": "The response identifies that the dst_pattern uses a bare name instead of the tool: prefix.",
+        "contains_all": [
+          "dst_pattern",
+          "tool:",
+          "prefix"
+        ]
+      }
+    },
+    {
+      "text": "The response recommends updating the policy's dst_pattern to tool:<name> in the console.",
+      "passed": false,
+      "evidence": "Missing: dst_pattern, tool:, update",
+      "check": {
+        "text": "The response recommends updating the policy's dst_pattern to tool:<name> in the console.",
+        "contains_all": [
+          "dst_pattern",
+          "tool:",
+          "update"
+        ]
+      }
+    },
+    {
+      "text": "The response mentions that kei-proxy fails closed (denies everything) when the schema is invalid.",
+      "passed": false,
+      "evidence": "No match for /(?=[\\s\\S]*fails closed)(?=[\\s\\S]*invalid)/i",
+      "check": {
+        "text": "The response mentions that kei-proxy fails closed (denies everything) when the schema is invalid.",
+        "regex": "(?=[\\s\\S]*fails closed)(?=[\\s\\S]*invalid)"
+      }
+    },
+    {
+      "text": "The response references HAI-372 as the known bug.",
+      "passed": false,
+      "evidence": "Missing: dst_pattern, known",
+      "check": {
+        "text": "The response references HAI-372 as the known bug.",
+        "contains_all": [
+          "dst_pattern",
+          "known"
+        ]
+      }
+    },
+    {
+      "text": "The response suggests re-running kei runtime bootstrap or restarting kei-proxy serve after the fix.",
+      "passed": false,
+      "evidence": "None found: runtime bootstrap, kei-proxy serve",
+      "check": {
+        "text": "The response suggests re-running kei runtime bootstrap or restarting kei-proxy serve after the fix.",
+        "contains_any": [
+          "runtime bootstrap",
+          "kei-proxy serve"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 5,
+    "total": 5,
+    "pass_rate": 0
+  }
+}

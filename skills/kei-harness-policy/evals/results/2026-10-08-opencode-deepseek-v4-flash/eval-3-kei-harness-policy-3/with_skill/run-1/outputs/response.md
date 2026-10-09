@@ -1,0 +1,1 @@
+Yes, `kei harness sync` has a `--dry-run` flag. It prints a unified diff to stdout showing what it would write (`--- <file>` / `+++ <file> (Kei render)`) without modifying the config file. One caveat: the current renderer reformats the entire file, so the diff can look large (every line shown as changed) even when only one entry differs.

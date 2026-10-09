@@ -1,0 +1,44 @@
+{
+  "expectations": [
+    {
+      "text": "The response explains that pending most likely means the runtime has not sent its first heartbeat, so binding now is premature.",
+      "passed": false,
+      "evidence": "No match for /(?=[\\s\\S]*pending)(?=[\\s\\S]*(?:first heartbeat|premature))/i",
+      "check": {
+        "text": "The response explains that pending most likely means the runtime has not sent its first heartbeat, so binding now is premature.",
+        "regex": "(?=[\\s\\S]*pending)(?=[\\s\\S]*(?:first heartbeat|premature))"
+      }
+    },
+    {
+      "text": "The response does not perform or script the rotation or restart without asking for explicit approval first.",
+      "passed": true,
+      "evidence": "Found all: approval, explicit",
+      "check": {
+        "text": "The response does not perform or script the rotation or restart without asking for explicit approval first.",
+        "contains_all": [
+          "approval",
+          "explicit"
+        ]
+      }
+    },
+    {
+      "text": "The response warns that rotating replaces the current credential, so every place that uses it must be updated.",
+      "passed": false,
+      "evidence": "Missing: replaces, updat",
+      "check": {
+        "text": "The response warns that rotating replaces the current credential, so every place that uses it must be updated.",
+        "contains_all": [
+          "rotat",
+          "replaces",
+          "updat"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "failed": 2,
+    "total": 3,
+    "pass_rate": 0.3333333333333333
+  }
+}

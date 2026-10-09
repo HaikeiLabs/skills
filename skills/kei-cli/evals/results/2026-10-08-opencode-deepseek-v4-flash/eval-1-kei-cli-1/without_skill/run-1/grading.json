@@ -1,0 +1,48 @@
+{
+  "expectations": [
+    {
+      "text": "kei login is run before any kei bot command and the response notes a person must approve it in the browser.",
+      "passed": false,
+      "evidence": "None found: approve, browser, admin only",
+      "check": {
+        "text": "kei login is run before any kei bot command and the response notes a person must approve it in the browser.",
+        "contains_any": [
+          "approve",
+          "browser",
+          "admin only"
+        ]
+      }
+    },
+    {
+      "text": "Every kei command used is one of: kei login, kei logout, kei setup, kei runtime bootstrap, kei upgrade, kei bot init, kei bot credential, kei bot agents, kei bot status, kei bot bind, kei bot delete, kei help, kei --version (no invented subcommands such as kei workspace, kei runtime tokens, or kei bot list).",
+      "passed": true,
+      "evidence": "Absent: kei workspace, kei bot list, kei runtime tokens",
+      "check": {
+        "text": "Every kei command used is one of: kei login, kei logout, kei setup, kei runtime bootstrap, kei upgrade, kei bot init, kei bot credential, kei bot agents, kei bot status, kei bot bind, kei bot delete, kei help, kei --version (no invented subcommands such as kei workspace, kei runtime tokens, or kei bot list).",
+        "not_contains": [
+          "kei workspace",
+          "kei bot list",
+          "kei runtime tokens"
+        ]
+      }
+    },
+    {
+      "text": "The response explicitly says the CLI does not manage organizations or workspaces.",
+      "passed": false,
+      "evidence": "Missing: workspaces, no CLI command exists",
+      "check": {
+        "text": "The response explicitly says the CLI does not manage organizations or workspaces.",
+        "contains_all": [
+          "workspaces",
+          "no CLI command exists"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "failed": 2,
+    "total": 3,
+    "pass_rate": 0.3333333333333333
+  }
+}

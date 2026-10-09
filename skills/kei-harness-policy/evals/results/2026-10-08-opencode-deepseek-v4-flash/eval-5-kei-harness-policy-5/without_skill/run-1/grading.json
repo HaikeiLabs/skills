@@ -1,0 +1,54 @@
+{
+  "expectations": [
+    {
+      "text": "states report-only is not yet implemented",
+      "passed": false,
+      "evidence": "No match for /(?=[\\s\\S]*report-only)(?=[\\s\\S]*(?:not (?:yet )?implemented|proposed|not avail))/i",
+      "check": {
+        "text": "states report-only is not yet implemented",
+        "regex": "(?=[\\s\\S]*report-only)(?=[\\s\\S]*(?:not (?:yet )?implemented|proposed|not avail))"
+      }
+    },
+    {
+      "text": "mentions HP-C6 or the report-only proposal in ADR-029",
+      "passed": false,
+      "evidence": "None found: HP-C6, ADR-029",
+      "check": {
+        "text": "mentions HP-C6 or the report-only proposal in ADR-029",
+        "contains_any": [
+          "HP-C6",
+          "ADR-029"
+        ]
+      }
+    },
+    {
+      "text": "explains what the hook would do (allow with annotation / audit instead of deny)",
+      "passed": false,
+      "evidence": "None found: annotation, audit",
+      "check": {
+        "text": "explains what the hook would do (allow with annotation / audit instead of deny)",
+        "contains_any": [
+          "annotation",
+          "audit"
+        ]
+      }
+    },
+    {
+      "text": "does not offer a non-existent `kei policies verify` command; suggests listing policies to check coverage",
+      "passed": true,
+      "evidence": "Absent: kei policies verify",
+      "check": {
+        "text": "does not offer a non-existent `kei policies verify` command; suggests listing policies to check coverage",
+        "not_contains": [
+          "kei policies verify"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "failed": 3,
+    "total": 4,
+    "pass_rate": 0.25
+  }
+}

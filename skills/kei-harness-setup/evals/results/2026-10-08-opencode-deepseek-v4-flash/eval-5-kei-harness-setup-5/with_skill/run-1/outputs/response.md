@@ -1,0 +1,3 @@
+1. **Model format:** DeepSeek uses OpenAI-compatible JSON function-calling with `reasoning_content` (not Anthropic's `input_schema`/`thinking` blocks). It's in the OpenAI function-calling family.
+
+2. **Identity passing:** The harness sets `KEI_PROXY_FRAMEWORK` to identify the harness kind (e.g. `opencode`), and `KEI_PROXY_INVOKING_SUBJECT` for the human who started the task. The agent identity is auto-discovered from the runtime identity event (kei-proxy ≥ 0.1.11) — no agent-ID env var needed. On each governed call, the adapter calls `kei-proxy authorize` which reads these to attribute the call in the audit trail.

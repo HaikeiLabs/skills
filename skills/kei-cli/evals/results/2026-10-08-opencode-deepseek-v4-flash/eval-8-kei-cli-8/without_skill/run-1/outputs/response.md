@@ -1,0 +1,1 @@
+You need to be granted the **Owner** or **Admin** role in the organization to approve login requests. Ask an existing owner or admin to promote your role in the organization settings, or ask them to approve `kei login` themselves.

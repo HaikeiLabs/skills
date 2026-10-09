@@ -1,0 +1,37 @@
+{
+  "expectations": [
+    {
+      "text": "The response explains the login token is short-lived or expires.",
+      "passed": false,
+      "evidence": "None found: short-lived, expires, token expires",
+      "check": {
+        "text": "The response explains the login token is short-lived or expires.",
+        "contains_any": [
+          "short-lived",
+          "expires",
+          "token expires"
+        ]
+      }
+    },
+    {
+      "text": "The response says the token is per environment and login again is needed.",
+      "passed": false,
+      "evidence": "None found: per environment, login again, bound to, --api-url",
+      "check": {
+        "text": "The response says the token is per environment and login again is needed.",
+        "contains_any": [
+          "per environment",
+          "login again",
+          "bound to",
+          "--api-url"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 2,
+    "total": 2,
+    "pass_rate": 0
+  }
+}

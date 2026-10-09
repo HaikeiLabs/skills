@@ -1,0 +1,38 @@
+{
+  "eval_id": 7,
+  "eval_name": "kei-harness-policy-eval-7",
+  "skill": "kei-harness-policy",
+  "prompt": "My kei-proxy policy show says the bundle state is STALE_BUT_VALID. What does this mean and is it a problem? How do I fix it? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+  "assertions": [
+    "explains STALE_BUT_VALID means refresh overdue but bundle still valid",
+    "mentions stale_after_seconds and not_after",
+    "suggests checking connectivity and runtime token",
+    "recommends `kei-proxy policy sync` to force a fresh fetch"
+  ],
+  "checks": [
+    {
+      "text": "explains STALE_BUT_VALID means refresh overdue but bundle still valid",
+      "regex": "(?=[\\s\\S]*STALE_BUT_VALID)(?=[\\s\\S]*valid)(?=[\\s\\S]*(?:overdue|stale|refresh))"
+    },
+    {
+      "text": "mentions stale_after_seconds and not_after",
+      "contains_any": [
+        "stale_after_seconds",
+        "not_after"
+      ]
+    },
+    {
+      "text": "suggests checking connectivity and runtime token",
+      "contains_all": [
+        "connectivity",
+        "token"
+      ]
+    },
+    {
+      "text": "recommends `kei-proxy policy sync` to force a fresh fetch",
+      "contains_all": [
+        "kei-proxy policy sync"
+      ]
+    }
+  ]
+}

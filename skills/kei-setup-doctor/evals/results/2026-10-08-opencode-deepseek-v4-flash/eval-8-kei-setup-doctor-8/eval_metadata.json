@@ -1,0 +1,35 @@
+{
+  "eval_id": 8,
+  "eval_name": "kei-setup-doctor-eval-8",
+  "skill": "kei-setup-doctor",
+  "prompt": "Every single governed tool call in our harness is being denied, even the ones that used to work. We assume a policy was changed. What should I check first?",
+  "assertions": [
+    "The response checks KEI_PROXY_DISABLED / kei-proxy disabled or misconfigured before blaming a policy change.",
+    "The response explains that a disabled, missing, or misconfigured proxy denies every governed call and never permits one.",
+    "The response uses read-only environment checks and a single kei-proxy authorize probe rather than mutating anything."
+  ],
+  "checks": [
+    {
+      "text": "The response checks KEI_PROXY_DISABLED / kei-proxy disabled or misconfigured before blaming a policy change.",
+      "contains_all": [
+        "KEI_PROXY_DISABLED",
+        "policy change"
+      ]
+    },
+    {
+      "text": "The response explains that a disabled, missing, or misconfigured proxy denies every governed call and never permits one.",
+      "contains_all": [
+        "disabled",
+        "denies",
+        "governed call"
+      ]
+    },
+    {
+      "text": "The response uses read-only environment checks and a single kei-proxy authorize probe rather than mutating anything.",
+      "contains_all": [
+        "read-only",
+        "kei-proxy authorize"
+      ]
+    }
+  ]
+}

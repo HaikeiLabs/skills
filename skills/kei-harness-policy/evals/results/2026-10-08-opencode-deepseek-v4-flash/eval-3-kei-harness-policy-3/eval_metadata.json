@@ -1,0 +1,33 @@
+{
+  "eval_id": 3,
+  "eval_name": "kei-harness-policy-eval-3",
+  "skill": "kei-harness-policy",
+  "prompt": "Before I run `kei harness sync` for the first time, I want to preview what it will write to my native config file. Is there a dry-run option? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+  "assertions": [
+    "mentions `--dry-run` flag on `kei harness sync`",
+    "explains dry-run renders to stdout without overwriting",
+    "notes kei >v0.1.6 requirement"
+  ],
+  "checks": [
+    {
+      "text": "mentions `--dry-run` flag on `kei harness sync`",
+      "contains_all": [
+        "--dry-run",
+        "kei harness sync"
+      ]
+    },
+    {
+      "text": "explains dry-run renders to stdout without overwriting",
+      "regex": "(?=[\\s\\S]*stdout)(?=[\\s\\S]*(?:overwrit|without modif|without chang))"
+    },
+    {
+      "text": "notes kei >v0.1.6 requirement",
+      "contains_any": [
+        ">v0.1.6",
+        "v0.1.6",
+        "0.1.6",
+        "kei --version"
+      ]
+    }
+  ]
+}

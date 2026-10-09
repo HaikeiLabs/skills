@@ -1,0 +1,1 @@
+It means the person who tried to approve the `kei login` device flow in the browser is a **member**, not an org **owner** or **admin**. Only owners/admins can authorize the CLI token. Ask an org owner or admin to approve it — the token gets bound to their org, not the browser user's role.

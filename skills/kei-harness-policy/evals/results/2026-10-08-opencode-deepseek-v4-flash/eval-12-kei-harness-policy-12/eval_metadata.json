@@ -1,0 +1,38 @@
+{
+  "eval_id": 12,
+  "eval_name": "kei-harness-policy-eval-12",
+  "skill": "kei-harness-policy",
+  "prompt": "I installed Codex next to Claude Code on the same machine with one runtime installation. Do I need to run `kei harness add` for Codex? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+  "assertions": [
+    "states that desktop harnesses are auto-discovered by sync, no add needed",
+    "explains that both Codex and Claude Code on the same machine share one installation \u2014 no new registration",
+    "mentions `kei harness sync` as the correct command",
+    "clarifies that desktop harnesses do not need `kei harness add`"
+  ],
+  "checks": [
+    {
+      "text": "states that desktop harnesses are auto-discovered by sync, no add needed",
+      "contains_all": [
+        "auto-discovered",
+        "sync"
+      ]
+    },
+    {
+      "text": "explains that both Codex and Claude Code on the same machine share one installation \u2014 no new registration",
+      "regex": "(?=[\\s\\S]*Codex)(?=[\\s\\S]*Claude Code)(?=[\\s\\S]*(?:one install|same install|same runtim))"
+    },
+    {
+      "text": "mentions `kei harness sync` as the correct command",
+      "contains_all": [
+        "kei harness sync"
+      ]
+    },
+    {
+      "text": "clarifies that desktop harnesses do not need `kei harness add`",
+      "contains_all": [
+        "desktop",
+        "kei harness add"
+      ]
+    }
+  ]
+}

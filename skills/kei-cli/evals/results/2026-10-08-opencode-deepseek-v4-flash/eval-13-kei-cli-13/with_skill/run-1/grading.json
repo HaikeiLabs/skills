@@ -1,0 +1,58 @@
+{
+  "expectations": [
+    {
+      "text": "states that Claude Code is auto-discovered by sync, no add needed",
+      "passed": true,
+      "evidence": "Found all: Claude Code, auto-discovered",
+      "check": {
+        "text": "states that Claude Code is auto-discovered by sync, no add needed",
+        "contains_all": [
+          "Claude Code",
+          "auto-discovered"
+        ]
+      }
+    },
+    {
+      "text": "clarifies that `kei harness add` is only for custom/SDK harnesses",
+      "passed": true,
+      "evidence": "Found all: kei harness add, custom",
+      "check": {
+        "text": "clarifies that `kei harness add` is only for custom/SDK harnesses",
+        "contains_all": [
+          "kei harness add",
+          "custom"
+        ]
+      }
+    },
+    {
+      "text": "explains that Codex on the same machine also does not need `kei harness add` because desktop harnesses are auto-discovered by sync",
+      "passed": true,
+      "evidence": "Found all: Codex, auto-discovered",
+      "check": {
+        "text": "explains that Codex on the same machine also does not need `kei harness add` because desktop harnesses are auto-discovered by sync",
+        "contains_all": [
+          "Codex",
+          "auto-discovered"
+        ]
+      }
+    },
+    {
+      "text": "recommends `kei harness sync` for desktop harnesses",
+      "passed": true,
+      "evidence": "Found all: kei harness sync, desktop",
+      "check": {
+        "text": "recommends `kei harness sync` for desktop harnesses",
+        "contains_all": [
+          "kei harness sync",
+          "desktop"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1
+  }
+}

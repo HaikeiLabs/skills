@@ -1,0 +1,34 @@
+{
+  "expectations": [
+    {
+      "text": "The response does not claim a future resource command exists without source or help evidence.",
+      "passed": true,
+      "evidence": "Absent: coming soon, planned route",
+      "check": {
+        "text": "The response does not claim a future resource command exists without source or help evidence.",
+        "not_contains": [
+          "coming soon",
+          "planned route"
+        ]
+      }
+    },
+    {
+      "text": "The response mentions opaque pagination and PATCH/update-mask semantics only as contract requirements for a released resource command.",
+      "passed": true,
+      "evidence": "Absent: pagination, PATCH",
+      "check": {
+        "text": "The response mentions opaque pagination and PATCH/update-mask semantics only as contract requirements for a released resource command.",
+        "not_contains": [
+          "pagination",
+          "PATCH"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 0,
+    "total": 2,
+    "pass_rate": 1
+  }
+}

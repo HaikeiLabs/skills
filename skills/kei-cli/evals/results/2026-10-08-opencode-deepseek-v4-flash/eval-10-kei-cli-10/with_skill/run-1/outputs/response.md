@@ -1,0 +1,1 @@
+This is a known bug in kei ≤ 0.1.10 (HAI-373). The `kei policies` command sent a malformed request that the server can't decode. **Upgrade to v0.1.11+** — that's the only fix on the CLI side. As a workaround, use the web app at `app.haikeilabs.com` to manage policies.

@@ -1,0 +1,42 @@
+{
+  "eval_id": 13,
+  "eval_name": "kei-cli-eval-13",
+  "skill": "kei-cli",
+  "prompt": "My colleague wants to use `kei harness add` for our Claude Code harness. Is that the right command? What about Codex on the same machine? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+  "assertions": [
+    "states that Claude Code is auto-discovered by sync, no add needed",
+    "clarifies that `kei harness add` is only for custom/SDK harnesses",
+    "explains that Codex on the same machine also does not need `kei harness add` because desktop harnesses are auto-discovered by sync",
+    "recommends `kei harness sync` for desktop harnesses"
+  ],
+  "checks": [
+    {
+      "text": "states that Claude Code is auto-discovered by sync, no add needed",
+      "contains_all": [
+        "Claude Code",
+        "auto-discovered"
+      ]
+    },
+    {
+      "text": "clarifies that `kei harness add` is only for custom/SDK harnesses",
+      "contains_all": [
+        "kei harness add",
+        "custom"
+      ]
+    },
+    {
+      "text": "explains that Codex on the same machine also does not need `kei harness add` because desktop harnesses are auto-discovered by sync",
+      "contains_all": [
+        "Codex",
+        "auto-discovered"
+      ]
+    },
+    {
+      "text": "recommends `kei harness sync` for desktop harnesses",
+      "contains_all": [
+        "kei harness sync",
+        "desktop"
+      ]
+    }
+  ]
+}

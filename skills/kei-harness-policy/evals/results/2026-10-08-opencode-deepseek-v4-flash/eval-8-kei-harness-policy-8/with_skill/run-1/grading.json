@@ -1,0 +1,46 @@
+{
+  "expectations": [
+    {
+      "text": "explains rollback protection (monotonic bundle_version per installation)",
+      "passed": true,
+      "evidence": "Found all: rollback, bundle_version",
+      "check": {
+        "text": "explains rollback protection (monotonic bundle_version per installation)",
+        "contains_all": [
+          "rollback",
+          "bundle_version"
+        ]
+      }
+    },
+    {
+      "text": "states the proxy rejects bundle_version <= max_activated_version",
+      "passed": true,
+      "evidence": "Found all: rejects, bundle_version",
+      "check": {
+        "text": "states the proxy rejects bundle_version <= max_activated_version",
+        "contains_all": [
+          "rejects",
+          "bundle_version"
+        ]
+      }
+    },
+    {
+      "text": "suggests checking the credential workspace and running kei-proxy policy sync",
+      "passed": true,
+      "evidence": "Found all: workspace, kei-proxy policy sync",
+      "check": {
+        "text": "suggests checking the credential workspace and running kei-proxy policy sync",
+        "contains_all": [
+          "workspace",
+          "kei-proxy policy sync"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 0,
+    "total": 3,
+    "pass_rate": 1
+  }
+}

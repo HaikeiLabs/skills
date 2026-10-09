@@ -1,0 +1,46 @@
+{
+  "expectations": [
+    {
+      "text": "The response identifies that HOME being overridden is the cause.",
+      "passed": false,
+      "evidence": "Missing: HOME, overridden",
+      "check": {
+        "text": "The response identifies that HOME being overridden is the cause.",
+        "contains_all": [
+          "HOME",
+          "overridden"
+        ]
+      }
+    },
+    {
+      "text": "The response recommends running kei with the real HOME or creating a symlink for the sandbox keychain.",
+      "passed": false,
+      "evidence": "Missing: HOME, symlink",
+      "check": {
+        "text": "The response recommends running kei with the real HOME or creating a symlink for the sandbox keychain.",
+        "contains_all": [
+          "HOME",
+          "symlink"
+        ]
+      }
+    },
+    {
+      "text": "The response warns to click Cancel and not Reset To Defaults.",
+      "passed": false,
+      "evidence": "Missing: Cancel, Reset To Defaults",
+      "check": {
+        "text": "The response warns to click Cancel and not Reset To Defaults.",
+        "contains_all": [
+          "Cancel",
+          "Reset To Defaults"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 3,
+    "total": 3,
+    "pass_rate": 0
+  }
+}

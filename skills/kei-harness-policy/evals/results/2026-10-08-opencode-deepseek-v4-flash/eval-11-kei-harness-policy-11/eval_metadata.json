@@ -1,0 +1,43 @@
+{
+  "eval_id": 11,
+  "eval_name": "kei-harness-policy-eval-11",
+  "skill": "kei-harness-policy",
+  "prompt": "I want Kei to be the only source of permissions for my Claude Code harness. How do I remove my own allow/deny entries without breaking things? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+  "assertions": [
+    "mentions `kei harness sync --dry-run` to preview",
+    "explains Kei only edits entries it owns (hand-written entries must be removed manually)",
+    "advises keeping harness in default ask mode",
+    "mentions the kei-backup file Kei creates before each write"
+  ],
+  "checks": [
+    {
+      "text": "mentions `kei harness sync --dry-run` to preview",
+      "contains_all": [
+        "kei harness sync",
+        "--dry-run"
+      ]
+    },
+    {
+      "text": "explains Kei only edits entries it owns (hand-written entries must be removed manually)",
+      "contains_all": [
+        "only edits",
+        "it owns",
+        "manually"
+      ]
+    },
+    {
+      "text": "advises keeping harness in default ask mode",
+      "contains_all": [
+        "ask",
+        "mode"
+      ]
+    },
+    {
+      "text": "mentions the kei-backup file Kei creates before each write",
+      "contains_all": [
+        "kei-backup",
+        "backup"
+      ]
+    }
+  ]
+}

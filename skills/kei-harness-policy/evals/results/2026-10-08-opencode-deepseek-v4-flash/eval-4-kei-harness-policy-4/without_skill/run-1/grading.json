@@ -1,0 +1,61 @@
+{
+  "expectations": [
+    {
+      "text": "explains the bundle has a `not_after` expiry (ADR-026 §4)",
+      "passed": false,
+      "evidence": "None found: not_after, expir",
+      "check": {
+        "text": "explains the bundle has a `not_after` expiry (ADR-026 §4)",
+        "contains_any": [
+          "not_after",
+          "expir"
+        ]
+      }
+    },
+    {
+      "text": "mentions forcing a fresh bundle fetch (kei-proxy policy sync or runtime bootstrap)",
+      "passed": false,
+      "evidence": "None found: kei-proxy policy sync, runtime bootstrap",
+      "check": {
+        "text": "mentions forcing a fresh bundle fetch (kei-proxy policy sync or runtime bootstrap)",
+        "contains_any": [
+          "kei-proxy policy sync",
+          "runtime bootstrap"
+        ]
+      }
+    },
+    {
+      "text": "mentions `kei harness sync` to re-render native config from the fresh bundle",
+      "passed": false,
+      "evidence": "No match for /(?=[\\s\\S]*kei harness sync)(?=[\\s\\S]*native)/i",
+      "check": {
+        "text": "mentions `kei harness sync` to re-render native config from the fresh bundle",
+        "regex": "(?=[\\s\\S]*kei harness sync)(?=[\\s\\S]*native)"
+      }
+    },
+    {
+      "text": "notes that offline runtimes cannot fetch new bundles until connectivity is restored",
+      "passed": false,
+      "evidence": "No match for /(?=[\\s\\S]*connect)(?=[\\s\\S]*(?:offline|lost|unreachable|cannot fetch|no network))/i",
+      "check": {
+        "text": "notes that offline runtimes cannot fetch new bundles until connectivity is restored",
+        "regex": "(?=[\\s\\S]*connect)(?=[\\s\\S]*(?:offline|lost|unreachable|cannot fetch|no network))"
+      }
+    },
+    {
+      "text": "explains that bundle refresh is normally automatic (background refresher in serve)",
+      "passed": false,
+      "evidence": "No match for /(?=[\\s\\S]*background)(?=[\\s\\S]*(?:automatic|auto|refresh|poll))/i",
+      "check": {
+        "text": "explains that bundle refresh is normally automatic (background refresher in serve)",
+        "regex": "(?=[\\s\\S]*background)(?=[\\s\\S]*(?:automatic|auto|refresh|poll))"
+      }
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 5,
+    "total": 5,
+    "pass_rate": 0
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "expectations": [
+    {
+      "text": "The response identifies the cause as a stale policy bundle.",
+      "passed": true,
+      "evidence": "Found all: stale, bundle",
+      "check": {
+        "text": "The response identifies the cause as a stale policy bundle.",
+        "contains_all": [
+          "stale",
+          "bundle"
+        ]
+      }
+    },
+    {
+      "text": "The response suggests a policy edit as a workaround to force a bundle refresh.",
+      "passed": true,
+      "evidence": "Found all: polic, edit, refresh",
+      "check": {
+        "text": "The response suggests a policy edit as a workaround to force a bundle refresh.",
+        "contains_all": [
+          "polic",
+          "edit",
+          "refresh"
+        ]
+      }
+    },
+    {
+      "text": "The response mentions the 6-hour background refresh window.",
+      "passed": false,
+      "evidence": "Missing: 6-hour",
+      "check": {
+        "text": "The response mentions the 6-hour background refresh window.",
+        "contains_all": [
+          "6-hour",
+          "refresh"
+        ]
+      }
+    },
+    {
+      "text": "The response points to the troubleshooting documentation for versioning details.",
+      "passed": false,
+      "evidence": "Missing: version",
+      "check": {
+        "text": "The response points to the troubleshooting documentation for versioning details.",
+        "contains_all": [
+          "troubleshooting",
+          "version"
+        ]
+      }
+    },
+    {
+      "text": "The response clarifies that desktop harnesses are auto-discovered — no `add` needed.",
+      "passed": true,
+      "evidence": "Found all: auto-discovered, desktop",
+      "check": {
+        "text": "The response clarifies that desktop harnesses are auto-discovered — no `add` needed.",
+        "contains_all": [
+          "auto-discovered",
+          "desktop"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 2,
+    "total": 5,
+    "pass_rate": 0.6
+  }
+}

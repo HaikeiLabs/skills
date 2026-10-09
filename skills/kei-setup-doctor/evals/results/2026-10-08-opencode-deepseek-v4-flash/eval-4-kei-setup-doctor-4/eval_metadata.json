@@ -1,0 +1,28 @@
+{
+  "eval_id": 4,
+  "eval_name": "kei-setup-doctor-eval-4",
+  "skill": "kei-setup-doctor",
+  "prompt": "I ran kei login fine but kei bot status --installation 7d3e1c2b-9a8f-4e6d-b5c4-3a2b1c0d9e8f keeps returning 401. I'm going to put kei login in a retry loop until it works.",
+  "assertions": [
+    "The response advises against repeatedly retrying kei login.",
+    "The response checks at least two of: organization mismatch, owner/admin role, session state, and control-plane/API version compatibility."
+  ],
+  "checks": [
+    {
+      "text": "The response advises against repeatedly retrying kei login.",
+      "contains_all": [
+        "retry",
+        "kei login"
+      ]
+    },
+    {
+      "text": "The response checks at least two of: organization mismatch, owner/admin role, session state, and control-plane/API version compatibility.",
+      "contains_any": [
+        "organization mismatch",
+        "owner/admin role",
+        "session state",
+        "control-plane"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "expectations": [
+    {
+      "text": "explains bundle_id is UUIDv7 unique per issuance",
+      "passed": true,
+      "evidence": "Found all: bundle_id, UUIDv7",
+      "check": {
+        "text": "explains bundle_id is UUIDv7 unique per issuance",
+        "contains_all": [
+          "bundle_id",
+          "UUIDv7"
+        ]
+      }
+    },
+    {
+      "text": "explains bundle_version is per-installation monotonic counter bumped on every issuance",
+      "passed": true,
+      "evidence": "Matched: ",
+      "check": {
+        "text": "explains bundle_version is per-installation monotonic counter bumped on every issuance",
+        "regex": "(?=[\\s\\S]*bundle_version)(?=[\\s\\S]*(?:monoton|increas|issuance))"
+      }
+    },
+    {
+      "text": "explains policy_revision is workspace-wide bumped only on policy changes",
+      "passed": true,
+      "evidence": "Found all: policy_revision, workspace-wide",
+      "check": {
+        "text": "explains policy_revision is workspace-wide bumped only on policy changes",
+        "contains_all": [
+          "policy_revision",
+          "workspace-wide"
+        ]
+      }
+    },
+    {
+      "text": "mentions the catalog's 6-hour reuse window and re-issue at half-life",
+      "passed": true,
+      "evidence": "Found: half-life",
+      "check": {
+        "text": "mentions the catalog's 6-hour reuse window and re-issue at half-life",
+        "contains_any": [
+          "6-hour",
+          "half-life"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1
+  }
+}

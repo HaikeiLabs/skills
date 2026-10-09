@@ -1,0 +1,39 @@
+{
+  "eval_id": 9,
+  "eval_name": "kei-harness-policy-eval-9",
+  "skill": "kei-harness-policy",
+  "prompt": "What is the difference between bundle_id, bundle_version, and policy_revision in a Kei policy bundle? When does each one change? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+  "assertions": [
+    "explains bundle_id is UUIDv7 unique per issuance",
+    "explains bundle_version is per-installation monotonic counter bumped on every issuance",
+    "explains policy_revision is workspace-wide bumped only on policy changes",
+    "mentions the catalog's 6-hour reuse window and re-issue at half-life"
+  ],
+  "checks": [
+    {
+      "text": "explains bundle_id is UUIDv7 unique per issuance",
+      "contains_all": [
+        "bundle_id",
+        "UUIDv7"
+      ]
+    },
+    {
+      "text": "explains bundle_version is per-installation monotonic counter bumped on every issuance",
+      "regex": "(?=[\\s\\S]*bundle_version)(?=[\\s\\S]*(?:monoton|increas|issuance))"
+    },
+    {
+      "text": "explains policy_revision is workspace-wide bumped only on policy changes",
+      "contains_all": [
+        "policy_revision",
+        "workspace-wide"
+      ]
+    },
+    {
+      "text": "mentions the catalog's 6-hour reuse window and re-issue at half-life",
+      "contains_any": [
+        "6-hour",
+        "half-life"
+      ]
+    }
+  ]
+}

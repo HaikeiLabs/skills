@@ -1,0 +1,28 @@
+{
+  "eval_id": 5,
+  "eval_name": "kei-cli-eval-5",
+  "skill": "kei-cli",
+  "prompt": "I want our coding agent to use the kei CLI to check whether it's allowed to open a PR before it does. What command should the agent run?",
+  "assertions": [
+    "The response says the kei CLI is the platform admin CLI and is not how an agent checks permission at run time.",
+    "The response names kei-proxy authorize as the per-call check."
+  ],
+  "checks": [
+    {
+      "text": "The response says the kei CLI is the platform admin CLI and is not how an agent checks permission at run time.",
+      "contains_all": [
+        "platform",
+        "admins",
+        "agent",
+        "permit"
+      ]
+    },
+    {
+      "text": "The response names kei-proxy authorize as the per-call check.",
+      "contains_all": [
+        "kei-proxy authorize",
+        "per-call"
+      ]
+    }
+  ]
+}

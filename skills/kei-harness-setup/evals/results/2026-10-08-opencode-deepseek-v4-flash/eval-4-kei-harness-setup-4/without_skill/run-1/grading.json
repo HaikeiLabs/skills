@@ -1,0 +1,33 @@
+{
+  "expectations": [
+    {
+      "text": "The response references kei-openai-backends for model format details.",
+      "passed": false,
+      "evidence": "Missing: kei-openai-backends",
+      "check": {
+        "text": "The response references kei-openai-backends for model format details.",
+        "contains_all": [
+          "kei-openai-backends"
+        ]
+      }
+    },
+    {
+      "text": "The response mentions Anthropic-specific format features like input_schema and thinking blocks.",
+      "passed": false,
+      "evidence": "Missing: input_schema, thinking",
+      "check": {
+        "text": "The response mentions Anthropic-specific format features like input_schema and thinking blocks.",
+        "contains_all": [
+          "input_schema",
+          "thinking"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 2,
+    "total": 2,
+    "pass_rate": 0
+  }
+}

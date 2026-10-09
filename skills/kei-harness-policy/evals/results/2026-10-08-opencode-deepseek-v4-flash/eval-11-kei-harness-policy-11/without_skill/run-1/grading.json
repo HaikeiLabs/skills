@@ -1,0 +1,59 @@
+{
+  "expectations": [
+    {
+      "text": "mentions `kei harness sync --dry-run` to preview",
+      "passed": false,
+      "evidence": "Missing: kei harness sync, --dry-run",
+      "check": {
+        "text": "mentions `kei harness sync --dry-run` to preview",
+        "contains_all": [
+          "kei harness sync",
+          "--dry-run"
+        ]
+      }
+    },
+    {
+      "text": "explains Kei only edits entries it owns (hand-written entries must be removed manually)",
+      "passed": false,
+      "evidence": "Missing: only edits, it owns, manually",
+      "check": {
+        "text": "explains Kei only edits entries it owns (hand-written entries must be removed manually)",
+        "contains_all": [
+          "only edits",
+          "it owns",
+          "manually"
+        ]
+      }
+    },
+    {
+      "text": "advises keeping harness in default ask mode",
+      "passed": false,
+      "evidence": "Missing: ask, mode",
+      "check": {
+        "text": "advises keeping harness in default ask mode",
+        "contains_all": [
+          "ask",
+          "mode"
+        ]
+      }
+    },
+    {
+      "text": "mentions the kei-backup file Kei creates before each write",
+      "passed": false,
+      "evidence": "Missing: kei-backup, backup",
+      "check": {
+        "text": "mentions the kei-backup file Kei creates before each write",
+        "contains_all": [
+          "kei-backup",
+          "backup"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 4,
+    "total": 4,
+    "pass_rate": 0
+  }
+}

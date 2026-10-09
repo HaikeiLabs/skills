@@ -1,0 +1,36 @@
+{
+  "eval_id": 1,
+  "eval_name": "kei-cli-eval-1",
+  "skill": "kei-cli",
+  "prompt": "I'm an org admin and just installed kei. Show me the safe sequence to create a runtime installation for a local coding harness, get its credential into our secret manager, and check its status. Don't make up commands for creating a workspace.",
+  "assertions": [
+    "kei login is run before any kei bot command and the response notes a person must approve it in the browser.",
+    "Every kei command used is one of: kei login, kei logout, kei setup, kei runtime bootstrap, kei upgrade, kei bot init, kei bot credential, kei bot agents, kei bot status, kei bot bind, kei bot delete, kei help, kei --version (no invented subcommands such as kei workspace, kei runtime tokens, or kei bot list).",
+    "The response explicitly says the CLI does not manage organizations or workspaces."
+  ],
+  "checks": [
+    {
+      "text": "kei login is run before any kei bot command and the response notes a person must approve it in the browser.",
+      "contains_any": [
+        "approve",
+        "browser",
+        "admin only"
+      ]
+    },
+    {
+      "text": "Every kei command used is one of: kei login, kei logout, kei setup, kei runtime bootstrap, kei upgrade, kei bot init, kei bot credential, kei bot agents, kei bot status, kei bot bind, kei bot delete, kei help, kei --version (no invented subcommands such as kei workspace, kei runtime tokens, or kei bot list).",
+      "not_contains": [
+        "kei workspace",
+        "kei bot list",
+        "kei runtime tokens"
+      ]
+    },
+    {
+      "text": "The response explicitly says the CLI does not manage organizations or workspaces.",
+      "contains_all": [
+        "workspaces",
+        "no CLI command exists"
+      ]
+    }
+  ]
+}

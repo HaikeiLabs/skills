@@ -1,0 +1,36 @@
+{
+  "expectations": [
+    {
+      "text": "The response advises against repeatedly retrying kei login.",
+      "passed": true,
+      "evidence": "Found all: retry, kei login",
+      "check": {
+        "text": "The response advises against repeatedly retrying kei login.",
+        "contains_all": [
+          "retry",
+          "kei login"
+        ]
+      }
+    },
+    {
+      "text": "The response checks at least two of: organization mismatch, owner/admin role, session state, and control-plane/API version compatibility.",
+      "passed": true,
+      "evidence": "Found: organization mismatch",
+      "check": {
+        "text": "The response checks at least two of: organization mismatch, owner/admin role, session state, and control-plane/API version compatibility.",
+        "contains_any": [
+          "organization mismatch",
+          "owner/admin role",
+          "session state",
+          "control-plane"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 0,
+    "total": 2,
+    "pass_rate": 1
+  }
+}

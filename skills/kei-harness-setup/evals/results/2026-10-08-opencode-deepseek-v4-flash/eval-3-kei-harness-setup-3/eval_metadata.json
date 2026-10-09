@@ -1,0 +1,26 @@
+{
+  "eval_id": 3,
+  "eval_name": "kei-harness-setup-eval-3",
+  "skill": "kei-harness-setup",
+  "prompt": "Can I hook up Windsurf to Kei the same way?",
+  "assertions": [
+    "The response does not claim Windsurf is supported.",
+    "The response lists the supported local adapters."
+  ],
+  "checks": [
+    {
+      "text": "The response does not claim Windsurf is supported.",
+      "contains_all": [
+        "Windsurf",
+        "not supported"
+      ]
+    },
+    {
+      "text": "The response lists the supported local adapters.",
+      "contains_all": [
+        "adapter",
+        "supported"
+      ]
+    }
+  ]
+}

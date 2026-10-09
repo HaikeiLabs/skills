@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "The response identifies the likely cause as a stale proxy bundle cache (HAI-404).",
+      "passed": false,
+      "evidence": "Missing: stale",
+      "check": {
+        "text": "The response identifies the likely cause as a stale proxy bundle cache (HAI-404).",
+        "contains_all": [
+          "stale",
+          "cache"
+        ]
+      }
+    },
+    {
+      "text": "The response gives the correct macOS cache path (~/Library/Application Support/kei-proxy).",
+      "passed": true,
+      "evidence": "Found all: Library, Application Support, kei-proxy",
+      "check": {
+        "text": "The response gives the correct macOS cache path (~/Library/Application Support/kei-proxy).",
+        "contains_all": [
+          "Library",
+          "Application Support",
+          "kei-proxy"
+        ]
+      }
+    },
+    {
+      "text": "The response recommends moving the cache directory aside before re-bootstrapping, not deleting it.",
+      "passed": false,
+      "evidence": "Missing: moving",
+      "check": {
+        "text": "The response recommends moving the cache directory aside before re-bootstrapping, not deleting it.",
+        "contains_all": [
+          "moving",
+          "cache",
+          "re-bootstrap"
+        ]
+      }
+    },
+    {
+      "text": "The response does not suggest re-creating the installation or rotating the credential again.",
+      "passed": true,
+      "evidence": "Found all: cache, re-bootstrap",
+      "check": {
+        "text": "The response does not suggest re-creating the installation or rotating the credential again.",
+        "contains_all": [
+          "cache",
+          "re-bootstrap"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 2,
+    "total": 4,
+    "pass_rate": 0.5
+  }
+}

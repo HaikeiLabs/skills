@@ -1,0 +1,34 @@
+{
+  "expectations": [
+    {
+      "text": "The response does not claim Windsurf is supported.",
+      "passed": false,
+      "evidence": "Missing: not supported",
+      "check": {
+        "text": "The response does not claim Windsurf is supported.",
+        "contains_all": [
+          "Windsurf",
+          "not supported"
+        ]
+      }
+    },
+    {
+      "text": "The response lists the supported local adapters.",
+      "passed": true,
+      "evidence": "Found all: adapter, supported",
+      "check": {
+        "text": "The response lists the supported local adapters.",
+        "contains_all": [
+          "adapter",
+          "supported"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "failed": 1,
+    "total": 2,
+    "pass_rate": 0.5
+  }
+}

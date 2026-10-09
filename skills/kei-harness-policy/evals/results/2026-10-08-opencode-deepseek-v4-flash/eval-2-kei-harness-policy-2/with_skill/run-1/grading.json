@@ -1,0 +1,65 @@
+{
+  "expectations": [
+    {
+      "text": "uses `kei policies create` with `--src-pattern` and `--dst-pattern` flags",
+      "passed": true,
+      "evidence": "Matched: ",
+      "check": {
+        "text": "uses `kei policies create` with `--src-pattern` and `--dst-pattern` flags",
+        "regex": "(?=[\\s\\S]*src-pattern)(?=[\\s\\S]*dst-pattern)"
+      }
+    },
+    {
+      "text": "uses src-pattern with a subject value (harness:opencode, harness:claude_code, group:<name>, user:* or *) not shell:",
+      "passed": true,
+      "evidence": "Found all: src-pattern, harness:",
+      "check": {
+        "text": "uses src-pattern with a subject value (harness:opencode, harness:claude_code, group:<name>, user:* or *) not shell:",
+        "contains_all": [
+          "src-pattern",
+          "harness:"
+        ]
+      }
+    },
+    {
+      "text": "uses dst-pattern with shell: prefix (shell:git, shell:curl)",
+      "passed": true,
+      "evidence": "Found all: dst-pattern, shell:, shell:git",
+      "check": {
+        "text": "uses dst-pattern with shell: prefix (shell:git, shell:curl)",
+        "contains_all": [
+          "dst-pattern",
+          "shell:",
+          "shell:git"
+        ]
+      }
+    },
+    {
+      "text": "explains src-pattern identifies the subject and dst-pattern scopes the command prefix",
+      "passed": true,
+      "evidence": "Matched: ",
+      "check": {
+        "text": "explains src-pattern identifies the subject and dst-pattern scopes the command prefix",
+        "regex": "(?=[\\s\\S]*(?:subject|first token|prefix))(?=[\\s\\S]*(?:command|pattern))"
+      }
+    },
+    {
+      "text": "mentions that after `kei harness sync` the policy renders into native harness config",
+      "passed": true,
+      "evidence": "Found all: kei harness sync, native",
+      "check": {
+        "text": "mentions that after `kei harness sync` the policy renders into native harness config",
+        "contains_all": [
+          "kei harness sync",
+          "native"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  }
+}

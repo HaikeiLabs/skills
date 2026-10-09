@@ -1,0 +1,50 @@
+{
+  "eval_id": 9,
+  "eval_name": "kei-setup-doctor-eval-9",
+  "skill": "kei-setup-doctor",
+  "prompt": "My customer ran kei harness sync --harness opencode and got 'No registered harnesses selected'. The harness is OpenCode on a workstation. What's wrong?",
+  "assertions": [
+    "The response identifies a stale policy bundle as the likely cause.",
+    "The response explains that retrying sync without refreshing the bundle will not help.",
+    "The response suggests forcing a bundle refresh (policy edit, kei-proxy policy sync, or background wait) as a workaround.",
+    "The response does not suggest running `kei harness add` for a desktop harness.",
+    "The response clarifies that desktop harnesses are auto-discovered."
+  ],
+  "checks": [
+    {
+      "text": "The response identifies a stale policy bundle as the likely cause.",
+      "contains_all": [
+        "stale",
+        "bundle"
+      ]
+    },
+    {
+      "text": "The response explains that retrying sync without refreshing the bundle will not help.",
+      "contains_all": [
+        "retrying sync",
+        "bundle"
+      ]
+    },
+    {
+      "text": "The response suggests forcing a bundle refresh (policy edit, kei-proxy policy sync, or background wait) as a workaround.",
+      "contains_all": [
+        "bundle refresh",
+        "policy edit"
+      ]
+    },
+    {
+      "text": "The response does not suggest running `kei harness add` for a desktop harness.",
+      "contains_all": [
+        "auto-discovered",
+        "desktop"
+      ]
+    },
+    {
+      "text": "The response clarifies that desktop harnesses are auto-discovered.",
+      "contains_all": [
+        "auto-discovered",
+        "desktop"
+      ]
+    }
+  ]
+}

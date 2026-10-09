@@ -1,0 +1,3 @@
+**`kei harness add` is the wrong command for Claude Code.** The skill docs explicitly say desktop harnesses (`claude_code`, `codex`, `opencode`) are auto-discovered by `kei harness sync` — you should **not** use `add` for them. `add` is only for custom/SDK harnesses (`--kind custom`).
+
+**`kei harness sync`** is what your colleague wants. It should discover both Claude Code and Codex on the same machine, since both are listed as auto-discoverable desktop harnesses. I don't know the exact discovery mechanism (it may depend on detecting running processes, config files, or installation paths) — but the docs treat them equally, so both should appear.

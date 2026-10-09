@@ -1,0 +1,45 @@
+{
+  "eval_id": 2,
+  "eval_name": "kei-harness-policy-eval-2",
+  "skill": "kei-harness-policy",
+  "prompt": "I want to create a policy that allows git commands but denies curl in my OpenCode harness. How do I write the policy using the shell: dst scheme? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+  "assertions": [
+    "uses `kei policies create` with `--src-pattern` and `--dst-pattern` flags",
+    "uses src-pattern with a subject value (harness:opencode, harness:claude_code, group:<name>, user:* or *) not shell:",
+    "uses dst-pattern with shell: prefix (shell:git, shell:curl)",
+    "explains src-pattern identifies the subject and dst-pattern scopes the command prefix",
+    "mentions that after `kei harness sync` the policy renders into native harness config"
+  ],
+  "checks": [
+    {
+      "text": "uses `kei policies create` with `--src-pattern` and `--dst-pattern` flags",
+      "regex": "(?=[\\s\\S]*src-pattern)(?=[\\s\\S]*dst-pattern)"
+    },
+    {
+      "text": "uses src-pattern with a subject value (harness:opencode, harness:claude_code, group:<name>, user:* or *) not shell:",
+      "contains_all": [
+        "src-pattern",
+        "harness:"
+      ]
+    },
+    {
+      "text": "uses dst-pattern with shell: prefix (shell:git, shell:curl)",
+      "contains_all": [
+        "dst-pattern",
+        "shell:",
+        "shell:git"
+      ]
+    },
+    {
+      "text": "explains src-pattern identifies the subject and dst-pattern scopes the command prefix",
+      "regex": "(?=[\\s\\S]*(?:subject|first token|prefix))(?=[\\s\\S]*(?:command|pattern))"
+    },
+    {
+      "text": "mentions that after `kei harness sync` the policy renders into native harness config",
+      "contains_all": [
+        "kei harness sync",
+        "native"
+      ]
+    }
+  ]
+}

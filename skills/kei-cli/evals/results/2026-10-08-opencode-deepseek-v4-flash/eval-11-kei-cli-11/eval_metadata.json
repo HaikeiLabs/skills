@@ -1,0 +1,61 @@
+{
+  "eval_id": 11,
+  "eval_name": "kei-cli-eval-11",
+  "skill": "kei-cli",
+  "prompt": "Create a Kei model profile from the CLI for our vLLM server at https://spark.example.ts.net/v1, model dvl-default, with an API key, and assign it to agent 3f2c9a1e-0000-4000-8000-000000000001 in workspace Main. The key is in our secret manager.",
+  "assertions": [
+    "The response pipes the API key into `kei model-profiles create` on stdin and never passes it as a flag or prints it.",
+    "The response includes `--default-model dvl-default` and `--auth-type api_key`.",
+    "The response scopes the profile with `--workspace Main` and `--agent` set to the agent ID.",
+    "The response says the credential store must exist first, created with `kei credential-store put`.",
+    "The response suggests `kei model-profiles readiness` to check the result.",
+    "The response does not invent flags or commands absent from the kei usage string."
+  ],
+  "checks": [
+    {
+      "text": "The response pipes the API key into `kei model-profiles create` on stdin and never passes it as a flag or prints it.",
+      "contains_all": [
+        "stdin",
+        "model-profiles create"
+      ]
+    },
+    {
+      "text": "The response includes `--default-model dvl-default` and `--auth-type api_key`.",
+      "contains_all": [
+        "--default-model",
+        "dvl-default",
+        "--auth-type",
+        "api_key"
+      ]
+    },
+    {
+      "text": "The response scopes the profile with `--workspace Main` and `--agent` set to the agent ID.",
+      "contains_all": [
+        "--workspace",
+        "--agent"
+      ]
+    },
+    {
+      "text": "The response says the credential store must exist first, created with `kei credential-store put`.",
+      "contains_any": [
+        "credential-store put",
+        "credential store",
+        "credential-store"
+      ]
+    },
+    {
+      "text": "The response suggests `kei model-profiles readiness` to check the result.",
+      "contains_all": [
+        "model-profiles readiness"
+      ]
+    },
+    {
+      "text": "The response does not invent flags or commands absent from the kei usage string.",
+      "contains_all": [
+        "--display-name",
+        "--endpoint",
+        "--default-model"
+      ]
+    }
+  ]
+}

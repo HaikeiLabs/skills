@@ -1,0 +1,34 @@
+{
+  "eval_id": 7,
+  "eval_name": "kei-cli-eval-7",
+  "skill": "kei-cli",
+  "prompt": "During `kei login` on macOS I got a dialog that says 'Keychain Not Found' for app.haikeilabs.com. How do I fix this?",
+  "assertions": [
+    "The response identifies that HOME being overridden is the cause.",
+    "The response recommends running kei with the real HOME or creating a symlink for the sandbox keychain.",
+    "The response warns to click Cancel and not Reset To Defaults."
+  ],
+  "checks": [
+    {
+      "text": "The response identifies that HOME being overridden is the cause.",
+      "contains_all": [
+        "HOME",
+        "overridden"
+      ]
+    },
+    {
+      "text": "The response recommends running kei with the real HOME or creating a symlink for the sandbox keychain.",
+      "contains_all": [
+        "HOME",
+        "symlink"
+      ]
+    },
+    {
+      "text": "The response warns to click Cancel and not Reset To Defaults.",
+      "contains_all": [
+        "Cancel",
+        "Reset To Defaults"
+      ]
+    }
+  ]
+}

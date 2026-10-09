@@ -1,0 +1,72 @@
+{
+  "expectations": [
+    {
+      "text": "The response identifies that kei ≤ 0.1.10 has a bug that causes the decode error.",
+      "passed": false,
+      "evidence": "Missing: 0.1.10, bug, decode",
+      "check": {
+        "text": "The response identifies that kei ≤ 0.1.10 has a bug that causes the decode error.",
+        "contains_all": [
+          "0.1.10",
+          "bug",
+          "decode"
+        ]
+      }
+    },
+    {
+      "text": "The response recommends upgrading kei to v0.1.11 or later.",
+      "passed": false,
+      "evidence": "None found: v0.1.11, 0.1.11, upgrade",
+      "check": {
+        "text": "The response recommends upgrading kei to v0.1.11 or later.",
+        "contains_any": [
+          "v0.1.11",
+          "0.1.11",
+          "upgrade"
+        ]
+      }
+    },
+    {
+      "text": "The response mentions using the web app as an alternative.",
+      "passed": false,
+      "evidence": "Missing: web app",
+      "check": {
+        "text": "The response mentions using the web app as an alternative.",
+        "contains_all": [
+          "web app"
+        ]
+      }
+    },
+    {
+      "text": "The response references the known bug.",
+      "passed": false,
+      "evidence": "None found: known bug, known issue",
+      "check": {
+        "text": "The response references the known bug.",
+        "contains_any": [
+          "known bug",
+          "known issue"
+        ]
+      }
+    },
+    {
+      "text": "The response notes that after upgrading, policies commands accept a policy name in addition to ID.",
+      "passed": false,
+      "evidence": "None found: policy name, name in addition, name or ID",
+      "check": {
+        "text": "The response notes that after upgrading, policies commands accept a policy name in addition to ID.",
+        "contains_any": [
+          "policy name",
+          "name in addition",
+          "name or ID"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 5,
+    "total": 5,
+    "pass_rate": 0
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "eval_id": 1,
+  "eval_name": "kei-harness-setup-eval-1",
+  "skill": "kei-harness-setup",
+  "prompt": "set up kei for me in opencode. my opencode config lives in ~/dotfiles/opencode and I already have some skills there i don't want clobbered",
+  "assertions": [
+    "The response installs from https://github.com/HaikeiLabs/skills, not another skills repository.",
+    "The response skips or asks about same-named existing skills instead of overwriting them.",
+    "The response includes a way to verify OpenCode discovered the skills.",
+    "The response routes the runtime half through kei login and runtime setup rather than skipping auth."
+  ],
+  "checks": [
+    {
+      "text": "The response installs from https://github.com/HaikeiLabs/skills, not another skills repository.",
+      "contains_all": [
+        "HaikeiLabs/skills",
+        "github"
+      ]
+    },
+    {
+      "text": "The response skips or asks about same-named existing skills instead of overwriting them.",
+      "regex": "(?=[\\s\\S]*existing)(?=[\\s\\S]*(?:skip|not overwrit|clobber))"
+    },
+    {
+      "text": "The response includes a way to verify OpenCode discovered the skills.",
+      "contains_all": [
+        "verif",
+        "discover"
+      ]
+    },
+    {
+      "text": "The response routes the runtime half through kei login and runtime setup rather than skipping auth.",
+      "contains_all": [
+        "kei login",
+        "kei setup"
+      ]
+    }
+  ]
+}

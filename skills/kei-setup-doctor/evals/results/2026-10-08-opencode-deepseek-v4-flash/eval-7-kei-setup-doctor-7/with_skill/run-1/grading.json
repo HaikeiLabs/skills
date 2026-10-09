@@ -1,0 +1,60 @@
+{
+  "expectations": [
+    {
+      "text": "The response identifies kei-proxy < 0.1.11 as one cause and recommends upgrading.",
+      "passed": false,
+      "evidence": "Missing: upgrading",
+      "check": {
+        "text": "The response identifies kei-proxy < 0.1.11 as one cause and recommends upgrading.",
+        "contains_all": [
+          "kei-proxy",
+          "0.1.11",
+          "upgrading"
+        ]
+      }
+    },
+    {
+      "text": "The response identifies agentware < 0.4.0 as another cause and recommends upgrading.",
+      "passed": false,
+      "evidence": "Missing: upgrading",
+      "check": {
+        "text": "The response identifies agentware < 0.4.0 as another cause and recommends upgrading.",
+        "contains_all": [
+          "agentware",
+          "0.4.0",
+          "upgrading"
+        ]
+      }
+    },
+    {
+      "text": "The response says to attach an agent to the installation if versions are current.",
+      "passed": true,
+      "evidence": "Found all: attach, agent, installation",
+      "check": {
+        "text": "The response says to attach an agent to the installation if versions are current.",
+        "contains_all": [
+          "attach",
+          "agent",
+          "installation"
+        ]
+      }
+    },
+    {
+      "text": "The response does not suggest guessing or supplying a fallback agent ID.",
+      "passed": false,
+      "evidence": "Missing: deny governed calls",
+      "check": {
+        "text": "The response does not suggest guessing or supplying a fallback agent ID.",
+        "contains_all": [
+          "deny governed calls"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "failed": 3,
+    "total": 4,
+    "pass_rate": 0.25
+  }
+}

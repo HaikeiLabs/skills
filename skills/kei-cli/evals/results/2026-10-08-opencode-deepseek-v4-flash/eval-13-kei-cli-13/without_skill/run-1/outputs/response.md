@@ -1,0 +1,1 @@
+I don't know. I'm not familiar with a `kei` CLI tool, its `harness add` subcommand, or how it relates to Claude Code or Codex. These aren't part of opencode, and I don't have context about them. Your colleague would need to check the documentation for `kei` or ask the team that maintains it.
