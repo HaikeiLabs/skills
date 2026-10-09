@@ -10,7 +10,23 @@ API. It covers the Lexicon (endpoints), Pragmatics (how agents use them), and
 Semantics (data returned and entity relationships).
 
 There is no maintained official CLI for Discord API operations. Agents use the
-Discord REST API directly.
+Discord REST API directly. Every write operation (POST, PATCH, DELETE) through
+this connector is a write operation that requires policy evaluation by Kei
+before execution.
+
+## Key rules
+
+- All write operations (POST, PATCH, DELETE) are write operations that
+  require policy evaluation by Kei before execution.
+- The agent should never construct, store, or expose the bot token — the
+  governed connector injects the `Authorization: Bot <token>` header at
+  runtime. Setup reads the token from stdin without echo (`kei connectors
+  create --provider discord`); rotate it with `kei connectors reconnect <id>`.
+- Guild deletion and channel deletion are not available through the governed
+  connector; they are irreversible and outside its scope (see the denied
+  command surface).
+- Discord declares six Snowflake-keyed resource types for Kei policy (per
+  ADR-028): `guild`, `channel`, `thread`, `message`, `member`, `role`.
 
 ## Install
 
@@ -32,7 +48,7 @@ Base URL: `https://discord.com/api/v10`
 | `GET` | `/channels/{channel.id}/threads` | List active threads in a channel | Returns id, name, member_count, thread_metadata. |
 | `GET` | `/channels/{channel.id}/messages` | List messages in a channel | Query params: `limit` (1–100), `around`, `before`, `after` (cursor). |
 | `GET` | `/channels/{channel.id}/messages/{message.id}` | Get a single message | Includes content, author, timestamp, embeds, attachments, reactions. |
-| `POST` | `/channels/{channel.id}/messages` | Send a message | Body: `{"content": "..."}`. Supports embeds, files, components. |
+| `POST` | `/channels/{channel.id}/messages` | Send a message | Body: `{"content": "..."}`. Supports embeds, files, components. Write operation — requires policy evaluation before execution. |
 | `PATCH` | `/channels/{channel.id}/messages/{message.id}` | Edit a message | Can modify content, embeds, components. |
 | `DELETE` | `/channels/{channel.id}/messages/{message.id}` | Delete a message | Requires MANAGE_MESSAGES permission. |
 | `GET` | `/guilds/{guild.id}/members` | List guild members | Query params: `limit` (1–1000), `after` (cursor by user id). |
@@ -64,12 +80,13 @@ Base URL: `https://discord.com/api/v10`
 
 ### Denied command surface
 
-These actions are not available through the governed connector:
+These actions are **not available** through the governed connector — they fall
+outside the connector's scope:
 
 | Operation | Reason |
 | --- | --- |
-| Guild deletion | Irreversible; requires owner-level Discord permissions |
-| Channel deletion | Irreversible; requires MANAGE_CHANNELS permission beyond connector scope |
+| Guild deletion | Not available — irreversible; requires owner-level Discord permissions outside the connector's scope |
+| Channel deletion | Not available — irreversible; requires MANAGE_CHANNELS permission beyond connector scope |
 | Ban / kick members | Moderation actions outside governed connector scope |
 | Modify guild settings (name, region, verification level) | Guild-admin operations outside connector scope |
 | Webhook management | Admin scope outside governed token |
@@ -91,11 +108,20 @@ These actions are not available through the governed connector:
 5. **Content moderation support**: Read flagged messages, check author history,
    but do not ban, kick, or delete without explicit policy.
 
+### Send a message
+
+Send a message with `POST /channels/{channel.id}/messages` and a JSON body
+`{"content": "..."}`. This is a write operation: it requires policy
+evaluation by Kei before execution, and the agent should never construct or
+expose the bot token — the connector runtime injects the
+`Authorization: Bot <token>` header.
+
 ### Agent patterns
 
 - Always specify the full API version (`/v10/`) in the base URL.
 - Use `Authorization: Bot <token>` header — Kei injects this via the
-  connector runtime; do not construct it manually.
+  connector runtime; do not construct it manually. The agent should never
+  construct, store, or expose the token.
 - Prefer `before`/`after` cursor pagination over `around` for deterministic
   ordering.
 - Discord IDs are Snowflakes (integer strings). Use string comparison for
@@ -109,7 +135,7 @@ Discord uses cursor-based pagination. List endpoints accept `limit` (1–100)
 and one of `before`, `after`, or `around`.
 
 ```
-GET /channels/{channel.id}/messages?limit=50&before=123456789012345678
+GET /channels/1234567890123456789/messages?limit=50&before=987654321098765432
 ```
 
 The response includes a `Link` header with `rel="next"` and `rel="prev"`
@@ -148,10 +174,11 @@ guild                        # id (Snowflake)
 └── role                     # id (Snowflake); guild-level
 ```
 
-### Resource types (for Kei policy)
+### Resource types (ADR-028, for Kei policy)
 
-Per [ADR-028](https://github.com/HaikeiLabs/kei/blob/main/docs/adr/028-policy-field-contract.md) §4, every connector
-declares its resource types:
+Per [ADR-028](https://github.com/HaikeiLabs/kei/blob/main/docs/adr/028-policy-field-contract.md) §4, Discord declares six
+Snowflake-keyed resource types for Kei policy: `guild`, `channel`, `thread`,
+`message`, `member`, `role`:
 
 | Resource type | Parent type | Canonical id example |
 | --- | --- | --- |

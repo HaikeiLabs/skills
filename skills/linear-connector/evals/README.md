@@ -6,8 +6,14 @@ Eval cases for the Linear connector skill.
 
 ```bash
 node scripts/run-evals.mjs --skill linear-connector --harness opencode \
-  --model ray/deepseek-ai/DeepSeek-V4-Flash \
-  --out evals-out/linear-connector-deepseek-$(date +%F) --jobs 2
+  --model-profile deepseek-v4-flash --jobs 1 \
+  --out evals-out/linear-connector-deepseek-$(date +%F)
+```
+
+```bash
+node scripts/run-evals.mjs --skill linear-connector --harness opencode \
+  --model-profile qwen3.8-27b --jobs 1 \
+  --out evals-out/linear-connector-qwen-$(date +%F)
 ```
 
 ## Results

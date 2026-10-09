@@ -1,6 +1,6 @@
 ---
 name: haikei
-description: "Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime installation credential (KEI_RUNTIME_TOKEN); connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing the DVL Assistant ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring; reading or writing data through governed connectors (discover which connectors the workspace has via `kei connectors list --workspace W` — released in kei; v0.1.13 is current — fallback to `GET /api/v1/data-connectors`); creating or importing harness command policies; registering harnesses and syncing tool registrations; or creating a new connector skill from templates; operating Kei's own platform services from the operator's view (deploying or rolling back oidc-bridge/catalog, goose migrations on the private RDS, identity signing keys, KMS token re-encryption, KeiIdentity* alerts). Routes the task to the right skill: kei-cli, kei-proxy, kei-runtime-setup, kei-credential-rotation, kei-harness-setup, kei-harness-policy, kei-audit-encryption, kei-api, agentware-sdk, kei-agents, build-agents-agentware, test-agents, deploy-agents, kei-setup-doctor, kei-service-ops, kei-assistant-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, kei-api-conventions, the matching `<provider>-connector` skill (discovered at runtime), or templates/connector-skill."
+description: "Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime installation credential (KEI_RUNTIME_TOKEN); connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing the DVL Assistant ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring; reading or writing data through governed connectors (discover which connectors the workspace has via `kei connectors list --workspace W` — released in kei; v0.1.13 is current — fallback to `GET /api/v1/data-connectors`); creating or importing harness command policies; registering harnesses and syncing tool registrations; or creating a new connector skill from templates; operating Kei's own platform services from the operator's view (deploying or rolling back oidc-bridge/catalog, goose migrations on the private RDS, identity signing keys, KMS token re-encryption, KeiIdentity* alerts). Routes the task to the right skill: kei-cli, kei-proxy, kei-runtime-setup, kei-credential-rotation, kei-harness-setup, kei-harness-policy, kei-audit-encryption, kei-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-service-ops, kei-assistant-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, kei-api-conventions, the matching `<provider>-connector` skill (discovered at runtime), or templates/connector-skill."
 ---
 
 # Discover and build with Haikei
@@ -57,11 +57,6 @@ Need a coding agent governed by Kei?
 ├─ Install the Haikei skills in Claude Code / Codex / OpenCode / Pi / Cursor → kei-harness-setup
 ├─ Wrap tool calls with policy + audit in your own harness code → agentware-sdk
 └─ Define agent tools and schemas → kei-agents
-
-Building your own governed agent, start to finish?
-├─ Compose a prebuilt agent, wrap its tools, design tool arguments → build-agents-agentware
-├─ Table-test evals, model profiles, the CI regression gate → test-agents
-└─ Runtime, in-container kei-proxy daemon, harness, policies, per-user connectors → deploy-agents
 ```
 
 Every `kei bot …` command needs `kei login` first, and a person has to approve
@@ -88,9 +83,6 @@ exist in the code today.
 | Create agents or mint runtime credentials | Web app (console **Agents**); Kei API (`kei-api`) for integrations | Create an agent in the console; mint a runtime credential via the installation flow | `kei-api` |
 | Enforce policy and audit on agent tool calls | agentware SDK | Wrap tool execution so every call is decided (allow/deny/filter), audited, and attributed to the invoking human | `agentware-sdk` |
 | Implement the third-party harness contract | agentware SDK | Build a harness that is governed by agentware without depending on an agent framework | `agentware-sdk` |
-| Build an agent end to end from a prebuilt kei-agents agent or workflow | Guide (kei-agents + agentware SDK) | Compose prompt + rendered tools, wrap every tool call with policy, audit, and the invoking subject, and shape tool arguments by Lexicon/Pragmatics/Semantics | `build-agents-agentware` |
-| Test an agent or a skill, or gate pull requests on eval pass rate | Guide (agentware evals + skills runner) | Deterministic table tests (`agentware.eval-suite.v1`, skill `checks`), model profiles, repeats, local runs, the 95% CI gate | `test-agents` |
-| Ship a governed agent to users | Guide (kei CLI + kei-proxy) | Runtime installation, in-container `kei-proxy serve` with per-user sessions, harness setup, permissions as policies, per-user OAuth connectors | `deploy-agents` |
 | Define agent tools and schemas for the assistant | kei-agents | Describe agent capabilities, permission gates, and multi-model tool rendering | `kei-agents` |
 | Define governed connector read schemas | kei-agents | Express what an agent may read through a governed connector, with delegated context | `kei-agents` |
 | Diagnose a broken or unverified Kei installation | kei CLI (`setup`, `runtime bootstrap`, `bot status`) driven as a workflow | An installation already exists (or is being stood up) and needs read-only diagnosis, verification, or handoff across local, AWS, or Azure | `kei-setup-doctor` |
@@ -148,13 +140,6 @@ exist in the code today.
 - **"Stop the bot from calling the delete-database tool, and log every tool call."**
   → agentware SDK. Wrap the harness tool client with a `Policy` (deny rule) and an
   auditor. Load `agentware-sdk`.
-- **"I want to build our own agent on Kei: start from Pedro, test it, and ship it
-  to our Discord."** → the three guides in order: `build-agents-agentware`
-  (compose `PEDRO_AGENT`, wrap tools with `AuditedToolClient` +
-  `KeiProxyEvaluator`), `test-agents` (an `agentware.eval-suite.v1` suite run
-  on both model profiles, ≥90% locally, 95% in CI), then `deploy-agents`
-  (`kei bot init --platform discord`, `kei-proxy serve` with one session per
-  user, policies, per-user connectors).
 - **"What tools can my assistant expose for GitHub, and what permissions gate them?"**
   → kei-agents. `github_read`/`github_write` tool definitions, governed read
   schemas, `render_tools`. Load `kei-agents`.

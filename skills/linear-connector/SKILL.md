@@ -12,6 +12,19 @@ agents use them), and Semantics (data returned and entity relationships).
 There is no maintained official CLI for Linear. Agents use the GraphQL API
 directly.
 
+## Key rules
+
+- The agent never holds, asks for, or prints a raw credential. Kei supplies a
+  Linear API key at run time via `kei-proxy connector invoke`. Setup: an owner
+  runs `kei connectors create --provider linear` (OAuth or API key);
+  re-authorize with `kei connectors reconnect <id>`.
+- Issue deletion is not available through the governed connector — it is
+  irreversible and requires admin token scope.
+- Resource types for Kei policy follow ADR-028: `team`, `issue`, `project`,
+  `cycle`, `user` (issues, projects, and cycles have `team` as their parent).
+- Linear uses cursor-based pagination only: `first` + `after`, with
+  `pageInfo.hasNextPage` in the response.
+
 ## Install
 
 Agents load this skill automatically when the harness has the Haikei skills
@@ -48,7 +61,7 @@ governed connector supplies the token via `kei-proxy connector invoke`.
 | --- | --- | --- | --- |
 | List issues | `issues(first: N, filter: {...})` | Fetch issues with optional filters | Use `filter` for team, assignee, status, priority, labels. Paginate with `after` cursor. |
 | Get issue | `issue(id: "ID")` | Fetch a single issue by ID | Returns full issue object including description, comments, labels. |
-| Create issue | `issueCreate(input: {...})` | Create a new issue | Input: `teamId`, `title`, `description`, `priority`, `assigneeId`, `labelIds`. |
+| Create issue | `issueCreate(input: {...})` | Create a new issue | Input: `teamId`, `title`, `description`, `priority`, `assigneeId`, `labelIds`. Returns `success` (Boolean) plus the created issue's `id` and `identifier` (e.g., `ENG-42`). |
 | Update issue | `issueUpdate(id: "ID", input: {...})` | Modify an existing issue | Can change title, description, status, priority, assignee, labels. |
 | List teams | `teams(first: N)` | Fetch all teams the user has access to | Returns id, name, key, description. |
 | List projects | `projects(first: N)` | Fetch projects | Filterable by team. |
@@ -64,12 +77,13 @@ The agent never reads or stores a token, secret, or API key.
 
 ### Denied command surface
 
-These actions are not available through the governed connector:
+These actions are **not available** through the governed connector — they fall
+outside the connector's scope:
 
 | Operation | Reason |
 | --- | --- |
-| Delete issue | Irreversible; requires admin token scope |
-| Delete team | Org-admin scope outside the connector token |
+| Delete issue (issue deletion) | Not available — irreversible; requires admin token scope |
+| Delete team (team deletion) | Not available — org-admin scope outside the connector token |
 | Manage webhooks / integrations | Admin scope outside governed token |
 | Modify organization settings | Requires org-admin privileges |
 | Add/remove team members | User management outside connector scope |
@@ -136,10 +150,11 @@ organization
 └── user                     # UUID; email
 ```
 
-### Resource types (for Kei policy)
+### Resource types (ADR-028, for Kei policy)
 
-Per [ADR-028](https://github.com/HaikeiLabs/kei/blob/main/docs/adr/028-policy-field-contract.md) §4, every connector
-declares its resource types:
+Per [ADR-028](https://github.com/HaikeiLabs/kei/blob/main/docs/adr/028-policy-field-contract.md) §4, Linear declares five
+resource types for Kei policy (each declares its parent type): `team`,
+`issue`, `project`, `cycle`, `user`:
 
 | Resource type | Parent type | Canonical id example |
 | --- | --- | --- |

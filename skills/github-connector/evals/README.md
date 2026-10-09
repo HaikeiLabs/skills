@@ -6,8 +6,14 @@ Eval cases for the GitHub connector skill.
 
 ```bash
 node scripts/run-evals.mjs --skill github-connector --harness opencode \
-  --model ray/deepseek-ai/DeepSeek-V4-Flash \
-  --out evals-out/github-connector-deepseek-$(date +%F) --jobs 2
+  --model-profile deepseek-v4-flash --jobs 1 \
+  --out evals-out/github-connector-deepseek-$(date +%F)
+```
+
+```bash
+node scripts/run-evals.mjs --skill github-connector --harness opencode \
+  --model-profile qwen3.8-27b --jobs 1 \
+  --out evals-out/github-connector-qwen-$(date +%F)
 ```
 
 ## Results

@@ -12,6 +12,21 @@ agents use them), and Semantics (data returned and entity relationships).
 There is no maintained official CLI for Google Drive that covers all
 governed operations. Agents use the Google Drive API v3 directly.
 
+## Key rules
+
+- The agent never holds, asks for, or prints a raw credential. Kei supplies a
+  Google OAuth access token at run time via `kei-proxy connector invoke`.
+  Setup: an owner runs `kei connectors create --provider googledrive` (OAuth or
+  service-account key); re-authorize with `kei connectors reconnect <id>`.
+- Permanent file deletion is not available through the governed connector —
+  files move to trash instead (trash is available and reversible).
+- Resource types for Kei policy follow ADR-028: `folder` (no parent) and
+  `file` (parent: folder).
+- The optional `drive_id` field scopes the connector to one shared drive;
+  blank means My Drive plus every shared drive the user can access. The ID is
+  the last URL segment of the drive's folders URL; at OAuth consent pick the
+  same Google account that can see the drive.
+
 ## Install
 
 Agents load this skill automatically when the harness has the Haikei skills
@@ -30,6 +45,8 @@ raw credential.
   create --provider googledrive` (reads the JSON key without echo) or passes
   `--credential-ref <secret-manager-ref>` if the key already exists in the
   connected secret manager.
+- **Repair / re-authorize:** if the connection breaks or the credential is
+  rotated, re-authorize with `kei connectors reconnect <id>`.
 - **At runtime:** The governed connector injects the credential via
   `kei-proxy connector invoke` (preferred) or through a `kei-proxy run`
   wrapper that sets `GOOGLE_APPLICATION_CREDENTIALS=kei://connectors/<id>/token` and
@@ -43,6 +60,9 @@ to ONE Google shared drive; `kei-proxy` supplies it as the drive scope on
 Drive calls. Blank = the connecting user's My Drive plus every shared drive
 they can access.
 
+- **Account index:** `/u/N/` is the Google account index in that browser. At
+  OAuth consent pick the same account that can see the drive, or the
+  connector can't see it.
 - **Find it:** open the shared drive (Google Drive left nav: **Shared
   drives**). The ID is the last URL segment:
   `https://drive.google.com/drive/u/1/folders/0AExampleSharedDrive01` →
@@ -50,9 +70,6 @@ they can access.
   IDs usually start with `1` and are NOT drive IDs.
 - **My Drive has no Drive ID:** `https://drive.google.com/drive/u/0/my-drive`
   is My Drive — leave the field blank.
-- **Account index:** `/u/N/` is the Google account index in that browser. At
-  OAuth consent pick the same account that can see the drive, or the
-  connector can't see it.
 - **Format:** the field accepts only `[A-Za-z0-9_-]{1,128}`. Paste only the
   ID, not the URL.
 
@@ -84,11 +101,12 @@ secret, or API key.
 
 ### Denied command surface
 
-These actions are not available through the governed connector:
+These actions are **not available** through the governed connector — they fall
+outside the connector's scope:
 
 | Operation | Reason |
 | --- | --- |
-| Permanently delete files | Irreversible; moves to trash instead (trash is available) |
+| Permanently delete files | Not available — irreversible; moves to trash instead (trash is available) |
 | Modify sharing permissions | Permission management outside connector scope |
 | Admin operations (domain settings, audit logs) | Require Google Workspace admin privileges |
 | Drive creation and deletion | Administrative operation |
@@ -155,10 +173,11 @@ drive (My Drive or shared drive)
 └── file                    # id (UUID)
 ```
 
-### Resource types (for Kei policy)
+### Resource types (ADR-028, for Kei policy)
 
-Per [ADR-028](https://github.com/HaikeiLabs/kei/blob/main/docs/adr/028-policy-field-contract.md) §4, every connector
-declares its resource types:
+Per [ADR-028](https://github.com/HaikeiLabs/kei/blob/main/docs/adr/028-policy-field-contract.md) §4, Google Drive
+declares two resource types for Kei policy (each declares its parent type):
+`folder` (no parent) and `file` (parent: `folder`):
 
 | Resource type | Parent type | Canonical id example |
 | --- | --- | --- |

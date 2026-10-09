@@ -12,6 +12,21 @@ Semantics (data returned and entity relationships).
 There is no maintained official CLI for Grafana API operations beyond plugin
 management (`grafana-cli`). Agents use the Grafana HTTP API directly.
 
+## Key rules
+
+- The agent never sees the raw service-account token — Kei injects it via
+  `kei-proxy connector invoke` at run time. Setup: an admin runs
+  `kei connectors create --provider grafana`, which reads the token from stdin
+  without echo; rotate it with `kei connectors reconnect <id>`.
+- Dashboard and folder deletion is not available through the governed
+  connector — it is irreversible and requires admin permissions beyond the
+  connector's scope.
+- Resource types for Kei policy follow ADR-028; dashboards, folders, and
+  datasources are addressed by immutable UID (panels and annotations by
+  integer id).
+- Prefer the unified alerting API (`/api/ruler/grafana/api/v1/rules`) over the
+  deprecated legacy alerting API.
+
 ## Install
 
 Agents load this skill automatically when the harness has the Haikei skills
@@ -69,12 +84,13 @@ Base URL: `https://{instance}/api`
 
 ### Denied command surface
 
-These actions are not available through the governed connector:
+These actions are **not available** through the governed connector — they fall
+outside the connector's scope:
 
 | Operation | Reason |
 | --- | --- |
-| Delete dashboards | Irreversible; requires admin permissions beyond connector scope |
-| Delete folders | Irreversible; cascading deletion of contained dashboards |
+| Delete dashboards | Not available — irreversible; requires admin permissions beyond connector scope |
+| Delete folders | Not available — irreversible; cascading deletion of contained dashboards |
 | Modify organization settings (name, preferences) | Org-admin operation outside governed token |
 | Manage API keys (create/delete service accounts) | Identity management outside connector scope |
 | Manage user permissions / team membership | User management outside connector scope |
@@ -161,10 +177,12 @@ organization               # id (integer); name
 └── user                   # id (integer); login, email, role
 ```
 
-### Resource types (for Kei policy)
+### Resource types (ADR-028, for Kei policy)
 
-Per [ADR-028](https://github.com/HaikeiLabs/kei/blob/main/docs/adr/028-policy-field-contract.md) §4, every connector
-declares its resource types:
+Per [ADR-028](https://github.com/HaikeiLabs/kei/blob/main/docs/adr/028-policy-field-contract.md) §4, Grafana declares six
+UID- or integer-addressed resource types for Kei policy (each declares its
+parent type): `folder`, `dashboard`, `panel`, `datasource`, `alert_rule`,
+`annotation`:
 
 | Resource type | Parent type | Canonical id example |
 | --- | --- | --- |

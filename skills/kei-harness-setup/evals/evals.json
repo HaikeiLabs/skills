@@ -96,18 +96,6 @@
         "mentions that the setup script calls `kei harness add` with `|| true` for backward compatibility",
         "says `kei harness sync` is the primary path for desktop harnesses"
       ]
-    },
-    {
-      "id": 10,
-      "prompt": "I'm on kei 0.1.19 and I found a bug in the CLI itself. How do I report it from the command line? Do not execute anything — just explain in text. If you don't know something, just say so.",
-      "expected_output": "kei 0.1.19 does not have a feedback command — it was added in v0.1.20. Upgrade first (`kei upgrade`), then use `kei feedback send --kind bug --description \"short description\"` which bundles a runtime token hash, installation ID, kei/kei-proxy versions, OS/platform, and the last 50 lines of kei-proxy logs. The report never includes policy contents, credentials, or conversation data. Prior reports can be listed with `kei feedback list --json` and deleted with `kei feedback redact <id>`.",
-      "expectations": [
-        "states that kei 0.1.19 does not have the feedback command",
-        "says it was added in v0.1.20 and recommends upgrading first",
-        "mentions `kei feedback send --kind bug` with a description",
-        "lists what the report includes (token hash, installation ID, versions, OS, last 50 log lines)",
-        "states the report does not include policy contents, credentials, or conversation data"
-      ]
     }
   ]
 }

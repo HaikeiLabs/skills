@@ -19,8 +19,8 @@ Kei governs a coding-agent harness in two layers:
 
 This skill owns layer 2: translating between what the Kei control plane
 understands (`dst: shell:git`, `dst: skill:kei-agents`) and what each harness
-understands natively (Claude Code `permissions.allow`/`deny`, Codex `prefix_rule`
-in `kei.rules`, OpenCode `permission.bash`).
+understands natively (Claude Code `permissions.allow`, Codex `prefix_rule`,
+OpenCode `permission.bash`).
 
 ## Concepts
 
@@ -31,10 +31,10 @@ in `kei.rules`, OpenCode `permission.bash`).
 | **`skill:` dst** | A skill name the harness may load without asking. `skill:kei-agents` permits the Kei agents skill. |
 | **`path:` dst** | A filesystem path prefix the harness may read or write without asking. `path:/workspace/project` permits access under that directory. |
 | **`kei.harness-match/v1`** | The match dialect for harness command policies. Same matching rules as `kei.match/v1` (ADR-028 §5) but with the harness-specific dst candidates above. A policy never combines `shell:`, `skill:`, and `path:` in one dst — write separate policies. |
-| **Native config** | Each harness's own allow/deny list: Claude Code `~/.claude/settings.json` → `permissions.allow`/`permissions.deny`, Codex `~/.codex/rules/kei.rules` (Kei-owned; `default.rules` is never touched) → `prefix_rule(pattern=[...], decision="allow"\|"forbidden")`, OpenCode `opencode.json` (or `.jsonc`) → `permission.bash`. |
+| **Native config** | Each harness's own allow/deny list: Claude Code `~/.claude/settings.json` → `permissions.allow`, Codex `~/.codex/rules/default.rules` → `prefix_rule`, OpenCode `opencode.json` → `permission.bash`. |
 | **Report-only hook** | An optional `kei-proxy` sidecar that receives command-execution events and writes them to the audit trail but never blocks execution (HP-C6, ADR-029 §4.2). Implementation is a separate follow-up (HAI-{followup}); this skill describes the config shape. |
 | **`kei harness add`** | Register a custom/SDK harness type (`--kind custom`) so its tools are known to the control plane. Desktop harnesses (claude_code, codex, opencode) are auto-detected by sync — do NOT use `add` for them. `--installation` and `--agent` are optional with defaults (single installation, default agent). |
-| **`kei harness sync`** | Fetch the policy bundle and render it into the harness's native config format (Claude Code `permissions.allow`/`permissions.deny`, Codex `prefix_rule` in `kei.rules`, OpenCode `permission.bash`/`skill`/`external_directory`). Auto-discovers desktop harnesses (claude_code, codex, opencode) from the registered runtime installation — no separate `add` needed. |
+| **`kei harness sync`** | Fetch the policy bundle and render it into the harness's native config format (Claude Code `permissions.allow`, Codex `prefix_rule`, OpenCode `permission.bash`). Auto-discovers desktop harnesses (claude_code, codex, opencode) from the registered runtime installation — no separate `add` needed. |
 
 ## Retrieval sources
 
@@ -42,7 +42,7 @@ in `kei.rules`, OpenCode `permission.bash`).
 | --- | --- | --- |
 | Installed binary | `kei help`, `kei policies --help`, `kei harness --help` | Exact subcommands, flags, and allowed values for the installed version |
 | Policy contract | `docs/contracts/policy-set-v1.schema.json`, `docs/contracts/policy-bundle-v1.schema.json` | The JSON schema a policy must satisfy |
-| Harness docs | The harness's own skills documentation | How a particular harness loads native config (Claude Code's `settings.json`, Codex's `kei.rules`, OpenCode's `opencode.json` (or `.jsonc`)) |
+| Harness docs | The harness's own skills documentation | How a particular harness loads native config (Claude Code's `settings.json`, Codex's `default.rules`, OpenCode's `opencode.json`) |
 | ADR-029 | `docs/adr/029-harness-command-policy.md` | Design rationale, shell:/skill:/path: schemes, report-only hook, match dialect |
 | Bundle versioning | [`references/bundle-versioning.md`](references/bundle-versioning.md) | Bundle identity fields (bundle_id, bundle_version, policy_revision), lifecycle, polling/refresh, rollback protection, state machine, troubleshooting |
 
@@ -76,19 +76,6 @@ policy management.
 
 All `policies` and `harness` commands accept `--api-url URL` to override the
 default control-plane URL.
-
-## What each harness can enforce
-
-| Harness | `shell:` rendered as | `skill:` rendered as | `path:` rendered as |
-|---|---|---|---|
-| **Claude Code** | `~/.claude/settings.json` → `permissions.allow`/`deny` as `Bash(<prefix>:*)` | `permissions.allow`/`deny` as `Skill(<name>)` | Not rendered natively (governance-only) |
-| **Codex** | `~/.codex/rules/kei.rules` (Kei-owned) → `prefix_rule(pattern=[...], decision="allow"\|"forbidden")`; only a concrete `shell:<prefix>` | Not rendered natively (governance-only) | Not rendered natively (governance-only) |
-| **OpenCode** | `opencode.json` (or `.jsonc`) → `permission.bash` | `permission.skill` | `permission.external_directory` |
-| **Custom (SDK)** | Configurable via harness adapter | Rendered if adapter supports it | Rendered if adapter supports it |
-
-`skill:` and `path:` dst are always enforced through Kei governance
-(kei-proxy authorize) even where a harness has no native config equivalent for
-them (Codex renders neither natively).
 
 ## When to use `kei harness add`
 
@@ -234,9 +221,9 @@ flag selects the harness format (and its default source location):
 
 | Harness | Native location | `--from` value | Translation |
 | --- | --- | --- | --- |
-| Claude Code | `~/.claude/settings.json` → `permissions.allow`/`deny` (+ `autoMode.soft_deny`) | `claude` | Each `Bash(<cmd>:*)` entry becomes a `shell:<cmd>` permit/deny; each other entry becomes a `skill:<name>` permit/deny |
-| Codex | `~/.codex/rules/` (every `.rules` file) | `codex` | Each `prefix_rule(pattern=[...], decision="allow")` line becomes a `shell:<prefix>` permit; each `decision="forbidden"` line becomes a `shell:<prefix>` deny |
-| OpenCode | `opencode.json` (or `.jsonc`) → `permission` | `opencode` | `permission.bash` → `shell:<prefix>`, `permission.skill` → `skill:<name>`, `permission.external_directory` → `path:<pattern>`; `allow`→permit, `deny`→deny |
+| Claude Code | `~/.claude/settings.json` → `permissions.allow` | `claude` | Each array entry becomes a `shell:<entry>` permit at priority 100 |
+| Codex | `~/.codex/rules/default.rules` → `prefix_rule` | `codex` | Each `prefix_rule` entry becomes a `shell:<prefix>` permit at priority 100 |
+| OpenCode | `opencode.json` → `permission.bash` | `opencode` | Each array entry becomes a `shell:<entry>` permit at priority 100 |
 
 ```sh
 # Preview (dry run by default) Claude Code's existing allow list
@@ -249,19 +236,18 @@ kei policies import --from claude --workspace my-workspace --apply
 `import` is a **dry run by default**: it prints the policies it would create and
 stops. Pass `--apply` to create them (it prompts `Create N policies? [y/N]`).
 `--file PATH` overrides the source file or directory, `--src PATTERN` overrides
-the source pattern (default `harness:<kind>`; use `harness:*` to scope to all
-harness kinds), and `--out FILE` writes the proposed policy-set JSON to a file.
-There is no `--dry-run` flag — the default is already a dry run.
+the source pattern (default `harness:<kind>`), and `--out FILE` writes the
+proposed policy-set JSON to a file. There is no `--dry-run` flag — the default
+is already a dry run.
 
 ## Rendering native config: `kei harness sync` (there is no `policies export`)
 
 There is no `kei policies export` command. The native config file is rendered by
 `kei harness sync`, which reads the current policy bundle and writes the
-harness's native config (Claude Code `permissions.allow`/`permissions.deny`,
-Codex `prefix_rule` in `kei.rules`, OpenCode `permission.bash`/`skill`/
-`external_directory`). `shell:` renders for all three; `skill:` renders for
-Claude Code and OpenCode; `path:` renders for OpenCode; the rest stay
-governance-only. See "Registering a harness and syncing tools" below.
+harness's native config (Claude Code `permissions.allow`, Codex `prefix_rule`,
+OpenCode `permission.bash`). Only `shell:` policies have a native equivalent;
+`skill:` and `path:` policies are governance-only. See "Registering a harness
+and syncing tools" below.
 
 ## Checking coverage (there is no `policies verify` yet)
 
@@ -320,12 +306,6 @@ diff may be large (every line shown as changed) even when only one entry differs
 This will improve once an incremental diff renderer is deployed. Run sync after
 installing new Haikei skills or after a policy change. Requires `kei` > v0.1.6
 for `sync`.
-
-**Scope visibility:** when creating policies with `--src-pattern harness:*`,
-the wildcard matches any harness kind. This lets you write a single policy
-that applies across Claude Code, Codex, and OpenCode without repeating it
-per kind. The `import` command's `--src` flag accepts the same wildcard
-patterns (e.g. `--src "harness:*"`).
 
 ## Bundle renewal
 
@@ -406,10 +386,9 @@ known limitations, and bug reporting — see
 Key points to keep in mind:
 
 - **`kei harness sync` renders the bundle** into native config (Claude Code
-  `permissions.allow`/`permissions.deny`, Codex `prefix_rule` in `kei.rules`,
-  OpenCode `permission.bash`/`skill`/`external_directory`). `shell:` renders for
-  all three; `skill:` for Claude Code and OpenCode; `path:` for OpenCode; the
-  rest stay governance-only.
+  `permissions.allow`, Codex `prefix_rule`, OpenCode `permission.bash`). Only
+  `shell:` policies have a native equivalent; `skill:` and `path:` policies are
+  governance-only.
 - **The Kei hook is audit-only** — it reports the tool name, phase, native
   decision, and an HMAC args digest (args are encrypted to customer keys,
   never logged raw); it always exits 0 and never blocks or decides.
@@ -422,21 +401,23 @@ Key points to keep in mind:
 
 ## Deny rendering
 
-Deny policies (`effect: deny`) are written to the harness's native deny list as
-of kei v0.1.20:
+Deny policies (`effect: deny`) are **not yet written** to the harness's native
+deny list (Claude Code `permissions.deny`, Codex `blocked_prefixes`). The
+renderer only writes `permit` entries. This is tracked in HAI-400 (renderer PR).
 
-| Harness | Deny rendered as |
+Until HAI-400 ships, a `deny` policy's effect depends on how the harness
+processes the rendered native config:
+
+| Deny policy effect | What actually happens |
 |---|---|
-| Claude Code | `~/.claude/settings.json` → `permissions.deny` |
-| Codex | `~/.codex/rules/kei.rules` → `prefix_rule(pattern=[...], decision="forbidden")` |
-| OpenCode | `opencode.json` (or `.jsonc`) → `permission.bash`/`skill`/`external_directory` = `"deny"` |
+| A **permitted** command that is also covered by a deny | **Allowed** — the deny is invisible to the harness, so the permit wins |
+| A **denied** command that has no permit | Falls through to the harness's native permission mode (usually `ask`) — it is **not blocked** by Kei |
 
-Because deny now renders, a catch-all `shell:* deny` is **harmful** for Claude
-Code: it renders `Bash(*)` into `permissions.deny`, and Claude Code's
-deny-beats-allow semantics then block every permitted command too. (For Codex,
-`shell:*` is not expressible as a prefix rule, so it is not rendered at all.)
-Keep a tightly scoped set of permit policies and rely on the harness's native
-`ask` mode for everything else.
+This is why a catch-all `shell:* deny` is **harmful**: the renderer would write
+`*` into `permissions.deny`, and Claude Code's deny-beats-allow semantics would
+then block every permitted command too. Until the renderer supports deny
+entries, keep a tightly scoped set of permit policies and rely on the harness's
+native `ask` mode for everything else.
 
 ## Validation commands
 
