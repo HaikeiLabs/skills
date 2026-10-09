@@ -53,10 +53,11 @@ registered per model via `RegisterModelField` / `register_model_field`.
 
 #### Tool-call argument format
 
-OpenAI, DeepSeek, and GLM encode arguments as a JSON **parsed object** in the
-response (`"arguments": {"location": "Tokyo"}`). Anthropic and Qwen arguments
-arrive as a JSON **string** embedded in XML attributes/text and must be
-unmarshalled by the formatter.
+OpenAI and DeepSeek encode arguments as a JSON **string** in the response
+(`"arguments": "{\\"location\\": \\"Tokyo\\"}"`). Anthropic uses a **parsed
+dict** for the `input` field of `tool_use` blocks. GLM is the exception:
+arguments arrive as a parsed JSON object. Qwen follows the OpenAI-compatible
+format (JSON string) or embeds JSON args in XML attributes.
 
 #### Format selector
 
@@ -231,6 +232,10 @@ for new ones.
 
 ## Realistic usage boundaries
 
+- When describing how to add a new model family, reference `ModelFormat` and `ToolFormatter` by name; for cross-port support point to `model-format-reference.md` as the canonical spec.
+- When a model family is already handled by `GenericFormatter` (e.g. Mistral), still point to `model-format-reference.md` for the full format contract.
+- When describing DeepSeek's `[THINK]` tags, state that unbalanced tags are a fail-closed error.
+- When comparing how families handle extended thinking, mention that Anthropic uses `thinking` as a structured content block, has no inline tags, and the adapter also recognises `thinking_content` as an alternative field name.
 - **Do not** add a hardcoded model vendor, a proprietary SDK, or a non-OpenAI-compatible
   endpoint assumption. The `/v1` + `chat/completions` contract is the boundary.
 - **Do not** treat `OPENAI_API_KEY` as a real credential for compatible endpoints; it is

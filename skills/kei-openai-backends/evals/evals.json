@@ -3,79 +3,179 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "What tool-call argument format does DeepSeek use — is it a JSON string or a parsed object like Anthropic?",
-      "expected_output": "Explains that DeepSeek uses a JSON string for tool-call arguments (same as OpenAI/Qwen), not a parsed object like Anthropic or GLM.",
+      "prompt": "I'm integrating a new OpenAI-compatible model that formats tool-call arguments as a JSON string instead of a parsed object. How do I detect and handle this in the chat harness?",
+      "expected_output": "Classify the model's ToolFormatter based on its arguments format: DeepSeek and GLM family models pass arguments as a JSON string while Anthropic models pass them as a parsed JSON object. The render_tools function will apply the correct per-model formatting.",
       "expectations": [
         "The response correctly classifies DeepSeek's arguments format as a JSON string.",
         "The response contrasts with Anthropic/GLM which use parsed JSON objects."
+      ],
+      "checks": [
+        {
+          "text": "The response correctly classifies DeepSeek's arguments format as a JSON string.",
+          "contains_all": ["DeepSeek", "JSON"]
+        },
+        {
+          "text": "The response contrasts with Anthropic/GLM which use parsed JSON objects.",
+          "contains_any": ["Anthropic", "GLM", "parsed dict", "parsed JSON"]
+        }
       ]
     },
     {
       "id": 2,
-      "prompt": "I'm integrating the QwQ-32B model. How does its thinking/reasoning appear in the response compared to DeepSeek's reasoner models?",
-      "expected_output": "Explains that QwQ-32B uses separate type:reasoning content blocks for thinking (selected when model tag contains qwq), while DeepSeek uses a reasoning_content field parallel to content on the same choice delta.",
+      "prompt": "QwQ models produce reasoning differently from DeepSeek. How does the harness normalise them into a common format?",
+      "expected_output": "QwQ uses its own reasoning content blocks which the reasoning adapter picks up and converts to the common format. DeepSeek uses reasoning_content on the choice delta.",
       "expectations": [
         "The response describes QwQ's reasoning content blocks.",
         "The response contrasts with DeepSeek's reasoning_content field approach."
+      ],
+      "checks": [
+        {
+          "text": "The response describes QwQ's reasoning content blocks.",
+          "contains_all": ["qwq", "reasoning"]
+        },
+        {
+          "text": "The response contrasts with DeepSeek's reasoning_content field approach.",
+          "contains_all": ["reasoning_content"]
+        }
       ]
     },
     {
       "id": 3,
-      "prompt": "How do I add support for a new model family like Mistral to the chat harness?",
-      "expected_output": "Explains that only the five documented model families (OpenAI, Anthropic, Qwen, DeepSeek, GLM) are supported by Agentware's formatters, and a new family requires a ModelFormat variant, render function, and reasoning adapter — not just a selector entry.",
+      "prompt": "I want to add Mistral support. The Mistral API returns tool_calls with function.arguments as a JSON string, similar to DeepSeek. Can I just add an entry in a config file?",
+      "expected_output": "No config file entry is needed: Mistral is OpenAI-compatible and already handled by GenericFormatter out of the box. For explicit first-class support (custom reasoning fields, dedicated tests) you would add a ModelFormat variant, a ToolFormatter class, a selector entry, and reasoning-adapter registration. The model-format-reference.md has the full contract.",
       "expectations": [
-        "The response does not suggest adding Mistral support by just changing a config file.",
-        "The response references the model-format-reference.md as the canonical source."
+        "The response says Mistral is handled by GenericFormatter without needing a config entry.",
+        "The response references model-format-reference.md for the full format contract."
+      ],
+      "checks": [
+        {
+          "text": "The response says Mistral is handled by GenericFormatter without needing a config entry.",
+          "contains_any": ["GenericFormatter", "ModelFormat"]
+        },
+        {
+          "text": "The response references model-format-reference.md for the full format contract.",
+          "contains_any": ["model-format-reference.md", "model-format-reference", "full format contract", "format spec"]
+        }
       ]
     },
     {
       "id": 4,
-      "prompt": "I'm building an eval that streams tokens from an Anthropic-compatible endpoint. How does the reasoning adapter handle thinking content blocks?",
-      "expected_output": "Explains that the AnthropicReasoningAdapter extracts thinking text from type:thinking content blocks in the delta stream, producing a Reasoning object with the CoT content.",
+      "prompt": "Anthropic's API has a 'thinking' content block for extended thinking. How does the harness handle this?",
+      "expected_output": "Anthropic emits thinking as a structured content block with type 'thinking'. The reasoning adapter converts it into the common reasoning format. thinking_content is also recognised as an alternative field name.",
       "expectations": [
         "The response describes Anthropic's thinking content block structure.",
         "The response explains how the reasoning adapter normalises it."
+      ],
+      "checks": [
+        {
+          "text": "The response describes Anthropic's thinking content block structure.",
+          "contains_all": ["thinking", "content block"]
+        },
+        {
+          "text": "The response explains how the reasoning adapter normalises it.",
+          "contains_all": ["reasoning adapter"]
+        }
       ]
     },
     {
       "id": 5,
-      "prompt": "I'm using DeepSeek as my model backend. What tool-call argument format does it use, and does it have any inline thinking tags I need to handle?",
-      "expected_output": "DeepSeek uses standard OpenAI-compatible JSON function-calling (JSON array of {id, name, arguments}) for tool calls and results. It has reasoning_content as the native reasoning field, and in text-completion mode it wraps reasoning in [THINK]...[/THINK] tags that the reasoning adapter strips (unbalanced [THINK] is a fail-closed error).",
+      "prompt": "Do DeepSeek models use OpenAI-style function calling or do they have their own format? How do reasoning and tool calls coexist in the response?",
+      "expected_output": "DeepSeek uses the same JSON function-calling format as OpenAI for tool calls, with arguments as a JSON string. Reasoning is carried in reasoning_content on the choice delta. DeepSeek also emits [THINK]...[/THINK] tags, and the harness fails closed if the tags are unbalanced.",
       "expectations": [
         "The response states DeepSeek uses the same JSON function-calling format as OpenAI.",
         "The response describes reasoning_content as the native reasoning field.",
         "The response mentions [THINK]...[/THINK] tags and the unbalanced-tag fail-closed behavior."
+      ],
+      "checks": [
+        {
+          "text": "The response states DeepSeek uses the same JSON function-calling format as OpenAI.",
+          "contains_any": ["function calling", "function-calling format", "same JSON format", "OpenAI style"]
+        },
+        {
+          "text": "The response describes reasoning_content as the native reasoning field.",
+          "contains_all": ["reasoning_content"]
+        },
+        {
+          "text": "The response mentions [THINK]...[/THINK] tags and the unbalanced-tag fail-closed behavior.",
+          "contains_all": ["[THINK]", "fail-closed"]
+        }
       ]
     },
     {
       "id": 6,
-      "prompt": "What's the difference between Qwen/QwQ reasoning and DeepSeek reasoning in terms of inline thinking tags?",
-      "expected_output": "Both use reasoning_content as their native reasoning field. Qwen uses <thinking>...</thinking> XML tags that may appear in content text alongside tool calls; DeepSeek uses [THINK]...[/THINK] tags (primarily in text-completion mode). The reasoning adapter strips both, but DeepSeek treats unbalanced [THINK] as a fail-closed error.",
+      "prompt": "What's the difference between how Qwen and DeepSeek models produce reasoning in the chat harness?",
+      "expected_output": "Both use reasoning_content on the delta but Qwen wraps its reasoning in XML <thinking> tags while DeepSeek uses [THINK] tags. DeepSeek has fail-closed behavior for unbalanced [THINK] tags.",
       "expectations": [
         "The response states both families use reasoning_content.",
         "The response correctly distinguishes Qwen's XML <thinking> tags from DeepSeek's [THINK] tags.",
         "The response mentions the fail-closed behavior for unbalanced DeepSeek [THINK] tags."
+      ],
+      "checks": [
+        {
+          "text": "The response states both families use reasoning_content.",
+          "contains_all": ["reasoning_content"]
+        },
+        {
+          "text": "The response correctly distinguishes Qwen's XML <thinking> tags from DeepSeek's [THINK] tags.",
+          "contains_all": ["<thinking>", "[THINK]"]
+        },
+        {
+          "text": "The response mentions the fail-closed behavior for unbalanced DeepSeek [THINK] tags.",
+          "contains_all": ["fail-closed"]
+        }
       ]
     },
     {
       "id": 7,
-      "prompt": "I need to add support for a new model family (e.g., Cohere) to the chat harness. What components need to change?",
-      "expected_output": "Explains that adding a new family requires: a ModelFormat enum variant, a dedicated ToolFormatter struct (implementing FormatToolDefinitions, ParseToolCalls, FormatToolResult, ModelFamily, ValidateFormat), a selector entry in get_formatter()/GetFormatter()/getFormatter(), reasoning-adapter model-field registration if the model uses a non-standard reasoning field name, and shared test fixtures.",
+      "prompt": "I'm adding a new model family across all three agentware SDK ports. What components do I need to implement in each language?",
+      "expected_output": "Each port needs the full ToolFormatter interface (format_tool, parse_tool_call, format_reasoning, parse_reasoning, tool_call_id) plus format detection, shared fixtures at fixtures/toolformat/ and fixtures/reasoning/, and tests. The model-format-reference.md is the canonical format spec.",
       "expectations": [
         "The response mentions all three ports (Go, Python, TypeScript) need changes.",
         "The response includes the ToolFormatter interface (5 methods).",
-        "The response references Agentware's docs/model-format-reference.md for the canonical format spec.",
+        "The response references model-format-reference.md for the canonical format spec.",
         "The response mentions shared fixtures at fixtures/toolformat/ and fixtures/reasoning/."
+      ],
+      "checks": [
+        {
+          "text": "The response mentions all three ports (Go, Python, TypeScript) need changes.",
+          "contains_all": ["Go", "Python", "TypeScript"]
+        },
+        {
+          "text": "The response includes the ToolFormatter interface (5 methods).",
+          "contains_all": ["ToolFormatter"]
+        },
+        {
+          "text": "The response references model-format-reference.md for the canonical format spec.",
+          "contains_all": ["model-format-reference.md"]
+        },
+        {
+          "text": "The response mentions shared fixtures at fixtures/toolformat/ and fixtures/reasoning/.",
+          "contains_all": ["fixtures/toolformat", "fixtures/reasoning"]
+        }
       ]
     },
     {
       "id": 8,
-      "prompt": "How does the reasoning adapter handle Anthropic's extended thinking? Does it just use reasoning_content like all the other families?",
-      "expected_output": "No, Anthropic uses a 'thinking' content block (type: 'thinking') in the Messages API response, not reasoning_content. The adapter reads the 'thinking' field from the structured content block. It also recognises 'thinking_content' as an alternative SDK naming. The adapter has no inline tag stripping for Anthropic since extended thinking uses structured content blocks, not inline tags.",
+      "prompt": "Does the Anthropic API use reasoning_content like DeepSeek and Qwen, or does it have a different mechanism for extended thinking?",
+      "expected_output": "Anthropic uses 'thinking' as a structured content block with type 'thinking', not reasoning_content. The harness also recognises 'thinking_content' as an alternative. There are no inline thinking tags in the Anthropic format.",
       "expectations": [
         "The response correctly states Anthropic uses 'thinking' as a structured content block, not reasoning_content.",
         "The response mentions that 'thinking_content' is also recognised as an alternative.",
         "The response states there are no inline thinking tags for Anthropic."
+      ],
+      "checks": [
+        {
+          "text": "The response correctly states Anthropic uses 'thinking' as a structured content block, not reasoning_content.",
+          "contains_all": ["thinking", "content block", "reasoning_content"]
+        },
+        {
+          "text": "The response mentions that 'thinking_content' is also recognised as an alternative.",
+          "contains_any": ["thinking_content", "thinking content block", "thinking block"]
+        },
+        {
+          "text": "The response states there are no inline thinking tags for Anthropic.",
+          "contains_any": ["no inline", "not a top-level", "not a flat top-level", "does not use inline", "does not use", "no inline tags"]
+        }
       ]
     }
   ]

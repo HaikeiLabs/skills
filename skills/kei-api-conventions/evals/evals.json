@@ -8,6 +8,16 @@
       "expectations": [
         "The response spells the operation as a :verb custom method rather than a trailing path segment.",
         "The response does not suggest adding the new route to aip-baseline.txt."
+      ],
+      "checks": [
+        {
+          "text": "The response spells the operation as a :verb custom method rather than a trailing path segment.",
+          "contains_any": [":verb", ":approve", ":start", "custom method"]
+        },
+        {
+          "text": "The response does not suggest adding the new route to aip-baseline.txt.",
+          "not_contains": ["add it to aip-baseline.txt", "add it to `aip-baseline.txt`", "baseline it", "add to baseline"]
+        }
       ]
     },
     {
@@ -17,15 +27,92 @@
       "expectations": [
         "The response keeps both paths serving from one handler rather than duplicating the implementation.",
         "The response removes the legacy route only after its callers have moved."
+      ],
+      "checks": [
+        {
+          "text": "The response keeps both paths serving from one handler rather than duplicating the implementation.",
+          "contains_any": ["same handler", "one handler", "two routes"]
+        },
+        {
+          "text": "The response removes the legacy route only after its callers have moved.",
+          "contains_any": ["move the callers", "move callers", "update callers", "callers have moved"]
+        }
       ]
     },
     {
       "id": 3,
-      "prompt": "Add a list endpoint for ledger entries to the policy catalog API.",
+      "prompt": "What naming and pagination conventions should I follow when adding a list endpoint for ledger entries to the policy catalog API?",
       "expected_output": "Uses a plural kebab-case collection, GET for List, and page_size/page_token pagination rather than offset, and directs the user to run aipcheck before committing.",
       "expectations": [
         "The response uses a plural, kebab-case collection name.",
         "The response specifies page_size/page_token pagination instead of offset."
+      ],
+      "checks": [
+        {
+          "text": "The response uses a plural, kebab-case collection name.",
+          "contains_all": ["plural", "kebab-case"]
+        },
+        {
+          "text": "The response specifies page_size/page_token pagination instead of offset.",
+          "contains_any": ["page_size", "page_token"]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "What's the right way to name a list endpoint that returns expense reports? I want to follow the API conventions.",
+      "expected_output": "Recommends a plural kebab-case collection like /api/v1/expense-reports, GET for List, and page_size/page_token pagination. Explains that collection names should not use abbreviations or verbs.",
+      "expectations": [
+        "The response recommends a plural, kebab-case collection name.",
+        "The response specifies page_size/page_token pagination for the list endpoint."
+      ],
+      "checks": [
+        {
+          "text": "The response recommends a plural, kebab-case collection name.",
+          "contains_all": ["plural", "kebab-case"]
+        },
+        {
+          "text": "The response specifies page_size/page_token pagination for the list endpoint.",
+          "contains_any": ["page_size", "page_token", "pagination"]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Can I use POST /api/v1/invoices/approve as the endpoint to approve an invoice?",
+      "expected_output": "Explains that /approve is a trailing path segment, not a valid custom method. Recommends POST /api/v1/invoices/{id}:approve instead and mentions that aipcheck CI enforces the :verb convention.",
+      "expectations": [
+        "The response does not accept a trailing /approve path segment as a valid custom method.",
+        "The response mentions aipcheck as the CI step that enforces the :verb convention."
+      ],
+      "checks": [
+        {
+          "text": "The response does not accept a trailing /approve path segment as a valid custom method.",
+          "contains_all": [":approve", "custom method"]
+        },
+        {
+          "text": "The response mentions aipcheck as the CI step that enforces the :verb convention.",
+          "contains_any": ["aipcheck", "CI enforces"]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "The aipcheck CI is failing on a route I renamed. The old path is still listed in aip-baseline.txt. What should I do?",
+      "expected_output": "Explains that aip-baseline.txt tracks legacy route exceptions. After the dual-write migration completes and callers have migrated, remove the old path from aip-baseline.txt. The baseline is not a permanent exemption.",
+      "expectations": [
+        "The response removes the old route from aip-baseline.txt after the dual-write migration finishes.",
+        "The response explains that aip-baseline.txt allows legacy exceptions and is not a permanent exemption."
+      ],
+      "checks": [
+        {
+          "text": "The response removes the old route from aip-baseline.txt after the dual-write migration finishes.",
+          "contains_all": ["aip-baseline.txt"]
+        },
+        {
+          "text": "The response explains that aip-baseline.txt allows legacy exceptions and is not a permanent exemption.",
+          "contains_any": ["legacy", "predate", "pre-ADR", "exceptions", "exemption", "shrink to empty"]
+        }
       ]
     }
   ]

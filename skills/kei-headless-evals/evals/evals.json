@@ -8,6 +8,16 @@
       "expectations": [
         "The response points to the golden fixture location and the EvalCase schema.",
         "The response mentions that removing a case is a breaking change because case counts are asserted."
+      ],
+      "checks": [
+        {
+          "text": "The response points to the golden fixture location and the EvalCase schema.",
+          "contains_all": ["eval/fixtures", "golden.json"]
+        },
+        {
+          "text": "The response mentions that removing a case is a breaking change because case counts are asserted.",
+          "contains_any": ["case counts", "case cardinality", "case count", "case-count"]
+        }
       ]
     },
     {
@@ -17,6 +27,92 @@
       "expectations": [
         "The response uses the integration marker filter and does not run model-backed suites.",
         "The response distinguishes the offline scripted path from live model evaluation."
+      ],
+      "checks": [
+        {
+          "text": "The response uses the integration marker filter and does not run model-backed suites.",
+          "contains_all": ["not integration"]
+        },
+        {
+          "text": "The response distinguishes the offline scripted path from live model evaluation.",
+          "contains_any": ["ScriptedBackend", "not integration"]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I see --backend agentware in the CLI help. Can I use it to run an eval?",
+      "expected_output": "No: --backend agentware is recognised but not wired. It exits 2 with a stable stub message. The stub exists so CI can assert the harness binary is the expected version without requiring a real agent backend.",
+      "expectations": [
+        "The response states that --backend agentware is not wired and exits 2.",
+        "The response mentions the stable stub message that CI uses to assert the harness version."
+      ],
+      "checks": [
+        {
+          "text": "The response states that --backend agentware is not wired and exits 2.",
+          "contains_all": ["not wired", "exits 2"]
+        },
+        {
+          "text": "The response mentions the stable stub message that CI uses to assert the harness version.",
+          "contains_any": ["stub", "not wired"]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "What trace step kinds are available in an eval report and which ones carry snapshots?",
+      "expected_output": "Lists input, parse, resolve, guard, envelope, render (carry snapshots), and error, aborted (no snapshot). Schema versions are dvl.eval-trace.v1 and dvl.eval-report.v1.",
+      "expectations": [
+        "The response lists the trace step kinds that carry snapshots.",
+        "The response mentions the schema version constants used for trace and report."
+      ],
+      "checks": [
+        {
+          "text": "The response lists the trace step kinds that carry snapshots.",
+          "contains_all": ["guard", "snapshot"]
+        },
+        {
+          "text": "The response mentions the schema version constants used for trace and report.",
+          "contains_any": ["dvl.eval-trace.v1", "dvl.eval-report.v1", "schema version"]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "What fields does the EvalCase JSON require and what lanes are valid when creating a new golden fixture?",
+      "expected_output": "EvalCase requires id, lane, input, and an optional pinned expect. Lanes are a closed set: project-hours | semantic-model. The schema lives in src/eval/types.ts.",
+      "expectations": [
+        "The response specifies the EvalCase fields: id, lane, input, and optional expect.",
+        "The response lists the valid lanes as a closed set."
+      ],
+      "checks": [
+        {
+          "text": "The response specifies the EvalCase fields: id, lane, input, and optional expect.",
+          "contains_all": ["EvalCase", "id", "lane", "input"]
+        },
+        {
+          "text": "The response lists the valid lanes as a closed set.",
+          "contains_all": ["project-hours", "semantic-model"]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "How does the EvalRunner handle per-case cancellation without tearing down the whole suite?",
+      "expected_output": "EvalRunner owns a per-case AbortSignal and is backend-agnostic. A cancelled case records an aborted trace step. The summary aggregates pass, fail, error, and aborted counts.",
+      "expectations": [
+        "The response describes EvalRunner's per-case AbortSignal ownership.",
+        "The response mentions the aborted trace step kind for cancelled cases."
+      ],
+      "checks": [
+        {
+          "text": "The response describes EvalRunner's per-case AbortSignal ownership.",
+          "contains_all": ["EvalRunner", "AbortSignal"]
+        },
+        {
+          "text": "The response mentions the aborted trace step kind for cancelled cases.",
+          "contains_all": ["aborted"]
+        }
       ]
     }
   ]

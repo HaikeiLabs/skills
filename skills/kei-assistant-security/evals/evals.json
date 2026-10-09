@@ -8,6 +8,16 @@
       "expectations": [
         "The response does not treat \"TRUE\", \"1\", or \" true \" as enabled.",
         "The response constructs the endpoint components only inside the enabled branch, not before a runtime check."
+      ],
+      "checks": [
+        {
+          "text": "The response does not treat \"TRUE\", \"1\", or \" true \" as enabled.",
+          "contains_all": ["strict-equality", "true"]
+        },
+        {
+          "text": "The response constructs the endpoint components only inside the enabled branch, not before a runtime check.",
+          "contains_all": ["non-construction"]
+        }
       ]
     },
     {
@@ -17,6 +27,92 @@
       "expectations": [
         "The response does not recommend adding detail to distinguish denial reasons.",
         "The response cites the pseudonymous audit and closed-code invariants from the assistant's security design."
+      ],
+      "checks": [
+        {
+          "text": "The response does not recommend adding detail to distinguish denial reasons.",
+          "contains_all": ["pseudonymous"]
+        },
+        {
+          "text": "The response cites the pseudonymous audit and closed-code invariants from the assistant's security design.",
+          "contains_any": ["closed-code", "closed code", "audit-code", "invariant 4", "invariant 5", "invariant #4", "invariant #5"]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "A PR changes the verifier to accept any valid JWT from a known issuer without checking the audience claim. Is that safe?",
+      "expected_output": "Explains this is an accept-any-token vulnerability. The verifier must enforce audience, throw TokenVerificationError with a closed audit code set on failure, and use DenyAllVerifier for the disabled path.",
+      "expectations": [
+        "The response rejects the accept-any-token approach and mandates audience verification.",
+        "The response states that verify throws TokenVerificationError with a closed audit code set on failure."
+      ],
+      "checks": [
+        {
+          "text": "The response rejects the accept-any-token approach and mandates audience verification.",
+          "contains_all": ["accept-any-token"]
+        },
+        {
+          "text": "The response states that verify throws TokenVerificationError with a closed audit code set on failure.",
+          "contains_any": ["TokenVerificationError", "closed code", "invariant 4", "invariant #4"]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Our enrollment handler receives duplicate callback requests. I plan to use a bare activity id as the idempotency key. Is that sufficient?",
+      "expected_output": "No: idempotency must be scoped, not bare. Uses scopedActivityKey with tenantId, conversationId, and activityId. Reserves after sender validation, commits on success and expected failure, releases on throw so a redelivery can retry.",
+      "expectations": [
+        "The response does not accept a bare activity id for idempotency.",
+        "The response describes scopedActivityKey with tenant, conversation, and activity identifiers."
+      ],
+      "checks": [
+        {
+          "text": "The response does not accept a bare activity id for idempotency.",
+          "contains_all": ["scoped", "bare"]
+        },
+        {
+          "text": "The response describes scopedActivityKey with tenant, conversation, and activity identifiers.",
+          "contains_all": ["scopedActivityKey"]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "What invariants does the assistant enforce around the governor subprocess to prevent tampering?",
+      "expected_output": "The governor is pinned and binding: executable path, script path, cwd, and script SHA256 are pinned env inputs validated at startup. The child runs with -I -B and an empty environment. Decisions are bound to the exact request; mismatched binding fields collapse to unavailable as a replay.",
+      "expectations": [
+        "The response describes the governor executable, script path, and SHA256 as pinned at startup.",
+        "The response explains that a binding mismatch (wrong proposal id, actor, or role list) is treated as a replay and collapses to unavailable."
+      ],
+      "checks": [
+        {
+          "text": "The response describes the governor executable, script path, and SHA256 as pinned at startup.",
+          "contains_all": ["SHA256", "pinned"]
+        },
+        {
+          "text": "The response explains that a binding mismatch (wrong proposal id, actor, or role list) is treated as a replay and collapses to unavailable.",
+          "contains_all": ["binding", "unavailable"]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "I need to issue a downstream token from a tool lane. Can I import a mint directly in the tool lane code?",
+      "expected_output": "No: the composition root (src/server.ts) is the only production import site for downstream mints. This is enforced by an eslint rule and by the source scan in test/teams_sso_exchange.test.ts. Tool lanes must not import mints directly.",
+      "expectations": [
+        "The response restricts mint imports to src/server.ts, the composition root.",
+        "The response cites the eslint rule and the test that enforces it."
+      ],
+      "checks": [
+        {
+          "text": "The response restricts mint imports to src/server.ts, the composition root.",
+          "contains_all": ["src/server.ts"]
+        },
+        {
+          "text": "The response cites the eslint rule and the test that enforces it.",
+          "contains_all": ["eslint", "teams_sso_exchange"]
+        }
       ]
     }
   ]
