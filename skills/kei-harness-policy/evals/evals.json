@@ -454,6 +454,51 @@
           ]
         }
       ]
+    },
+    {
+      "id": 13,
+      "prompt": "A workspace has two harness command policies: priority 100, src group:admins, dst shell:git push --force, effect deny; and priority 10, src *, dst shell:git, effect permit. A developer's runtime gets a kei.policy-bundle/v2 bundle with no subject and runs `kei harness sync --harness claude_code --dry-run`. What does sync print, what ends up in ~/.claude/settings.json, and what happens when Claude Code tries `git push --force`? Then: what changes if the bundle has a subject whose groups include admins? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "expected_output": "Without a subject the renderer cannot resolve the group:admins source, so the deny is skipped. A skipped deny still comes first in precedence and overlaps shell:git, so sync withholds the shell:git permit instead of rendering it as an allow, and prints: not rendered in Claude Code: allow git (a higher-precedence user:/group: deny overlaps it; the harness will ask). settings.json gets no git entry, so Claude Code asks before git push --force (and every other git command). A skipped deny never becomes an allow. With a v2 subject in admins, both render: permissions.allow gets Bash(git:*) and permissions.deny gets Bash(git push --force:*), so Claude Code denies git push --force natively.",
+      "expectations": [
+        "states that the group:admins deny is skipped because the bundle carries no subject",
+        "states that the shell:git permit is withheld rather than rendered as an allow",
+        "quotes the sync line 'not rendered in Claude Code: allow git' ending with 'the harness will ask'",
+        "says Claude Code asks before running git push --force",
+        "states that a skipped deny never becomes an allow",
+        "says that with a v2 subject in admins the deny renders as Bash(git push --force:*) in permissions.deny"
+      ],
+      "checks": [
+        {
+          "text": "states that the group:admins deny is skipped because the bundle carries no subject",
+          "regex": "(?=[\\s\\S]*skip)(?=[\\s\\S]*subject)"
+        },
+        {
+          "text": "states that the shell:git permit is withheld rather than rendered as an allow",
+          "regex": "withh|not render\\w* (?:it )?as an allow|permit (?:is )?not rendered"
+        },
+        {
+          "text": "quotes the sync line 'not rendered in Claude Code: allow git' ending with 'the harness will ask'",
+          "contains_all": [
+            "not rendered in Claude Code: allow git",
+            "the harness will ask"
+          ]
+        },
+        {
+          "text": "says Claude Code asks before running git push --force",
+          "regex": "ask[\\s\\S]{0,160}git push --force|git push --force[\\s\\S]{0,160}\\bask"
+        },
+        {
+          "text": "states that a skipped deny never becomes an allow",
+          "regex": "never (?:becomes|turns into|renders as|rendered as|treated as) an? allow"
+        },
+        {
+          "text": "says that with a v2 subject in admins the deny renders as Bash(git push --force:*) in permissions.deny",
+          "contains_all": [
+            "Bash(git push --force:*)",
+            "permissions.deny"
+          ]
+        }
+      ]
     }
   ]
 }

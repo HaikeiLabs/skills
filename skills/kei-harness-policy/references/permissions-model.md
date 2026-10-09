@@ -22,22 +22,32 @@ web console. Each policy has a `src` (who), `dst` (what), and `effect`
 | `skill:<name>` | A skill the harness may load | `skill:kei-agents` permits the Kei agents skill |
 | `path:<prefix>` | A filesystem path prefix the harness may access | `path:/workspace/project` permits access under that directory |
 
-The source identifies the harness kind:
+The source says who the policy applies to. People and agents are the normal
+sources; `harness:` is optional and narrower:
 
 | `src` pattern | Matches |
 | --- | --- |
-| `harness:claude_code` | The single registered Claude Code harness on the installation |
-| `harness:codex` | The single registered Codex harness |
-| `harness:opencode` | The single registered OpenCode harness |
-| `harness:<id>` | A harness by its ID |
+| `*` | Everyone in the workspace, on every harness |
+| `user:<id>`, `email:<address>`, `group:<name>` | A person or group, whichever harness they use |
 | `agent:<id>` | An agent by its ID |
-| `harness:custom` | Any custom harness |
+| `harness:<kind>` | Everyone using that harness kind (`claude_code`, `codex`, `opencode`, `custom`) |
+| `harness:<id>` | Everyone using that harness or installation |
 
-For prebuilt harness rendering (Claude Code, Codex, OpenCode), only
-`harness:<kind>`, `harness:<id>`, and `agent:<id>` are resolved. `group:`,
-`user:`, and `org:` sources are skipped — they apply to `kei-proxy` decisions,
-not to native config rendering. Policies that follow the logged-in user's groups
-(e.g. `group:developer`) are planned.
+A `harness:` source is only for harness destinations (`shell:`, `skill:`,
+`path:`, `mcp:`, or a harness tool name such as `tool:claude_code.edit`). The
+catalog rejects a `harness:` source with any other destination on save
+(`INVALID_ARGUMENT`). An `agent:<id>` source with an exact `tool:` or
+`capability:` destination is checked at call time by `kei-proxy`, and matches
+when **either** the user or the calling agent matches. Cap a broad agent permit
+with a higher-priority deny.
+
+For prebuilt harness rendering (Claude Code, Codex, OpenCode), `*` renders on
+every harness and `harness:` renders on the harness it names. `user:`, `email:`
+and `group:` render only when they name the v2 bundle's **subject**: the
+person who owns the runtime installation (user ID, email and groups). v1
+bundles carry no subject, so none of those sources render on v1. A person
+source that does not render is a **skipped** policy; see
+[Skipped denies withhold overlapping permits](#skipped-denies-withhold-overlapping-permits).
 
 ### 2. Bundle compilation
 
@@ -56,13 +66,84 @@ policies into the harness's native config format:
 
 | Harness | Native config file | Permits rendered as | Denies rendered as |
 | --- | --- | --- | --- |
-| Claude Code | `~/.claude/settings.json` | `permissions.allow` array entries | **Not yet written** (see known limitations) |
-| Codex | `~/.codex/rules/kei.rules` | `prefix_rule` entries | **Not yet written** (see known limitations) |
-| OpenCode | `opencode.json` | `permission.bash` array entries | **Not yet written** (see known limitations) |
+| Claude Code | `~/.claude/settings.json` | `permissions.allow` entries, e.g. `Bash(git:*)` | `permissions.deny` entries, e.g. `Bash(git push --force:*)` |
+| Codex | `~/.codex/rules/kei.rules` | `prefix_rule` allow entries | `prefix_rule` `forbidden` entries |
+| OpenCode | `opencode.json` | `permission.bash` allow entries | `permission.bash` deny entries |
 
-Only `shell:` policies have a native equivalent in the harness config. `skill:`
-and `path:` policies are not yet rendered into native config for Claude Code,
-Codex, or OpenCode; a fix is in progress.
+`shell:` policies render on all three. Claude Code and OpenCode also render
+`skill:` policies, and OpenCode renders `path:` policies. Codex expresses only
+argv prefix rules; sync prints `not enforceable in Codex: <policy>` for each
+policy it cannot express.
+
+### Skipped denies withhold overlapping permits
+
+A deny that cannot render is **skipped**: a `user:`, `email:` or `group:` deny
+on a v1 bundle, on a v2 bundle without a subject, or on a v2 bundle whose
+subject it does not name. It still comes first in precedence. So
+sync withholds every lower-precedence permit whose destination overlaps it,
+prints one `not rendered` line for each withheld permit, and the harness asks.
+A skipped deny never becomes an allow.
+
+| Priority | Source | Destination | Effect |
+| ---: | --- | --- | --- |
+| 100 | `group:admins` | `shell:git push --force` | deny |
+| 10 | `*` | `shell:git` | permit |
+
+Captured from `kei` built at kei-cli main against a local fixture bundle in a
+sandboxed home, starting from `{"permissions":{"allow":["Bash(npm test)"]}}`.
+The 26 added hook lines are shortened here.
+
+v2 bundle, no subject (a subject outside `admins` prints the same):
+
+```text
+$ kei harness sync --harness claude_code --dry-run
+not rendered in Claude Code: allow git (a higher-precedence user:/group: deny overlaps it; the harness will ask)
+~/.claude/settings.json: +26  -0   (Kei-managed entries updated)
+--- ~/.claude/settings.json
++++ ~/.claude/settings.json (Kei render)
+@@ -3,5 +3,31 @@
+     "allow": [
+       "Bash(npm test)"
+     ]
++  },
++  "hooks": {
+     … (report-only kei-proxy hook entries)
+```
+
+On a v1 bundle, sync prints one more line:
+
+```text
+Claude Code: 1 user:/group: policies not rendered; the v1 policy bundle carries no subject (upgrade the catalog to serve v2)
+```
+
+`permissions.allow` stays `["Bash(npm test)"]`, and there is no
+`permissions.deny`. Claude Code **asks** before `git push --force` and before
+every other `git` command.
+
+v2 bundle whose subject is in `admins`: there is no `not rendered` line, and
+both entries render:
+
+```text
+$ kei harness sync --harness claude_code --dry-run
+~/.claude/settings.json: +31  -1   (Kei-managed entries updated)
+@@ -1,7 +1,37 @@
+ {
+   "permissions": {
+     "allow": [
+-      "Bash(npm test)"
++      "Bash(npm test)",
++      "Bash(git:*)"
++    ],
++    "deny": [
++      "Bash(git push --force:*)"
+     ]
+```
+
+Claude Code runs other `git` commands without asking and denies
+`git push --force` natively, because deny entries beat allow entries.
+
+A permit that does not overlap the skipped deny still renders. For example,
+`*` `shell:git status` at priority 10 renders `Bash(git status:*)`.
 
 After sync, the harness reads its native config and permits or denies each
 command at runtime without consulting Kei for every invocation. This is the key
@@ -175,25 +256,22 @@ not create. This means:
 - But they also persist — if you want Kei to be the only source, you must remove
   them yourself (see above).
 
-## Known limitations (as of 2026-10-06)
+## Known limitations (as of 2026-10-09)
 
-### Deny policies not rendered into Claude Code permissions.deny
+### A catch-all deny blocks every permit
 
-The current `kei harness sync` renderer does not write deny entries into
-Claude Code `permissions.deny`, Codex `blocked_prefixes`, or OpenCode
-`permission.deny`. Only `permit` entries are rendered. This is tracked in
-HAI-400 (renderer PR).
+Denies render into the native deny list, and Claude Code applies deny entries
+before allow entries. A catch-all `shell:*` deny renders as `Bash(*)` in
+`permissions.deny` and blocks every permitted command too. Scope denies to the
+command prefix you mean.
 
-Until HAI-400 ships, a deny policy's practical effect is limited:
+### Skipped person-sourced denies make the harness ask
 
-- A **permitted** command that is also covered by a deny is **allowed** (the
-  deny is invisible to the harness, so the permit wins).
-- A **denied** command that has no permit falls through to the harness's native
-  permission mode (usually `ask`) — it is **not blocked** by Kei.
-
-This is why a catch-all `shell:* deny` is harmful: the renderer would write
-`*` into `permissions.deny`, and Claude Code's deny-beats-allow semantics would
-then block every permitted command too.
+A `user:`, `email:` or `group:` deny that does not name the bundle subject is
+skipped, and the permits it overlaps are withheld (see
+[Skipped denies withhold overlapping permits](#skipped-denies-withhold-overlapping-permits)).
+The harness asks for those commands instead of running them. Read the
+`not rendered` lines in `kei harness sync --dry-run` output before you sync.
 
 ### Stale Kei hook after harness or agent change
 
