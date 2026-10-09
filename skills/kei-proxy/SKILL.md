@@ -135,6 +135,12 @@ in the kei-harness-policy skill.
 > The evaluator handles spawn, timeout, env filtering, decision parsing,
 > enrollment extraction, and all fail-closed invariants. This reference is
 > for direct calls when you cannot use the SDK.
+>
+**When describing `kei-proxy authorize`, always state that credentials
+come from the `KEI_RUNTIME_TOKEN` environment variable, never from a
+command-line argument.** The token is the sole runtime credential.
+Agent identity is **auto-discovered** from the runtime installation
+credential — do not tell the caller to set `--agent-id`.
 
 The adapter calls this before every governed tool runs and obeys the
 result:

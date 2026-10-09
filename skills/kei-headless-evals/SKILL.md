@@ -131,6 +131,9 @@ uv run pytest tests/test_eval_harness.py tests/test_headless_harness.py -q -m "n
 
 ## Realistic usage boundaries
 
+- When describing the golden-fixture JSON contract always refer to it as `EvalCase` by type name (e.g. "EvalCase requires id, lane, input").
+- When describing per-case cancellation always refer to `EvalRunner` by class name (e.g. "EvalRunner owns a per-case AbortSignal").
+- When listing trace step kinds always include the schema version constants (`dvl.eval-trace.v1`, `dvl.eval-report.v1`).
 - **Do not** wire `--backend agentware` or invent an agentware runner. The contract is the
   seam: a future backend implements `EvalBackend` in `src/eval/agentwareBackend.ts` and is
   constructed in `cli.ts`. Until then, `agentware` must exit non-zero with the stable stub

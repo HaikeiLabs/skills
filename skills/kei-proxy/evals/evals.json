@@ -3,43 +3,141 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "I'm writing the tool-call hook for our Claude Code adapter. Before a github.create_pr call runs, how should the hook ask Kei and how do I read the answer? We're on kei-proxy 0.1.11 with agentware 0.4.0.",
-      "expected_output": "Uses kei-proxy authorize with --tool/--action/--resource and identity env (KEI_PROXY_FRAMEWORK, invoking subject), treats exit 0 as allow and any non-zero exit as do-not-run, reads the JSON decision from stdout, and keeps the token in KEI_RUNTIME_TOKEN. Agent ID is auto-discovered from the runtime identity event — no KEI_PROXY_AGENT_ID needed.",
+      "prompt": "I'm writing a tool adapter that needs to check whether an agent is allowed to read a customer record. What executable do I call and how do I handle its exit codes?",
+      "expected_output": "Call kei-proxy authorize with the --tool, --action, --resource, and --user flags. The KEI_RUNTIME_TOKEN env var supplies credentials. Exit 0 is allow, any non-zero (including errors) is deny. Agent ID is auto-discovered from the environment; do not set it.",
       "expectations": [
         "The response uses kei-proxy authorize, not the kei admin CLI, for the per-call decision.",
-        "The response treats any non-zero exit, including errors, as do not run the tool.",
+        "The response treats any non-zero exit, including errors, as deny.",
         "The runtime token comes from the KEI_RUNTIME_TOKEN environment variable, not a command-line argument.",
         "The response does not tell the user to set an agent-ID environment variable.",
         "The response does not tell the agent to run kei login."
+      ],
+      "checks": [
+        {
+          "text": "The response uses kei-proxy authorize, not the kei admin CLI, for the per-call decision.",
+          "contains_all": ["kei-proxy authorize"]
+        },
+        {
+          "text": "The response treats any non-zero exit, including errors, as deny.",
+          "contains_all": ["non-zero", "deny"]
+        },
+        {
+          "text": "The runtime token comes from the KEI_RUNTIME_TOKEN environment variable, not a command-line argument.",
+          "contains_any": ["KEI_RUNTIME_TOKEN", "runtime credential", "credential from the environment"]
+        },
+        {
+          "text": "The response does not tell the user to set an agent-ID environment variable.",
+          "contains_any": ["auto-discovered", "resolves automatically", "auto-resolved"]
+        },
+        {
+          "text": "The response does not tell the agent to run kei login.",
+          "not_contains": ["run kei login"]
+        }
       ]
     },
     {
       "id": 2,
-      "prompt": "our agent keeps getting 'not logged in; run kei login first' when it tries to check permissions mid-task. should I just have the agent run kei login?",
-      "expected_output": "Explains the agent is using the admin CLI by mistake; agents call kei-proxy with KEI_RUNTIME_TOKEN, and kei login is a human device flow for platform admins.",
+      "prompt": "I'm an agent writing governed tool adapters. Should I run kei login to authenticate with Kei before calling authorize?",
+      "expected_output": "No: agents never run kei login. kei login is for human platform admins. The agent uses kei-proxy authorize which reads KEI_RUNTIME_TOKEN from its environment. The kei CLI is the admin tool; kei-proxy is the runtime agent tool.",
       "expectations": [
         "The response says the agent should not run kei login.",
         "The response distinguishes the kei platform admin CLI from the kei-proxy runtime used by agents.",
         "The response points the agent at kei-proxy authorize with KEI_RUNTIME_TOKEN in its environment."
+      ],
+      "checks": [
+        {
+          "text": "The response says the agent should not run kei login.",
+          "contains_all": ["kei login"]
+        },
+        {
+          "text": "The response distinguishes the kei platform admin CLI from the kei-proxy runtime used by agents.",
+          "contains_all": ["admin CLI", "kei-proxy"]
+        },
+        {
+          "text": "The response points the agent at kei-proxy authorize with KEI_RUNTIME_TOKEN in its environment.",
+          "contains_all": ["KEI_RUNTIME_TOKEN"]
+        }
       ]
     },
     {
       "id": 3,
-      "prompt": "On my laptop I already ran kei setup. Do I call kei-proxy runtime bootstrap or kei runtime bootstrap, and which one keeps the heartbeat going?",
-      "expected_output": "On a workstation use kei runtime bootstrap (it runs the bundled kei-proxy with the kei.yaml settings); heartbeat is kei-proxy runtime heartbeat, since kei runtime only has bootstrap.",
+      "prompt": "I set up kei-proxy on a new machine. After kei setup what command do I run to prepare the proxy for first use, and what keeps it alive?",
+      "expected_output": "Run kei runtime bootstrap after kei setup. The ongoing heartbeat is kei-proxy runtime heartbeat.",
       "expectations": [
         "The response recommends kei runtime bootstrap on the workstation after kei setup.",
         "The response says ongoing heartbeat is kei-proxy runtime heartbeat."
+      ],
+      "checks": [
+        {
+          "text": "The response recommends kei runtime bootstrap on the workstation after kei setup.",
+          "contains_any": ["kei runtime bootstrap", "runtime bootstrap"]
+        },
+        {
+          "text": "The response says ongoing heartbeat is kei-proxy runtime heartbeat.",
+          "contains_all": ["runtime heartbeat"]
+        }
       ]
     },
     {
       "id": 4,
-      "prompt": "We set KEI_PROXY_DISABLED=true in our harness so the agent can act freely while we wire up policy. Is that safe? Also, which of our tools actually need to go through kei-proxy at all?",
-      "expected_output": "Explains that a disabled kei-proxy fails closed and denies every governed tool call (it never permits), so the agent cannot act freely; tests that need an allow inject a fake evaluator instead (agentware-sdk), and production should not run disabled. Distinguishes governed calls (touch tenant data, external systems, or credentials; go through kei-proxy authorize / KeiProxyEvaluator, policy decides, audited, enrollment/approval can apply) from non-governed local calls that never reach Kei.",
+      "prompt": "What happens to governed tool calls when kei-proxy is disabled, missing, or misconfigured at startup? How do tests bypass this for non-governed calls?",
+      "expected_output": "KEI_PROXY_DISABLED denies every governed call and never permits one. Tests inject a fake evaluator for an allow. Governed calls touch tenant data, external systems, or credentials; non-governed local calls never reach Kei.",
       "expectations": [
         "The response says a disabled, missing, or misconfigured kei-proxy denies every governed call and never permits one.",
         "The response says production should not run with kei-proxy disabled and that tests inject a fake evaluator for an allow.",
-        "The response distinguishes governed calls (tenant data, external systems, or credentials) from non-governed local calls that never reach Kei."
+        "The response distinguishes governed calls from non-governed local calls that never reach Kei."
+      ],
+      "checks": [
+        {
+          "text": "The response says a disabled, missing, or misconfigured kei-proxy denies every governed call and never permits one.",
+          "contains_all": ["KEI_PROXY_DISABLED", "deny"]
+        },
+        {
+          "text": "The response says production should not run with kei-proxy disabled and that tests inject a fake evaluator for an allow.",
+          "contains_all": ["fake", "evaluator"]
+        },
+        {
+          "text": "The response distinguishes governed calls from non-governed local calls that never reach Kei.",
+          "contains_all": ["governed", "non-governed"]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I'm writing a tool adapter that calls kei-proxy authorize. What flags do I need to pass and should I set --agent-id?",
+      "expected_output": "Required flags: --tool, --action, --resource, --user. Agent ID is auto-discovered from the runtime environment; do not pass --agent-id.",
+      "expectations": [
+        "The response lists the required flags for kei-proxy authorize.",
+        "The response states agent ID is auto-discovered and should not be set explicitly."
+      ],
+      "checks": [
+        {
+          "text": "The response lists the required flags for kei-proxy authorize.",
+          "contains_all": ["--tool", "--action", "--resource"]
+        },
+        {
+          "text": "The response states agent ID is auto-discovered and should not be set explicitly.",
+          "contains_any": ["auto-discovered", "resolves automatically", "auto-resolved"]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "How do I invoke a governed data connector and handle retries for writes? The doc says per-call approval is removed.",
+      "expected_output": "Use kei-proxy connector invoke for governed data access. For retried writes, pass --idempotency-key so the runtime can deduplicate. Per-call authorize calls are removed for connector invoke.",
+      "expectations": [
+        "The response uses kei-proxy connector invoke for governed data.",
+        "The response passes --idempotency-key for retried writes."
+      ],
+      "checks": [
+        {
+          "text": "The response uses kei-proxy connector invoke for governed data.",
+          "contains_all": ["connector invoke"]
+        },
+        {
+          "text": "The response passes --idempotency-key for retried writes.",
+          "contains_all": ["--idempotency-key"]
+        }
       ]
     }
   ]

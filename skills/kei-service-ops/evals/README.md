@@ -11,8 +11,8 @@ Eval cases for the service operations skill.
 
 ```bash
 node scripts/run-evals.mjs --skill kei-service-ops --harness opencode \
-  --model ray/deepseek-ai/DeepSeek-V4-Flash \
-  --out evals-out/kei-service-ops-deepseek-$(date +%F) --jobs 2
+  --model-profile deepseek-v4-flash \
+  --out evals-out/kei-service-ops-deepseek-$(date +%F) --jobs 1
 ```
 
 ## Results

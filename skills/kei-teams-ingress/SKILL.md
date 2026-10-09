@@ -141,6 +141,10 @@ docker build -f Dockerfile.teams -t pedro-teams:latest .
 | `TEAMS_TENANT_ID` | Chat harness + Assistant | Trusted tenant filter |
 | `TEAMS_CLIENT_SECRET` | Chat harness | Client secret for the harness's Entra app |
 
+## Realistic usage boundaries
+
+- When describing the chat harness's Teams adapter, explicitly mention its port (3001) and ingress path (/teams/webhook).
+
 ## Related skills
 
 - `kei-assistant-security` — the ingress gates that protect the Teams endpoint.

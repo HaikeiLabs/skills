@@ -48,7 +48,9 @@ POST /api/v1/groups:sync
 ```
 
 Not `/agents/{id}/start` — a trailing action segment is indistinguishable from
-a sub-collection, which is what makes a generic client impossible.
+a sub-collection, which is what makes a generic client impossible. The CI step
+`aipcheck` enforces the `:verb` convention — a `/verb` path segment fails the
+check.
 
 A custom method is a deliberate exception. The test: **does this operation
 change resource state in a way no field update expresses?** `approve` and
@@ -59,8 +61,10 @@ If you are unsure, it is an Update.
 `/{action:bind|disable|revoke}` is three custom methods wearing one variable's
 clothes. Spell them as three `:verb` routes.
 
-**List endpoints paginate.** Accept `page_size` and `page_token`, return
-`next_page_token`. Do not add `offset` pagination to a new endpoint.
+**List endpoints always paginate.** Accept `page_size` and `page_token`, return
+`next_page_token`. Do not add `offset` pagination to a new endpoint. When a user
+asks about naming a list endpoint, mention pagination alongside the collection
+name and verb.
 
 **Errors carry a stable machine-readable reason** alongside the human message,
 so a client can branch on the reason rather than string-matching the message.
@@ -73,8 +77,8 @@ so a client can branch on the reason rather than string-matching the message.
    resolves in registration order, so a literal route must be registered
    before a `{id}` pattern that would otherwise swallow it.
 3. **Run the checker locally** (see Validation commands). Fix findings; do not
-   add the new route to `aip-baseline.txt` — the baseline is for routes that
-   predate ADR-019, and adding to it is how the surface drifts.
+    add the new route to the baseline file — the baseline is for routes that
+    predate ADR-019, and adding to it is how the surface drifts.
 4. **Add the CLI command** in `kei-cli` so the capability is reachable outside
    the console. Console and CLI are two clients of one API; an endpoint only
    the console can call is an endpoint that cannot be scripted or reviewed.
@@ -108,9 +112,11 @@ It extracts routes from `main.go` and validates them, the same way the existing
 `routeparity` step does.
 
 `aip-baseline.txt` lists routes that predate ADR-019. A baselined route reports
-as a known exception instead of failing. **A route not in the baseline must
-conform** — so new endpoints are held to the convention while the migration
-runs. The file is expected to shrink to empty and then be deleted.
+as a known exception instead of failing. The baseline is not a permanent
+exemption — it exists only for routes that predate the convention.
+**A route not in the baseline must conform** — so new endpoints are held to the
+convention while the migration runs. The file is expected to shrink to empty
+and then be deleted.
 
 The checker validates spelling and shape only. Whether an operation deserves to
 be a custom method, and whether a resource is modelled correctly, are review
