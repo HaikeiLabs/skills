@@ -1,0 +1,235 @@
+{
+  "skill_name": "deploy-agents",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to run my agentware-based agent in a Docker container with kei-proxy beside it. What environment variables does the container need and what should the entrypoint run before starting the agent? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "KEI_RUNTIME_CONTROL_PLANE_URL, KEI_RUNTIME_TOKEN (from a secret manager, env only), KEI_RUNTIME_VERSION; entrypoint runs kei-proxy runtime bootstrap, keeps kei-proxy runtime heartbeat running, optionally kei-proxy serve, then the harness.",
+      "expectations": [
+        "names the runtime token and control-plane URL variables",
+        "runs kei-proxy runtime bootstrap",
+        "keeps a heartbeat running"
+      ],
+      "checks": [
+        {
+          "text": "names the runtime token and control-plane URL variables",
+          "contains_all": [
+            "KEI_RUNTIME_TOKEN",
+            "KEI_RUNTIME_CONTROL_PLANE_URL"
+          ]
+        },
+        {
+          "text": "runs kei-proxy runtime bootstrap",
+          "contains_any": [
+            "kei-proxy runtime bootstrap"
+          ]
+        },
+        {
+          "text": "keeps a heartbeat running",
+          "contains_any": [
+            "heartbeat"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "We run kei-proxy as a long-lived daemon in the same container as our chat bot, which serves many users. How does the bot get a per-user authorization decision from the daemon? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "kei-proxy serve on the owner-only Unix socket; PUT /v1/session per user (kei.session/v2), then POST /v1/authorize with X-Kei-Session; same UID because the socket is 0600.",
+      "expectations": [
+        "talks to the daemon over its Unix socket",
+        "opens a session per user with /v1/session",
+        "sends the X-Kei-Session header"
+      ],
+      "checks": [
+        {
+          "text": "talks to the daemon over its Unix socket",
+          "contains_any": [
+            "kei-proxy serve",
+            "runtime.sock",
+            "unix socket",
+            "unix-socket",
+            "unix domain socket"
+          ]
+        },
+        {
+          "text": "opens a session per user with /v1/session",
+          "contains_any": [
+            "/v1/session"
+          ]
+        },
+        {
+          "text": "sends the X-Kei-Session header",
+          "contains_any": [
+            "X-Kei-Session"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "We added a Linear connector in Kei and want every user to act through their own Linear account rather than a shared one. How do we set that up, and what happens the first time a user's agent needs Linear? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "kei connectors create --provider linear (per_user is the default account model); users connect their own accounts through the chat harness: authorize denies with a connect block whose one-time url the harness sends privately to that user.",
+      "expectations": [
+        "creates the connector with kei connectors create",
+        "uses the per_user account model",
+        "sends the user a one-time connect link privately"
+      ],
+      "checks": [
+        {
+          "text": "creates the connector with kei connectors create",
+          "contains_any": [
+            "kei connectors create"
+          ]
+        },
+        {
+          "text": "uses the per_user account model",
+          "contains_any": [
+            "per_user",
+            "per-user"
+          ]
+        },
+        {
+          "text": "sends the user a one-time connect link privately",
+          "regex": "privately|private (message|channel|dm)|direct message|\\bDMs?\\b"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Using Kei, how do I stop our OpenCode harness from running curl while still allowing git? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Harness command policies: kei policies create --src-pattern harness:opencode --dst-pattern shell:curl --effect deny (and shell:git permit), rendered with kei harness sync.",
+      "expectations": [
+        "uses kei policies create",
+        "targets the shell:curl destination"
+      ],
+      "checks": [
+        {
+          "text": "uses kei policies create",
+          "contains_any": [
+            "kei policies create"
+          ]
+        },
+        {
+          "text": "targets the shell:curl destination",
+          "contains_any": [
+            "shell:curl"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "How do I connect Claude Code on my laptop to Kei so its tool use follows our Kei policies? Do I need kei harness add? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Install the Haikei skills (/plugin marketplace add HaikeiLabs/skills, /plugin install haikei@haikei), set up the runtime (kei setup + kei runtime bootstrap), then kei harness sync --harness claude_code; no kei harness add — desktop harnesses are auto-discovered.",
+      "expectations": [
+        "uses kei harness sync for claude_code",
+        "says desktop harnesses do not need kei harness add"
+      ],
+      "checks": [
+        {
+          "text": "uses kei harness sync for claude_code",
+          "contains_all": [
+            "kei harness sync",
+            "claude_code"
+          ]
+        },
+        {
+          "text": "says desktop harnesses do not need kei harness add",
+          "contains_any": [
+            "auto-discovered",
+            "auto discovered",
+            "autodiscovered",
+            "no need",
+            "not needed",
+            "don't need",
+            "do not need",
+            "only for custom"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Where do I get the KEI_RUNTIME_TOKEN for a new runtime installation, and where should it go? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "kei bot credential --installation ID --workspace WS piped into a secret manager; it is shown once and never belongs in argv, a repo file or logs.",
+      "expectations": [
+        "uses kei bot credential",
+        "sends it to a secret manager",
+        "says it is shown once"
+      ],
+      "checks": [
+        {
+          "text": "uses kei bot credential",
+          "contains_any": [
+            "kei bot credential"
+          ]
+        },
+        {
+          "text": "sends it to a secret manager",
+          "contains_any": [
+            "secret manager",
+            "secret-manager",
+            "secrets manager"
+          ]
+        },
+        {
+          "text": "says it is shown once",
+          "regex": "(shown|revealed|displayed|emitted)\\W{1,4}(only\\W{1,4})?once|only\\W{1,4}once|one time|once only"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "We are deploying our Pedro agent as a Discord bot governed by Kei. Some Discord users aren't linked to Kei users yet. How do we create the installation and what happens to those users? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "kei bot init --platform discord; unlinked users get a deny with an enrollment claim link that the bot sends privately (DM) to that user, newest link only.",
+      "expectations": [
+        "creates the installation with the discord platform",
+        "describes the enrollment claim link",
+        "sends the link privately"
+      ],
+      "checks": [
+        {
+          "text": "creates the installation with the discord platform",
+          "contains_any": [
+            "--platform discord"
+          ]
+        },
+        {
+          "text": "describes the enrollment claim link",
+          "contains_any": [
+            "enrollment",
+            "claim link"
+          ]
+        },
+        {
+          "text": "sends the link privately",
+          "regex": "privately|private (message|channel|dm)|direct message|\\bDMs?\\b"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Our runtime has bootstrapped and is heartbeating. What do we still need to run before the agent is active in Kei? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "kei bot bind --installation ID (explicit activation), then kei bot agents add --installation ID --agent AGENT_ID --default.",
+      "expectations": [
+        "binds with kei bot bind",
+        "attaches the agent with kei bot agents add"
+      ],
+      "checks": [
+        {
+          "text": "binds with kei bot bind",
+          "contains_any": [
+            "kei bot bind"
+          ]
+        },
+        {
+          "text": "attaches the agent with kei bot agents add",
+          "contains_any": [
+            "kei bot agents add"
+          ]
+        }
+      ]
+    }
+  ]
+}

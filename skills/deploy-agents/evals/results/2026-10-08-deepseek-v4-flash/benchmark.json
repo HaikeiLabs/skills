@@ -1,0 +1,66 @@
+{
+  "schema": "haikei.eval-benchmark.v1",
+  "harness": "opencode",
+  "model_profile": "deepseek-v4-flash",
+  "model": "eval/deepseek-ai/DeepSeek-V4-Flash",
+  "created_at": "2026-10-09T08:28:48.669Z",
+  "git_sha": "5f53fdb6ca625ed664390136e0133d5600ffff67",
+  "repeats": 1,
+  "results": [
+    {
+      "suite": "deploy-agents",
+      "kind": "skill",
+      "passed": 8,
+      "failed": 0,
+      "errors": 0,
+      "total": 8,
+      "pass_rate": 1,
+      "cases": [
+        {
+          "id": 1,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 2,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 3,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 4,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 5,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 6,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 7,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 8,
+          "passed": true,
+          "reason": ""
+        }
+      ]
+    }
+  ],
+  "baseline_without_skill": {
+    "passed": 0,
+    "graded": 8
+  }
+}

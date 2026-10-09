@@ -1,0 +1,214 @@
+{
+  "skill_name": "test-agents",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Write one agent eval case, in the agentware eval-suite JSON format, asserting that when a user says 'File a bug for the OPS team: backups have failed since Monday' the agent calls file_bug with team_key OPS and never passes tenant_id or workspace as arguments. Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "A case in an agentware.eval-suite.v1 suite: expect.tool file_bug, args {team_key: OPS}, forbidden_arg_keys [tenant_id, workspace, ...].",
+      "expectations": [
+        "names the agentware.eval-suite.v1 schema",
+        "pins the expected tool and parent id",
+        "uses forbidden_arg_keys for the delegated scope"
+      ],
+      "checks": [
+        {
+          "text": "names the agentware.eval-suite.v1 schema",
+          "contains_any": [
+            "agentware.eval-suite.v1"
+          ]
+        },
+        {
+          "text": "pins the expected tool and parent id",
+          "contains_all": [
+            "file_bug",
+            "team_key",
+            "OPS"
+          ]
+        },
+        {
+          "text": "uses forbidden_arg_keys for the delegated scope",
+          "contains_any": [
+            "forbidden_arg_keys"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "In an agentware eval suite, how do I write a case asserting the agent must NOT call any tool when the user just says hello? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Set expect.tool to null; omitting the key means no first-tool assertion.",
+      "expectations": [
+        "sets expect tool to null"
+      ],
+      "checks": [
+        {
+          "text": "sets expect tool to null",
+          "regex": "\"?tool\"?\\s*:\\s*(null|none)"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I want an eval case proving that a member in the default group, who may only use file_bug, search_wiki and web_search, cannot list CRM leads, and that the agent does not claim it did. How do I write that case? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "context.allowed_tools lists the default-group tools (drives a real default-deny policy), expect.deny true, and content.not_contains for a success claim.",
+      "expectations": [
+        "lists the allowed tools in context.allowed_tools",
+        "sets deny to true",
+        "checks the reply with not_contains"
+      ],
+      "checks": [
+        {
+          "text": "lists the allowed tools in context.allowed_tools",
+          "contains_any": [
+            "allowed_tools"
+          ]
+        },
+        {
+          "text": "sets deny to true",
+          "regex": "\"?deny\"?\\s*:\\s*true"
+        },
+        {
+          "text": "checks the reply with not_contains",
+          "contains_any": [
+            "not_contains"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "What is the command to run my agent eval suites in evals/suites locally against the deepseek-v4-flash model profile with the agentware runner, on a shared model server? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "PYTHONPATH=<agentware>/python/src python -m evals.main --suite evals/suites --model-profile deepseek-v4-flash --out <dir> --jobs 1.",
+      "expectations": [
+        "uses python -m evals.main",
+        "passes --model-profile",
+        "uses --jobs 1 on a shared server"
+      ],
+      "checks": [
+        {
+          "text": "uses python -m evals.main",
+          "contains_any": [
+            "-m evals.main"
+          ]
+        },
+        {
+          "text": "passes --model-profile",
+          "contains_any": [
+            "--model-profile"
+          ]
+        },
+        {
+          "text": "uses --jobs 1 on a shared server",
+          "contains_any": [
+            "--jobs 1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "The agentware eval runner exited with code 2 for my suite. Does that mean my agent scored 0% and failed every case? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "No. Exit 2 means the endpoint was unreachable or the run was misconfigured (e.g. EVAL_*_BASE_URL unset); it is never scored. Exit 1 is below threshold.",
+      "expectations": [
+        "says exit 2 means the endpoint is unreachable or misconfigured",
+        "says exit 1 is the below-threshold result"
+      ],
+      "checks": [
+        {
+          "text": "says exit 2 means the endpoint is unreachable or misconfigured",
+          "contains_any": [
+            "unreachable",
+            "not reachable",
+            "unavailable",
+            "misconfigured",
+            "not set"
+          ]
+        },
+        {
+          "text": "says exit 1 is the below-threshold result",
+          "regex": "(exit|code)\\D{0,15}1\\b|\\b1\\W{1,12}(a suite (is |fell |falls )?)?below"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Can I use GPT-4 as an LLM judge to grade my skill's eval answers in the HaikeiLabs eval setup? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "No. Grading is deterministic — no LLM grader. Each expectation gets one check: contains_all, contains_any, regex or not_contains.",
+      "expectations": [
+        "says grading is deterministic with no LLM grader",
+        "names the deterministic check kinds"
+      ],
+      "checks": [
+        {
+          "text": "says grading is deterministic with no LLM grader",
+          "contains_any": [
+            "no llm grader",
+            "deterministic",
+            "not an llm",
+            "no llm judge",
+            "without an llm"
+          ]
+        },
+        {
+          "text": "names the deterministic check kinds",
+          "contains_any": [
+            "contains_any",
+            "contains_all",
+            "not_contains"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Our pull requests run the agent-evals CI gate. At what pass rate does the check fail, and where do I see the results? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Any suite below 95% on any model profile fails; results appear in one sticky PR comment with a suite × model table.",
+      "expectations": [
+        "states the 95% threshold",
+        "mentions the sticky PR comment"
+      ],
+      "checks": [
+        {
+          "text": "states the 95% threshold",
+          "contains_any": [
+            "95%",
+            "0.95",
+            "95 %"
+          ]
+        },
+        {
+          "text": "mentions the sticky PR comment",
+          "contains_any": [
+            "sticky"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "My eval suite has \"repeats\": 3 and one case passed on 2 of the 3 repeats. Does that case pass? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "No. A case passes only if every repeat passes.",
+      "expectations": [
+        "says every repeat must pass",
+        "says the case fails"
+      ],
+      "checks": [
+        {
+          "text": "says every repeat must pass",
+          "contains_any": [
+            "every repeat",
+            "all repeats",
+            "all three",
+            "each repeat",
+            "all 3",
+            "every run"
+          ]
+        },
+        {
+          "text": "says the case fails",
+          "regex": "\\b(fail|fails|failed|does not pass|doesn't pass|not pass)\\b"
+        }
+      ]
+    }
+  ]
+}
