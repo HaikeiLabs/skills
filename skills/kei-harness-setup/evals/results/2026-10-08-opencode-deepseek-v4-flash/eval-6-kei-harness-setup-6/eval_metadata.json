@@ -1,0 +1,49 @@
+{
+  "eval_id": 6,
+  "eval_name": "kei-harness-setup-eval-6",
+  "skill": "kei-harness-setup",
+  "prompt": "My kei-proxy logs say 'policy bundle candidate rejected: invalid policy bundle schema ... dst_pattern web_search does not match' and all governed calls are being denied. What went wrong and how do I fix it?",
+  "assertions": [
+    "The response identifies that the dst_pattern uses a bare name instead of the tool: prefix.",
+    "The response recommends updating the policy's dst_pattern to tool:<name> in the console.",
+    "The response mentions that kei-proxy fails closed (denies everything) when the schema is invalid.",
+    "The response references HAI-372 as the known bug.",
+    "The response suggests re-running kei runtime bootstrap or restarting kei-proxy serve after the fix."
+  ],
+  "checks": [
+    {
+      "text": "The response identifies that the dst_pattern uses a bare name instead of the tool: prefix.",
+      "contains_all": [
+        "dst_pattern",
+        "tool:",
+        "prefix"
+      ]
+    },
+    {
+      "text": "The response recommends updating the policy's dst_pattern to tool:<name> in the console.",
+      "contains_all": [
+        "dst_pattern",
+        "tool:",
+        "update"
+      ]
+    },
+    {
+      "text": "The response mentions that kei-proxy fails closed (denies everything) when the schema is invalid.",
+      "regex": "(?=[\\s\\S]*fails closed)(?=[\\s\\S]*invalid)"
+    },
+    {
+      "text": "The response references HAI-372 as the known bug.",
+      "contains_all": [
+        "dst_pattern",
+        "known"
+      ]
+    },
+    {
+      "text": "The response suggests re-running kei runtime bootstrap or restarting kei-proxy serve after the fix.",
+      "contains_any": [
+        "runtime bootstrap",
+        "kei-proxy serve"
+      ]
+    }
+  ]
+}

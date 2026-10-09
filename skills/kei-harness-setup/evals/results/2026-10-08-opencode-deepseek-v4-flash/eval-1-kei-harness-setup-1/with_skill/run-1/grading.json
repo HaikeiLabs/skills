@@ -1,0 +1,55 @@
+{
+  "expectations": [
+    {
+      "text": "The response installs from https://github.com/HaikeiLabs/skills, not another skills repository.",
+      "passed": false,
+      "evidence": "Missing: HaikeiLabs/skills, github",
+      "check": {
+        "text": "The response installs from https://github.com/HaikeiLabs/skills, not another skills repository.",
+        "contains_all": [
+          "HaikeiLabs/skills",
+          "github"
+        ]
+      }
+    },
+    {
+      "text": "The response skips or asks about same-named existing skills instead of overwriting them.",
+      "passed": false,
+      "evidence": "No match for /(?=[\\s\\S]*existing)(?=[\\s\\S]*(?:skip|not overwrit|clobber))/i",
+      "check": {
+        "text": "The response skips or asks about same-named existing skills instead of overwriting them.",
+        "regex": "(?=[\\s\\S]*existing)(?=[\\s\\S]*(?:skip|not overwrit|clobber))"
+      }
+    },
+    {
+      "text": "The response includes a way to verify OpenCode discovered the skills.",
+      "passed": false,
+      "evidence": "Missing: verif, discover",
+      "check": {
+        "text": "The response includes a way to verify OpenCode discovered the skills.",
+        "contains_all": [
+          "verif",
+          "discover"
+        ]
+      }
+    },
+    {
+      "text": "The response routes the runtime half through kei login and runtime setup rather than skipping auth.",
+      "passed": false,
+      "evidence": "Missing: kei login, kei setup",
+      "check": {
+        "text": "The response routes the runtime half through kei login and runtime setup rather than skipping auth.",
+        "contains_all": [
+          "kei login",
+          "kei setup"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 4,
+    "total": 4,
+    "pass_rate": 0
+  }
+}

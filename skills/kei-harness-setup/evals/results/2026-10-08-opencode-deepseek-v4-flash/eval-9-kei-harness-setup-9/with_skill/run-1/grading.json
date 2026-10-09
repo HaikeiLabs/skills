@@ -1,0 +1,55 @@
+{
+  "expectations": [
+    {
+      "text": "states that desktop harnesses do not need `kei harness add`",
+      "passed": true,
+      "evidence": "Found all: desktop, kei harness add",
+      "check": {
+        "text": "states that desktop harnesses do not need `kei harness add`",
+        "contains_all": [
+          "desktop",
+          "kei harness add"
+        ]
+      }
+    },
+    {
+      "text": "explains both Codex and Claude Code on the same machine share one installation and are auto-discovered by sync",
+      "passed": true,
+      "evidence": "Matched: ",
+      "check": {
+        "text": "explains both Codex and Claude Code on the same machine share one installation and are auto-discovered by sync",
+        "regex": "(?=[\\s\\S]*Codex)(?=[\\s\\S]*Claude Code)(?=[\\s\\S]*(?:auto-discovered|one install|same install))"
+      }
+    },
+    {
+      "text": "mentions that the setup script calls `kei harness add` with `|| true` for backward compatibility",
+      "passed": true,
+      "evidence": "Found all: || true, backward",
+      "check": {
+        "text": "mentions that the setup script calls `kei harness add` with `|| true` for backward compatibility",
+        "contains_all": [
+          "|| true",
+          "backward"
+        ]
+      }
+    },
+    {
+      "text": "says `kei harness sync` is the primary path for desktop harnesses",
+      "passed": true,
+      "evidence": "Found all: kei harness sync, primary path",
+      "check": {
+        "text": "says `kei harness sync` is the primary path for desktop harnesses",
+        "contains_all": [
+          "kei harness sync",
+          "primary path"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1
+  }
+}

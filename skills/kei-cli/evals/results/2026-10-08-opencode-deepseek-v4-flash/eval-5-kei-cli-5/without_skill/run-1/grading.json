@@ -1,0 +1,36 @@
+{
+  "expectations": [
+    {
+      "text": "The response says the kei CLI is the platform admin CLI and is not how an agent checks permission at run time.",
+      "passed": false,
+      "evidence": "Missing: platform, admins, agent, permit",
+      "check": {
+        "text": "The response says the kei CLI is the platform admin CLI and is not how an agent checks permission at run time.",
+        "contains_all": [
+          "platform",
+          "admins",
+          "agent",
+          "permit"
+        ]
+      }
+    },
+    {
+      "text": "The response names kei-proxy authorize as the per-call check.",
+      "passed": false,
+      "evidence": "Missing: kei-proxy authorize, per-call",
+      "check": {
+        "text": "The response names kei-proxy authorize as the per-call check.",
+        "contains_all": [
+          "kei-proxy authorize",
+          "per-call"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 2,
+    "total": 2,
+    "pass_rate": 0
+  }
+}

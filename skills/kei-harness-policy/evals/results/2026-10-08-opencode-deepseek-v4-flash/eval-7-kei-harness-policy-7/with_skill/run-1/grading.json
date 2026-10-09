@@ -1,0 +1,54 @@
+{
+  "expectations": [
+    {
+      "text": "explains STALE_BUT_VALID means refresh overdue but bundle still valid",
+      "passed": true,
+      "evidence": "Matched: ",
+      "check": {
+        "text": "explains STALE_BUT_VALID means refresh overdue but bundle still valid",
+        "regex": "(?=[\\s\\S]*STALE_BUT_VALID)(?=[\\s\\S]*valid)(?=[\\s\\S]*(?:overdue|stale|refresh))"
+      }
+    },
+    {
+      "text": "mentions stale_after_seconds and not_after",
+      "passed": true,
+      "evidence": "Found: stale_after_seconds, not_after",
+      "check": {
+        "text": "mentions stale_after_seconds and not_after",
+        "contains_any": [
+          "stale_after_seconds",
+          "not_after"
+        ]
+      }
+    },
+    {
+      "text": "suggests checking connectivity and runtime token",
+      "passed": true,
+      "evidence": "Found all: connectivity, token",
+      "check": {
+        "text": "suggests checking connectivity and runtime token",
+        "contains_all": [
+          "connectivity",
+          "token"
+        ]
+      }
+    },
+    {
+      "text": "recommends `kei-proxy policy sync` to force a fresh fetch",
+      "passed": true,
+      "evidence": "Found all: kei-proxy policy sync",
+      "check": {
+        "text": "recommends `kei-proxy policy sync` to force a fresh fetch",
+        "contains_all": [
+          "kei-proxy policy sync"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1
+  }
+}

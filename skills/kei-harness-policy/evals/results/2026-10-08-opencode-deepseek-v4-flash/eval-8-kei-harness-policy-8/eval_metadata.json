@@ -1,0 +1,34 @@
+{
+  "eval_id": 8,
+  "eval_name": "kei-harness-policy-eval-8",
+  "skill": "kei-harness-policy",
+  "prompt": "I see that kei-proxy has bundle version 42 persisted but the catalog tried to serve version 41. What happened and what does the proxy do? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+  "assertions": [
+    "explains rollback protection (monotonic bundle_version per installation)",
+    "states the proxy rejects bundle_version <= max_activated_version",
+    "suggests checking the credential workspace and running kei-proxy policy sync"
+  ],
+  "checks": [
+    {
+      "text": "explains rollback protection (monotonic bundle_version per installation)",
+      "contains_all": [
+        "rollback",
+        "bundle_version"
+      ]
+    },
+    {
+      "text": "states the proxy rejects bundle_version <= max_activated_version",
+      "contains_all": [
+        "rejects",
+        "bundle_version"
+      ]
+    },
+    {
+      "text": "suggests checking the credential workspace and running kei-proxy policy sync",
+      "contains_all": [
+        "workspace",
+        "kei-proxy policy sync"
+      ]
+    }
+  ]
+}

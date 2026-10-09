@@ -1,0 +1,37 @@
+{
+  "eval_id": 6,
+  "eval_name": "kei-harness-policy-eval-6",
+  "skill": "kei-harness-policy",
+  "prompt": "My agent needs to run a bash command through a harness command policy that requires a credential (like a GitHub token). How does credential resolution work for shell: dst commands? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+  "assertions": [
+    "explains credentials are resolved through kei-proxy, not embedded in policies",
+    "mentions kei:// reference syntax for credential references",
+    "states the agent never reads or stores raw credentials",
+    "notes this follows the same pattern as governed connector calls"
+  ],
+  "checks": [
+    {
+      "text": "explains credentials are resolved through kei-proxy, not embedded in policies",
+      "regex": "(?=[\\s\\S]*kei-proxy)(?=[\\s\\S]*(?:not embed|never embed|not stored))"
+    },
+    {
+      "text": "mentions kei:// reference syntax for credential references",
+      "contains_all": [
+        "kei://"
+      ]
+    },
+    {
+      "text": "states the agent never reads or stores raw credentials",
+      "contains_all": [
+        "never",
+        "credential"
+      ]
+    },
+    {
+      "text": "notes this follows the same pattern as governed connector calls",
+      "contains_all": [
+        "connector"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "expectations": [
+    {
+      "text": "states that desktop harnesses are auto-discovered by sync, no add needed",
+      "passed": true,
+      "evidence": "Found all: auto-discovered, sync",
+      "check": {
+        "text": "states that desktop harnesses are auto-discovered by sync, no add needed",
+        "contains_all": [
+          "auto-discovered",
+          "sync"
+        ]
+      }
+    },
+    {
+      "text": "explains that both Codex and Claude Code on the same machine share one installation — no new registration",
+      "passed": true,
+      "evidence": "Matched: ",
+      "check": {
+        "text": "explains that both Codex and Claude Code on the same machine share one installation — no new registration",
+        "regex": "(?=[\\s\\S]*Codex)(?=[\\s\\S]*Claude Code)(?=[\\s\\S]*(?:one install|same install|same runtim))"
+      }
+    },
+    {
+      "text": "mentions `kei harness sync` as the correct command",
+      "passed": true,
+      "evidence": "Found all: kei harness sync",
+      "check": {
+        "text": "mentions `kei harness sync` as the correct command",
+        "contains_all": [
+          "kei harness sync"
+        ]
+      }
+    },
+    {
+      "text": "clarifies that desktop harnesses do not need `kei harness add`",
+      "passed": true,
+      "evidence": "Found all: desktop, kei harness add",
+      "check": {
+        "text": "clarifies that desktop harnesses do not need `kei harness add`",
+        "contains_all": [
+          "desktop",
+          "kei harness add"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1
+  }
+}

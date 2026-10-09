@@ -1,0 +1,33 @@
+{
+  "eval_id": 10,
+  "eval_name": "kei-harness-policy-eval-10",
+  "skill": "kei-harness-policy",
+  "prompt": "If Claude runs a command with no matching policy (permit or deny), what does Kei's permissions model allow? Does it deny the command or let it through? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+  "assertions": [
+    "explains that unmatched commands fall through to harness native permissions",
+    "mentions the harness's default permission mode (usually ask)",
+    "clarifies that Kei does not deny unmatched commands for native harnesses",
+    "notes that custom harnesses and connectors deny by default"
+  ],
+  "checks": [
+    {
+      "text": "explains that unmatched commands fall through to harness native permissions",
+      "regex": "(?=[\\s\\S]*(?:unmatched|no match|falls? through))(?=[\\s\\S]*native)"
+    },
+    {
+      "text": "mentions the harness's default permission mode (usually ask)",
+      "regex": "(?=[\\s\\S]*(?:default|usually|built-in|native))(?=[\\s\\S]*ask)"
+    },
+    {
+      "text": "clarifies that Kei does not deny unmatched commands for native harnesses",
+      "regex": "(?=[\\s\\S]*(?:does not deny|doesn.t deny|not deny|does not))(?=[\\s\\S]*native)"
+    },
+    {
+      "text": "notes that custom harnesses and connectors deny by default",
+      "contains_all": [
+        "custom",
+        "deny"
+      ]
+    }
+  ]
+}

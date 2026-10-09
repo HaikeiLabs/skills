@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "The response identifies that the user needs to sign in at app.haikeilabs.com before running kei login.",
+      "passed": false,
+      "evidence": "Missing: app.haikeilabs.com, sign in",
+      "check": {
+        "text": "The response identifies that the user needs to sign in at app.haikeilabs.com before running kei login.",
+        "contains_all": [
+          "app.haikeilabs.com",
+          "sign in"
+        ]
+      }
+    },
+    {
+      "text": "The response mentions the lost return address or HAI-370 as the root cause.",
+      "passed": false,
+      "evidence": "None found: return address",
+      "check": {
+        "text": "The response mentions the lost return address or HAI-370 as the root cause.",
+        "contains_any": [
+          "return address"
+        ]
+      }
+    },
+    {
+      "text": "The response tells the user to run kei login again after signing in.",
+      "passed": false,
+      "evidence": "Missing: kei login, again",
+      "check": {
+        "text": "The response tells the user to run kei login again after signing in.",
+        "contains_all": [
+          "kei login",
+          "again"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 3,
+    "total": 3,
+    "pass_rate": 0
+  }
+}

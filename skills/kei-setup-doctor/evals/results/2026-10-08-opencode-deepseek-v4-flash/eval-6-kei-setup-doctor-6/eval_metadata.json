@@ -1,0 +1,36 @@
+{
+  "eval_id": 6,
+  "eval_name": "kei-setup-doctor-eval-6",
+  "skill": "kei-setup-doctor",
+  "prompt": "A containerised runtime installation keeps crashing with tls: failed to verify certificate: x509: certificate signed by unknown authority during kei-proxy bootstrap. Diagnose the cause and fix it.",
+  "assertions": [
+    "The response identifies the root cause as a missing ca-certificates package in the final Docker image stage.",
+    "The response explains that CA certificates installed in earlier build stages do not carry into the final stage.",
+    "The response provides the apt-get fix for Debian slim bases and the docker run verification command."
+  ],
+  "checks": [
+    {
+      "text": "The response identifies the root cause as a missing ca-certificates package in the final Docker image stage.",
+      "contains_all": [
+        "ca-certificates",
+        "final stage",
+        "Docker"
+      ]
+    },
+    {
+      "text": "The response explains that CA certificates installed in earlier build stages do not carry into the final stage.",
+      "contains_all": [
+        "earlier build stage",
+        "carry",
+        "final stage"
+      ]
+    },
+    {
+      "text": "The response provides the apt-get fix for Debian slim bases and the docker run verification command.",
+      "contains_all": [
+        "apt-get",
+        "docker run"
+      ]
+    }
+  ]
+}

@@ -48,3 +48,45 @@ See `results/2026-10-05-opencode-deepseek-v4-flash/` for detailed outputs.
 | without_skill | 22% (2/9) | 1 |
 
 See `results/2026-10-02-opencode-deepseek-v4-flash/` for detailed outputs.
+
+### 2026-10-07 (new/changed evals from #51)
+
+| Config | Pass rate | Errors |
+| --- | --- | --- |
+| with_skill | 75% (3/4) | 0 |
+| without_skill | 0% (0/4) | 0 |
+
+Ran the new/changed eval (ID 13) that was added by PR #51 (harness-add
+clarifications). without_skill scored 0% — the model does not know Kei CLI
+details without the skill.
+
+See `results/2026-10-07-opencode-deepseek-v4-flash/` for detailed outputs.
+
+### 2026-10-07 (full benchmark)
+
+| Config | Pass rate | Errors |
+| --- | --- | --- |
+| with_skill | 86% (37/43) | 0 |
+| without_skill | — | — |
+
+Full benchmark of all 13 eval cases. Run with `--no-baseline` so no without_skill
+data was collected. The runner now treats harness permission-rejection errors as
+completed (failing) runs instead of infrastructure errors, so without_skill runs
+grade normally.
+
+See `results/2026-10-07-opencode-deepseek-v4-flash/` for detailed outputs.
+
+### 2026-10-08 (deterministic grading, full benchmark)
+
+| Config | Pass rate | Errors |
+| --- | --- | --- |
+| with_skill | 70% (30/43) | 0 |
+| without_skill | 7% (3/43) | 0 |
+
+Full benchmark of all 13 eval cases using deterministic checks (no LLM grader).
+with_skill dropped from 86% to 70% — the LLM grader was more lenient; deterministic
+checks require exact content matches. without_skill remains low as expected (the
+model does not know Kei CLI details without the skill).
+
+See `results/2026-10-08-opencode-deepseek-v4-flash/` for detailed outputs.
+

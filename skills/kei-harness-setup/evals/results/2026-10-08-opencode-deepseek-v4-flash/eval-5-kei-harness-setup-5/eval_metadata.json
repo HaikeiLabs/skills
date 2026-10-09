@@ -1,0 +1,42 @@
+{
+  "eval_id": 5,
+  "eval_name": "kei-harness-setup-eval-5",
+  "skill": "kei-harness-setup",
+  "prompt": "I'm setting up a DeepSeek-powered harness with Kei. Can you tell me what model format the DeepSeek model uses and how the harness passes identity on governed calls?",
+  "assertions": [
+    "The response correctly identifies DeepSeek's format as OpenAI-compatible JSON.",
+    "The response mentions reasoning_content and [THINK] tags.",
+    "The response covers governed call identity (KEI_PROXY_FRAMEWORK, KEI_PROXY_INVOKING_SUBJECT).",
+    "The response cross-references kei-openai-backends and kei-runtime-setup for details."
+  ],
+  "checks": [
+    {
+      "text": "The response correctly identifies DeepSeek's format as OpenAI-compatible JSON.",
+      "contains_all": [
+        "DeepSeek",
+        "OpenAI-compatible"
+      ]
+    },
+    {
+      "text": "The response mentions reasoning_content and [THINK] tags.",
+      "contains_all": [
+        "reasoning_content",
+        "THINK"
+      ]
+    },
+    {
+      "text": "The response covers governed call identity (KEI_PROXY_FRAMEWORK, KEI_PROXY_INVOKING_SUBJECT).",
+      "contains_all": [
+        "KEI_PROXY_FRAMEWORK",
+        "KEI_PROXY_INVOKING_SUBJECT"
+      ]
+    },
+    {
+      "text": "The response cross-references kei-openai-backends and kei-runtime-setup for details.",
+      "contains_all": [
+        "kei-openai-backends",
+        "kei-runtime-setup"
+      ]
+    }
+  ]
+}

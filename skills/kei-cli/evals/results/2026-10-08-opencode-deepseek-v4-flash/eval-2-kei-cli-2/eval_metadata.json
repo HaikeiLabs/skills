@@ -1,0 +1,26 @@
+{
+  "eval_id": 2,
+  "eval_name": "kei-cli-eval-2",
+  "skill": "kei-cli",
+  "prompt": "The runtime is pending after deployment and I want to diagnose it without changing cloud resources. What should I inspect and what evidence should I collect?",
+  "assertions": [
+    "The response treats a pending status as evidence about heartbeat rather than proof that the runtime is healthy.",
+    "The response does not suggest printing or pasting a runtime credential."
+  ],
+  "checks": [
+    {
+      "text": "The response treats a pending status as evidence about heartbeat rather than proof that the runtime is healthy.",
+      "contains_all": [
+        "pending",
+        "heartbeat"
+      ]
+    },
+    {
+      "text": "The response does not suggest printing or pasting a runtime credential.",
+      "not_contains": [
+        "print the credential",
+        "paste the credential"
+      ]
+    }
+  ]
+}

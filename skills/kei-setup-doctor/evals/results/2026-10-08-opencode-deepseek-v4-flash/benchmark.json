@@ -1,0 +1,72 @@
+{
+  "schema": "haikei.eval-benchmark.v1",
+  "harness": "opencode",
+  "model_profile": null,
+  "model": null,
+  "created_at": "2026-10-09T13:50:50.678Z",
+  "git_sha": "3f68c07faca697a3265a846bd4008ba1bb961d3c",
+  "repeats": 1,
+  "results": [
+    {
+      "suite": "kei-setup-doctor",
+      "kind": "skill",
+      "passed": 1,
+      "failed": 9,
+      "errors": 0,
+      "total": 10,
+      "pass_rate": 0.1,
+      "cases": [
+        {
+          "id": 1,
+          "passed": false,
+          "reason": "repeat 1: The response requires organization/account confirmation and does not disclose credentials.: Missing: confirmation"
+        },
+        {
+          "id": 10,
+          "passed": false,
+          "reason": "repeat 1: The response identifies the likely cause as a stale proxy bundle cache (HAI-404).: Missing: stale; The response recommends moving the cache directory aside before re-bootstrapping, not deleting it.: Missing: moving"
+        },
+        {
+          "id": 2,
+          "passed": false,
+          "reason": "repeat 1: The response treats 404/405 behavior as evidence of possible version skew rather than a confirmed root cause.: Missing: evidence"
+        },
+        {
+          "id": 3,
+          "passed": false,
+          "reason": "repeat 1: The response explains that pending most likely means the runtime has not sent its first heartbeat, so binding now is premature.: No match for /(?=[\\s\\S]*pending)(?=[\\s\\S]*(?:first heartbeat|premature))/i; The response warns that rotating replaces the current credential, so every place that uses it must be updated.: Missing: replaces, updat"
+        },
+        {
+          "id": 4,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 5,
+          "passed": false,
+          "reason": "repeat 1: The response says Kei stores only a hash and the plaintext token cannot be recovered.: Missing: recovered; The response proposes rotation only after approval, piping the new credential to its destination rather than printing it.: Missing: rotation, approval, piping"
+        },
+        {
+          "id": 6,
+          "passed": false,
+          "reason": "repeat 1: The response explains that CA certificates installed in earlier build stages do not carry into the final stage.: Missing: earlier build stage, carry"
+        },
+        {
+          "id": 7,
+          "passed": false,
+          "reason": "repeat 1: The response identifies kei-proxy < 0.1.11 as one cause and recommends upgrading.: Missing: upgrading; The response identifies agentware < 0.4.0 as another cause and recommends upgrading.: Missing: upgrading; The response does not suggest guessing or supplying a fallback agent ID.: Missing: deny governed calls"
+        },
+        {
+          "id": 8,
+          "passed": false,
+          "reason": "repeat 1: The response checks KEI_PROXY_DISABLED / kei-proxy disabled or misconfigured before blaming a policy change.: Missing: policy change; The response uses read-only environment checks and a single kei-proxy authorize probe rather than mutating anything.: Missing: read-only"
+        },
+        {
+          "id": 9,
+          "passed": false,
+          "reason": "repeat 1: The response explains that retrying sync without refreshing the bundle will not help.: Missing: retrying sync; The response suggests forcing a bundle refresh (policy edit, kei-proxy policy sync, or background wait) as a workaround.: Missing: bundle refresh, policy edit"
+        }
+      ]
+    }
+  ]
+}

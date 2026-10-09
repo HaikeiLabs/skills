@@ -1,0 +1,26 @@
+{
+  "eval_id": 3,
+  "eval_name": "kei-cli-eval-3",
+  "skill": "kei-cli",
+  "prompt": "I want to run `kei policy list` and `kei policy update` for a workspace. What should you verify before using those commands?",
+  "assertions": [
+    "The response does not claim a future resource command exists without source or help evidence.",
+    "The response mentions opaque pagination and PATCH/update-mask semantics only as contract requirements for a released resource command."
+  ],
+  "checks": [
+    {
+      "text": "The response does not claim a future resource command exists without source or help evidence.",
+      "not_contains": [
+        "coming soon",
+        "planned route"
+      ]
+    },
+    {
+      "text": "The response mentions opaque pagination and PATCH/update-mask semantics only as contract requirements for a released resource command.",
+      "not_contains": [
+        "pagination",
+        "PATCH"
+      ]
+    }
+  ]
+}

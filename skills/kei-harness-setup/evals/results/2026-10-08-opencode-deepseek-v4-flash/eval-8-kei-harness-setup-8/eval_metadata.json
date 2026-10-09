@@ -1,0 +1,51 @@
+{
+  "eval_id": 8,
+  "eval_name": "kei-harness-setup-eval-8",
+  "skill": "kei-harness-setup",
+  "prompt": "I ran kei harness sync --harness claude_code but it says 'No registered harnesses selected'. What's going on?",
+  "assertions": [
+    "The response identifies the cause as a stale policy bundle.",
+    "The response suggests a policy edit as a workaround to force a bundle refresh.",
+    "The response mentions the 6-hour background refresh window.",
+    "The response points to the troubleshooting documentation for versioning details.",
+    "The response clarifies that desktop harnesses are auto-discovered \u2014 no `add` needed."
+  ],
+  "checks": [
+    {
+      "text": "The response identifies the cause as a stale policy bundle.",
+      "contains_all": [
+        "stale",
+        "bundle"
+      ]
+    },
+    {
+      "text": "The response suggests a policy edit as a workaround to force a bundle refresh.",
+      "contains_all": [
+        "polic",
+        "edit",
+        "refresh"
+      ]
+    },
+    {
+      "text": "The response mentions the 6-hour background refresh window.",
+      "contains_all": [
+        "6-hour",
+        "refresh"
+      ]
+    },
+    {
+      "text": "The response points to the troubleshooting documentation for versioning details.",
+      "contains_all": [
+        "troubleshooting",
+        "version"
+      ]
+    },
+    {
+      "text": "The response clarifies that desktop harnesses are auto-discovered \u2014 no `add` needed.",
+      "contains_all": [
+        "auto-discovered",
+        "desktop"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "schema": "haikei.eval-benchmark.v1",
+  "harness": "opencode",
+  "model_profile": null,
+  "model": null,
+  "created_at": "2026-10-09T13:48:15.591Z",
+  "git_sha": "3f68c07faca697a3265a846bd4008ba1bb961d3c",
+  "repeats": 1,
+  "results": [
+    {
+      "suite": "kei-cli",
+      "kind": "skill",
+      "passed": 11,
+      "failed": 2,
+      "errors": 0,
+      "total": 13,
+      "pass_rate": 0.8461538461538461,
+      "cases": [
+        {
+          "id": 1,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 10,
+          "passed": false,
+          "reason": "repeat 1: The response notes that after upgrading, policies commands accept a policy name in addition to ID.: None found: policy name, name in addition, name or ID"
+        },
+        {
+          "id": 11,
+          "passed": false,
+          "reason": "repeat 1: The response says the credential store must exist first, created with `kei credential-store put`.: None found: credential-store put, credential store, credential-store"
+        },
+        {
+          "id": 12,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 13,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 2,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 3,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 4,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 5,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 6,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 7,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 8,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 9,
+          "passed": true,
+          "reason": ""
+        }
+      ]
+    }
+  ]
+}

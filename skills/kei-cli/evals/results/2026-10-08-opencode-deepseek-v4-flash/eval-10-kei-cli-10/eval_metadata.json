@@ -1,0 +1,52 @@
+{
+  "eval_id": 10,
+  "eval_name": "kei-cli-eval-10",
+  "skill": "kei-cli",
+  "prompt": "I ran `kei policies list --workspace my-workspace` and got a JSON decode error instead of my policies. kei --version says 0.1.10. What's wrong?",
+  "assertions": [
+    "The response identifies that kei \u2264 0.1.10 has a bug that causes the decode error.",
+    "The response recommends upgrading kei to v0.1.11 or later.",
+    "The response mentions using the web app as an alternative.",
+    "The response references the known bug.",
+    "The response notes that after upgrading, policies commands accept a policy name in addition to ID."
+  ],
+  "checks": [
+    {
+      "text": "The response identifies that kei \u2264 0.1.10 has a bug that causes the decode error.",
+      "contains_all": [
+        "0.1.10",
+        "bug",
+        "decode"
+      ]
+    },
+    {
+      "text": "The response recommends upgrading kei to v0.1.11 or later.",
+      "contains_any": [
+        "v0.1.11",
+        "0.1.11",
+        "upgrade"
+      ]
+    },
+    {
+      "text": "The response mentions using the web app as an alternative.",
+      "contains_all": [
+        "web app"
+      ]
+    },
+    {
+      "text": "The response references the known bug.",
+      "contains_any": [
+        "known bug",
+        "known issue"
+      ]
+    },
+    {
+      "text": "The response notes that after upgrading, policies commands accept a policy name in addition to ID.",
+      "contains_any": [
+        "policy name",
+        "name in addition",
+        "name or ID"
+      ]
+    }
+  ]
+}

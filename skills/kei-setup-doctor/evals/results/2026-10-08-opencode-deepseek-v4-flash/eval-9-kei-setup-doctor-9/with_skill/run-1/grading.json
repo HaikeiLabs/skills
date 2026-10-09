@@ -1,0 +1,70 @@
+{
+  "expectations": [
+    {
+      "text": "The response identifies a stale policy bundle as the likely cause.",
+      "passed": true,
+      "evidence": "Found all: stale, bundle",
+      "check": {
+        "text": "The response identifies a stale policy bundle as the likely cause.",
+        "contains_all": [
+          "stale",
+          "bundle"
+        ]
+      }
+    },
+    {
+      "text": "The response explains that retrying sync without refreshing the bundle will not help.",
+      "passed": false,
+      "evidence": "Missing: retrying sync",
+      "check": {
+        "text": "The response explains that retrying sync without refreshing the bundle will not help.",
+        "contains_all": [
+          "retrying sync",
+          "bundle"
+        ]
+      }
+    },
+    {
+      "text": "The response suggests forcing a bundle refresh (policy edit, kei-proxy policy sync, or background wait) as a workaround.",
+      "passed": false,
+      "evidence": "Missing: bundle refresh, policy edit",
+      "check": {
+        "text": "The response suggests forcing a bundle refresh (policy edit, kei-proxy policy sync, or background wait) as a workaround.",
+        "contains_all": [
+          "bundle refresh",
+          "policy edit"
+        ]
+      }
+    },
+    {
+      "text": "The response does not suggest running `kei harness add` for a desktop harness.",
+      "passed": true,
+      "evidence": "Found all: auto-discovered, desktop",
+      "check": {
+        "text": "The response does not suggest running `kei harness add` for a desktop harness.",
+        "contains_all": [
+          "auto-discovered",
+          "desktop"
+        ]
+      }
+    },
+    {
+      "text": "The response clarifies that desktop harnesses are auto-discovered.",
+      "passed": true,
+      "evidence": "Found all: auto-discovered, desktop",
+      "check": {
+        "text": "The response clarifies that desktop harnesses are auto-discovered.",
+        "contains_all": [
+          "auto-discovered",
+          "desktop"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 2,
+    "total": 5,
+    "pass_rate": 0.6
+  }
+}

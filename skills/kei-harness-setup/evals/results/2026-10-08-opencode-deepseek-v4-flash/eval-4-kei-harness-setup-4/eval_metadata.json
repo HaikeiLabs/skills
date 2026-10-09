@@ -1,0 +1,25 @@
+{
+  "eval_id": 4,
+  "eval_name": "kei-harness-setup-eval-4",
+  "skill": "kei-harness-setup",
+  "prompt": "I'm setting up Claude Code with Kei and my model uses Anthropic's tool format. Which skill covers the model format differences?",
+  "assertions": [
+    "The response references kei-openai-backends for model format details.",
+    "The response mentions Anthropic-specific format features like input_schema and thinking blocks."
+  ],
+  "checks": [
+    {
+      "text": "The response references kei-openai-backends for model format details.",
+      "contains_all": [
+        "kei-openai-backends"
+      ]
+    },
+    {
+      "text": "The response mentions Anthropic-specific format features like input_schema and thinking blocks.",
+      "contains_all": [
+        "input_schema",
+        "thinking"
+      ]
+    }
+  ]
+}

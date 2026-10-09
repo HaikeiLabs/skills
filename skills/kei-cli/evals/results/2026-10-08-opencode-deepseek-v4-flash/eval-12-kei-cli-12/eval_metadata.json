@@ -1,0 +1,43 @@
+{
+  "eval_id": 12,
+  "eval_name": "kei-cli-eval-12",
+  "skill": "kei-cli",
+  "prompt": "I'm on kei 0.1.12. `kei model-profiles list` fails, and I want to test that a profile can actually reach the model. What should I do?",
+  "assertions": [
+    "The response recommends upgrading kei to v0.1.13 or later.",
+    "The response says `kei model-profiles test` is not available yet.",
+    "The response recommends `kei model-profiles readiness` with `--workspace` instead.",
+    "The response does not claim the test command calls the server."
+  ],
+  "checks": [
+    {
+      "text": "The response recommends upgrading kei to v0.1.13 or later.",
+      "contains_any": [
+        "v0.1.13",
+        "0.1.13",
+        "upgrade"
+      ]
+    },
+    {
+      "text": "The response says `kei model-profiles test` is not available yet.",
+      "contains_any": [
+        "model-profiles test",
+        "not available",
+        "no `test`"
+      ]
+    },
+    {
+      "text": "The response recommends `kei model-profiles readiness` with `--workspace` instead.",
+      "contains_all": [
+        "model-profiles readiness",
+        "--workspace"
+      ]
+    },
+    {
+      "text": "The response does not claim the test command calls the server.",
+      "not_contains": [
+        "calls the server"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "expectations": [
+    {
+      "text": "The response identifies the root cause as a missing ca-certificates package in the final Docker image stage.",
+      "passed": true,
+      "evidence": "Found all: ca-certificates, final stage, Docker",
+      "check": {
+        "text": "The response identifies the root cause as a missing ca-certificates package in the final Docker image stage.",
+        "contains_all": [
+          "ca-certificates",
+          "final stage",
+          "Docker"
+        ]
+      }
+    },
+    {
+      "text": "The response explains that CA certificates installed in earlier build stages do not carry into the final stage.",
+      "passed": false,
+      "evidence": "Missing: earlier build stage, carry",
+      "check": {
+        "text": "The response explains that CA certificates installed in earlier build stages do not carry into the final stage.",
+        "contains_all": [
+          "earlier build stage",
+          "carry",
+          "final stage"
+        ]
+      }
+    },
+    {
+      "text": "The response provides the apt-get fix for Debian slim bases and the docker run verification command.",
+      "passed": true,
+      "evidence": "Found all: apt-get, docker run",
+      "check": {
+        "text": "The response provides the apt-get fix for Debian slim bases and the docker run verification command.",
+        "contains_all": [
+          "apt-get",
+          "docker run"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 1,
+    "total": 3,
+    "pass_rate": 0.6666666666666666
+  }
+}

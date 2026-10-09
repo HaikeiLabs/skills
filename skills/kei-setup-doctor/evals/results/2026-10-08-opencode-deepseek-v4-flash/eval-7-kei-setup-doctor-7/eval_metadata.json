@@ -1,0 +1,44 @@
+{
+  "eval_id": 7,
+  "eval_name": "kei-setup-doctor-eval-7",
+  "skill": "kei-setup-doctor",
+  "prompt": "I ran kei-proxy runtime bootstrap and it succeeded, but when I check the identity data the agent_id is empty. What could cause this and how do I fix it?",
+  "assertions": [
+    "The response identifies kei-proxy < 0.1.11 as one cause and recommends upgrading.",
+    "The response identifies agentware < 0.4.0 as another cause and recommends upgrading.",
+    "The response says to attach an agent to the installation if versions are current.",
+    "The response does not suggest guessing or supplying a fallback agent ID."
+  ],
+  "checks": [
+    {
+      "text": "The response identifies kei-proxy < 0.1.11 as one cause and recommends upgrading.",
+      "contains_all": [
+        "kei-proxy",
+        "0.1.11",
+        "upgrading"
+      ]
+    },
+    {
+      "text": "The response identifies agentware < 0.4.0 as another cause and recommends upgrading.",
+      "contains_all": [
+        "agentware",
+        "0.4.0",
+        "upgrading"
+      ]
+    },
+    {
+      "text": "The response says to attach an agent to the installation if versions are current.",
+      "contains_all": [
+        "attach",
+        "agent",
+        "installation"
+      ]
+    },
+    {
+      "text": "The response does not suggest guessing or supplying a fallback agent ID.",
+      "contains_all": [
+        "deny governed calls"
+      ]
+    }
+  ]
+}

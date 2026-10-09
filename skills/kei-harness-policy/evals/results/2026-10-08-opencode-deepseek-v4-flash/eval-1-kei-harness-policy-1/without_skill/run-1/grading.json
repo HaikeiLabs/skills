@@ -1,0 +1,67 @@
+{
+  "expectations": [
+    {
+      "text": "mentions `kei policies import --from claude`",
+      "passed": false,
+      "evidence": "Missing: kei policies import, --from claude",
+      "check": {
+        "text": "mentions `kei policies import --from claude`",
+        "contains_all": [
+          "kei policies import",
+          "--from claude"
+        ]
+      }
+    },
+    {
+      "text": "mentions `kei harness sync --harness claude_code` as the sync command to use after import",
+      "passed": false,
+      "evidence": "Missing: kei harness sync",
+      "check": {
+        "text": "mentions `kei harness sync --harness claude_code` as the sync command to use after import",
+        "contains_all": [
+          "kei harness sync"
+        ]
+      }
+    },
+    {
+      "text": "states that desktop harnesses are auto-discovered by `kei harness sync`",
+      "passed": false,
+      "evidence": "No match for /(?=[\\s\\S]*auto-dis)(?=[\\s\\S]*sync)|(?=[\\s\\S]*discover)(?=[\\s\\S]*harness)/i",
+      "check": {
+        "text": "states that desktop harnesses are auto-discovered by `kei harness sync`",
+        "regex": "(?=[\\s\\S]*auto-dis)(?=[\\s\\S]*sync)|(?=[\\s\\S]*discover)(?=[\\s\\S]*harness)"
+      }
+    },
+    {
+      "text": "warns that the commands ship in kei >v0.1.6",
+      "passed": false,
+      "evidence": "None found: >v0.1.6, v0.1.6, 0.1.6",
+      "check": {
+        "text": "warns that the commands ship in kei >v0.1.6",
+        "contains_any": [
+          ">v0.1.6",
+          "v0.1.6",
+          "0.1.6"
+        ]
+      }
+    },
+    {
+      "text": "recommends backing up the existing native config before sync",
+      "passed": false,
+      "evidence": "Missing: back up, sync",
+      "check": {
+        "text": "recommends backing up the existing native config before sync",
+        "contains_all": [
+          "back up",
+          "sync"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 5,
+    "total": 5,
+    "pass_rate": 0
+  }
+}

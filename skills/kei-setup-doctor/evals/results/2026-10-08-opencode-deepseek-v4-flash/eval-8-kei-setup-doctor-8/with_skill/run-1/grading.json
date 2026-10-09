@@ -1,0 +1,47 @@
+{
+  "expectations": [
+    {
+      "text": "The response checks KEI_PROXY_DISABLED / kei-proxy disabled or misconfigured before blaming a policy change.",
+      "passed": false,
+      "evidence": "Missing: policy change",
+      "check": {
+        "text": "The response checks KEI_PROXY_DISABLED / kei-proxy disabled or misconfigured before blaming a policy change.",
+        "contains_all": [
+          "KEI_PROXY_DISABLED",
+          "policy change"
+        ]
+      }
+    },
+    {
+      "text": "The response explains that a disabled, missing, or misconfigured proxy denies every governed call and never permits one.",
+      "passed": true,
+      "evidence": "Found all: disabled, denies, governed call",
+      "check": {
+        "text": "The response explains that a disabled, missing, or misconfigured proxy denies every governed call and never permits one.",
+        "contains_all": [
+          "disabled",
+          "denies",
+          "governed call"
+        ]
+      }
+    },
+    {
+      "text": "The response uses read-only environment checks and a single kei-proxy authorize probe rather than mutating anything.",
+      "passed": false,
+      "evidence": "Missing: read-only",
+      "check": {
+        "text": "The response uses read-only environment checks and a single kei-proxy authorize probe rather than mutating anything.",
+        "contains_all": [
+          "read-only",
+          "kei-proxy authorize"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "failed": 2,
+    "total": 3,
+    "pass_rate": 0.3333333333333333
+  }
+}

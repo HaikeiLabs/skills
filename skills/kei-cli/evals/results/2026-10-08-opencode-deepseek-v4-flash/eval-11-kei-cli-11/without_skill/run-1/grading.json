@@ -1,0 +1,85 @@
+{
+  "expectations": [
+    {
+      "text": "The response pipes the API key into `kei model-profiles create` on stdin and never passes it as a flag or prints it.",
+      "passed": false,
+      "evidence": "Missing: stdin, model-profiles create",
+      "check": {
+        "text": "The response pipes the API key into `kei model-profiles create` on stdin and never passes it as a flag or prints it.",
+        "contains_all": [
+          "stdin",
+          "model-profiles create"
+        ]
+      }
+    },
+    {
+      "text": "The response includes `--default-model dvl-default` and `--auth-type api_key`.",
+      "passed": false,
+      "evidence": "Missing: --default-model, dvl-default, --auth-type, api_key",
+      "check": {
+        "text": "The response includes `--default-model dvl-default` and `--auth-type api_key`.",
+        "contains_all": [
+          "--default-model",
+          "dvl-default",
+          "--auth-type",
+          "api_key"
+        ]
+      }
+    },
+    {
+      "text": "The response scopes the profile with `--workspace Main` and `--agent` set to the agent ID.",
+      "passed": false,
+      "evidence": "Missing: --workspace, --agent",
+      "check": {
+        "text": "The response scopes the profile with `--workspace Main` and `--agent` set to the agent ID.",
+        "contains_all": [
+          "--workspace",
+          "--agent"
+        ]
+      }
+    },
+    {
+      "text": "The response says the credential store must exist first, created with `kei credential-store put`.",
+      "passed": false,
+      "evidence": "None found: credential-store put, credential store, credential-store",
+      "check": {
+        "text": "The response says the credential store must exist first, created with `kei credential-store put`.",
+        "contains_any": [
+          "credential-store put",
+          "credential store",
+          "credential-store"
+        ]
+      }
+    },
+    {
+      "text": "The response suggests `kei model-profiles readiness` to check the result.",
+      "passed": false,
+      "evidence": "Missing: model-profiles readiness",
+      "check": {
+        "text": "The response suggests `kei model-profiles readiness` to check the result.",
+        "contains_all": [
+          "model-profiles readiness"
+        ]
+      }
+    },
+    {
+      "text": "The response does not invent flags or commands absent from the kei usage string.",
+      "passed": false,
+      "evidence": "Missing: --display-name, --endpoint, --default-model",
+      "check": {
+        "text": "The response does not invent flags or commands absent from the kei usage string.",
+        "contains_all": [
+          "--display-name",
+          "--endpoint",
+          "--default-model"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 6,
+    "total": 6,
+    "pass_rate": 0
+  }
+}

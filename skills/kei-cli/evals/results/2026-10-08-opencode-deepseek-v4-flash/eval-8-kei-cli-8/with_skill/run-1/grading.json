@@ -1,0 +1,49 @@
+{
+  "expectations": [
+    {
+      "text": "The response explains that only org owners and admins can approve the login flow.",
+      "passed": true,
+      "evidence": "Found all: owner, admins, approve",
+      "check": {
+        "text": "The response explains that only org owners and admins can approve the login flow.",
+        "contains_all": [
+          "owner",
+          "admins",
+          "approve"
+        ]
+      }
+    },
+    {
+      "text": "The response says a member role gets this error.",
+      "passed": true,
+      "evidence": "Found: member, not an org",
+      "check": {
+        "text": "The response says a member role gets this error.",
+        "contains_any": [
+          "member role",
+          "member",
+          "not an org"
+        ]
+      }
+    },
+    {
+      "text": "The response tells the user to ask an org owner or admin to run kei login and approve it.",
+      "passed": true,
+      "evidence": "Found all: org owner, admin, kei login",
+      "check": {
+        "text": "The response tells the user to ask an org owner or admin to run kei login and approve it.",
+        "contains_all": [
+          "org owner",
+          "admin",
+          "kei login"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 0,
+    "total": 3,
+    "pass_rate": 1
+  }
+}

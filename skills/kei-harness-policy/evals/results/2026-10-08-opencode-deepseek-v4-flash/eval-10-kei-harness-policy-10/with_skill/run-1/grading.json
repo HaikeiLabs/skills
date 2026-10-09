@@ -1,0 +1,49 @@
+{
+  "expectations": [
+    {
+      "text": "explains that unmatched commands fall through to harness native permissions",
+      "passed": true,
+      "evidence": "Matched: ",
+      "check": {
+        "text": "explains that unmatched commands fall through to harness native permissions",
+        "regex": "(?=[\\s\\S]*(?:unmatched|no match|falls? through))(?=[\\s\\S]*native)"
+      }
+    },
+    {
+      "text": "mentions the harness's default permission mode (usually ask)",
+      "passed": true,
+      "evidence": "Matched: ",
+      "check": {
+        "text": "mentions the harness's default permission mode (usually ask)",
+        "regex": "(?=[\\s\\S]*(?:default|usually|built-in|native))(?=[\\s\\S]*ask)"
+      }
+    },
+    {
+      "text": "clarifies that Kei does not deny unmatched commands for native harnesses",
+      "passed": false,
+      "evidence": "No match for /(?=[\\s\\S]*(?:does not deny|doesn.t deny|not deny|does not))(?=[\\s\\S]*native)/i",
+      "check": {
+        "text": "clarifies that Kei does not deny unmatched commands for native harnesses",
+        "regex": "(?=[\\s\\S]*(?:does not deny|doesn.t deny|not deny|does not))(?=[\\s\\S]*native)"
+      }
+    },
+    {
+      "text": "notes that custom harnesses and connectors deny by default",
+      "passed": true,
+      "evidence": "Found all: custom, deny",
+      "check": {
+        "text": "notes that custom harnesses and connectors deny by default",
+        "contains_all": [
+          "custom",
+          "deny"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 1,
+    "total": 4,
+    "pass_rate": 0.75
+  }
+}

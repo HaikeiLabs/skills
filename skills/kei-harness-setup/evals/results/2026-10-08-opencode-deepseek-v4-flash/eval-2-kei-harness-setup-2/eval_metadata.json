@@ -1,0 +1,32 @@
+{
+  "eval_id": 2,
+  "eval_name": "kei-harness-setup-eval-2",
+  "skill": "kei-harness-setup",
+  "prompt": "We use Claude Code and Codex on the team. How do we get the Haikei skills into both and make sure tool calls actually go through Kei?",
+  "assertions": [
+    "The response gives the Claude Code and Codex plugin marketplace commands for HaikeiLabs/skills.",
+    "The response states installing skills does not by itself allow tool calls; policy decides.",
+    "The response includes a deny check where an unbound call must fail."
+  ],
+  "checks": [
+    {
+      "text": "The response gives the Claude Code and Codex plugin marketplace commands for HaikeiLabs/skills.",
+      "contains_all": [
+        "Claude Code",
+        "Codex",
+        "HaikeiLabs/skills"
+      ]
+    },
+    {
+      "text": "The response states installing skills does not by itself allow tool calls; policy decides.",
+      "regex": "(?=[\\s\\S]*install)(?=[\\s\\S]*skill)(?=[\\s\\S]*polic)"
+    },
+    {
+      "text": "The response includes a deny check where an unbound call must fail.",
+      "contains_all": [
+        "deny",
+        "unbound"
+      ]
+    }
+  ]
+}

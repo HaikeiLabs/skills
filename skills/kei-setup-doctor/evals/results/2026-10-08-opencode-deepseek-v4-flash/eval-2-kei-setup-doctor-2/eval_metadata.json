@@ -1,0 +1,27 @@
+{
+  "eval_id": 2,
+  "eval_name": "kei-setup-doctor-eval-2",
+  "skill": "kei-setup-doctor",
+  "prompt": "A newly deployed runtime returns 404 for a control-plane endpoint while an older replica still works. What should I compare, and what requires approval?",
+  "assertions": [
+    "The response treats 404/405 behavior as evidence of possible version skew rather than a confirmed root cause.",
+    "The response separates read-only diagnosis from workload or control-plane changes."
+  ],
+  "checks": [
+    {
+      "text": "The response treats 404/405 behavior as evidence of possible version skew rather than a confirmed root cause.",
+      "contains_all": [
+        "404",
+        "version skew",
+        "evidence"
+      ]
+    },
+    {
+      "text": "The response separates read-only diagnosis from workload or control-plane changes.",
+      "contains_all": [
+        "read-only",
+        "diagnosis"
+      ]
+    }
+  ]
+}

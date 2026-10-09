@@ -1,0 +1,39 @@
+{
+  "eval_id": 9,
+  "eval_name": "kei-harness-setup-eval-9",
+  "skill": "kei-harness-setup",
+  "prompt": "I installed Codex next to Claude Code on the same machine and both need Kei governance. Do I run `kei harness add` for each? How does the setup script handle this? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+  "assertions": [
+    "states that desktop harnesses do not need `kei harness add`",
+    "explains both Codex and Claude Code on the same machine share one installation and are auto-discovered by sync",
+    "mentions that the setup script calls `kei harness add` with `|| true` for backward compatibility",
+    "says `kei harness sync` is the primary path for desktop harnesses"
+  ],
+  "checks": [
+    {
+      "text": "states that desktop harnesses do not need `kei harness add`",
+      "contains_all": [
+        "desktop",
+        "kei harness add"
+      ]
+    },
+    {
+      "text": "explains both Codex and Claude Code on the same machine share one installation and are auto-discovered by sync",
+      "regex": "(?=[\\s\\S]*Codex)(?=[\\s\\S]*Claude Code)(?=[\\s\\S]*(?:auto-discovered|one install|same install))"
+    },
+    {
+      "text": "mentions that the setup script calls `kei harness add` with `|| true` for backward compatibility",
+      "contains_all": [
+        "|| true",
+        "backward"
+      ]
+    },
+    {
+      "text": "says `kei harness sync` is the primary path for desktop harnesses",
+      "contains_all": [
+        "kei harness sync",
+        "primary path"
+      ]
+    }
+  ]
+}

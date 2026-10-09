@@ -1,11 +1,12 @@
 /**
  * Fails on internal markdown links that point at missing files.
  *
- * Scans every .md file in the repo (excluding node_modules), extracts
- * [text](target) and [text](target "title") markdown links, and resolves
- * targets that are relative paths (not http/https/mailto, not bare anchors,
- * not inline code). A target that is a relative path whose resolved file or
- * directory does not exist is a hard failure.
+ * Scans every .md file in the repo (excluding node_modules and
+ * evals/results/), extracts [text](target) and [text](target "title")
+ * markdown links, and resolves targets that are relative paths (not
+ * http/https/mailto, not bare anchors, not inline code). A target that is a
+ * relative path whose resolved file or directory does not exist is a hard
+ * failure.
  *
  * Exits non-zero on the first problem and prints a stable summary line on success.
  */
@@ -30,6 +31,9 @@ function walk(root) {
     const full = join(root, entry);
     const st = statSync(full);
     if (st.isDirectory()) {
+      // Skip saved model output — those markdown files contain sandbox
+      // paths that are not part of the skill documentation.
+      if (full.includes('/evals/results/')) continue;
       out.push(...walk(full));
     } else if (extname(entry) === '.md') {
       out.push(full);

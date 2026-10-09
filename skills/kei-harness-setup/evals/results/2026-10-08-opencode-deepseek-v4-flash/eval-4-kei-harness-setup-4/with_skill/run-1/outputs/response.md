@@ -1,0 +1,2 @@
+The **kei-harness-setup** skill covers connecting Claude Code (and other coding-agent harnesses) to Kei governance. Let me load it to check the model format details.
+The **kei-openai-backends** skill covers model format differences across families (OpenAI, Anthropic, Qwen, DeepSeek, GLM) including tool-definition rendering. Since Claude Code uses Anthropic's format (`input_schema` with `thinking` content blocks), that skill handles the format adaptation. It's referenced in the "Related skills" section of the `kei-harness-setup` skill you just loaded.

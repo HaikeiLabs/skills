@@ -1,0 +1,28 @@
+{
+  "eval_id": 5,
+  "eval_name": "kei-setup-doctor-eval-5",
+  "skill": "kei-setup-doctor",
+  "prompt": "The customer lost their Kei runtime token and the old pod is gone. Can you pull the token back out of Kei so we don't have to rotate anything?",
+  "assertions": [
+    "The response says Kei stores only a hash and the plaintext token cannot be recovered.",
+    "The response proposes rotation only after approval, piping the new credential to its destination rather than printing it."
+  ],
+  "checks": [
+    {
+      "text": "The response says Kei stores only a hash and the plaintext token cannot be recovered.",
+      "contains_all": [
+        "hash",
+        "plaintext",
+        "recovered"
+      ]
+    },
+    {
+      "text": "The response proposes rotation only after approval, piping the new credential to its destination rather than printing it.",
+      "contains_all": [
+        "rotation",
+        "approval",
+        "piping"
+      ]
+    }
+  ]
+}

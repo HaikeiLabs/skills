@@ -1,0 +1,33 @@
+{
+  "eval_id": 6,
+  "eval_name": "kei-cli-eval-6",
+  "skill": "kei-cli",
+  "prompt": "I ran `kei login` and the browser opened to the Kei Dashboard instead of the approval page. The CLI is just sitting there waiting. What went wrong?",
+  "assertions": [
+    "The response identifies that the user needs to sign in at app.haikeilabs.com before running kei login.",
+    "The response mentions the lost return address or HAI-370 as the root cause.",
+    "The response tells the user to run kei login again after signing in."
+  ],
+  "checks": [
+    {
+      "text": "The response identifies that the user needs to sign in at app.haikeilabs.com before running kei login.",
+      "contains_all": [
+        "app.haikeilabs.com",
+        "sign in"
+      ]
+    },
+    {
+      "text": "The response mentions the lost return address or HAI-370 as the root cause.",
+      "contains_any": [
+        "return address"
+      ]
+    },
+    {
+      "text": "The response tells the user to run kei login again after signing in.",
+      "contains_all": [
+        "kei login",
+        "again"
+      ]
+    }
+  ]
+}

@@ -10,6 +10,33 @@
         "The response skips or asks about same-named existing skills instead of overwriting them.",
         "The response includes a way to verify OpenCode discovered the skills.",
         "The response routes the runtime half through kei login and runtime setup rather than skipping auth."
+      ],
+      "checks": [
+        {
+          "text": "The response installs from https://github.com/HaikeiLabs/skills, not another skills repository.",
+          "contains_all": [
+            "HaikeiLabs/skills",
+            "github"
+          ]
+        },
+        {
+          "text": "The response skips or asks about same-named existing skills instead of overwriting them.",
+          "regex": "(?=[\\s\\S]*existing)(?=[\\s\\S]*(?:skip|not overwrit|clobber))"
+        },
+        {
+          "text": "The response includes a way to verify OpenCode discovered the skills.",
+          "contains_all": [
+            "verif",
+            "discover"
+          ]
+        },
+        {
+          "text": "The response routes the runtime half through kei login and runtime setup rather than skipping auth.",
+          "contains_all": [
+            "kei login",
+            "kei setup"
+          ]
+        }
       ]
     },
     {
@@ -20,6 +47,27 @@
         "The response gives the Claude Code and Codex plugin marketplace commands for HaikeiLabs/skills.",
         "The response states installing skills does not by itself allow tool calls; policy decides.",
         "The response includes a deny check where an unbound call must fail."
+      ],
+      "checks": [
+        {
+          "text": "The response gives the Claude Code and Codex plugin marketplace commands for HaikeiLabs/skills.",
+          "contains_all": [
+            "Claude Code",
+            "Codex",
+            "HaikeiLabs/skills"
+          ]
+        },
+        {
+          "text": "The response states installing skills does not by itself allow tool calls; policy decides.",
+          "regex": "(?=[\\s\\S]*install)(?=[\\s\\S]*skill)(?=[\\s\\S]*polic)"
+        },
+        {
+          "text": "The response includes a deny check where an unbound call must fail.",
+          "contains_all": [
+            "deny",
+            "unbound"
+          ]
+        }
       ]
     },
     {
@@ -29,6 +77,22 @@
       "expectations": [
         "The response does not claim Windsurf is supported.",
         "The response lists the supported local adapters."
+      ],
+      "checks": [
+        {
+          "text": "The response does not claim Windsurf is supported.",
+          "contains_all": [
+            "Windsurf",
+            "not supported"
+          ]
+        },
+        {
+          "text": "The response lists the supported local adapters.",
+          "contains_all": [
+            "adapter",
+            "supported"
+          ]
+        }
       ]
     },
     {
@@ -38,6 +102,21 @@
       "expectations": [
         "The response references kei-openai-backends for model format details.",
         "The response mentions Anthropic-specific format features like input_schema and thinking blocks."
+      ],
+      "checks": [
+        {
+          "text": "The response references kei-openai-backends for model format details.",
+          "contains_all": [
+            "kei-openai-backends"
+          ]
+        },
+        {
+          "text": "The response mentions Anthropic-specific format features like input_schema and thinking blocks.",
+          "contains_all": [
+            "input_schema",
+            "thinking"
+          ]
+        }
       ]
     },
     {
@@ -49,6 +128,36 @@
         "The response mentions reasoning_content and [THINK] tags.",
         "The response covers governed call identity (KEI_PROXY_FRAMEWORK, KEI_PROXY_INVOKING_SUBJECT).",
         "The response cross-references kei-openai-backends and kei-runtime-setup for details."
+      ],
+      "checks": [
+        {
+          "text": "The response correctly identifies DeepSeek's format as OpenAI-compatible JSON.",
+          "contains_all": [
+            "DeepSeek",
+            "OpenAI-compatible"
+          ]
+        },
+        {
+          "text": "The response mentions reasoning_content and [THINK] tags.",
+          "contains_all": [
+            "reasoning_content",
+            "THINK"
+          ]
+        },
+        {
+          "text": "The response covers governed call identity (KEI_PROXY_FRAMEWORK, KEI_PROXY_INVOKING_SUBJECT).",
+          "contains_all": [
+            "KEI_PROXY_FRAMEWORK",
+            "KEI_PROXY_INVOKING_SUBJECT"
+          ]
+        },
+        {
+          "text": "The response cross-references kei-openai-backends and kei-runtime-setup for details.",
+          "contains_all": [
+            "kei-openai-backends",
+            "kei-runtime-setup"
+          ]
+        }
       ]
     },
     {
@@ -61,6 +170,42 @@
         "The response mentions that kei-proxy fails closed (denies everything) when the schema is invalid.",
         "The response references HAI-372 as the known bug.",
         "The response suggests re-running kei runtime bootstrap or restarting kei-proxy serve after the fix."
+      ],
+      "checks": [
+        {
+          "text": "The response identifies that the dst_pattern uses a bare name instead of the tool: prefix.",
+          "contains_all": [
+            "dst_pattern",
+            "tool:",
+            "prefix"
+          ]
+        },
+        {
+          "text": "The response recommends updating the policy's dst_pattern to tool:<name> in the console.",
+          "contains_all": [
+            "dst_pattern",
+            "tool:",
+            "update"
+          ]
+        },
+        {
+          "text": "The response mentions that kei-proxy fails closed (denies everything) when the schema is invalid.",
+          "regex": "(?=[\\s\\S]*fails closed)(?=[\\s\\S]*invalid)"
+        },
+        {
+          "text": "The response references HAI-372 as the known bug.",
+          "contains_all": [
+            "dst_pattern",
+            "known"
+          ]
+        },
+        {
+          "text": "The response suggests re-running kei runtime bootstrap or restarting kei-proxy serve after the fix.",
+          "contains_any": [
+            "runtime bootstrap",
+            "kei-proxy serve"
+          ]
+        }
       ]
     },
     {
@@ -69,32 +214,125 @@
       "expected_output": "Directs the user to run skills/kei-harness-setup/scripts/setup-claude-code.sh, explains it checks prerequisites (kei/kei-proxy on PATH, login), creates a new runtime installation if none exists, syncs the harness (desktop kinds auto-detected), and runs verify.sh. Warns that credentials are never printed to the terminal.",
       "expectations": [
         "The response references the scripts/ directory and setup-claude-code.sh.",
-        "The response explains the script handles a fresh machine: no existing ~/.config/kei.yaml triggers automatic installation creation.",
+        "The response explains the script handles a fresh machine by creating a new runtime installation when none exists.",
         "The response notes that credentials are piped directly from kei bot credential into kei setup and never printed.",
-        "The response mentions verify.sh runs at the end to confirm the setup is valid."
+        "The response mentions that verification runs at the end to confirm the setup is valid."
+      ],
+      "checks": [
+        {
+          "text": "The response references the scripts/ directory and setup-claude-code.sh.",
+          "contains_all": [
+            "scripts/",
+            "setup-claude-code.sh"
+          ]
+        },
+        {
+          "text": "The response explains the script handles a fresh machine by creating a new runtime installation when none exists.",
+          "contains_all": [
+            "fresh",
+            "runtime installation"
+          ]
+        },
+        {
+          "text": "The response notes that credentials are piped directly from kei bot credential into kei setup and never printed.",
+          "regex": "(?=[\\s\\S]*kei bot credential)(?=[\\s\\S]*kei setup)(?=[\\s\\S]*(?:pipe|never printed|credential))"
+        },
+        {
+          "text": "The response mentions that verification runs at the end to confirm the setup is valid.",
+          "contains_all": [
+            "verif",
+            "confirm",
+            "valid"
+          ]
+        }
       ]
     },
     {
       "id": 8,
       "prompt": "I ran kei harness sync --harness claude_code but it says 'No registered harnesses selected'. What's going on?",
-      "expected_output": "Explains the policy bundle cached by kei-proxy is stale (HAI-403) and the new installation's harnesses are not reflected until the next refresh. Desktop harnesses are auto-discovered — no `kei harness add` needed. Suggests any policy edit triggers a refresh, or waiting for the background poll. Mentions the 6-hour bundle refresh window and references kei-harness-policy references/bundle-versioning.md.",
+      "expected_output": "Explains the policy bundle cached by kei-proxy is stale (HAI-403) and the new installation's harnesses are not reflected until the next refresh. Desktop harnesses are auto-discovered \u2014 no `kei harness add` needed. Suggests any policy edit triggers a refresh, or waiting for the background poll. Mentions the 6-hour bundle refresh window and references kei-harness-policy references/bundle-versioning.md.",
       "expectations": [
-        "The response identifies the cause as a stale policy bundle (HAI-403).",
+        "The response identifies the cause as a stale policy bundle.",
         "The response suggests a policy edit as a workaround to force a bundle refresh.",
         "The response mentions the 6-hour background refresh window.",
-        "The response references kei-harness-policy references/bundle-versioning.md for versioning details.",
-        "The response clarifies that desktop harnesses are auto-discovered — no `add` needed."
+        "The response points to the troubleshooting documentation for versioning details.",
+        "The response clarifies that desktop harnesses are auto-discovered \u2014 no `add` needed."
+      ],
+      "checks": [
+        {
+          "text": "The response identifies the cause as a stale policy bundle.",
+          "contains_all": [
+            "stale",
+            "bundle"
+          ]
+        },
+        {
+          "text": "The response suggests a policy edit as a workaround to force a bundle refresh.",
+          "contains_all": [
+            "polic",
+            "edit",
+            "refresh"
+          ]
+        },
+        {
+          "text": "The response mentions the 6-hour background refresh window.",
+          "contains_all": [
+            "6-hour",
+            "refresh"
+          ]
+        },
+        {
+          "text": "The response points to the troubleshooting documentation for versioning details.",
+          "contains_all": [
+            "troubleshooting",
+            "version"
+          ]
+        },
+        {
+          "text": "The response clarifies that desktop harnesses are auto-discovered \u2014 no `add` needed.",
+          "contains_all": [
+            "auto-discovered",
+            "desktop"
+          ]
+        }
       ]
     },
     {
       "id": 9,
-      "prompt": "I installed Codex next to Claude Code on the same machine and both need Kei governance. Do I run `kei harness add` for each? How does the setup script handle this? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "prompt": "I installed Codex next to Claude Code on the same machine and both need Kei governance. Do I run `kei harness add` for each? How does the setup script handle this? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
       "expected_output": "No `kei harness add` needed for either. Desktop coding harnesses (Claude Code, Codex, OpenCode) are sessions of the same runtime installation and are auto-discovered by `kei harness sync`. The setup script (setup-lib.sh) calls `kei harness add` with `|| true` for backward compatibility, but its primary path is `kei harness sync` which detects all desktop harnesses automatically. `kei harness add` is only for custom/SDK harnesses (`--kind custom`).",
       "expectations": [
         "states that desktop harnesses do not need `kei harness add`",
         "explains both Codex and Claude Code on the same machine share one installation and are auto-discovered by sync",
         "mentions that the setup script calls `kei harness add` with `|| true` for backward compatibility",
         "says `kei harness sync` is the primary path for desktop harnesses"
+      ],
+      "checks": [
+        {
+          "text": "states that desktop harnesses do not need `kei harness add`",
+          "contains_all": [
+            "desktop",
+            "kei harness add"
+          ]
+        },
+        {
+          "text": "explains both Codex and Claude Code on the same machine share one installation and are auto-discovered by sync",
+          "regex": "(?=[\\s\\S]*Codex)(?=[\\s\\S]*Claude Code)(?=[\\s\\S]*(?:auto-discovered|one install|same install))"
+        },
+        {
+          "text": "mentions that the setup script calls `kei harness add` with `|| true` for backward compatibility",
+          "contains_all": [
+            "|| true",
+            "backward"
+          ]
+        },
+        {
+          "text": "says `kei harness sync` is the primary path for desktop harnesses",
+          "contains_all": [
+            "kei harness sync",
+            "primary path"
+          ]
+        }
       ]
     }
   ]

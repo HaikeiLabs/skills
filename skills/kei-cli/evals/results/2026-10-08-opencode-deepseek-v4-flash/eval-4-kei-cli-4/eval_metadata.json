@@ -1,0 +1,29 @@
+{
+  "eval_id": 4,
+  "eval_name": "kei-cli-eval-4",
+  "skill": "kei-cli",
+  "prompt": "kei bot status --installation 3f2c9a1e-8b7d-4c6e-9f10-2a3b4c5d6e7f says 'not logged in; run kei login first' but I logged in yesterday against staging. what's going on",
+  "assertions": [
+    "The response explains the login token is short-lived or expires.",
+    "The response says the token is per environment and login again is needed."
+  ],
+  "checks": [
+    {
+      "text": "The response explains the login token is short-lived or expires.",
+      "contains_any": [
+        "short-lived",
+        "expires",
+        "token expires"
+      ]
+    },
+    {
+      "text": "The response says the token is per environment and login again is needed.",
+      "contains_any": [
+        "per environment",
+        "login again",
+        "bound to",
+        "--api-url"
+      ]
+    }
+  ]
+}

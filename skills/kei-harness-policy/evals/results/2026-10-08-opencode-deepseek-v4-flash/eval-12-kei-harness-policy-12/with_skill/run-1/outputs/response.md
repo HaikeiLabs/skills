@@ -1,0 +1,1 @@
+No. Desktop harnesses (Claude Code, Codex, OpenCode) are auto-discovered by `kei harness sync` — you only run `kei harness add --kind custom` for custom/SDK harnesses. Installing Codex next to Claude Code on the same machine? Just run `kei harness sync`; both are detected from the same runtime installation.

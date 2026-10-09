@@ -1,0 +1,44 @@
+{
+  "expectations": [
+    {
+      "text": "The response gives the Claude Code and Codex plugin marketplace commands for HaikeiLabs/skills.",
+      "passed": false,
+      "evidence": "Missing: Claude Code, Codex, HaikeiLabs/skills",
+      "check": {
+        "text": "The response gives the Claude Code and Codex plugin marketplace commands for HaikeiLabs/skills.",
+        "contains_all": [
+          "Claude Code",
+          "Codex",
+          "HaikeiLabs/skills"
+        ]
+      }
+    },
+    {
+      "text": "The response states installing skills does not by itself allow tool calls; policy decides.",
+      "passed": false,
+      "evidence": "No match for /(?=[\\s\\S]*install)(?=[\\s\\S]*skill)(?=[\\s\\S]*polic)/i",
+      "check": {
+        "text": "The response states installing skills does not by itself allow tool calls; policy decides.",
+        "regex": "(?=[\\s\\S]*install)(?=[\\s\\S]*skill)(?=[\\s\\S]*polic)"
+      }
+    },
+    {
+      "text": "The response includes a deny check where an unbound call must fail.",
+      "passed": false,
+      "evidence": "Missing: deny, unbound",
+      "check": {
+        "text": "The response includes a deny check where an unbound call must fail.",
+        "contains_all": [
+          "deny",
+          "unbound"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 3,
+    "total": 3,
+    "pass_rate": 0
+  }
+}

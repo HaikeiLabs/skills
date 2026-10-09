@@ -1,0 +1,37 @@
+{
+  "eval_id": 8,
+  "eval_name": "kei-cli-eval-8",
+  "skill": "kei-cli",
+  "prompt": "I tried to approve `kei login` but the page says '403 organization owner or admin role is required'. What does this mean?",
+  "assertions": [
+    "The response explains that only org owners and admins can approve the login flow.",
+    "The response says a member role gets this error.",
+    "The response tells the user to ask an org owner or admin to run kei login and approve it."
+  ],
+  "checks": [
+    {
+      "text": "The response explains that only org owners and admins can approve the login flow.",
+      "contains_all": [
+        "owner",
+        "admins",
+        "approve"
+      ]
+    },
+    {
+      "text": "The response says a member role gets this error.",
+      "contains_any": [
+        "member role",
+        "member",
+        "not an org"
+      ]
+    },
+    {
+      "text": "The response tells the user to ask an org owner or admin to run kei login and approve it.",
+      "contains_all": [
+        "org owner",
+        "admin",
+        "kei login"
+      ]
+    }
+  ]
+}

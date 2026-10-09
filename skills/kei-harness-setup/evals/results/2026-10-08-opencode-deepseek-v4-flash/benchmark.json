@@ -1,0 +1,67 @@
+{
+  "schema": "haikei.eval-benchmark.v1",
+  "harness": "opencode",
+  "model_profile": null,
+  "model": null,
+  "created_at": "2026-10-09T13:50:43.762Z",
+  "git_sha": "3f68c07faca697a3265a846bd4008ba1bb961d3c",
+  "repeats": 1,
+  "results": [
+    {
+      "suite": "kei-harness-setup",
+      "kind": "skill",
+      "passed": 2,
+      "failed": 7,
+      "errors": 0,
+      "total": 9,
+      "pass_rate": 0.2222222222222222,
+      "cases": [
+        {
+          "id": 1,
+          "passed": false,
+          "reason": "repeat 1: The response installs from https://github.com/HaikeiLabs/skills, not another skills repository.: Missing: HaikeiLabs/skills, github; The response skips or asks about same-named existing skills instead of overwriting them.: No match for /(?=[\\s\\S]*existing)(?=[\\s\\S]*(?:skip|not overwrit|clobber))/i; The response includes a way to verify OpenCode discovered the skills.: Missing: verif, discover; The response routes the runtime half through kei login and runtime setup rather than skipping auth.: Missing: kei login, kei setup"
+        },
+        {
+          "id": 2,
+          "passed": false,
+          "reason": "repeat 1: The response states installing skills does not by itself allow tool calls; policy decides.: No match for /(?=[\\s\\S]*install)(?=[\\s\\S]*skill)(?=[\\s\\S]*polic)/i; The response includes a deny check where an unbound call must fail.: Missing: deny"
+        },
+        {
+          "id": 3,
+          "passed": false,
+          "reason": "repeat 1: The response does not claim Windsurf is supported.: Missing: not supported"
+        },
+        {
+          "id": 4,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 5,
+          "passed": false,
+          "reason": "repeat 1: The response cross-references kei-openai-backends and kei-runtime-setup for details.: Missing: kei-openai-backends, kei-runtime-setup"
+        },
+        {
+          "id": 6,
+          "passed": false,
+          "reason": "repeat 1: The response mentions that kei-proxy fails closed (denies everything) when the schema is invalid.: No match for /(?=[\\s\\S]*fails closed)(?=[\\s\\S]*invalid)/i; The response references HAI-372 as the known bug.: Missing: known"
+        },
+        {
+          "id": 7,
+          "passed": false,
+          "reason": "repeat 1: The response notes that credentials are piped directly from kei bot credential into kei setup and never printed.: No match for /(?=[\\s\\S]*kei bot credential)(?=[\\s\\S]*kei setup)(?=[\\s\\S]*(?:pipe|never printed|credential))/i; The response mentions that verification runs at the end to confirm the setup is valid.: Missing: valid"
+        },
+        {
+          "id": 8,
+          "passed": false,
+          "reason": "repeat 1: The response mentions the 6-hour background refresh window.: Missing: 6-hour; The response points to the troubleshooting documentation for versioning details.: Missing: version"
+        },
+        {
+          "id": 9,
+          "passed": true,
+          "reason": ""
+        }
+      ]
+    }
+  ]
+}

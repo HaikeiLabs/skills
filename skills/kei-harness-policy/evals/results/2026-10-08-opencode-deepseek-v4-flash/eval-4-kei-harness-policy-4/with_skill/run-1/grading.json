@@ -1,0 +1,61 @@
+{
+  "expectations": [
+    {
+      "text": "explains the bundle has a `not_after` expiry (ADR-026 §4)",
+      "passed": true,
+      "evidence": "Found: not_after, expir",
+      "check": {
+        "text": "explains the bundle has a `not_after` expiry (ADR-026 §4)",
+        "contains_any": [
+          "not_after",
+          "expir"
+        ]
+      }
+    },
+    {
+      "text": "mentions forcing a fresh bundle fetch (kei-proxy policy sync or runtime bootstrap)",
+      "passed": true,
+      "evidence": "Found: kei-proxy policy sync, runtime bootstrap",
+      "check": {
+        "text": "mentions forcing a fresh bundle fetch (kei-proxy policy sync or runtime bootstrap)",
+        "contains_any": [
+          "kei-proxy policy sync",
+          "runtime bootstrap"
+        ]
+      }
+    },
+    {
+      "text": "mentions `kei harness sync` to re-render native config from the fresh bundle",
+      "passed": true,
+      "evidence": "Matched: ",
+      "check": {
+        "text": "mentions `kei harness sync` to re-render native config from the fresh bundle",
+        "regex": "(?=[\\s\\S]*kei harness sync)(?=[\\s\\S]*native)"
+      }
+    },
+    {
+      "text": "notes that offline runtimes cannot fetch new bundles until connectivity is restored",
+      "passed": true,
+      "evidence": "Matched: ",
+      "check": {
+        "text": "notes that offline runtimes cannot fetch new bundles until connectivity is restored",
+        "regex": "(?=[\\s\\S]*connect)(?=[\\s\\S]*(?:offline|lost|unreachable|cannot fetch|no network))"
+      }
+    },
+    {
+      "text": "explains that bundle refresh is normally automatic (background refresher in serve)",
+      "passed": true,
+      "evidence": "Matched: ",
+      "check": {
+        "text": "explains that bundle refresh is normally automatic (background refresher in serve)",
+        "regex": "(?=[\\s\\S]*background)(?=[\\s\\S]*(?:automatic|auto|refresh|poll))"
+      }
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  }
+}

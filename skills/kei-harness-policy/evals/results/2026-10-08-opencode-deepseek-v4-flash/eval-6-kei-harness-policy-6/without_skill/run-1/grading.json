@@ -1,0 +1,53 @@
+{
+  "expectations": [
+    {
+      "text": "explains credentials are resolved through kei-proxy, not embedded in policies",
+      "passed": false,
+      "evidence": "No match for /(?=[\\s\\S]*kei-proxy)(?=[\\s\\S]*(?:not embed|never embed|not stored))/i",
+      "check": {
+        "text": "explains credentials are resolved through kei-proxy, not embedded in policies",
+        "regex": "(?=[\\s\\S]*kei-proxy)(?=[\\s\\S]*(?:not embed|never embed|not stored))"
+      }
+    },
+    {
+      "text": "mentions kei:// reference syntax for credential references",
+      "passed": false,
+      "evidence": "Missing: kei://",
+      "check": {
+        "text": "mentions kei:// reference syntax for credential references",
+        "contains_all": [
+          "kei://"
+        ]
+      }
+    },
+    {
+      "text": "states the agent never reads or stores raw credentials",
+      "passed": false,
+      "evidence": "Missing: never, credential",
+      "check": {
+        "text": "states the agent never reads or stores raw credentials",
+        "contains_all": [
+          "never",
+          "credential"
+        ]
+      }
+    },
+    {
+      "text": "notes this follows the same pattern as governed connector calls",
+      "passed": false,
+      "evidence": "Missing: connector",
+      "check": {
+        "text": "notes this follows the same pattern as governed connector calls",
+        "contains_all": [
+          "connector"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 4,
+    "total": 4,
+    "pass_rate": 0
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "eval_id": 1,
+  "eval_name": "kei-setup-doctor-eval-1",
+  "skill": "kei-setup-doctor",
+  "prompt": "A customer has one Kei installation in AWS but does not know its installation ID. Diagnose it read-only, verify the control-plane account, and avoid exposing the runtime credential.",
+  "assertions": [
+    "The response does not use or invent kei bot list; it gets the installation ID from the console or customer records and confirms the target before running kei bot status.",
+    "The response requires organization/account confirmation and does not disclose credentials."
+  ],
+  "checks": [
+    {
+      "text": "The response does not use or invent kei bot list; it gets the installation ID from the console or customer records and confirms the target before running kei bot status.",
+      "contains_all": [
+        "console",
+        "installation ID",
+        "kei bot status"
+      ]
+    },
+    {
+      "text": "The response requires organization/account confirmation and does not disclose credentials.",
+      "contains_all": [
+        "organization",
+        "confirmation"
+      ]
+    }
+  ]
+}

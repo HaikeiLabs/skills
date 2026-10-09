@@ -1,0 +1,40 @@
+{
+  "eval_id": 7,
+  "eval_name": "kei-harness-setup-eval-7",
+  "skill": "kei-harness-setup",
+  "prompt": "I have a fresh macOS machine and want to set up Claude Code with Kei. Walk me through using the setup script.",
+  "assertions": [
+    "The response references the scripts/ directory and setup-claude-code.sh.",
+    "The response explains the script handles a fresh machine by creating a new runtime installation when none exists.",
+    "The response notes that credentials are piped directly from kei bot credential into kei setup and never printed.",
+    "The response mentions that verification runs at the end to confirm the setup is valid."
+  ],
+  "checks": [
+    {
+      "text": "The response references the scripts/ directory and setup-claude-code.sh.",
+      "contains_all": [
+        "scripts/",
+        "setup-claude-code.sh"
+      ]
+    },
+    {
+      "text": "The response explains the script handles a fresh machine by creating a new runtime installation when none exists.",
+      "contains_all": [
+        "fresh",
+        "runtime installation"
+      ]
+    },
+    {
+      "text": "The response notes that credentials are piped directly from kei bot credential into kei setup and never printed.",
+      "regex": "(?=[\\s\\S]*kei bot credential)(?=[\\s\\S]*kei setup)(?=[\\s\\S]*(?:pipe|never printed|credential))"
+    },
+    {
+      "text": "The response mentions that verification runs at the end to confirm the setup is valid.",
+      "contains_all": [
+        "verif",
+        "confirm",
+        "valid"
+      ]
+    }
+  ]
+}

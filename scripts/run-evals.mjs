@@ -113,7 +113,15 @@ async function answer(skill, prompt, withSkill, opts, runDir) {
   // A harness failure (auth, usage limit, crash, timeout) is not a skill
   // failure: report it instead of grading an empty or partial answer.
   const error = runError(res, response);
-  if (error) return { error, timedOut: res.timedOut };
+  if (error) {
+    // Permission rejection means the model tried to act but was blocked.
+    // Treat as a completed run with whatever we got — grade it normally
+    // so the case fails expectations instead of erroring.
+    if (res.stderr?.includes('The user rejected permission')) {
+      return { response: response || '' };
+    }
+    return { error, timedOut: res.timedOut };
+  }
   return { response };
 }
 
@@ -156,7 +164,9 @@ async function gradeExisting(dir, opts) {
             return { skill: meta.skill ?? evalName, id: meta.eval_id, config, repeat, passed: 0, failed: 0, total: 1, error: MISSING_CHECKS };
           }
           process.stderr.write(`grading ${evalName} ${config} repeat ${repeat}\n`);
-          const g = grade(meta.assertions, meta.checks, fs.readFileSync(responsePath, 'utf8'), runDir);
+          const response = fs.readFileSync(responsePath, 'utf8');
+          if (!meta.checks) throw new Error(`gradeExisting: ${evalName} has no checks`);
+          const g = grade(meta.assertions, meta.checks, response, runDir);
           const reason = g.expectations.filter((item) => !item.passed).map((item) => `${item.text}: ${item.evidence}`).join('; ');
           return { skill: meta.skill ?? evalName, id: meta.eval_id, config, repeat, ...g.summary,
             casePassed: g.summary.failed === 0, reason };
@@ -244,6 +254,7 @@ async function main() {
             process.stderr.write(`running ${skill} #${ev.id} ${config} repeat ${repeat}\n`);
             const { response, error, timedOut } = await answer(skill, ev.prompt, config === 'with_skill', opts, runDir);
             if (error) return { skill, id: ev.id, config, repeat, passed: 0, failed: 0, total: 1, error, timedOut };
+            if (!ev.checks) throw new Error(`${skill} eval #${ev.id} has no checks`);
             const grading = grade(ev.expectations, ev.checks, response, runDir);
             const reason = grading.expectations.filter((item) => !item.passed)
               .map((item) => `${item.text}: ${item.evidence}`).join('; ');

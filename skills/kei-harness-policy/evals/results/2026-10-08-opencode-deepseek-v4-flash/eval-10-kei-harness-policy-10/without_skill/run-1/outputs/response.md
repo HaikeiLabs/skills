@@ -1,0 +1,1 @@
+I don't have access to Kei's documentation or source code in this environment, so I can't give you a definitive answer. Based on similar permission systems, the default when no policy matches would typically be **deny** (default-deny), but I'm not certain that's how Kei specifically works.

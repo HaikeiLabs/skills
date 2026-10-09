@@ -1,0 +1,35 @@
+{
+  "expectations": [
+    {
+      "text": "The response does not use or invent kei bot list; it gets the installation ID from the console or customer records and confirms the target before running kei bot status.",
+      "passed": false,
+      "evidence": "Missing: console, installation ID, kei bot status",
+      "check": {
+        "text": "The response does not use or invent kei bot list; it gets the installation ID from the console or customer records and confirms the target before running kei bot status.",
+        "contains_all": [
+          "console",
+          "installation ID",
+          "kei bot status"
+        ]
+      }
+    },
+    {
+      "text": "The response requires organization/account confirmation and does not disclose credentials.",
+      "passed": false,
+      "evidence": "Missing: organization, confirmation",
+      "check": {
+        "text": "The response requires organization/account confirmation and does not disclose credentials.",
+        "contains_all": [
+          "organization",
+          "confirmation"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 2,
+    "total": 2,
+    "pass_rate": 0
+  }
+}

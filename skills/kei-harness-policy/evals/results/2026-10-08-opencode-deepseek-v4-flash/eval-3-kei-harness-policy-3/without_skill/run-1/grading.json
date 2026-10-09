@@ -1,0 +1,45 @@
+{
+  "expectations": [
+    {
+      "text": "mentions `--dry-run` flag on `kei harness sync`",
+      "passed": false,
+      "evidence": "Missing: --dry-run, kei harness sync",
+      "check": {
+        "text": "mentions `--dry-run` flag on `kei harness sync`",
+        "contains_all": [
+          "--dry-run",
+          "kei harness sync"
+        ]
+      }
+    },
+    {
+      "text": "explains dry-run renders to stdout without overwriting",
+      "passed": false,
+      "evidence": "No match for /(?=[\\s\\S]*stdout)(?=[\\s\\S]*(?:overwrit|without modif|without chang))/i",
+      "check": {
+        "text": "explains dry-run renders to stdout without overwriting",
+        "regex": "(?=[\\s\\S]*stdout)(?=[\\s\\S]*(?:overwrit|without modif|without chang))"
+      }
+    },
+    {
+      "text": "notes kei >v0.1.6 requirement",
+      "passed": false,
+      "evidence": "None found: >v0.1.6, v0.1.6, 0.1.6, kei --version",
+      "check": {
+        "text": "notes kei >v0.1.6 requirement",
+        "contains_any": [
+          ">v0.1.6",
+          "v0.1.6",
+          "0.1.6",
+          "kei --version"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 3,
+    "total": 3,
+    "pass_rate": 0
+  }
+}

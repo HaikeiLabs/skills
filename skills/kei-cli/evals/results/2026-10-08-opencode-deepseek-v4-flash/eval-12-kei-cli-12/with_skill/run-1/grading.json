@@ -1,0 +1,59 @@
+{
+  "expectations": [
+    {
+      "text": "The response recommends upgrading kei to v0.1.13 or later.",
+      "passed": true,
+      "evidence": "Found: v0.1.13, 0.1.13, upgrade",
+      "check": {
+        "text": "The response recommends upgrading kei to v0.1.13 or later.",
+        "contains_any": [
+          "v0.1.13",
+          "0.1.13",
+          "upgrade"
+        ]
+      }
+    },
+    {
+      "text": "The response says `kei model-profiles test` is not available yet.",
+      "passed": true,
+      "evidence": "Found: no `test`",
+      "check": {
+        "text": "The response says `kei model-profiles test` is not available yet.",
+        "contains_any": [
+          "model-profiles test",
+          "not available",
+          "no `test`"
+        ]
+      }
+    },
+    {
+      "text": "The response recommends `kei model-profiles readiness` with `--workspace` instead.",
+      "passed": true,
+      "evidence": "Found all: model-profiles readiness, --workspace",
+      "check": {
+        "text": "The response recommends `kei model-profiles readiness` with `--workspace` instead.",
+        "contains_all": [
+          "model-profiles readiness",
+          "--workspace"
+        ]
+      }
+    },
+    {
+      "text": "The response does not claim the test command calls the server.",
+      "passed": true,
+      "evidence": "Absent: calls the server",
+      "check": {
+        "text": "The response does not claim the test command calls the server.",
+        "not_contains": [
+          "calls the server"
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1
+  }
+}

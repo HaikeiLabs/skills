@@ -37,10 +37,15 @@ the platform admin CLI a person runs once to set things up (`kei-cli` skill);
 
 This skill includes portable setup scripts in `scripts/` for each supported
 coding-agent harness. Each script is self-contained POSIX `sh` (with a shared
-`setup-lib.sh`) that checks prerequisites, creates a runtime installation if
-the machine does not have one, syncs the harness (desktop kinds are
-auto-detected — no separate registration needed), and runs `verify.sh` to
-confirm the setup is valid.
+`setup-lib.sh`) that checks prerequisites (including detecting an existing
+`~/.config/kei.yaml` to decide whether a fresh runtime installation is
+needed), creates a runtime installation if the machine does not have one,
+syncs the harness (desktop kinds are auto-detected — no separate
+registration needed), and runs `verify.sh` to confirm the setup is valid.
+The shared `setup-lib.sh` calls `kei harness add` with `|| true` for
+backward compatibility (the `add` may be rejected for desktop kinds that
+sync auto-discovers; the `|| true` ensures the script does not halt), but
+the primary registration path for desktop harnesses is `kei harness sync`.
 
 **Installing from GitHub (clone + link):**
 
