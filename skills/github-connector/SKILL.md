@@ -9,6 +9,19 @@ Use this skill when an agent needs to interact with GitHub through its API or
 `gh` CLI. It covers the Lexicon (commands and endpoints), Pragmatics (how
 agents use them), and Semantics (data returned and entity relationships).
 
+## Key rules
+
+- The agent never holds, asks for, or prints a raw credential. Kei supplies a
+  `GITHUB_TOKEN` at run time via `kei-proxy connector invoke`. If the user is
+  not connected to GitHub, the only valid setup path is `kei connectors
+  create --provider github` (OAuth or PAT); repair with `kei connectors
+  reconnect <id>`.
+- Repository deletion is not available through the governed connector — it is
+  irreversible and requires org-owner scope beyond the connector token.
+- Resource types for Kei policy follow ADR-028 (each declares a parent type):
+  `repository`, `pull_request`, `issue`, `file`, `workflow`.
+- Prefer the `gh` CLI with explicit `-R OWNER/REPO` over the raw API.
+
 ## Install
 
 Agents load this skill automatically when the harness has the Haikei skills
@@ -17,17 +30,20 @@ plugin installed. See the repo README for per-harness setup.
 ## Connect and credentials
 
 Kei governs every connector call. The agent never holds, asks for, or prints a
-raw credential.
+raw credential — the only valid setup path is `kei connectors create
+--provider github`. Kei supplies a `GITHUB_TOKEN` at run time via
+`kei-proxy connector invoke`; the setup paths below are how the owner
+provisions that token.
 
 - **OAuth (GitHub App):** An owner runs `kei connectors create --provider github
   --workspace W`. This returns a connect URL they open in a browser to
   authorize the GitHub App. Check status with `kei connectors get <id>` and
   re-authorize with `kei connectors reconnect <id>`.
 - **Personal access token (shared secret):** The owner runs `kei connectors
-  create --provider github` (reads the token without echo) or passes
+  create --provider github` (reads the `GITHUB_TOKEN` without echo) or passes
   `--credential-ref <secret-manager-ref>` if the token already exists in the
   connected secret manager.
-- **At runtime:** The governed connector injects the credential via
+- **At runtime:** The governed connector injects the `GITHUB_TOKEN` via
   `kei-proxy connector invoke` (preferred) or through a `kei-proxy run`
   wrapper that sets `GH_TOKEN=kei://connectors/<id>/token` and masks the
   value in output. The `kei-proxy run` wrapper is pending
@@ -79,16 +95,21 @@ secret, or API key.
 
 ### Denied command surface
 
-These actions are not available through the governed connector:
+These actions are **not available** through the governed connector — they fall
+outside the connector's scope:
 
 | Operation | Reason |
 | --- | --- |
-| Repository deletion | Irreversible; requires org-owner scope beyond the connector token |
+| Repository deletion | Not available — irreversible; requires org-owner scope beyond the connector token |
 | Branch deletion | Managed through repository protection rules, not the connector |
 | Admin operations (add collaborator, modify org settings, manage webhooks) | Require admin scope outside the governed token |
 | Workflow dispatch on untrusted repos | Guarded by environment-specific policy |
 
 ## Pragmatics — how agents use this connector
+
+When asked for a token or how to authenticate, always state: the only valid
+setup path is `kei connectors create --provider github`; the agent never
+accepts or handles a raw token.
 
 ### Common use cases
 
@@ -147,10 +168,11 @@ organization
 └── team                    # slug
 ```
 
-### Resource types (for Kei policy)
+### Resource types (ADR-028, for Kei policy)
 
-Per [ADR-028](https://github.com/HaikeiLabs/kei/blob/main/docs/adr/028-policy-field-contract.md) §4, every connector
-declares its resource types:
+Per [ADR-028](https://github.com/HaikeiLabs/kei/blob/main/docs/adr/028-policy-field-contract.md) §4, GitHub declares five
+resource types for Kei policy (each declares its parent type): `repository`,
+`pull_request`, `issue`, `file`, `workflow`:
 
 | Resource type | Parent type | Canonical id example |
 | --- | --- | --- |

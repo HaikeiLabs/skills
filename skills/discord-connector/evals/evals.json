@@ -5,37 +5,69 @@
       "id": 1,
       "prompt": "How do I list recent messages in a Discord channel?",
       "expected_output": "Use `GET /channels/{channel.id}/messages` with query parameters `limit` (1\u2013100) and one of `before`, `after`, or `around` for cursor-based pagination. For example: `GET /channels/123456789012345678/messages?limit=50&before=987654321098765432`.",
-      "expectations": ["identifies the correct endpoint", "mentions limit and cursor parameters", "gives a concrete example"]
+      "expectations": ["identifies the correct endpoint", "mentions limit and cursor parameters", "gives a concrete example"],
+      "checks": [
+        {"text": "identifies the correct endpoint", "contains_all": ["/channels/{channel.id}/messages"]},
+        {"text": "mentions limit and cursor parameters", "contains_all": ["limit", "before"]},
+        {"text": "gives a concrete example", "regex": "GET (https?://\\S+)?/channels/(\\d+|\\{[^}]+\\}|<[^>]+>)/messages\\?limit=(\\d+|\\{[^}]+\\}|<[^>]+>)"}
+      ]
     },
     {
       "id": 2,
       "prompt": "How do I send a message to a Discord channel?",
       "expected_output": "Use `POST /channels/{channel.id}/messages` with a JSON body containing `{\"content\": \"...\"}`. This is a write operation and requires policy evaluation before execution.",
-      "expectations": ["identifies POST /channels/{id}/messages", "mentions JSON body with content field", "notes that write operations need policy evaluation"]
+      "expectations": ["identifies POST /channels/{id}/messages", "mentions JSON body with content field", "notes that write operations need policy evaluation"],
+      "checks": [
+        {"text": "identifies POST /channels/{id}/messages", "contains_all": ["POST", "/channels/{channel.id}/messages"]},
+        {"text": "mentions JSON body with content field", "contains_all": ["content"]},
+        {"text": "notes that write operations need policy evaluation", "contains_any": ["policy evaluation", "write operation", "policy"]}
+      ]
     },
     {
       "id": 3,
       "prompt": "Can I delete a Discord guild through the governed connector?",
       "expected_output": "No. Guild deletion is irreversible and requires owner-level Discord permissions beyond the connector scope. The governed connector does not expose deletion of guilds or channels.",
-      "expectations": ["correctly states deletion is not available", "explains scope limitation", "mentions guild and channel deletion"]
+      "expectations": ["correctly states deletion is not available", "explains scope limitation", "mentions guild and channel deletion"],
+      "checks": [
+        {"text": "correctly states deletion is not available", "contains_any": ["not available", "not possible", "cannot", "prohibit", "denied", "refuse", "outside the", "beyond the"]},
+        {"text": "explains scope limitation", "contains_any": ["scope", "permission", "irreversible", "owner-level", "beyond"]},
+        {"text": "mentions guild and channel deletion", "contains_any": ["channel", "denied", "not available", "prohibit", "refuse"]}
+      ]
     },
     {
       "id": 4,
       "prompt": "What resource types does Discord declare for Kei policy?",
       "expected_output": "Per ADR-028: guild (no parent), channel (parent: guild), thread (parent: channel), message (parent: channel), member (parent: guild), and role (parent: guild). Identifiers are Snowflake strings.",
-      "expectations": ["lists guild, channel, thread, message", "mentions member and/or role", "references ADR-028", "mentions Snowflake identifiers"]
+      "expectations": ["lists guild, channel, thread, message", "mentions member and/or role", "references ADR-028", "mentions Snowflake identifiers"],
+      "checks": [
+        {"text": "lists guild, channel, thread, message", "contains_all": ["guild", "channel", "thread", "message"]},
+        {"text": "mentions member and/or role", "contains_any": ["member", "role"]},
+        {"text": "references ADR-028", "contains_all": ["ADR-028"]},
+        {"text": "mentions Snowflake identifiers", "contains_all": ["Snowflake"]}
+      ]
     },
     {
       "id": 5,
       "prompt": "How does credential management work for the Discord connector?",
       "expected_output": "A workspace admin runs `kei connectors create --provider discord` which reads the bot token from stdin without echoing it. For rotation, use `kei connectors reconnect <connector-id>`. At runtime, the token is injected via kei-proxy connector invoke. The agent never sees the raw token.",
-      "expectations": ["mentions kei connectors create --provider discord", "states the token is read without echo", "mentions kei connectors reconnect for rotation", "confirms agent never stores or prints the token"]
+      "expectations": ["mentions kei connectors create --provider discord", "states the token is read without echo", "mentions kei connectors reconnect for rotation", "confirms agent never stores or prints the token"],
+      "checks": [
+        {"text": "mentions kei connectors create --provider discord", "contains_all": ["kei connectors create", "--provider discord"]},
+        {"text": "states the token is read without echo", "contains_any": ["without echo", "no echo", "stdin"]},
+        {"text": "mentions kei connectors reconnect for rotation", "contains_all": ["kei connectors reconnect"]},
+        {"text": "confirms agent never stores or prints the token", "contains_all": ["never", "token"]}
+      ]
     },
     {
       "id": 6,
       "prompt": "What Discord API version should I use and what authentication header does the connector need?",
       "expected_output": "Use `https://discord.com/api/v10` as the base URL. The governed connector injects the Authorization header (`Authorization: Bot <token>`) via kei-proxy connector invoke; the agent should never construct it manually or print the token value.",
-      "expectations": ["mentions v10 API version", "states the Authorization header format", "confirms agent should not construct or expose the token"]
+      "expectations": ["mentions v10 API version", "states the Authorization header format", "confirms agent should not construct or expose the token"],
+      "checks": [
+        {"text": "mentions v10 API version", "contains_all": ["v10"]},
+        {"text": "states the Authorization header format", "contains_all": ["Authorization", "Bot"]},
+        {"text": "confirms agent should not construct or expose the token", "contains_any": ["never", "do not construct", "don't construct", "should not", "not manually", "do not expose", "do not print", "not construct"]}
+      ]
     }
   ]
 }

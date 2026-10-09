@@ -1,0 +1,52 @@
+{
+  "schema": "haikei.eval-benchmark.v1",
+  "harness": "opencode",
+  "model_profile": "deepseek-v4-flash",
+  "model": "eval/deepseek-ai/DeepSeek-V4-Flash",
+  "created_at": "2026-10-09T15:39:56.862Z",
+  "git_sha": "b89105be5c517c84b1063e4fb5f966582cf1bd7d",
+  "repeats": 1,
+  "results": [
+    {
+      "suite": "github-connector",
+      "kind": "skill",
+      "passed": 5,
+      "failed": 1,
+      "errors": 0,
+      "total": 6,
+      "pass_rate": 0.8333333333333334,
+      "cases": [
+        {
+          "id": 1,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 2,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 3,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 4,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 5,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 6,
+          "passed": false,
+          "reason": "repeat 1: refuses to accept or ask for a raw token: Missing: kei connectors create, --provider github; mentions `kei connectors create`: Missing: kei connectors create; mentions `kei connectors reconnect` as a repair option: None found: kei connectors reconnect, kei connectors create, --provider github"
+        }
+      ]
+    }
+  ]
+}

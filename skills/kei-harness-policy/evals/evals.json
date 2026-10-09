@@ -133,17 +133,6 @@
         "mentions `kei harness sync` as the correct command",
         "clarifies that `kei harness add` is only for custom/SDK harnesses"
       ]
-    },
-    {
-      "id": 13,
-      "prompt": "I have Codex prefix_rule entries in my ~/.codex/rules files and want to import them into Kei policies. What import command should I use and how does Kei map the Codex rules? Also, where does `kei harness sync` write the rendered rules for Codex? Do not execute anything — just explain in text. If you don't know something, just say so.",
-      "expected_output": "Use `kei policies import --from codex --apply` (dry run by default; reads every .rules file under ~/.codex/rules/ unless --file is given). It parses each `prefix_rule(pattern=[...], decision=\"allow\")` line into a `shell:<prefix>` permit and each `decision=\"forbidden\"` line into a `shell:<prefix>` deny. Separately, `kei harness sync` renders the policy bundle into the Kei-owned `~/.codex/rules/kei.rules` file (written whole, even when empty) — it never edits your `default.rules`. Requires kei >v0.1.6.",
-      "expectations": [
-        "mentions `kei policies import --from codex`",
-        "explains Codex rules are `prefix_rule(pattern=[...], decision=...)` lines, with decision=\"allow\" mapping to a permit and decision=\"forbidden\" mapping to a deny",
-        "states that `kei harness sync` renders into the Kei-owned `~/.codex/rules/kei.rules` file and never edits `default.rules`",
-        "notes the kei >v0.1.6 requirement"
-      ]
     }
   ]
 }

@@ -6,8 +6,14 @@ Eval cases for the Grafana connector skill.
 
 ```bash
 node scripts/run-evals.mjs --skill grafana-connector --harness opencode \
-  --model ray/deepseek-ai/DeepSeek-V4-Flash \
-  --out evals-out/grafana-connector-deepseek-$(date +%F) --jobs 2
+  --model-profile deepseek-v4-flash --jobs 1 \
+  --out evals-out/grafana-connector-deepseek-$(date +%F)
+```
+
+```bash
+node scripts/run-evals.mjs --skill grafana-connector --harness opencode \
+  --model-profile qwen3.8-27b --jobs 1 \
+  --out evals-out/grafana-connector-qwen-$(date +%F)
 ```
 
 ## Results

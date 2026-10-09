@@ -134,18 +134,6 @@
         "mentions Codex on the same machine shares the same installation and does not need add either",
         "recommends `kei harness sync` for desktop harnesses"
       ]
-    },
-    {
-      "id": 14,
-      "prompt": "My runtime keeps having issues and I need to send a diagnostics report to Haikei support from the CLI. What commands are available and what data do they include? Do not execute anything — just explain in text. If you don't know something, just say so.",
-      "expected_output": "Use `kei feedback send --kind bug --description \"brief description\"` to send a report with runtime token hash, installation ID, kei/kei-proxy versions, OS/platform, and last 50 log lines. List prior reports with `kei feedback list --json`, export all as JSON lines with `kei feedback export --out ./export.json`, and redact a report with `kei feedback redact <id>`. Requires kei >= v0.1.20. The report never includes policy contents, credentials, or conversation data.",
-      "expectations": [
-        "mentions `kei feedback send` with --kind and --description flags",
-        "lists the data included (token hash, installation ID, versions, OS, last 50 log lines)",
-        "mentions `kei feedback list`, `kei feedback export`, and `kei feedback redact`",
-        "notes kei >= v0.1.20 requirement",
-        "states the report does not include policy contents, credentials, or conversation data"
-      ]
     }
   ]
 }

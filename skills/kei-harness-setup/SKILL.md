@@ -157,7 +157,7 @@ same-named skill without asking, and never copy `.git`.
 | --- | --- | --- |
 | Claude Code | `~/.claude/skills/` | `.claude/skills/` |
 | Codex | `~/.agents/skills/` (older: `~/.codex/skills/`) | `.agents/skills/` |
-| OpenCode | `~/.config/opencode/skills/` (or `$OPENCODE_CONFIG_DIR/skills/`; also resolves from `$XDG_CONFIG_HOME/opencode/` if set) | `.opencode/skills/` |
+| OpenCode | `~/.config/opencode/skills/` (or `$OPENCODE_CONFIG_DIR/skills/`) | `.opencode/skills/` |
 | Pi | `~/.pi/agent/skills/` or `~/.agents/skills/` | `.pi/skills/` or `.agents/skills/` |
 | Cursor | `~/.cursor/skills/` | — |
 
@@ -250,11 +250,6 @@ After sync, Kei can render the policy bundle into the harness's native config
 format (e.g. `~/.claude/settings.json` → `permissions.allow`). The first render
 happens on sync; subsequent policy changes re-render through the background
 bundle refresh in `kei-proxy serve`.
-
-> **Note for Codex:** after `kei harness sync`, Kei owns a separate file,
-> `~/.codex/rules/kei.rules`, which is rendered whole (even when empty) so a
-> policy removal clears the managed rules. Your `default.rules` is never
-> touched — do not edit `kei.rules` by hand.
 
 **Back up the existing native config before the first sync** — `kei harness
 sync` overwrites the harness's native config file for the matched kind.
@@ -707,29 +702,6 @@ issue a new bundle. A runtime running `kei-proxy serve` or
 default); otherwise run `kei-proxy policy sync`. `kei-proxy policy show`
 should then report an active bundle with a future `not_after`. Until [HAI-427](https://linear.app/haikeilabs/issue/HAI-427)
 ships, this recurs after every 12 hours without a policy edit.
-
-## Report a bug
-
-If a harness setup step fails or the harness behaves unexpectedly after setup,
-use the `kei feedback` command to send a diagnostics report to Haikei support:
-
-```sh
-# Upload harness logs and environment info
-kei feedback send --kind bug --description "brief description"
-
-# List previously submitted reports
-kei feedback list
-
-# Export all reports as JSON
-kei feedback export --out ./feedback-export.json
-```
-
-> **Version gate:** `kei feedback` requires kei >= v0.1.20. Run `kei --version`
-> to check.
-
-The report includes the runtime token hash, installation ID, kei and kei-proxy
-versions, OS/platform, and the last 50 lines of `kei-proxy` logs. It does not
-include policy contents, connector credentials, or conversation data.
 
 ## Validation commands
 

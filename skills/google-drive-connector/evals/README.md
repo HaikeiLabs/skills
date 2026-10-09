@@ -1,15 +1,19 @@
 # google-drive-connector evals
 
-Eval cases for the Google Drive connector skill. Covers API usage,
-governed-connector boundaries, and connector setup — including the optional
-`drive_id` field that scopes the connector to one Google shared drive.
+Eval cases for the Google Drive connector skill.
 
 ## Running
 
 ```bash
 node scripts/run-evals.mjs --skill google-drive-connector --harness opencode \
-  --model ray/deepseek-ai/DeepSeek-V4-Flash \
-  --out evals-out/google-drive-connector-deepseek-$(date +%F) --jobs 2
+  --model-profile deepseek-v4-flash --jobs 1 \
+  --out evals-out/google-drive-connector-deepseek-$(date +%F)
+```
+
+```bash
+node scripts/run-evals.mjs --skill google-drive-connector --harness opencode \
+  --model-profile qwen3.8-27b --jobs 1 \
+  --out evals-out/google-drive-connector-qwen-$(date +%F)
 ```
 
 ## Results

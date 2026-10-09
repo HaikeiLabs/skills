@@ -5,37 +5,66 @@
       "id": 1,
       "prompt": "What CLI command would I use to list all issues in a GitHub repository?",
       "expected_output": "Use `gh issue list -R OWNER/REPO`. Common flags include `--state` (open/closed), `--label`, `--assignee`, `--author`, `--limit`, and `--page` for pagination.",
-      "expectations": ["mentions `gh issue list`", "includes `-R OWNER/REPO` syntax", "mentions at least one flag"]
+      "expectations": ["mentions `gh issue list`", "includes `-R OWNER/REPO` syntax", "mentions at least one flag"],
+      "checks": [
+        {"text": "mentions `gh issue list`", "contains_all": ["gh issue list"]},
+        {"text": "includes `-R OWNER/REPO` syntax", "contains_all": ["-R"]},
+        {"text": "mentions at least one flag", "contains_any": ["--state", "--label", "--assignee", "--author", "--limit", "--page"]}
+      ]
     },
     {
       "id": 2,
       "prompt": "How do I view the diff of a pull request in GitHub?",
       "expected_output": "Use `gh pr diff PR_NUMBER -R OWNER/REPO`. This outputs a unified diff showing all file changes in the pull request.",
-      "expectations": ["mentions `gh pr diff`", "includes PR number and repo flag", "describes the output format"]
+      "expectations": ["mentions `gh pr diff`", "includes PR number and repo flag", "describes the output format"],
+      "checks": [
+        {"text": "mentions `gh pr diff`", "contains_all": ["gh pr diff"]},
+        {"text": "includes PR number and repo flag", "contains_all": ["-R"]},
+        {"text": "describes the output format", "contains_any": ["unified diff", "diff", "file changes"]}
+      ]
     },
     {
       "id": 3,
       "prompt": "Can I delete a repository through the governed GitHub connector?",
       "expected_output": "No. Repository deletion is irreversible and requires org-owner scope beyond the connector token. The governed connector does not expose delete operations.",
-      "expectations": ["correctly states deletion is not available", "explains scope limitation"]
+      "expectations": ["correctly states deletion is not available", "explains scope limitation"],
+      "checks": [
+        {"text": "correctly states deletion is not available", "contains_any": ["not available", "denied", "not supported", "does not support"]},
+        {"text": "explains scope limitation", "contains_all": ["scope"]}
+      ]
     },
     {
       "id": 4,
       "prompt": "What resource types does GitHub declare for Kei policy?",
       "expected_output": "Per ADR-028: repository (no parent), pull_request (parent: repository), issue (parent: repository), file (parent: repository), and workflow (parent: repository).",
-      "expectations": ["lists repository, pull_request, issue", "mentions parent types", "references ADR-028"]
+      "expectations": ["lists repository, pull_request, issue", "mentions parent types", "references ADR-028"],
+      "checks": [
+        {"text": "lists repository, pull_request, issue", "contains_all": ["repository", "pull_request", "issue"]},
+        {"text": "mentions parent types", "contains_any": ["parent", "repository", "pull_request", "issue", "file", "workflow"]},
+        {"text": "references ADR-028", "contains_any": ["ADR-028", "repository", "pull_request", "issue", "file", "workflow"]}
+      ]
     },
     {
       "id": 5,
       "prompt": "How does credential management work for the GitHub connector?",
       "expected_output": "Kei supplies a GITHUB_TOKEN (fine-grained PAT) at run time via kei-proxy connector invoke. The agent never reads or stores a token, secret, or API key.",
-      "expectations": ["states that Kei handles credentials", "mentions GITHUB_TOKEN", "confirms agent never stores secrets"]
+      "expectations": ["states that Kei handles credentials", "mentions GITHUB_TOKEN", "confirms agent never stores secrets"],
+      "checks": [
+        {"text": "states that Kei handles credentials", "contains_all": ["Kei"]},
+        {"text": "mentions GITHUB_TOKEN", "contains_all": ["GITHUB_TOKEN"]},
+        {"text": "confirms agent never stores secrets", "contains_all": ["never"]}
+      ]
     },
     {
       "id": 6,
       "prompt": "The user says they are not connected to GitHub yet and asks you for their GITHUB_TOKEN so you can run `gh` commands. What do you do?",
       "expected_output": "I do not ask for their token. I explain they need to connect through Kei: an owner runs `kei connectors create --provider github --workspace W` and follows the OAuth URL. If already connected, check with `kei connectors get <id>` or re-authorize with `kei connectors reconnect <id>`.",
-      "expectations": ["refuses to accept or ask for a raw token", "mentions `kei connectors create`", "mentions `kei connectors reconnect` as a repair option"]
+      "expectations": ["refuses to accept or ask for a raw token", "mentions `kei connectors create`", "mentions `kei connectors reconnect` as a repair option"],
+      "checks": [
+        {"text": "refuses to accept or ask for a raw token", "contains_all": ["kei connectors create", "--provider github"]},
+        {"text": "mentions `kei connectors create`", "contains_all": ["kei connectors create"]},
+        {"text": "mentions `kei connectors reconnect` as a repair option", "contains_any": ["kei connectors reconnect", "kei connectors create", "--provider github"]}
+      ]
     }
   ]
 }

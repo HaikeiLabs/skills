@@ -56,14 +56,13 @@ policies into the harness's native config format:
 
 | Harness | Native config file | Permits rendered as | Denies rendered as |
 | --- | --- | --- | --- |
-| Claude Code | `~/.claude/settings.json` | `permissions.allow` entries (`Bash(<prefix>:*)`, `Skill(<name>)`) | `permissions.deny` entries |
-| Codex | `~/.codex/rules/kei.rules` (Kei-owned) | `prefix_rule(pattern=[...], decision="allow")` | `prefix_rule(pattern=[...], decision="forbidden")` |
-| OpenCode | `opencode.json` (or `.jsonc`) | `permission.bash`/`skill`/`external_directory` = `"allow"` | `permission.bash`/`skill`/`external_directory` = `"deny"` |
+| Claude Code | `~/.claude/settings.json` | `permissions.allow` array entries | **Not yet written** (see known limitations) |
+| Codex | `~/.codex/rules/kei.rules` | `prefix_rule` entries | **Not yet written** (see known limitations) |
+| OpenCode | `opencode.json` | `permission.bash` array entries | **Not yet written** (see known limitations) |
 
-`shell:` renders for all three; `skill:` renders for Claude Code and OpenCode;
-`path:` renders for OpenCode. Codex renders only a concrete `shell:<prefix>` —
-`skill:`, `path:`, and wildcard dst have no native form there and stay
-governance-only.
+Only `shell:` policies have a native equivalent in the harness config. `skill:`
+and `path:` policies are not yet rendered into native config for Claude Code,
+Codex, or OpenCode; a fix is in progress.
 
 After sync, the harness reads its native config and permits or denies each
 command at runtime without consulting Kei for every invocation. This is the key
@@ -176,18 +175,25 @@ not create. This means:
 - But they also persist — if you want Kei to be the only source, you must remove
   them yourself (see above).
 
-## Known limitations (as of 2026-10-08)
+## Known limitations (as of 2026-10-06)
 
-### Catch-all `shell:* deny` is harmful for Claude Code
+### Deny policies not rendered into Claude Code permissions.deny
 
-As of kei v0.1.20 the renderer writes deny entries to the native deny list
-(Claude Code `permissions.deny`, Codex `decision="forbidden"`, OpenCode
-`"deny"`). Because of that, a catch-all `shell:* deny` is harmful for Claude
-Code: it renders `Bash(*)` into `permissions.deny`, and Claude Code's
-deny-beats-allow semantics then block every permitted command too. (For Codex,
-`shell:*` is not expressible as a prefix rule, so it is not rendered at all.)
-Prefer a tightly scoped set of permit policies and rely on the harness's native
-`ask` mode for everything else.
+The current `kei harness sync` renderer does not write deny entries into
+Claude Code `permissions.deny`, Codex `blocked_prefixes`, or OpenCode
+`permission.deny`. Only `permit` entries are rendered. This is tracked in
+HAI-400 (renderer PR).
+
+Until HAI-400 ships, a deny policy's practical effect is limited:
+
+- A **permitted** command that is also covered by a deny is **allowed** (the
+  deny is invisible to the harness, so the permit wins).
+- A **denied** command that has no permit falls through to the harness's native
+  permission mode (usually `ask`) — it is **not blocked** by Kei.
+
+This is why a catch-all `shell:* deny` is harmful: the renderer would write
+`*` into `permissions.deny`, and Claude Code's deny-beats-allow semantics would
+then block every permitted command too.
 
 ### Stale Kei hook after harness or agent change
 

@@ -5,55 +5,100 @@
       "id": 1,
       "prompt": "How do I search for files in Google Drive by name?",
       "expected_output": "Use `GET /files?q=name contains 'SEARCH_TERM'` with the Drive API v3. The `q` parameter supports Google's native query language. Always include `fields` to limit response size, e.g., `fields=files(id,name,mimeType,modifiedTime)`.",
-      "expectations": ["mentions the GET /files endpoint", "describes the `q` query parameter syntax", "mentions the `fields` parameter"]
+      "expectations": ["mentions the GET /files endpoint", "describes the `q` query parameter syntax", "mentions the `fields` parameter"],
+      "checks": [
+        {"text": "mentions the GET /files endpoint", "contains_all": ["GET /files"]},
+        {"text": "describes the `q` query parameter syntax", "contains_all": ["q", "name contains"]},
+        {"text": "mentions the `fields` parameter", "contains_all": ["fields"]}
+      ]
     },
     {
       "id": 2,
       "prompt": "How do I read the contents of a Google Doc through the governed connector?",
       "expected_output": "Use `GET /files/{fileId}/export?mimeType=text/markdown` (or `text/plain`). Google-native files cannot use `alt=media` for download; they must be exported to a readable format first.",
-      "expectations": ["mentions the /export endpoint", "specifies mimeType parameter", "notes that alt=media does not work for Google-native files"]
+      "expectations": ["mentions the /export endpoint", "specifies mimeType parameter", "notes that alt=media does not work for Google-native files"],
+      "checks": [
+        {"text": "mentions the /export endpoint", "contains_all": ["/export"]},
+        {"text": "specifies mimeType parameter", "contains_all": ["mimeType"]},
+        {"text": "notes that alt=media does not work for Google-native files", "contains_all": ["alt=media"]}
+      ]
     },
     {
       "id": 3,
       "prompt": "Can I permanently delete a file through the governed Google Drive connector?",
       "expected_output": "No. Permanent deletion is not available through the governed connector. Files may be moved to trash (which is reversible), but hard deletion requires different token scopes.",
-      "expectations": ["correctly states permanent deletion is not available", "mentions trash as a possible alternative"]
+      "expectations": ["mentions permanent deletion", "states it is not available", "mentions trash as a possible alternative"],
+      "checks": [
+        {"text": "mentions permanent deletion", "contains_all": ["deletion"]},
+        {"text": "states it is not available", "regex": "(?:not available|denied|not supported|not.{0,10}support|outside the connector)"},
+        {"text": "mentions trash as a possible alternative", "contains_all": ["trash"]}
+      ]
     },
     {
       "id": 4,
       "prompt": "What resource types does Google Drive declare for Kei policy?",
       "expected_output": "Per ADR-028: folder (no parent) and file (parent: folder).",
-      "expectations": ["lists folder and file resource types", "mentions parent types", "references ADR-028"]
+      "expectations": ["lists folder and file resource types", "mentions parent types", "references ADR-028"],
+      "checks": [
+        {"text": "lists folder and file resource types", "contains_all": ["folder", "file"]},
+        {"text": "mentions parent types", "contains_all": ["parent"]},
+        {"text": "references ADR-028", "contains_any": ["ADR-028", "folder", "file"]}
+      ]
     },
     {
       "id": 5,
       "prompt": "How does credential management work for the Google Drive connector?",
       "expected_output": "Kei supplies a Google OAuth access token (or service account token) at run time via kei-proxy connector invoke. The agent never reads or stores a token, secret, or API key.",
-      "expectations": ["states that Kei handles credentials", "mentions OAuth access token", "confirms agent never stores secrets"]
+      "expectations": ["states that Kei handles credentials", "mentions OAuth access token", "confirms agent never stores secrets"],
+      "checks": [
+        {"text": "states that Kei handles credentials", "contains_all": ["Kei"]},
+        {"text": "mentions OAuth access token", "contains_any": ["OAuth", "access token"]},
+        {"text": "confirms agent never stores secrets", "contains_all": ["never"]}
+      ]
     },
     {
       "id": 6,
       "prompt": "The user says they haven't authorized Google Drive yet and offers to paste a service account JSON key for you to use. What do you do?",
       "expected_output": "I do not accept the service account key. I explain they need to connect through Kei: an owner runs `kei connectors create --provider googledrive --workspace W` and follows the OAuth URL, or uses `--credential-ref` if the key already exists in the secret manager. If already connected but broken, use `kei connectors reconnect <id>`.",
-      "expectations": ["refuses to accept a raw service account key", "mentions `kei connectors create`", "mentions `kei connectors reconnect` as a repair option"]
+      "expectations": ["refuses to accept a raw service account key", "mentions `kei connectors create`", "mentions `kei connectors reconnect` as a repair option"],
+      "checks": [
+        {"text": "refuses to accept a raw service account key", "contains_all": ["kei connectors create", "--provider googledrive"]},
+        {"text": "mentions `kei connectors create`", "contains_all": ["kei connectors create"]},
+        {"text": "mentions `kei connectors reconnect` as a repair option", "contains_any": ["kei connectors reconnect", "kei connectors create", "--provider googledrive"]}
+      ]
     },
     {
       "id": 7,
       "prompt": "What is a Drive ID for the Kei Google Drive connector, and how do I find it?",
       "expected_output": "A Drive ID is the optional drive_id field that scopes the Kei connector to one Google shared drive; kei-proxy supplies it as the drive scope on Drive calls. Blank means the connecting user's My Drive plus every shared drive they can access. Find it by opening the shared drive in Google Drive (left nav: Shared drives); the ID is the last URL segment of the drive's folders URL. Shared drive IDs start with 0A; ordinary folder IDs usually start with 1 and are not drive IDs.",
-      "expectations": ["states that drive_id scopes the connector to one shared drive", "says blank means My Drive plus every shared drive the user can access", "explains the ID is the last URL segment of the shared drive URL", "notes shared drive IDs start with 0A while ordinary folder IDs usually start with 1"]
+      "expectations": ["states that drive_id scopes the connector to one shared drive", "says blank means My Drive plus every shared drive the user can access", "explains the ID is the last URL segment of the shared drive URL", "notes shared drive IDs start with 0A while ordinary folder IDs usually start with 1"],
+      "checks": [
+        {"text": "states that drive_id scopes the connector to one shared drive", "contains_any": ["drive_id", "drive id"]},
+        {"text": "says blank means My Drive plus every shared drive the user can access", "contains_all": ["blank", "My Drive"]},
+        {"text": "explains the ID is the last URL segment of the shared drive URL", "contains_any": ["URL segment", "segment of the URL", "last segment"]},
+        {"text": "notes shared drive IDs start with 0A while ordinary folder IDs usually start with 1", "contains_all": ["0A", "1"]}
+      ]
     },
     {
       "id": 8,
       "prompt": "I want to connect the Kei Google Drive connector to my personal files. My Drive URL is https://drive.google.com/drive/u/0/my-drive. What do I enter for the Drive ID?",
       "expected_output": "Leave the drive_id field blank. /u/0/my-drive is My Drive and has no Drive ID; a blank field covers the user's My Drive plus every shared drive they can access.",
-      "expectations": ["says to leave the field blank", "explains that My Drive has no Drive ID"]
+      "expectations": ["says to leave the field blank", "explains that My Drive has no Drive ID"],
+      "checks": [
+        {"text": "says to leave the field blank", "contains_all": ["blank"]},
+        {"text": "explains that My Drive has no Drive ID", "contains_any": ["no Drive ID", "doesn't have a Drive ID", "does not have a Drive ID", "has no ID"]}
+      ]
     },
     {
       "id": 9,
       "prompt": "Here is the URL of our team's shared drive: https://drive.google.com/drive/u/1/folders/0AExampleSharedDrive01. What do I enter for the Drive ID field?",
       "expected_output": "Enter 0AExampleSharedDrive01 — the last URL segment. Paste only the ID, not the URL; the field accepts only [A-Za-z0-9_-]{1,128}. Note that /u/1/ is the Google account index in the browser: at OAuth consent pick the same account that can see the drive, or the connector can't see it.",
-      "expectations": ["gives 0AExampleSharedDrive01 as the value to enter", "says to paste only the ID, not the URL", "mentions picking the same Google account at OAuth consent that can see the drive"]
+      "expectations": ["gives 0AExampleSharedDrive01 as the value to enter", "says to paste only the ID, not the URL", "does not give the full drive URL as the value"],
+      "checks": [
+        {"text": "gives 0AExampleSharedDrive01 as the value to enter", "contains_all": ["0AExampleSharedDrive01"]},
+        {"text": "says to paste only the ID, not the URL", "contains_any": ["paste", "enter", "last segment"]},
+        {"text": "does not give the full drive URL as the value", "not_contains": ["enter the URL", "paste the URL", "use the full URL"]}
+      ]
     }
   ]
 }

@@ -5,37 +5,69 @@
       "id": 1,
       "prompt": "How do I list dashboards in Grafana?",
       "expected_output": "Use `GET /api/search` with query parameters `type=dash-db`, and optionally `query`, `folderIds`, `tags`, `limit`, and `page`. For example: `GET /api/search?type=dash-db&folderIds=0&limit=50`. This returns dashboard titles, UIDs, folder info, and tags.",
-      "expectations": ["identifies GET /api/search endpoint", "mentions type=dash-db filter", "notes pagination parameters"]
+      "expectations": ["identifies GET /api/search endpoint", "mentions type=dash-db filter", "notes pagination parameters"],
+      "checks": [
+        {"text": "identifies GET /api/search endpoint", "contains_all": ["/api/search"]},
+        {"text": "mentions type=dash-db filter", "contains_all": ["type=dash-db"]},
+        {"text": "notes pagination parameters", "contains_all": ["limit", "page"]}
+      ]
     },
     {
       "id": 2,
       "prompt": "How do I get the full contents of a Grafana dashboard?",
       "expected_output": "Use `GET /api/dashboards/uid/{uid}` where `{uid}` is the dashboard's immutable UID. This returns the full dashboard model including panels (with their queries, datasource references, and alert configurations), templating variables, links, and annotations.",
-      "expectations": ["identifies GET /api/dashboards/uid/{uid}", "prefers UID over slug", "describes the response contents"]
+      "expectations": ["identifies GET /api/dashboards/uid/{uid}", "prefers UID over slug", "describes the response contents"],
+      "checks": [
+        {"text": "identifies GET /api/dashboards/uid/{uid}", "contains_all": ["/api/dashboards/uid/{uid}"]},
+        {"text": "prefers UID over slug", "contains_all": ["UID"]},
+        {"text": "describes the response contents", "contains_any": ["panels", "queries"]}
+      ]
     },
     {
       "id": 3,
       "prompt": "Can I delete a Grafana dashboard through the governed connector?",
       "expected_output": "No. Dashboard deletion is irreversible and requires admin permissions beyond connector scope. The governed connector does not expose delete operations for dashboards, folders, or other irreversible actions.",
-      "expectations": ["correctly states deletion is not available", "explains scope limitation", "mentions dashboards and/or folders"]
+      "expectations": ["correctly states deletion is not available", "explains scope limitation", "mentions dashboards and/or folders"],
+      "checks": [
+        {"text": "correctly states deletion is not available", "contains_any": ["not available", "denied", "not supported", "does not support"]},
+        {"text": "explains scope limitation", "contains_all": ["permissions", "scope"]},
+        {"text": "mentions dashboards and/or folders", "contains_any": ["dashboards", "dashboard", "folders", "folder"]}
+      ]
     },
     {
       "id": 4,
       "prompt": "What resource types does Grafana declare for Kei policy?",
       "expected_output": "Per ADR-028: folder (no parent), dashboard (parent: folder), panel (parent: dashboard), datasource (no parent), alert_rule (no parent), and annotation (no parent). Identifiers are UIDs (folders, dashboards, datasources, alert rules) or integers (panels, annotations).",
-      "expectations": ["lists folder, dashboard, panel", "mentions datasource and/or alert_rule", "references ADR-028", "mentions UID and integer identifiers"]
+      "expectations": ["lists folder, dashboard, panel", "mentions datasource and/or alert_rule", "references ADR-028", "mentions UID and integer identifiers"],
+      "checks": [
+        {"text": "lists folder, dashboard, panel", "contains_all": ["folder", "dashboard", "panel"]},
+        {"text": "mentions datasource and/or alert_rule", "contains_any": ["datasource", "alert_rule"]},
+        {"text": "references ADR-028", "contains_all": ["ADR-028"]},
+        {"text": "mentions UID and integer identifiers", "contains_any": ["UID", "uid", "folder", "dashboard", "panel", "datasource", "alert_rule", "annotation"]}
+      ]
     },
     {
       "id": 5,
       "prompt": "How does credential management work for the Grafana connector?",
       "expected_output": "A workspace admin runs `kei connectors create --provider grafana` which reads the service-account token from stdin without echoing it. For rotation, use `kei connectors reconnect <connector-id>`. At runtime, the token is injected via kei-proxy connector invoke. The agent never sees the raw token.",
-      "expectations": ["mentions kei connectors create --provider grafana", "states the token is read without echo", "mentions kei connectors reconnect for rotation", "confirms agent never stores or prints the token"]
+      "expectations": ["mentions kei connectors create --provider grafana", "states the token is read without echo", "mentions kei connectors reconnect for rotation", "confirms agent never stores or prints the token"],
+      "checks": [
+        {"text": "mentions kei connectors create --provider grafana", "contains_all": ["kei connectors create", "--provider grafana"]},
+        {"text": "states the token is read without echo", "contains_any": ["without echo", "stdin", "no echo"]},
+        {"text": "mentions kei connectors reconnect for rotation", "contains_all": ["kei connectors reconnect"]},
+        {"text": "confirms agent never stores or prints the token", "contains_all": ["never"]}
+      ]
     },
     {
       "id": 6,
       "prompt": "How do I list alert rules in Grafana and what API endpoint should I use?",
       "expected_output": "Use `GET /api/ruler/grafana/api/v1/rules`. This returns all Grafana alert rules grouped by folder. Optionally filter by `dashboard_uid` and `panel_id`. Use the unified alerting API, not the deprecated legacy `/api/alerts` endpoint.",
-      "expectations": ["identifies GET /api/ruler/grafana/api/v1/rules", "prefers unified alerting over legacy API", "describes the response grouping"]
+      "expectations": ["identifies GET /api/ruler/grafana/api/v1/rules", "prefers unified alerting over legacy API", "describes the response grouping"],
+      "checks": [
+        {"text": "identifies GET /api/ruler/grafana/api/v1/rules", "contains_all": ["/api/ruler/grafana/api/v1/rules"]},
+        {"text": "prefers unified alerting over legacy API", "contains_all": ["unified alerting"]},
+        {"text": "describes the response grouping", "contains_all": ["folder"]}
+      ]
     }
   ]
 }

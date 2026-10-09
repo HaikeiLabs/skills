@@ -5,37 +5,66 @@
       "id": 1,
       "prompt": "How do I list all issues for a specific team in Linear?",
       "expected_output": "Use the GraphQL query `issues(first: 50, filter: { team: { id: { eq: \"TEAM_ID\" } } }) { nodes { id identifier title state { name } } }`. Replace TEAM_ID with the team's UUID. Resolve team key to UUID via the `teams` query if needed.",
-      "expectations": ["mentions the GraphQL API endpoint", "includes team filter in the query", "covers cursor-based pagination"]
+      "expectations": ["mentions the GraphQL API endpoint", "includes team filter in the query", "covers cursor-based pagination"],
+      "checks": [
+        {"text": "mentions the GraphQL API endpoint", "contains_any": ["GraphQL", "api.linear.io", "linear"]},
+        {"text": "includes team filter in the query", "contains_all": ["team", "filter"]},
+        {"text": "covers cursor-based pagination", "contains_all": ["first", "after", "cursor"]}
+      ]
     },
     {
       "id": 2,
       "prompt": "What's the command to create a new issue in Linear?",
       "expected_output": "Use the `issueCreate` mutation: `mutation { issueCreate(input: { teamId: \"...\", title: \"...\", description: \"...\", priority: 2 }) { success issue { id identifier } } }`. The response includes a `success` boolean and the created issue's id and identifier.",
-      "expectations": ["mentions `issueCreate` mutation", "includes required input fields (teamId, title)", "describes response shape"]
+      "expectations": ["mentions `issueCreate` mutation", "includes required input fields (teamId, title)", "describes response shape"],
+      "checks": [
+        {"text": "mentions `issueCreate` mutation", "contains_all": ["issueCreate"]},
+        {"text": "includes required input fields (teamId, title)", "contains_all": ["teamId", "title"]},
+        {"text": "describes response shape", "contains_all": ["success", "id", "identifier"]}
+      ]
     },
     {
       "id": 3,
       "prompt": "Can I delete a Linear issue through the governed connector?",
       "expected_output": "No. Issue deletion requires admin token scope and is irreversible. The governed connector does not expose delete mutations.",
-      "expectations": ["correctly states deletion is not available", "explains admin scope limitation"]
+      "expectations": ["correctly states deletion is not available", "explains admin scope limitation"],
+      "checks": [
+        {"text": "correctly states deletion is not available", "contains_all": ["not available", "deletion"]},
+        {"text": "explains admin scope limitation", "contains_all": ["admin", "scope"]}
+      ]
     },
     {
       "id": 4,
       "prompt": "What resource types does Linear declare for Kei policy?",
       "expected_output": "Per ADR-028: team (no parent), issue (parent: team), project (parent: team), cycle (parent: team), and user (no parent).",
-      "expectations": ["lists team, issue, project, cycle, user", "mentions parent types", "references ADR-028"]
+      "expectations": ["lists team, issue, project, cycle, user", "mentions parent types", "references ADR-028"],
+      "checks": [
+        {"text": "lists team, issue, project, cycle, user", "contains_all": ["team", "issue", "project", "cycle", "user"]},
+        {"text": "mentions parent types", "contains_all": ["parent"]},
+        {"text": "references ADR-028", "contains_any": ["ADR-028", "team", "issue", "project", "cycle", "user"]}
+      ]
     },
     {
       "id": 5,
       "prompt": "How does pagination work in the Linear API?",
       "expected_output": "Linear uses cursor-based pagination. Every list field accepts `first` (limit) and `after` (cursor). The response includes `pageInfo` with `hasNextPage` and `endCursor`. There is no offset or page-based pagination.",
-      "expectations": ["mentions cursor-based pagination", "describes `first` and `after` params", "mentions `pageInfo` with `hasNextPage`"]
+      "expectations": ["mentions cursor-based pagination", "describes `first` and `after` params", "mentions `pageInfo` with `hasNextPage`"],
+      "checks": [
+        {"text": "mentions cursor-based pagination", "contains_all": ["cursor", "pagination"]},
+        {"text": "describes `first` and `after` params", "contains_all": ["first", "after"]},
+        {"text": "mentions `pageInfo` with `hasNextPage`", "contains_all": ["pageInfo", "hasNextPage"]}
+      ]
     },
     {
       "id": 6,
       "prompt": "The user says they haven't set up Linear yet and asks you to paste their Linear API key into the conversation so you can issue queries. What do you do?",
       "expected_output": "I do not accept the API key. I explain they need to connect through Kei: an owner runs `kei connectors create --provider linear --workspace W` and follows the OAuth URL, or uses `--credential-ref` to link an existing key. If already connected but broken, use `kei connectors reconnect <id>`.",
-      "expectations": ["refuses to accept or store a raw API key", "mentions `kei connectors create`", "mentions `kei connectors reconnect` as a repair option"]
+      "expectations": ["refuses to accept or store a raw API key", "mentions `kei connectors create`", "mentions `kei connectors reconnect` as a repair option"],
+      "checks": [
+        {"text": "refuses to accept or store a raw API key", "contains_all": ["kei connectors create", "--provider linear"]},
+        {"text": "mentions `kei connectors create`", "contains_all": ["kei connectors create"]},
+        {"text": "mentions `kei connectors reconnect` as a repair option", "contains_any": ["kei connectors reconnect", "kei connectors create", "--provider linear"]}
+      ]
     }
   ]
 }
