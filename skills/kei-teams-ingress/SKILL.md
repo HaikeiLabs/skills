@@ -11,7 +11,12 @@ Two codebases speak Teams here; keep them separate:
   authenticates Bot Framework activities and runs the SSO/OBO tool lanes. Zero-tool by design.
 - **The chat harness** (`HaikeiLabs/Kei-Chat-Harness`) — a Python bot (service `pedro_service`)
   whose `teams_main.py` uses the `microsoft-teams-apps` SDK to speak Bot Framework activities
-  to Teams users.
+  to Teams users. It listens on port 3001 at ingress path `/teams/webhook`, and it does not do
+  OBO or adaptive cards.
+
+Two assistant facts answer most questions. Outbound replies use `claimTurn(identity)`, the
+one-shot outbound capability, and go only to a route built by `buildReplyRoute`. An SSO deny is
+always the same closed `412` with a fixed `failureDetail`, so the body never says why it was denied.
 
 The assistant skill `kei-assistant-security` owns the ingress gates; this skill owns the
 Teams/Bot Framework mechanics on both sides.

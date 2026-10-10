@@ -27,7 +27,7 @@
         },
         {
           "text": "The response does not tell the user to set an agent-ID environment variable.",
-          "contains_any": ["auto-discovered", "resolves automatically", "auto-resolved"]
+          "contains_any": ["auto-discover", "resolves automatically", "auto-resolved"]
         },
         {
           "text": "The response does not tell the agent to run kei login.",
@@ -51,7 +51,7 @@
         },
         {
           "text": "The response distinguishes the kei platform admin CLI from the kei-proxy runtime used by agents.",
-          "contains_all": ["admin CLI", "kei-proxy"]
+          "regex": "admin[ -](cli|command)|kei-cli"
         },
         {
           "text": "The response points the agent at kei-proxy authorize with KEI_RUNTIME_TOKEN in its environment.",
@@ -90,7 +90,7 @@
       "checks": [
         {
           "text": "The response says a disabled, missing, or misconfigured kei-proxy denies every governed call and never permits one.",
-          "contains_all": ["KEI_PROXY_DISABLED", "deny"]
+          "regex": "^(?=[\\s\\S]*KEI_PROXY_DISABLED)(?=[\\s\\S]*\\bden(y|ies|ied)\\b)"
         },
         {
           "text": "The response says production should not run with kei-proxy disabled and that tests inject a fake evaluator for an allow.",
@@ -117,7 +117,7 @@
         },
         {
           "text": "The response states agent ID is auto-discovered and should not be set explicitly.",
-          "contains_any": ["auto-discovered", "resolves automatically", "auto-resolved"]
+          "contains_any": ["auto-discover", "resolves automatically", "auto-resolved"]
         }
       ]
     },

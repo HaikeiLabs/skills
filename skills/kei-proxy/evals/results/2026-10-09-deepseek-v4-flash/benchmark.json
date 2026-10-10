@@ -1,0 +1,52 @@
+{
+  "schema": "haikei.eval-benchmark.v1",
+  "harness": "opencode",
+  "model_profile": "deepseek-v4-flash",
+  "model": "eval/deepseek-ai/DeepSeek-V4-Flash",
+  "created_at": "2026-10-09T23:52:19.430Z",
+  "git_sha": "b616e11d7fa160e511742113a0d26cb9479efbf7",
+  "repeats": 3,
+  "results": [
+    {
+      "suite": "kei-proxy",
+      "kind": "skill",
+      "passed": 5,
+      "failed": 1,
+      "errors": 0,
+      "total": 6,
+      "pass_rate": 0.8333333333333334,
+      "cases": [
+        {
+          "id": 1,
+          "passed": false,
+          "reason": "repeat 2: The response does not tell the user to set an agent-ID environment variable.: None found: auto-discover, resolves automatically, auto-resolved; repeat 3: The response does not tell the user to set an agent-ID environment variable.: None found: auto-discover, resolves automatically, auto-resolved"
+        },
+        {
+          "id": 2,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 3,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 4,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 5,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 6,
+          "passed": true,
+          "reason": ""
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "schema": "haikei.eval-benchmark.v1",
+  "harness": "opencode",
+  "model_profile": "deepseek-v4-flash",
+  "model": "eval/deepseek-ai/DeepSeek-V4-Flash",
+  "created_at": "2026-10-09T22:52:10.659Z",
+  "git_sha": "b616e11d7fa160e511742113a0d26cb9479efbf7",
+  "repeats": 3,
+  "results": [
+    {
+      "suite": "kei-teams-ingress",
+      "kind": "skill",
+      "passed": 4,
+      "failed": 2,
+      "errors": 0,
+      "total": 6,
+      "pass_rate": 0.6666666666666666,
+      "cases": [
+        {
+          "id": 1,
+          "passed": false,
+          "reason": "repeat 3: The response confirms that SSO denials use a fixed 412 body that does not distinguish between reasons.: Missing: failureDetail"
+        },
+        {
+          "id": 2,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 3,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 4,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 5,
+          "passed": false,
+          "reason": "repeat 1: The response describes claimTurn as the outbound capability mechanism.: Missing: claimTurn; repeat 3: The response describes claimTurn as the outbound capability mechanism.: Missing: claimTurn"
+        },
+        {
+          "id": 6,
+          "passed": true,
+          "reason": ""
+        }
+      ]
+    }
+  ]
+}
