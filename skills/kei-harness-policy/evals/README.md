@@ -9,6 +9,10 @@ node scripts/run-evals.mjs --skill kei-harness-policy --harness opencode \
   --model ray/deepseek-ai/DeepSeek-V4-Flash --jobs 2
 ```
 
+## Cases
+
+- Eval 13 covers where Claude Code native decisions are recorded (the `decision` event) and the Claude Code 2.1.119 minimum. Not run yet; add its results here after the next benchmark.
+
 ## Results
 
 | Config | Pass rate | Errors |

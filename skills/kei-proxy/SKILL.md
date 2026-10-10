@@ -1,6 +1,6 @@
 ---
 name: kei-proxy
-description: "The `kei-proxy` runtime executable (kei-connector-runtime) — what an agent harness calls at run time to get a governed decision: `kei-proxy authorize` before a tool call (one-shot CLI), `kei-proxy serve` to run as a long-lived daemon exposing HTTP over a Unix socket (readiness, model routes; governed authorize route tracked by HAI-272), `connector invoke` for governed data, `runtime bootstrap|heartbeat`, `collector` for audit shipping, `model`, and `credential sync`. Load whenever code or config in a harness, adapter, container, or agent calls kei-proxy, sets KEI_RUNTIME_* or KEI_PROXY_* variables, reads its exit codes or JSON, or someone asks how an agent's tool call gets allowed or denied by Kei. Not for platform administration (logins, installations, credentials) — that is the `kei` CLI (kei-cli skill)."
+description: "The `kei-proxy` runtime executable (kei-connector-runtime) — what an agent harness calls at run time to get a governed decision: `kei-proxy authorize` before a tool call (one-shot CLI), `kei-proxy serve` to run as a long-lived daemon exposing HTTP over a Unix socket (readiness, model routes; governed authorize route tracked by HAI-272), `connector invoke` for governed data, `runtime bootstrap|heartbeat`, `collector` for audit shipping, `hook` for report-only harness audit events, `model`, and `credential sync`. Load whenever code or config in a harness, adapter, container, or agent calls kei-proxy, sets KEI_RUNTIME_* or KEI_PROXY_* variables, reads its exit codes or JSON, or someone asks how an agent's tool call gets allowed or denied by Kei. Not for platform administration (logins, installations, credentials) — that is the `kei` CLI (kei-cli skill)."
 ---
 
 # kei-proxy (runtime for agent interaction)
@@ -120,6 +120,7 @@ all runtime operations.
 | Verify installation + first heartbeat | `kei-proxy runtime bootstrap` |
 | Keep liveness current | `kei-proxy runtime heartbeat --interval 1m` |
 | Ship local audit JSONL | `kei-proxy collector [--poll --poll-interval 1m]` |
+| Record a harness tool event for audit (report-only; installed by `kei harness sync`, not run by hand) | `kei-proxy hook claude` (event JSON on stdin from Claude Code) |
 | Sync credential-store metadata | `kei-proxy credential sync` |
 | Model profile / invocation | `kei-proxy model profile …`, `kei-proxy model  # uses runtime identity (no key flag needed)` (request JSON on stdin) |
 | Show bundle state | `kei-proxy policy show` (reads persisted state; never contacts control plane) |
@@ -235,6 +236,34 @@ For governed data connectors. Per ADR-027, per-call approval is removed;
 approvals now grant workspace access, not per-call permission. The
 `--approval-id` flag is no longer available. Pass `--idempotency-key`
 for retried writes.
+
+## hook: report-only audit of desktop harness calls
+
+Desktop harnesses (Claude Code, Codex, OpenCode) decide shell commands
+natively from the config `kei harness sync` renders. Sync also installs
+`kei-proxy hook <harness>` as a hook in the harness. The hook only reports:
+it always exits 0, never blocks, and never allows or denies. Do not wire it
+into an agent yourself, and never make it answer a permission prompt.
+
+For Claude Code the native decision is **observed, not computed**:
+`PreToolUse` runs before Claude Code's permission check, so the hook records
+what Claude Code then did instead of re-evaluating its rules.
+
+| Event phase | `native_decision` |
+| --- | --- |
+| `pre` | `unknown` (the pairing anchor, not the decision) |
+| `decision` (one per call) | `allow` (ran without asking), `deny` (neither asked nor ran), or `ask` (Claude Code asked) |
+| `post` | `executed`, with an optional `failed: true` when the command failed (the error text is never recorded) |
+| `permission_reply` (asked calls only) | `approved` if it then ran, `denied` if the session ended without running it |
+
+Audit readers take the decision from the `decision` event, not from `pre`.
+This requires **Claude Code 2.1.119 or newer**, where sync renders seven hook
+events (`PreToolUse`, `PermissionRequest`, `PermissionDenied`, `PostToolUse`,
+`PostToolUseFailure`, `Stop`, `SessionEnd`). On older or undetectable
+versions sync keeps the previous two (`PreToolUse`, `PostToolUse`) and
+prints a warning; those calls are recorded with `native_decision: unknown`
+and no `decision` event. Upgrade Claude Code and re-run `kei harness sync`.
+Rendering is covered in the `kei-harness-policy` skill.
 
 ## Runtime modes: one-shot CLI vs daemon
 
