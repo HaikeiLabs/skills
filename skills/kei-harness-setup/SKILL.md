@@ -1,6 +1,6 @@
 ---
 name: kei-harness-setup
-description: "Connect a coding-agent harness — Claude Code, Codex, OpenCode, Pi, or Cursor — to Kei governance. Install the Haikei skills into the right skills directory, pair the harness with a runtime installation and kei-proxy, pass agent identity to each governed call, and prove that unbound calls are denied. Desktop harnesses use `kei harness sync` (auto-detected, no registration needed); custom/SDK harnesses use `kei harness add`. Use whenever someone wants to \"set up Kei in Claude Code/Codex/OpenCode/Pi/Cursor\", install or update the Haikei skills, onboard a harness or adapter, or asks which harnesses Kei supports. Also covers the product harnesses Assistant, PDE, and Discord at the routing level."
+description: "Connect Claude Code, Codex, OpenCode, or Cursor to Kei governance. Install the Haikei skills, pair the harness with a runtime installation and kei-proxy, pass identity on governed calls, and prove unbound calls are denied. Use for these harnesses, custom/SDK harnesses, and product harness routing. For Pi package installation and its local-socket adapter, use `kei-pi-setup`."
 ---
 
 # Set up a harness with Kei
@@ -30,14 +30,17 @@ that teach the agent this contract, then wiring the harness to a runtime.
 This is a workflow skill. Keep the two Kei executables straight: **`kei`** is
 the platform admin CLI a person runs once to set things up (`kei-cli` skill);
 **`kei-proxy`** is the runtime the harness calls on every governed tool call
-(`kei-proxy` skill). The agent itself only ever talks to `kei-proxy`. Load
-**`kei-runtime-setup`** for the runtime half of the setup.
+(`kei-proxy` skill). Load **`kei-runtime-setup`** for the runtime half of the
+setup. Pi has a separate extension and tokenless local-socket path; use
+**`kei-pi-setup`** for Pi instead of applying this skill's desktop sync or
+harness-token instructions to it.
 
 ### Per-harness setup scripts
 
-This skill includes portable setup scripts in `scripts/` for each supported
-coding-agent harness. Each script is self-contained POSIX `sh` (with a shared
-`setup-lib.sh`) that checks prerequisites (including detecting an existing
+This skill includes portable setup scripts in `scripts/` for Claude Code,
+Codex, and OpenCode. Pi uses a separate package-based adapter; follow
+`kei-pi-setup` instead of these scripts. Each script is self-contained POSIX
+`sh` (with a shared `setup-lib.sh`) that checks prerequisites (including detecting an existing
 `~/.config/kei.yaml` to decide whether a fresh runtime installation is
 needed), creates a runtime installation if the machine does not have one,
 syncs the harness (desktop kinds are auto-detected — no separate
@@ -102,7 +105,8 @@ credential` into `kei setup`.
 
 | Harness | Kind | Notes |
 | --- | --- | --- |
-| Claude Code, Codex, OpenCode, Pi | Kei-enabled local coding harness | This skill's main path |
+| Claude Code, Codex, OpenCode | Kei-enabled local coding harness | This skill's main path; desktop sync auto-discovers these kinds |
+| Pi | Kei-enabled local coding harness with a separate adapter | Use `kei-pi-setup`; installing the Pi extension is not `kei harness sync` |
 | Cursor | Kei-enabled local coding harness (skills only) | The skills repo ships a Cursor plugin; the console does not list a Cursor runtime adapter yet, so confirm before promising governed calls |
 | Assistant, PDE | Kei product harness | Adapter is built into the product; register its tools against an installation |
 | Discord | Haikei-internal product harness | Not a customer onboarding path |
@@ -202,10 +206,12 @@ kei runtime bootstrap     # runs the bundled kei-proxy to verify + heartbeat
 kei bot bind --installation ID
 ```
 
-At run time the harness process needs `KEI_RUNTIME_TOKEN` and
-`KEI_RUNTIME_CONTROL_PLANE_URL` in its environment so the `kei-proxy` it
-spawns for each call inherits them. Load them from the secret manager; do not
-put the token in a harness config file in a repo.
+For harnesses that spawn `kei-proxy` per call, the process needs
+`KEI_RUNTIME_TOKEN` and `KEI_RUNTIME_CONTROL_PLANE_URL` in its environment;
+load these from the secret manager and never put the token in a repository
+config. **Pi is the exception:** its `kei-lime-pi` extension uses the local
+owner-only Unix socket, and the daemon retains the runtime token. Do not pass
+the token to Pi; follow `kei-pi-setup`.
 
 ## 3. Sync the harness (auto-discovery) or register a custom harness
 
@@ -216,9 +222,10 @@ put the token in a harness config file in a repo.
 ### When to use `kei harness add`
 
 `kei harness add` is **only for custom/SDK harnesses** (`--kind custom`).
-Desktop coding harnesses (Claude Code, Codex, OpenCode, Pi) are **sessions**
+Desktop coding harnesses (Claude Code, Codex, OpenCode) are **sessions**
 of one runtime installation per machine. They are auto-discovered by
-`kei harness sync` — you do NOT need to run `kei harness add` for them.
+`kei harness sync` — you do NOT need to run `kei harness add` for them. Pi uses
+a separate adapter; see `kei-pi-setup`.
 
 | Use case | Action |
 |---|---|
