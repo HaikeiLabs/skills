@@ -419,6 +419,13 @@ Key points to keep in mind:
 - **The Kei hook is audit-only** — it reports the tool name, phase, native
   decision, and an HMAC args digest (args are encrypted to customer keys,
   never logged raw); it always exits 0 and never blocks or decides.
+- **Claude Code decisions are observed, not computed.** With Claude Code
+  2.1.119 or newer, the hook records a separate `decision` event per call
+  (`allow`, `deny` or `ask`), `post` events carry an optional `failed` flag,
+  and an asked call gets a `permission_reply` (`approved` or `denied`). `pre`
+  stays `native_decision: unknown`. On older Claude Code, sync renders only
+  `PreToolUse`/`PostToolUse` and prints a warning; no decision events are
+  recorded. See the permissions model, section 4.
 - **Unmatched commands fall through** to the harness's own entries and permission
   mode (usually `ask`). The command can still be allowed if your own settings
   permit it. Custom harnesses and connectors deny by default (fail-closed).
@@ -501,4 +508,5 @@ command. Scope denies to the prefix you mean.
   up the existing file before the first sync.
 - **The hook does not decide.** Even when the report-only hook is active, the
   harness makes the allow/deny decision from its native config. Kei only
-  observes.
+  observes. For Claude Code it records the outcome Claude Code reports (ran,
+  asked, or neither); it never answers a permission prompt.

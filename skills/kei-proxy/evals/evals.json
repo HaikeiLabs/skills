@@ -139,6 +139,40 @@
           "contains_all": ["--idempotency-key"]
         }
       ]
+    },
+    {
+      "id": 7,
+      "prompt": "A Claude Code session ran one command that failed and asked about another that never ran (headless). What does kei-proxy hook claude record for each, and should my hook script answer the permission prompt? Do not execute anything — just explain in text.",
+      "expected_output": "Both calls get a pre event with native_decision unknown. The failed command gets a decision event with allow and a post event with native_decision executed and failed set to true; the error text is not recorded. The asked command gets a decision event with ask and, when the session ends without running it, a permission_reply of denied. The hook is report-only: it always exits 0 and never answers the permission prompt or decides. This needs Claude Code 2.1.119 or newer.",
+      "expectations": [
+        "the failed command's post event carries a failed flag",
+        "the asked call gets a decision of ask and a denied permission_reply",
+        "the hook never answers the prompt or decides",
+        "mentions Claude Code 2.1.119 or newer"
+      ],
+      "checks": [
+        {
+          "text": "the failed command's post event carries a failed flag",
+          "regex": "failed[^.]{0,20}(?:true|flag|field)"
+        },
+        {
+          "text": "the asked call gets a decision of ask and a denied permission_reply",
+          "contains_all": [
+            "permission_reply",
+            "denied"
+          ]
+        },
+        {
+          "text": "the hook never answers the prompt or decides",
+          "regex": "(?:never|does ?n[o']t|not|no)\\b[^.]{0,40}(?:answer|decide|approve)"
+        },
+        {
+          "text": "mentions Claude Code 2.1.119 or newer",
+          "contains_all": [
+            "2.1.119"
+          ]
+        }
+      ]
     }
   ]
 }

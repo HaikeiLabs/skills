@@ -536,6 +536,46 @@
           ]
         }
       ]
+    },
+    {
+      "id": 13,
+      "prompt": "Our audit log shows native_decision unknown on every Claude Code pre event, so we can't tell which commands Claude Code allowed, denied or asked about. Where do we read the native decision, and what Claude Code version do we need? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "pre is only the pairing anchor and stays native_decision unknown, because Claude Code's PreToolUse runs before its permission check. The hook observes what Claude Code did and writes a separate decision event per call with allow, deny or ask; post events carry an optional failed flag, and asked calls get a permission_reply of approved or denied. Read the decision event, not pre. The hook still never decides. This needs Claude Code 2.1.119 or newer; on older versions kei harness sync renders only PreToolUse and PostToolUse and prints a warning, so upgrade Claude Code and re-run kei harness sync.",
+      "expectations": [
+        "says the native decision is recorded in a separate decision event, not on pre",
+        "names the allow, deny and ask outcomes",
+        "states Claude Code 2.1.119 or newer is required",
+        "says older Claude Code keeps only PreToolUse/PostToolUse and sync warns",
+        "says the hook never decides or blocks"
+      ],
+      "checks": [
+        {
+          "text": "says the native decision is recorded in a separate decision event, not on pre",
+          "regex": "decision\\W{0,3}(?:event|phase)"
+        },
+        {
+          "text": "names the allow, deny and ask outcomes",
+          "contains_all": [
+            "allow",
+            "deny",
+            "ask"
+          ]
+        },
+        {
+          "text": "states Claude Code 2.1.119 or newer is required",
+          "contains_all": [
+            "2.1.119"
+          ]
+        },
+        {
+          "text": "says older Claude Code keeps only PreToolUse/PostToolUse and sync warns",
+          "regex": "(?=[\\s\\S]*PostToolUse)(?=[\\s\\S]*warn)"
+        },
+        {
+          "text": "says the hook never decides or blocks",
+          "regex": "(?:never|does ?n[o']t|not) (?:decide|block|allow or deny|answer)"
+        }
+      ]
     }
   ]
 }
