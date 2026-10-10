@@ -1,0 +1,43 @@
+{
+  "eval_id": 11,
+  "eval_name": "kei-harness-setup-eval-11",
+  "skill": "kei-harness-setup",
+  "prompt": "Kei denied a tool call in my harness that I think it should have allowed, and I want to report it to the Kei team with the session attached. I use Claude Code on this machine and my teammates use Codex and OpenCode. What exact command does each of us run, and what happens to secrets in the transcript? Do not execute anything \u2014 just explain in text.",
+  "assertions": [
+    "The response gives the kei feedback command with --export for each harness: claude, codex and opencode.",
+    "The response includes the required --description flag in the command.",
+    "The response explains that token-shaped secrets in the transcript are redacted before anything is sent.",
+    "The response says the user sees a preview and must confirm before the report is sent."
+  ],
+  "checks": [
+    {
+      "text": "The response gives the kei feedback command with --export for each harness: claude, codex and opencode.",
+      "contains_all": [
+        "kei feedback",
+        "--export claude",
+        "--export codex",
+        "--export opencode"
+      ]
+    },
+    {
+      "text": "The response includes the required --description flag in the command.",
+      "contains_all": [
+        "--description"
+      ]
+    },
+    {
+      "text": "The response explains that token-shaped secrets in the transcript are redacted before anything is sent.",
+      "regex": "redact"
+    },
+    {
+      "text": "The response says the user sees a preview and must confirm before the report is sent.",
+      "regex": "preview[\\s\\S]*(confirm|\\[y/N\\])|(confirm|\\[y/N\\])[\\s\\S]*preview"
+    }
+  ],
+  "expectations": [
+    "The response gives the kei feedback command with --export for each harness: claude, codex and opencode.",
+    "The response includes the required --description flag in the command.",
+    "The response explains that token-shaped secrets in the transcript are redacted before anything is sent.",
+    "The response says the user sees a preview and must confirm before the report is sent."
+  ]
+}

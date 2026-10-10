@@ -5,12 +5,35 @@ Eval cases for the kei CLI skill.
 ## Running
 
 ```bash
-node scripts/run-evals.mjs --skill kei-cli --harness opencode \
-  --model ray/deepseek-ai/DeepSeek-V4-Flash \
+EVAL_DEEPSEEK_BASE_URL=<openai-compatible endpoint> \
+  node scripts/run-evals.mjs --skill kei-cli \
+  --model-profile deepseek-v4-flash \
   --out evals-out/kei-cli-deepseek-$(date +%F) --jobs 2
 ```
 
+The runner gives opencode an empty config home, so a provider from your own
+opencode config (`--model <provider>/...`) is not visible to it. Use
+`--model-profile`, which resolves the model and endpoint from
+`evals/model-profiles.yaml`.
+
 ## Results
+
+### 2026-10-09 (added bug-report eval 14)
+
+Eval 14 asks how to send the Kei team a bug report with a specific Codex
+session attached, and what happens to API keys in the transcript.
+
+| Config | Pass rate | Notes |
+| --- | --- | --- |
+| with_skill (eval 14) | 100% (5/5) | `kei feedback --description ... --export codex --session ID`, redaction, preview and `Send? [y/N]` |
+| without_skill (eval 14) | 0% (0/5) | baseline does not know `kei feedback` |
+
+Eval 14 was run in isolation (DeepSeek-V4-Flash, one repeat). The preview
+check was widened after the run to accept the `[y/N]` prompt as well as the
+word "confirm", and the saved responses were regraded; the scores above are
+from the regrade.
+
+See `results/2026-10-09-opencode-deepseek-v4-flash/` for the benchmark.
 
 ### 2026-10-05
 

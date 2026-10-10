@@ -1,6 +1,6 @@
 ---
 name: kei-cli
-description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade (including `--proxy-only` and `--uninstall`), `kei login` device-flow auth, runtime installations (`kei bot init|credential|agents|status|bind|delete`), harness command policies (`kei policies`), data connectors (`kei connectors`), model profiles and the credential store (`kei model-profiles`, `kei credential-store`), harness management (`kei harness` — `add` for custom/SDK only, `sync` for all harnesses including auto-discovered desktop), and local runtime config (`kei setup`, `kei runtime bootstrap`). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something from the CLI in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org, agent, group, or user commands — say so rather than inventing one. (`kei workspaces list`, `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and `kei credential-store` are the resource-oriented exceptions; use v0.1.13 or later.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
+description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade (including `--proxy-only` and `--uninstall`), `kei login` device-flow auth, runtime installations (`kei bot init|credential|agents|status|bind|delete`), harness command policies (`kei policies`), data connectors (`kei connectors`), model profiles and the credential store (`kei model-profiles`, `kei credential-store`), harness management (`kei harness` — `add` for custom/SDK only, `sync` for all harnesses including auto-discovered desktop), local runtime config (`kei setup`, `kei runtime bootstrap`), and bug reports from a harness (`kei feedback`, which redacts the transcript and asks before sending). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something from the CLI in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org, agent, group, or user commands — say so rather than inventing one. (`kei workspaces list`, `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and `kei credential-store` are the resource-oriented exceptions; use v0.1.13 or later.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
 ---
 
 # kei CLI
@@ -288,6 +288,7 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 | Write local runtime config | `kei setup [--config PATH] [--control-plane-url URL]` | no (runtime token) |
 | Verify + heartbeat via local kei-proxy | `kei runtime bootstrap [--config PATH] [--proxy-path PATH]` | no (runtime token) |
 | Upgrade via Go | `kei upgrade [--version VERSION]` | no |
+| Report a bug (redacted harness transcript) | `kei feedback --description TEXT --export claude\|codex\|opencode [--session ID]` | yes |
 
 All `bot` commands accept `--api-url URL` (override the default control-plane
 URL). `bot bind` works but is not listed in `kei help`.
@@ -382,6 +383,42 @@ kei runtime bootstrap          # runs the configured kei-proxy to verify + send 
 `--proxy-path`, `--proxy-registry`, `--model-endpoint`, `--model`,
 `--runtime-token` (lands in shell history — prefer the prompt), and
 `--skip-verify`.
+
+## Report a bug from your harness
+
+`kei feedback` sends a bug report to Kei from the terminal, optionally with the
+harness session transcript attached. It needs `kei` 0.1.20 or later for
+`--export` and a `kei login` session. Run it from the project directory the
+harness session ran in: without `--session`, `--export` picks the most recent
+session for the current working directory. `--description` is required (1 to
+4000 characters).
+
+```sh
+kei feedback --description "What happened and what you expected" --export claude     # Claude Code
+kei feedback --description "What happened and what you expected" --export codex      # Codex
+kei feedback --description "What happened and what you expected" --export opencode   # OpenCode (runs opencode export)
+kei feedback --description "..." --export claude --session <session-id>               # a specific session
+kei feedback --description "..." --session /path/to/transcript.jsonl                  # any harness: transcript file(s)
+kei feedback --description "..." --file app.log --screenshot error.png               # other evidence
+```
+
+- With `--export`, `--session` is one session ID; without it, `--session` is a
+  repeatable transcript file path. At most 8 evidence files, 4 MiB in total.
+- **Transcripts are redacted before anything is sent.** Token-shaped strings
+  (Anthropic and OpenAI keys, GitHub and Slack tokens, AWS keys, JWTs,
+  `Bearer` tokens, private-key blocks, Kei runtime tokens, and
+  `password=`/`token=`/`secret=` style values) become `[REDACTED:<kind>]`.
+  `--file` and `--screenshot` are sent as they are.
+- **The user previews and confirms.** The CLI prints the description, each
+  file with its size and the redaction counts per kind (never the content),
+  then asks `Send? [y/N]`. Anything other than `y`/`yes` prints
+  `Feedback not submitted.` and sends nothing. `--yes` skips the prompt; an
+  agent must not add it. Give the user the command to run instead.
+- A Kei runtime token in a transcript triggers a leak warning: rotate it with
+  `kei bot credential --rotate` (see `kei-credential-rotation`).
+
+The **Report a bug** button in the console header sends to the same place.
+Per-harness detail is in `kei-harness-setup`.
 
 ## When resource commands arrive (AIP/CRUD)
 

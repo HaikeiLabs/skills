@@ -1,0 +1,53 @@
+{
+  "expectations": [
+    {
+      "text": "The response gives the kei feedback command with --export for each harness: claude, codex and opencode.",
+      "passed": true,
+      "evidence": "Found all: kei feedback, --export claude, --export codex, --export opencode",
+      "check": {
+        "text": "The response gives the kei feedback command with --export for each harness: claude, codex and opencode.",
+        "contains_all": [
+          "kei feedback",
+          "--export claude",
+          "--export codex",
+          "--export opencode"
+        ]
+      }
+    },
+    {
+      "text": "The response includes the required --description flag in the command.",
+      "passed": true,
+      "evidence": "Found all: --description",
+      "check": {
+        "text": "The response includes the required --description flag in the command.",
+        "contains_all": [
+          "--description"
+        ]
+      }
+    },
+    {
+      "text": "The response explains that token-shaped secrets in the transcript are redacted before anything is sent.",
+      "passed": true,
+      "evidence": "Matched: redact",
+      "check": {
+        "text": "The response explains that token-shaped secrets in the transcript are redacted before anything is sent.",
+        "regex": "redact"
+      }
+    },
+    {
+      "text": "The response says the user sees a preview and must confirm before the report is sent.",
+      "passed": true,
+      "evidence": "Matched: preview (description, file sizes, redaction counts — never content) and prompts `Send? [y/N]",
+      "check": {
+        "text": "The response says the user sees a preview and must confirm before the report is sent.",
+        "regex": "preview[\\s\\S]*(confirm|\\[y/N\\])|(confirm|\\[y/N\\])[\\s\\S]*preview"
+      }
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1
+  }
+}

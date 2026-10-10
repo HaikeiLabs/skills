@@ -18,6 +18,25 @@ case passes only when every repeat passes. `--model-profile` requires
 
 ## Results
 
+### 2026-10-09 (added bug-report eval 11)
+
+Eval 11 asks what command Claude Code, Codex and OpenCode users each run to
+report a bug with the session attached, and what happens to secrets in the
+transcript.
+
+| Config | Pass rate | Notes |
+| --- | --- | --- |
+| with_skill (eval 11) | 100% (4/4) | `kei feedback --description ... --export claude\|codex\|opencode`, redaction, preview and `Send? [y/N]` |
+| without_skill (eval 11) | 0% (0/4) | baseline run timed out at 1800 s with no answer |
+
+Eval 11 was run in isolation (DeepSeek-V4-Flash, one repeat). The first
+grading failed the preview check because the answer described the
+`Send? [y/N]` prompt without the word "confirm". The check now accepts
+either, and the saved responses were regraded; the scores above are from the
+regrade.
+
+See `results/2026-10-09-opencode-deepseek-v4-flash/` for the benchmark.
+
 ### 2026-10-08 (added first-use eval 10)
 
 Eval 10 asks, after a completed setup, what the last step is to prove it works
