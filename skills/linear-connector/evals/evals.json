@@ -29,7 +29,7 @@
       "expected_output": "No. Issue deletion requires admin token scope and is irreversible. The governed connector does not expose delete mutations.",
       "expectations": ["correctly states deletion is not available", "explains admin scope limitation"],
       "checks": [
-        {"text": "correctly states deletion is not available", "contains_all": ["not available", "deletion"]},
+        {"text": "correctly states deletion is not available", "regex": "(not available|n[o']t expose|not exposed)[\\s\\S]*delet|delet[\\s\\S]*(not available|n[o']t expose|not exposed)"},
         {"text": "explains admin scope limitation", "contains_all": ["admin", "scope"]}
       ]
     },
@@ -58,12 +58,36 @@
     {
       "id": 6,
       "prompt": "The user says they haven't set up Linear yet and asks you to paste their Linear API key into the conversation so you can issue queries. What do you do?",
-      "expected_output": "I do not accept the API key. I explain they need to connect through Kei: an owner runs `kei connectors create --provider linear --workspace W` and follows the OAuth URL, or uses `--credential-ref` to link an existing key. If already connected but broken, use `kei connectors reconnect <id>`.",
+      "expected_output": "I do not accept the API key. I explain they need to connect through Kei: an owner runs `kei connectors create --provider linear --workspace W` (OAuth only, per_user or shared); each user then signs in to Linear, or an admin approves the shared account. If already connected but broken, use `kei connectors reconnect <id>`.",
       "expectations": ["refuses to accept or store a raw API key", "mentions `kei connectors create`", "mentions `kei connectors reconnect` as a repair option"],
       "checks": [
         {"text": "refuses to accept or store a raw API key", "contains_all": ["kei connectors create", "--provider linear"]},
         {"text": "mentions `kei connectors create`", "contains_all": ["kei connectors create"]},
         {"text": "mentions `kei connectors reconnect` as a repair option", "contains_any": ["kei connectors reconnect", "kei connectors create", "--provider linear"]}
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "I'm the Kei org admin. I want my team to use Linear through Kei the way the Linear MCP works: everyone signs in to Linear in the browser and there's no API key to copy. Walk me through creating the Linear connector and tell me how I get its connector ID.",
+      "expected_output": "Run `kei connectors create --workspace W --provider linear --account-model per_user --name linear`; it prints `Connector instance ID: <id>`. Each user then connects their own Linear account from their harness (OAuth consent in the browser); `kei connectors reconnect` does not apply to per_user. Check with `kei connectors get <id> --workspace W` (State: connected) or find the ID later with `kei connectors list --workspace W`. Note: Linear sign-in is not available yet because the hosted Linear OAuth app is not configured.",
+      "expectations": ["gives the kei connectors create command with --provider linear", "chooses the per_user account model", "says how to read the connector ID (create output, connectors get, or connectors list)", "describes OAuth sign-in rather than an API key"],
+      "checks": [
+        {"text": "gives the kei connectors create command with --provider linear", "contains_all": ["kei connectors create", "--provider linear"]},
+        {"text": "chooses the per_user account model", "contains_any": ["per_user"]},
+        {"text": "says how to read the connector ID (create output, connectors get, or connectors list)", "contains_any": ["kei connectors get", "kei connectors list", "Connector instance ID"]},
+        {"text": "describes OAuth sign-in rather than an API key", "contains_any": ["oauth"]}
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "We want Pedro on Discord to file bugs into Linear. I already have a Linear personal API key. How do I create the Linear connector with --credential-ref, and where does the connector ID go so KEI_CONNECTOR_LINEAR_ID is set?",
+      "expected_output": "The API-key path is not available yet: Linear setup is OAuth only and `kei connectors create --provider linear` rejects `--credential-ref`. For a bot, create a shared OAuth connector (`--account-model shared`), then `kei connectors reconnect <id> --workspace W` and approve the consent URL. The connector ID is not a secret: set the Helm value `keiProxy.runtime.linearConnectorID` in helm/pedro-discord/values-<env>.yaml, which sets KEI_CONNECTOR_LINEAR_ID. Note: `file_bug` needs `issue.create`, which the runtime does not run yet (capability_not_supported); only reads run.",
+      "expectations": ["says the API key / --credential-ref path is not available for Linear", "recommends the shared account model for the bot", "names the Helm value linearConnectorID as where the ID goes", "flags that issue.create writes do not run yet"],
+      "checks": [
+        {"text": "says the API key / --credential-ref path is not available for Linear", "contains_any": ["not available", "rejects", "rejected", "oauth only", "oauth-only", "only oauth", "only supports oauth"]},
+        {"text": "recommends the shared account model for the bot", "contains_any": ["shared"]},
+        {"text": "names the Helm value linearConnectorID as where the ID goes", "contains_any": ["linearConnectorID"]},
+        {"text": "flags that issue.create writes do not run yet", "contains_any": ["capability_not_supported", "only reads", "reads only", "read-only", "only read capabilities", "not available yet", "aren't available yet"]}
       ]
     }
   ]

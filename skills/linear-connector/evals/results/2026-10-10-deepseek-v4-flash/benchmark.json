@@ -1,0 +1,62 @@
+{
+  "schema": "haikei.eval-benchmark.v1",
+  "harness": "opencode",
+  "model_profile": "deepseek-v4-flash",
+  "model": "eval/deepseek-ai/DeepSeek-V4-Flash",
+  "created_at": "2026-10-10T09:46:05.919Z",
+  "git_sha": "ba2aa336bec7f20ab8c98245019b5da0bb8d038d",
+  "repeats": 2,
+  "results": [
+    {
+      "suite": "linear-connector",
+      "kind": "skill",
+      "passed": 8,
+      "failed": 0,
+      "errors": 0,
+      "total": 8,
+      "pass_rate": 1,
+      "cases": [
+        {
+          "id": 1,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 2,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 3,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 4,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 5,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 6,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 7,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 8,
+          "passed": true,
+          "reason": ""
+        }
+      ]
+    }
+  ]
+}
