@@ -3,116 +3,20 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "A Teams user is sending messages to my bot but the bot returns 412 for every message with no detail. The Teams channel says \"Something went wrong\" to the user. How do I trace what's happening?",
-      "expected_output": "Trace the activity through connector -> verifier -> ssoExchange. SSO denials use a fixed 412 body that does not distinguish between missing token, expired token, or wrong tenant — all produce the same failureDetail.",
+      "prompt": "A Teams bot receives an invoke activity with a signin/tokenExchange. Trace the flow from the raw POST through to the downstream call and explain what is returned to Teams on success and on denial.",
+      "expected_output": "Traces through connector verification, activity parsing, tenant gate, the closed SSO exchange branch, and the fixed 412 response shape on denial, without adding detail to distinguish denial reasons.",
       "expectations": [
         "The response traces the activity through the full ingress pipeline before SSO exchange.",
         "The response confirms that SSO denials use a fixed 412 body that does not distinguish between reasons."
-      ],
-      "checks": [
-        {
-          "text": "The response traces the activity through the full ingress pipeline before SSO exchange.",
-          "contains_any": ["ssoExchange", "Connector JWT", "botframework-connector", "connector auth"]
-        },
-        {
-          "text": "The response confirms that SSO denials use a fixed 412 body that does not distinguish between reasons.",
-          "contains_all": ["412", "failureDetail"]
-        }
       ]
     },
     {
       "id": 2,
-      "prompt": "My Teams bot sees all messages but responds to messages that don't mention it. Which ingress gate controls this and how does the harness adapter differ from the assistant's routing?",
-      "expected_output": "The mention gate controls whether a message is dispatched to SSO. The assistant uses buildReplyRoute for structured routing, while the chat harness adapter uses a simpler broadcast approach with no routing state.",
+      "prompt": "The chat harness Teams adapter receives a message in a channel, but the bot's reply goes to the wrong thread. What should I check and how does the assistant handle channel addressing?",
+      "expected_output": "Describes the mention gate verification against recipient.id, buildReplyRoute as the only valid reply source, and the harness adapter's different approach to Teams routing.",
       "expectations": [
         "The response identifies the mention gate and buildReplyRoute as the correct reply mechanism in the assistant.",
         "The response distinguishes between the assistant's routing and the harness adapter's simpler approach."
-      ],
-      "checks": [
-        {
-          "text": "The response identifies the mention gate and buildReplyRoute as the correct reply mechanism in the assistant.",
-          "contains_all": ["buildReplyRoute", "mention gate"]
-        },
-        {
-          "text": "The response distinguishes between the assistant's routing and the harness adapter's simpler approach.",
-          "contains_any": ["teams_main.py", "teams_adapter", "microsoft-teams-apps", "harness adapter"]
-        }
-      ]
-    },
-    {
-      "id": 3,
-      "prompt": "A custom Teams app is sending activities to my bot but they get rejected before reaching any handler. What activity types does the assistant accept and which ones reach the SSO branch?",
-      "expected_output": "The assistant handles message (personal or channel/groupChat with mention), invoke signin/tokenExchange, and invoke signin/verifyState. Unknown or unsupported activity types hit the closed dispatch and are never dispatched.",
-      "expectations": [
-        "The response lists the handled activity types and their conditions.",
-        "The response confirms that unknown activity types are never dispatched."
-      ],
-      "checks": [
-        {
-          "text": "The response lists the handled activity types and their conditions.",
-          "contains_all": ["signin/tokenExchange", "signin/verifyState"]
-        },
-        {
-          "text": "The response confirms that unknown activity types are never dispatched.",
-          "contains_any": ["closed dispatch", "rejected before routing", "never dispatched", "rejected at dispatch", "rejected at the gate"]
-        }
-      ]
-    },
-    {
-      "id": 4,
-      "prompt": "I need to verify that inbound Bot Framework requests are legitimate. How does the assistant validate JWT tokens from Teams?",
-      "expected_output": "Uses the official botframework-connector library for JWT verification. Validates the token against BOT_APP_ID as the expected audience and the configured tenant. Rejects tokens that don't match.",
-      "expectations": [
-        "The response uses the official botframework-connector library for JWT verification.",
-        "The response mentions BOT_APP_ID as the expected audience for the connector token."
-      ],
-      "checks": [
-        {
-          "text": "The response uses the official botframework-connector library for JWT verification.",
-          "contains_all": ["botframework-connector"]
-        },
-        {
-          "text": "The response mentions BOT_APP_ID as the expected audience for the connector token.",
-          "contains_all": ["BOT_APP_ID"]
-        }
-      ]
-    },
-    {
-      "id": 5,
-      "prompt": "How does the assistant send outbound replies to Teams, and what prevents it from replying to the wrong thread?",
-      "expected_output": "Uses claimTurn with identity. Routes are produced by buildReplyRoute and only those routes are used for outbound replies. No outbound send outside of buildReplyRoute.",
-      "expectations": [
-        "The response describes claimTurn as the outbound capability mechanism.",
-        "The response states that only buildReplyRoute-produced routes are used for outbound replies."
-      ],
-      "checks": [
-        {
-          "text": "The response describes claimTurn as the outbound capability mechanism.",
-          "contains_all": ["claimTurn"]
-        },
-        {
-          "text": "The response states that only buildReplyRoute-produced routes are used for outbound replies.",
-          "contains_all": ["buildReplyRoute"]
-        }
-      ]
-    },
-    {
-      "id": 6,
-      "prompt": "How does the chat harness Teams adapter differ from the assistant's full Teams integration?",
-      "expected_output": "The chat harness uses the microsoft-teams-apps SDK, listens on port 3001 with ingress path /teams/webhook. It does not perform OBO or render adaptive cards. It is simpler by design.",
-      "expectations": [
-        "The response describes the chat harness's port and ingress path.",
-        "The response notes the chat harness does not do OBO or adaptive cards."
-      ],
-      "checks": [
-        {
-          "text": "The response describes the chat harness's port and ingress path.",
-          "contains_any": ["3001", "/teams/webhook", "port 3001", "ingress path /teams"]
-        },
-        {
-          "text": "The response notes the chat harness does not do OBO or adaptive cards.",
-          "contains_all": ["adaptive cards"]
-        }
       ]
     }
   ]

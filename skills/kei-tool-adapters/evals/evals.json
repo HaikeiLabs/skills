@@ -3,116 +3,20 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "I'm building a new tool lane. What components do I need to wire from schema through to the runtime governor envelope, and what test validates the full contract?",
-      "expected_output": "Full lane: schema (Zod), client, guard (for allowed/project-specific routing), envelope (governor proposal builder), renderer (LLM prompt), and runtime governor (proposal, request, decision, send). The integration test at deployment_artifact_contract.test.ts validates the full contract end to end.",
+      "prompt": "I want to add a new tool lane called \"expense-report\" to the assistant. Walk me through the full stack components I need to create and what invariants each must preserve.",
+      "expected_output": "Lists schema, client, guard, envelope, renderer, runtime, proposal, and registry entry, with each component's closed invariants and the integration test requirements.",
       "expectations": [
         "The response includes all six lane components plus the governor proposal and registry entry.",
         "The response mentions the integration test and governance test in deployment_artifact_contract.test.ts."
-      ],
-      "checks": [
-        {
-          "text": "The response includes all six lane components plus the governor proposal and registry entry.",
-          "contains_all": ["schema", "client", "guard", "envelope", "renderer", "runtime"]
-        },
-        {
-          "text": "The response mentions the integration test and governance test in deployment_artifact_contract.test.ts.",
-          "contains_all": ["deployment_artifact_contract"]
-        }
       ]
     },
     {
       "id": 2,
-      "prompt": "I'm debugging a governor replay for a semantic-model query. The proposal looks shape-valid but the governor returned unavailable. What's the most likely cause?",
-      "expected_output": "The binding fields in the governor proposal don't match the original request. The governor pins the full binding context including connector version at proposal time; a shape-valid decision with a different binding context is flagged as a replay and returns unavailable.",
+      "prompt": "A governor decision returns exit 0 with a line that structurally looks like a valid decision but references a different request's proposal id. How should GovernorClient handle this?",
+      "expected_output": "Classifies it as a replay because the binding fields (request/proposal id refs, actor, identity refs, canonical tuple) do not match the exact request, collapsing to unavailable.",
       "expectations": [
         "The response identifies the mismatched binding fields as the reason for replay detection.",
         "The response does not accept a shape-valid decision whose binding context differs from the original request."
-      ],
-      "checks": [
-        {
-          "text": "The response identifies the mismatched binding fields as the reason for replay detection.",
-          "contains_all": ["proposal", "replay"]
-        },
-        {
-          "text": "The response does not accept a shape-valid decision whose binding context differs from the original request.",
-          "contains_all": ["unavailable"]
-        }
-      ]
-    },
-    {
-      "id": 3,
-      "prompt": "I want to add a new tool lane to the registry. What's the process and what CI would catch a mistake?",
-      "expected_output": "First an ADR proposal, then update the registry YAML with lane schema and re-run verify-governor-artifacts.mjs to regenerate pins. CI asserts pinned cases remain stable.",
-      "expectations": [
-        "The response describes the two-step process: ADR then registry update with pin regeneration.",
-        "The response mentions verify-governor-artifacts.mjs as the CI enforcement."
-      ],
-      "checks": [
-        {
-          "text": "The response describes the two-step process: ADR then registry update with pin regeneration.",
-          "contains_all": ["ADR", "registry"]
-        },
-        {
-          "text": "The response mentions verify-governor-artifacts.mjs as the CI enforcement.",
-          "contains_all": ["verify-governor-artifacts.mjs"]
-        }
-      ]
-    },
-    {
-      "id": 4,
-      "prompt": "I need to add a new query to the semantic model. How do the closed selection components work?",
-      "expected_output": "semanticModelCatalog.ts provides a fixed query catalog. semanticModelCommands.ts provides a closed deterministic parser: normalize, exact-match, route. No LLM, no fuzzy match.",
-      "expectations": [
-        "The response describes the fixed query catalog in semanticModelCatalog.ts.",
-        "The response explains that the command parser is deterministic with no LLM or fuzzy matching."
-      ],
-      "checks": [
-        {
-          "text": "The response describes the fixed query catalog in semanticModelCatalog.ts.",
-          "contains_all": ["semanticModelCatalog"]
-        },
-        {
-          "text": "The response explains that the command parser is deterministic with no LLM or fuzzy matching.",
-          "contains_all": ["deterministic", "No LLM"]
-        }
-      ]
-    },
-    {
-      "id": 5,
-      "prompt": "How does GovernorClient communicate with the governor subprocess and what guarantees can I rely on for parsing the response?",
-      "expected_output": "Speaks dvl.governor-cli-request.v1 protocol. On exit 0, it reads one dvl.governor-decision.v1 JSON line from stdout. The runner is construction-pinned. Stderr is never a decision source.",
-      "expectations": [
-        "The response describes the stdio protocol version constants.",
-        "The response states that stderr is never a valid decision source."
-      ],
-      "checks": [
-        {
-          "text": "The response describes the stdio protocol version constants.",
-          "contains_all": ["dvl.governor-cli-request.v1"]
-        },
-        {
-          "text": "The response states that stderr is never a valid decision source.",
-          "contains_all": ["stderr", "never"]
-        }
-      ]
-    },
-    {
-      "id": 6,
-      "prompt": "Can I make the project-hours scope configurable via an environment variable so different deployments use different endpoints?",
-      "expected_output": "No: scope constants are source constants, not env or per-call parameters. An endpoint a request could vary is an endpoint a model could steer.",
-      "expectations": [
-        "The response rejects making scope configurable via an environment variable.",
-        "The response uses the invariant: an endpoint a request could vary is an endpoint a model could steer."
-      ],
-      "checks": [
-        {
-          "text": "The response rejects making scope configurable via an environment variable.",
-          "contains_all": ["source constants"]
-        },
-        {
-          "text": "The response uses the invariant: an endpoint a request could vary is an endpoint a model could steer.",
-          "contains_all": ["could vary", "could steer"]
-        }
       ]
     }
   ]

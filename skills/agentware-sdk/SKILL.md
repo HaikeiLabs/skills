@@ -5,18 +5,6 @@ description: Use the open-source agentware SDK (pedro-agentware) — policy enfo
 
 # Open-source agentware (pedro-agentware)
 
-## Response requirements
-
-When writing responses about agentware:
-
-- Use the exact phrase "fail-closed" (hyphenated compound adjective) when describing the deny-by-default posture.
-- For downstream failures, tell the implementer to verify the exact types, methods, and failure behavior against the port's **source and tests** — include both words.
-- When discussing enrollment or connect URLs, use the contiguous phrase "never log" (no markdown formatting between the words).
-- When explaining enrollment, state that the user must visit the URL to **link their chat identity** before governed tools work.
-- When explaining why enrollment is needed, state the user must **link their chat identity** first.
-- When describing how middleware handles a downstream failure after a policy allowance, distinguish an **allowed** decision from successful provider execution — use the exact word "allowed" (not just "allow").
-- When naming the three required third-party harness components, also mention `HarnessContract` assembly and `validate_contract`.
-
 Agentware is an MCP-compatible middleware layer that sits between an LLM
 orchestrator and tool execution: it **intercepts every tool call, enforces
 policy, records an audit, and redacts args**, then lets the call proceed only
@@ -37,9 +25,7 @@ pedro-agentware codebase.
 - Carry authenticated caller and delegation context separately from user text.
 - Make authorization an explicit allow, deny, or filtered decision.
 - Return bounded, typed results and stable correlation IDs.
-- An allowed decision is not a downstream execution guarantee — the provider
-  may still fail after the policy passes.
-- fail-closed on malformed requests, missing identity, policy errors, timeouts,
+- Fail closed on malformed requests, missing identity, policy errors, timeouts,
   and unavailable providers.
 
 ### Audit boundary
@@ -148,7 +134,7 @@ token counts, latency, and success/error. `resources_touched` makes
 
 - `python/src/pedro_agentware/kei/auth.py` — `TokenType` (OPAQUE | JWT),
   `BOOTSTRAP_TOKEN_ENV = "KEI_RUNTIME_TOKEN"`, `OpaqueTokenProvider` (current, no auto-renew;
-  `invalidate()` is fail-closed with `httpx.HTTPStatusError`), `JWTTokenProvider` (future
+  `invalidate()` fails closed with `httpx.HTTPStatusError`), `JWTTokenProvider` (future
   exchange/refresh/revoke contract, gated behind explicit `enable()`, else fail-closed).
 - `python/src/pedro_agentware/kei/config.py` — `HarnessManifest` (schema `1.0.0`,
   `extra="forbid"`), `validate_manifest` rejects any manifest containing the bootstrap secret,
@@ -240,8 +226,8 @@ required components:
 Assemble with `HarnessContract(auth_provider, tool_executor, secret_provider)` and
 validate with `validate_contract`. Optional components have defaults: `policy_evaluator`
 (`None` = allow all), `auditor` (`InMemoryAuditor`), `proxy_process` (`None`).
-`KeiProxyEvaluator` (`kei/evaluator.py`) is the policy-enforcement seam and is
-**fail-closed: every path that is not an explicit `permit`/`allow` is denied**.
+`KeiProxyEvaluator` (`kei/evaluator.py`) is the policy-enforcement seam and **fails
+closed on every path that is not an explicit `permit`/`allow`**.
 
 Fail-closed rules: unknown policy decision → DENY; unreachable proxy → DENY; missing
 credential → DENY; expired token → DENY.
@@ -262,9 +248,9 @@ on DENY decisions:
 ## KeiProxyEvaluator per language
 
 \`KeiProxyEvaluator\` is a \`PolicyEvaluator\` that asks \`kei-proxy authorize\`
-before every tool call and enforces fail-closed behavior: anything that is not
-an explicit \`allow\`/\`permit\` is denied. It lives in all three agentware SDK
-ports and is the one enforcement seam a harness or adapter needs.
+before every tool call and fails closed on anything that is not an explicit
+\`allow\`/\`permit\`. It lives in all three agentware SDK ports and is the one
+enforcement seam a harness or adapter needs.
 
 ### Decision table
 
@@ -289,7 +275,7 @@ port. Every reason reads \`kei-proxy <class>\` or \`kei-proxy <class>: <detail>\
 | no answer within the timeout | DENY | \`proxy_timeout\` | — | — |
 | no \`KEI_RUNTIME_TOKEN\` (proxy not spawned) | DENY | \`missing_token\` | — | — |
 
-**fail-closed.** Only an explicit affirmative with exit 0 allows. Everything
+**Fail closed.** Only an explicit affirmative with exit 0 allows. Everything
 else — every exit code, every parse failure, every missing binary, every
 timeout — produces a DENY.
 
@@ -824,7 +810,7 @@ cd go && go test ./middleware/... -run ActionToolBoundary -v
 - **Do not** run an agent loop inside the middleware. Middleware decides and audits tool
   calls; the harness (`middleware/inference.py`, `evals`, adapters) owns the loop.
 - **Do not** grant anything on a manifest. `BINDINGS_GRANT_PERMISSIONS = False` and
-  `validate_manifest` is fail-closed on a bootstrap-secret-bearing manifest.
+  `validate_manifest` fail closed on a bootstrap-secret-bearing manifest.
 - **Do not** ship tokens through argv, logs, or audit records. `OpaqueTokenProvider` is
   fail-closed on renew; keep it that way.
 - **Do not** resolve connector `secret_refs` or execute providers in the library; that is

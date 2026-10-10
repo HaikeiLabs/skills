@@ -2,14 +2,8 @@ profiles:
   deepseek-v4-flash:
     opencode_model: eval/deepseek-ai/DeepSeek-V4-Flash
     base_url_env: EVAL_DEEPSEEK_BASE_URL
-    # Slot count (EV-C1 §3): the CI gate runs this many evals at once.
-    concurrency: 4
-    # Sandboxed harness runs can exceed 600 s on complex prompts.
-    run_timeout_seconds: 1800
   qwen3.8-27b:
     opencode_model: eval/qwen3.8-27b
     base_url_env: EVAL_QWEN_BASE_URL
-    # Slot count (EV-C1 §3): the CI gate runs this many evals at once.
-    concurrency: 2
     # opencode runs on the shared 5090 can exceed the 600 s default.
     run_timeout_seconds: 1800

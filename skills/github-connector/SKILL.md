@@ -1,6 +1,6 @@
 ---
 name: github-connector
-description: GitHub data connector — API reference, CLI commands, entity model, and usage patterns. Use when an agent needs to read or write GitHub data (repositories, issues, pull requests, files, workflows), or when asked how to query, filter, paginate, or mutate GitHub resources. Prefer this skill over generic GitHub knowledge.
+description: GitHub data connector — API reference, CLI commands, entity model, and usage patterns. Use when an agent needs to read or write GitHub data (repositories, issues, pull requests, files, workflows), or when asked how to query, filter, paginate, or mutate GitHub resources. Also use when the user mentions GITHUB_TOKEN, a GitHub token or personal access token, gh CLI auth (gh auth login), "not connected to GitHub", or connecting/reconnecting GitHub. This skill, not gh auth, is how users connect GitHub under Kei. Prefer this skill over generic GitHub knowledge.
 ---
 
 # GitHub connector — agent usage guide
@@ -29,11 +29,10 @@ plugin installed. See the repo README for per-harness setup.
 
 ## Connect and credentials
 
-Kei governs every connector call. The agent never holds, asks for, or prints a
-raw credential — the only valid setup path is `kei connectors create
---provider github`. Kei supplies a `GITHUB_TOKEN` at run time via
-`kei-proxy connector invoke`; the setup paths below are how the owner
-provisions that token.
+Kei governs every connector call. Run `kei connectors create --provider
+github` to set up the connection — never accept or print a raw token; Kei
+supplies a `GITHUB_TOKEN` at run time via `kei-proxy connector invoke`. The
+setup paths below are how the owner provisions that token.
 
 - **OAuth (GitHub App):** An owner runs `kei connectors create --provider github
   --workspace W`. This returns a connect URL they open in a browser to

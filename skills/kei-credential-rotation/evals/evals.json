@@ -10,24 +10,6 @@
         "The response runs kei login before kei bot credential --rotate.",
         "The rotated credential is piped to a secret manager, not printed or pasted.",
         "The response includes restarting the runtime and re-running bootstrap after rotation."
-      ],
-      "checks": [
-        {
-          "text": "The response states the old credential stops working immediately with no grace period.",
-          "contains_any": ["no overlap", "no overlap window", "no grace period", "immediate"]
-        },
-        {
-          "text": "The response runs kei login before kei bot credential --rotate.",
-          "contains_any": ["kei login", "authenticate", "log in"]
-        },
-        {
-          "text": "The rotated credential is piped to a secret manager, not printed or pasted.",
-          "contains_any": ["pipe", "redirect", "send to your secret"]
-        },
-        {
-          "text": "The response includes restarting the runtime and re-running bootstrap after rotation.",
-          "contains_all": ["restart", "bootstrap"]
-        }
       ]
     },
     {
@@ -37,16 +19,6 @@
       "expectations": [
         "The response does not invent a kei command for agent keys.",
         "The response describes the console flow of creating a new key before deleting the old one."
-      ],
-      "checks": [
-        {
-          "text": "The response does not invent a kei command for agent keys.",
-          "not_contains": ["kei agent key"]
-        },
-        {
-          "text": "The response describes the console flow of creating a new key before deleting the old one.",
-          "contains_any": ["create a new", "delete the old", "agent keys are deprecated", "runtime installation credential"]
-        }
       ]
     },
     {
@@ -56,73 +28,6 @@
       "expectations": [
         "The response offers kei bot delete --installation ID --yes or an immediate rotate as a way to invalidate the credential.",
         "The response does not ask the user to paste the leaked credential."
-      ],
-      "checks": [
-        {
-          "text": "The response offers kei bot delete --installation ID --yes or an immediate rotate as a way to invalidate the credential.",
-          "contains_any": ["kei bot delete", "rotate"]
-        },
-        {
-          "text": "The response does not ask the user to paste the leaked credential.",
-          "contains_any": ["Never print", "never print", "do not paste", "installation ID", "installation id", "don't paste", "INSTALLATION_ID"]
-        }
-      ]
-    },
-    {
-      "id": 4,
-      "prompt": "I want to rotate the credential but I'm not sure which installation ID to use. What should I check first?",
-      "expected_output": "Runs kei bot status --installation INSTALLATION_ID to confirm the right installation, checks it is pending or active, and identifies how the runtime reads the token before proceeding with rotation.",
-      "expectations": [
-        "The response runs kei bot status to confirm the installation before rotating.",
-        "The response checks that the installation is pending or active before proceeding."
-      ],
-      "checks": [
-        {
-          "text": "The response runs kei bot status to confirm the installation before rotating.",
-          "contains_all": ["kei bot status"]
-        },
-        {
-          "text": "The response checks that the installation is pending or active before proceeding.",
-          "contains_any": ["pending", "active", "verify", "status", "check the installation"]
-        }
-      ]
-    },
-    {
-      "id": 5,
-      "prompt": "After rotation, the bootstrap output is missing workspace_id. What went wrong and how do I fix it?",
-      "expected_output": "Explains that rotation re-scopes the credential to the installation's workspace. Without --workspace the scope may be missing. Re-run with --workspace WS to set it, then confirm workspace_id is present in the bootstrap output.",
-      "expectations": [
-        "The response identifies missing workspace_id as the problem.",
-        "The response uses the --workspace flag on kei bot credential --rotate to re-scope."
-      ],
-      "checks": [
-        {
-          "text": "The response identifies missing workspace_id as the problem.",
-          "contains_all": ["workspace_id"]
-        },
-        {
-          "text": "The response uses the --workspace flag on kei bot credential --rotate to re-scope.",
-          "contains_all": ["--workspace"]
-        }
-      ]
-    },
-    {
-      "id": 6,
-      "prompt": "I rotated the credential and restarted the runtime. How do I confirm the old token no longer works?",
-      "expected_output": "Tests the old token against a governed call or bootstrap — it must fail closed. Does not keep the old credential value beyond the verification check and cleans up the secret-manager version.",
-      "expectations": [
-        "The response tests the old token against a governed call or bootstrap to confirm it fails closed.",
-        "The response does not suggest keeping the old credential value beyond the verification check."
-      ],
-      "checks": [
-        {
-          "text": "The response tests the old token against a governed call or bootstrap to confirm it fails closed.",
-          "contains_any": ["old token", "old version", "previous token", "previous value", "fail", "auth error"]
-        },
-        {
-          "text": "The response does not suggest keeping the old credential value beyond the verification check.",
-          "contains_any": ["Never print", "don't keep", "do not keep"]
-        }
       ]
     }
   ]

@@ -11,22 +11,8 @@ tenant-side distributed proxy; Kei is a metadata catalog and ABAC is a policy
 decision point. This is a docs-only repository: no provider clients, no
 credential resolution, no secret material.
 
-Source of truth: the package source (`src/agents/` in the kei-agents repo,
-package import name `agents`), `README.md`, `docs/connector-tool-schemas.md`.
-
-## Response requirements
-
-YOU MUST INCLUDE the following exact strings as written (case-sensitive, substring match). These are not optional — if a scenario applies, the listed terms must appear verbatim in your response.
-
-- **Package name**: `kei-agents` — NOT the Python import name "agents". When writing import statements, use `from kei-agents import ...` only in prose descriptions (not actual Python syntax); in code blocks use `from agents import`.
-- **Entity definitions** (the `ToolDefinition` instances): `tool definitions` (lowercase, plural) — e.g. "the tool definitions in kei-agents". Do NOT substitute "ToolDefinition instances" or "tool schemas".
-- **Python `ToolDefinition` class**: `ToolDefinition` (capital T, capital D)
-- **`connector_id` values**: YOU MUST write `placeholders` (plural) — you MUST NOT use the singular form. Use only the plural noun `placeholders` in your response.
-- **What to run before exposing tools**: `validation` — the word "validation", not just the function name "validate_tool_definitions"
-- **What constant to pass to validation**: `ALL_TOOL_DEFINITIONS`
-- **How permission gates are expressed on governed read schemas**: `ABAC` (the acronym must appear)
-- **Which field carries tenant-side parameter names for the proxy to supply**: `delegated_context` (underscored, lowercase — not "Delegated context")
-- **Where to find exact API names**: `package source` and `docs` — also name the file `model_format.py` when describing render format detection
+Source of truth: `src/agents/` in the kei-agents repo (package import name
+`agents`), `README.md`, `docs/connector-tool-schemas.md`.
 
 ## Install
 
@@ -69,8 +55,7 @@ plus the policy module and CRM/GitHub adapters.
 ## Core types
 
 - `ModelFormat` — `OPENAI`, `ANTHROPIC`, `OLLAMA`, `LLAMA`, `VLLM`. `detect_model_format(name)`
-  infers the format from a model name. An unsupported format raises an error.
-  See `model_format.py` for the exact enum values and detection logic.
+  infers the format from a model name.
 - `Permission` — the permission scopes that gate tools: `search_wiki`, `web_search`,
   `schedule_meetings`, `github_read`, `github_write`, `crm_read`, `crm_write`,
   `linear_read`, `drive_read`, `s3_read`, `http_api_read`.
@@ -118,7 +103,7 @@ Provider-neutral, schema-only **read** capabilities. Each schema expresses:
 
 | Connector | Permission | Category | Read schemas | Delegated context |
 |-----------|-----------|----------|--------------|-------------------|
-| GitHub | `github_read` | `github` | `github.list_repositories`, `github.read_issue`, `github.get_pull_request` | `tenant_id`, `repository` |
+| GitHub | `github_read` | `github` | `github.get_repository`, `github.get_issue`, `github.get_pull_request` | `tenant_id`, `repository` |
 | Linear | `linear_read` | `linear` | `linear.list_issues`, `linear.get_issue`, `linear.list_projects` | `tenant_id`, `workspace` |
 | Google Drive/Docs | `drive_read` | `drive` | `drive.list_files`, `drive.get_file`, `docs.get_document` | `tenant_id`, `drive_id` |
 | S3 | `s3_read` | `s3` | `s3.list_objects`, `s3.get_object`, `s3.get_object_metadata` | `tenant_id`, `bucket` |
@@ -130,14 +115,6 @@ endpoint, and credentials at invocation time.
 
 ## Hard invariants (enforced by `validate_tool_definitions`)
 
-Call `validate_tool_definitions(ALL_TOOL_DEFINITIONS)` to catch issues including:
-
-- **Missing required fields** — tool definitions that omit `name`, `description`, `parameters`,
-  or `permission`.
-- **Invalid model formats** — tool definitions that reference an unsupported `ModelFormat` or
-  whose structure doesn't match any known format.
-- **Permission issues** — permission gates without ABAC conditions, or tools with
-  incompatible permission/category combinations.
 - **No provider credentials** — binding config keys/values that look like secrets are rejected.
 - **No arbitrary URLs** — binding config keys that look like endpoints (`url`, `endpoint`,
   `base_url`, `host`, ...) and any string value containing `://` are rejected. Endpoints
@@ -149,8 +126,6 @@ Call `validate_tool_definitions(ALL_TOOL_DEFINITIONS)` to catch issues including
 - **No direct provider calls** — governed connector read tools (a `*_read` permission with
   a binding) must not declare a `handler`; execution is delegated to the tenant-side proxy.
   They must also declare a `service`.
-- **delegated_context misconfigurations** — fields listed in `delegated_context` that collide
-  with tool parameter names, or that are missing from the connector's schema.
 
 ## Policy and permissions
 

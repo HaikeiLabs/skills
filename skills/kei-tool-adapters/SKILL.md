@@ -43,9 +43,9 @@ For the semantic-model lane there are two closed selection components you must k
   tuples — there is no way to hand `GovernorClient` a caller-authored tuple.
 - `src/governor/client.ts` speaks `dvl.governor-cli-request.v1` → one `dvl.governor-decision.v1`
   line on exit 0, over a **construction-pinned runner** (`src/governor/subprocessRunner.ts`).
-  Decisions are bound to the exact request (id refs, identity refs, canonical tuple, exact role
-  list, exact version pins); a mismatch is a replay → `unavailable`. Stderr is never a decision.
-  Stdout framing is exact (≤16 KiB, one LF, no CR, no second line).
+  Decisions are bound to the exact request (id refs, identity refs, canonical tuple, exact
+  role list, exact version pins); a mismatch is a replay → `unavailable`. Stderr is never a
+  decision. Stdout framing is exact (≤16 KiB, one LF, no CR, no second line).
 - The proposal→decision reason codes are a closed set in `src/governor/client.ts`
   (`policy-allow`, `explicit-deny`, `default-deny`, `invalid-*`, `unknown-tool`,
   `unknown-lane`, `tool-disabled`, `lane-disabled`, `role-ineligible`,
@@ -123,12 +123,12 @@ uv run pytest tests/test_headless_harness.py -q   # exercises /tool endpoints wi
   request, or tool is a replay and must collapse to `unavailable`.
 - **Do not** make `GovernorClient` pick the executable/argv/env/cwd/timeout; those are
   construction-pinned by the composition root only.
-- Keep closed things closed: the catalog, the phrase table, the help text, the scope allowlists,
-  the `-I -B` interpreter args, and the fixed `FIXED_SELECTION` are source constants, not env
-  or per-call parameters.
+- Keep closed things closed: the catalog, the phrase table, the help text, the scope
+  allowlists, the `-I -B` interpreter args, and the fixed `FIXED_SELECTION` are source
+  constants, not env or per-call parameters.
 - When adding a tool lane, add the full stack (schema/client/guard/envelope/renderer/runtime
-  + proposal + registry entry) plus the matching integration test (`*_integration.test.ts`) and the governance
-  integration test assertions in `test/deployment_artifact_contract.test.ts`.
+  + proposal + registry entry) plus the matching `*_integration.test.ts` and the governance
+  test assertions in `test/deployment_artifact_contract.test.ts`.
 
 ## Related skills
 

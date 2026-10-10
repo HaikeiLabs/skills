@@ -5,12 +5,6 @@ description: "The `kei-proxy` runtime executable (kei-connector-runtime) — wha
 
 # kei-proxy (runtime for agent interaction)
 
-A tool adapter asks `kei-proxy authorize` before every tool call. Exit 0 means
-allow; treat any non-zero exit as deny. The runtime credential comes from the
-environment (`KEI_RUNTIME_TOKEN`, never an argument), and the agent ID is
-auto-discovered from the runtime installation: never set an agent-ID variable
-or pass `--agent-id`.
-
 Kei has two executables. Mixing them up is the most common mistake, so
 settle which one a task needs before anything else:
 
@@ -141,12 +135,6 @@ in the kei-harness-policy skill.
 > The evaluator handles spawn, timeout, env filtering, decision parsing,
 > enrollment extraction, and all fail-closed invariants. This reference is
 > for direct calls when you cannot use the SDK.
->
-**When describing `kei-proxy authorize`, always state that credentials
-come from the `KEI_RUNTIME_TOKEN` environment variable, never from a
-command-line argument.** The token is the sole runtime credential.
-Agent identity is **auto-discovered** from the runtime installation
-credential — do not tell the caller to set `--agent-id`.
 
 The adapter calls this before every governed tool runs and obeys the
 result:

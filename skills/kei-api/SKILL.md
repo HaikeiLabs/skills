@@ -89,7 +89,7 @@ package for it.
 | Roles | `/api/v1/orgs/{org_id}/roles`, `/api/v1/roles/{id}`, `/api/v1/service-principals`, `/api/v1/role-requests` | Custom org roles; role service principals; role requests and approve/deny |
 | Authorization (legacy) | `/api/v1/authorize` | The ABAC decision endpoint: subject/action/resource → `allow`/`deny`. Legacy control-plane path; ADR-011's target is a local PDP in the runtime (see `kei-proxy`) |
 | Consents | `/api/v1/consents`, `/api/v1/consent-requests` | Provider consent grants and consent requests (confirm via `/{token}/confirm`) |
-| Audit | `/api/v1/audit`, `/api/v1/audit/query*`, `/api/v1/organizations/{org}/audit-encryption-keys` | List audit logs/events/records; governed, ABAC-checked audit queries; manage audit-encryption keys (POST to create with `public_key` and `display_name`, GET to check `encryption_enabled`). The CLI is the preferred surface; use the API as a fallback when the CLI's `kei audit` subcommands are unavailable |
+| Audit | `/api/v1/audit`, `/api/v1/audit/query*` | List audit logs/events/records; governed, ABAC-checked audit queries |
 | Runtime | `/api/v1/runtime/*` | Harness-facing: `whoami`, `agents`, `heartbeat`, `credential-bindings`, `credential-delivery/claim|ack`, `credential-sync-keys`, `model-profiles` |
 | Chat identity claims | `/api/v1/runtime/chat-identity-claims`, `/api/v1/internal/chat-identity-claims*`, `/api/v1/organizations/{id}/chat-identity-access-requests*`, `/api/v1/chat-identity-access-requests/{id}:decide` | Issue one-time claim links for chat-platform self-enrollment; server-to-server preview/redeem endpoints; managed access-request approval flow |
 | Internal | `/api/v1/internal/*` | Device-authorization flow, harness-identity, runtime-installations and lifecycle (bind/disable/revoke/rotate) |
@@ -288,18 +288,6 @@ rg -n "organization administrator role is required" cmd/abac-engine cmd/web
 # Verify the intentional cross-tenant 404 (kei repo):
 rg -n "agent not found" cmd/abac-engine/pkg/handlers/harness_keys.go
 ```
-
-## Response requirements
-
-- **When describing invitations, YOU MUST NOT say "automatic access" or "automatically grant"** — even to deny them. If you describe what must NOT happen, say "no re-scoping" or "must not re-scope" instead.
-- When describing auth schemes, YOU MUST **distinguish "CLI bearer" from "harness bearer"** (do not collapse them into "bearer token").
-- When describing the invitation flow, YOU MUST mention both **"invitation"** and **"routes"** together.
-- When describing AIP resource design, YOU MUST mention **"kebab-case"**, **"PATCH"**, and **"update_mask"**.
-- When describing credential security, YOU MUST mention **"sha256"** and **"token_hash"**.
-- When describing cross-tenant security, YOU MUST mention **"authorizeAgentOrg"** and return **"404 agent not found"** (not 403).
-- When describing audit encryption, YOU MUST mention **"audit-encryption-keys"**, **"public_key"**, **"encryption_enabled"**, and **"fallback CLI"**.
-- Use **"workspace"** and **"policy-catalog"** on workspace-scoped resources.
-- Mention **"runtime-installations"**, **"credential"**, **"plaintext"**, and **"exactly once"** for credential minting.
 
 ## Realistic usage boundaries
 

@@ -1,6 +1,6 @@
 ---
 name: kei-assistant-security
-description: The DVL Assistant (Kei) ingress boundary's fail-closed security invariants. Use when working in or reviewing the DVL-Group/assistant TypeScript repo, or when someone mentions BOT_ENABLED, MY_PROJECT_HOURS_ENABLED, MY_SEMANTIC_MODEL_ENABLED, FLEET_HANDOFF_ENABLED, dark-by-construction, the governor, OBO, SSO, role map, enrollment, idempotency, pseudonymous audit, "accept-any token", or "fails closed". Also use for pen-test or security-review findings about the assistant's error bodies, 401 or 412 responses, token verification errors (unknown vs expired token), or requests to add debug detail to deny responses or audit. Also use before changing any gate in src/app.ts, src/config.ts, src/server.ts, src/verifier.ts, src/authz/, or src/governor/. Keep the assistant's security invariants here, and put generic middleware guidance in agentware-sdk.
+description: The DVL Assistant (Kei) ingress boundary's fail-closed security invariants. Use when working in or reviewing the DVL-Group/assistant TypeScript repo, or when someone mentions BOT_ENABLED, MY_PROJECT_HOURS_ENABLED, MY_SEMANTIC_MODEL_ENABLED, FLEET_HANDOFF_ENABLED, dark-by-construction, the governor, OBO, SSO, role map, enrollment, idempotency, pseudonymous audit, "accept-any token", or "fails closed". Also use before changing any gate in src/app.ts, src/config.ts, src/server.ts, src/verifier.ts, src/authz/, or src/governor/. Keep the assistant's security invariants here, and put generic middleware guidance in agentware-sdk.
 ---
 
 # Kei assistant — fail-closed security invariants
@@ -9,12 +9,6 @@ The DVL Assistant is a **zero-tool, zero-LLM Microsoft Teams/Bot ingress boundar
 fails closed**. It authenticates inbound Bot Framework activities, derives a principal,
 gates it, and either replies with a closed diagnostic or hands a verified grant to ONE
 composed tool lane. There is no LLM, no generative seam, and no "accept anything" path.
-
-Deny responses stay indistinguishable. Every token-verification failure returns the
-same `401 {"error":"unauthorized"}` (`src/app.ts`), whether the token is unknown or expired. The
-reason goes only to the pseudonymous audit, as a closed code. Never enrich an error body
-or an audit reason to help debugging: that breaks invariant 4 (closed verifier code set) and
-invariant 5 (pseudonymous, closed-code audit), and it leaks gate internals.
 
 Every change you make must preserve the invariants below. They are load-bearing: tests,
 the deployment contract, and the operator runbook (`deployment/azure/LIVE_TEAMS_POSTGRES_DEMO.md`)

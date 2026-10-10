@@ -10,14 +10,6 @@ admin CLI (`kei-cli` skill); the runtime (`kei-proxy`, used by agents) only
 consumes the new token and is restarted and re-bootstrapped afterwards
 (`kei-proxy` skill). This skill owns the cutover order and the checks.
 
-The safe order, in short: run `kei login` (owner/admin), confirm the
-installation with `kei bot status --installation INSTALLATION_ID` (it must be
-`pending` or `active`), then pipe `kei bot credential --rotate` straight into
-the secret manager (never print or paste the token). Restart the runtime,
-re-bootstrap, check `workspace_id` and the heartbeat, and confirm the old token
-now fails closed. Do not keep the old token value after that check. Rotation
-is immediate: there is no overlap window.
-
 ## Retrieval sources
 
 | Source | How to retrieve | Use for |

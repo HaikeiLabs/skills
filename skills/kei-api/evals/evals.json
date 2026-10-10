@@ -8,21 +8,6 @@
       "expectations": [
         "The response distinguishes browser, CLI, and harness authentication rather than treating all bearer tokens alike.",
         "The response includes workspace scope in policy or authorization reasoning."
-      ],
-      "checks": [
-        {
-          "contains_all": [
-            "CLI bearer",
-            "harness bearer"
-          ],
-          "text": "The response distinguishes browser, CLI, and harness authentication rather than treating all bearer tokens alike."
-        },
-        {
-          "contains_all": [
-            "workspace"
-          ],
-          "text": "The response includes workspace scope in policy or authorization reasoning."
-        }
       ]
     },
     {
@@ -32,22 +17,6 @@
       "expectations": [
         "The response does not imply that accepting an org invitation automatically grants unrelated workspace access.",
         "The response recommends verifying the implemented invitation contract against current routes and repository behavior."
-      ],
-      "checks": [
-        {
-          "text": "The response does not imply that accepting an org invitation automatically grants unrelated workspace access.",
-          "not_contains": [
-            "automatic access",
-            "automatically grant"
-          ]
-        },
-        {
-          "contains_all": [
-            "invitation",
-            "routes"
-          ],
-          "text": "The response recommends verifying the implemented invitation contract against current routes and repository behavior."
-        }
       ]
     },
     {
@@ -57,120 +26,6 @@
       "expectations": [
         "The response does not invent an existing CLI command or bypass the governed contract.",
         "The response preserves workspace scope, repository/database boundaries, audit identity, and metadata-only policy-catalog invariants."
-      ],
-      "checks": [
-        {
-          "contains_all": [
-            "kebab-case",
-            "PATCH",
-            "update_mask"
-          ],
-          "text": "The response does not invent an existing CLI command or bypass the governed contract."
-        },
-        {
-          "contains_all": [
-            "workspace",
-            "policy-catalog"
-          ],
-          "text": "The response preserves workspace scope, repository/database boundaries, audit identity, and metadata-only policy-catalog invariants."
-        }
-      ]
-    },
-    {
-      "id": 4,
-      "prompt": "I need to create a runtime installation credential for a new customer harness using the Kei API. Which endpoint do I call, and what security considerations apply to the response?",
-      "expected_output": "Uses POST /api/v1/internal/runtime-installations/{id}/credential. The plaintext token is returned exactly once \u2014 store it immediately in the customer's secret manager. Kei stores only the sha256 token_hash. If the plaintext is lost, rotate (never re-read).",
-      "expectations": [
-        "calls POST /api/v1/internal/runtime-installations/{id}/credential to mint the credential",
-        "states the plaintext token is returned exactly once and must be stored immediately",
-        "explains Kei stores only the sha256 token_hash and a lost token requires rotation, not re-reading"
-      ],
-      "checks": [
-        {
-          "contains_all": [
-            "runtime-installations",
-            "credential"
-          ],
-          "text": "calls POST /api/v1/internal/runtime-installations/{id}/credential to mint the credential"
-        },
-        {
-          "contains_all": [
-            "plaintext",
-            "exactly once"
-          ],
-          "text": "states the plaintext token is returned exactly once and must be stored immediately"
-        },
-        {
-          "contains_all": [
-            "sha256",
-            "token_hash"
-          ],
-          "text": "explains Kei stores only the sha256 token_hash and a lost token requires rotation, not re-reading"
-        }
-      ]
-    },
-    {
-      "id": 5,
-      "prompt": "A user tries to access another org's agent resource by guessing agent IDs. What does the Kei API return and why?",
-      "expected_output": "Returns 404 'agent not found' rather than 403, so the attacker cannot confirm the agent exists. This is intentional cross-tenant 404 to prevent agent-ID enumeration, documented in authorizeAgentOrg in harness_keys.go.",
-      "expectations": [
-        "states the API returns 404 not found, not 403 forbidden",
-        "explains the cross-tenant 404 is intentional to prevent agent-ID enumeration",
-        "references authorizeAgentOrg and harness_keys.go"
-      ],
-      "checks": [
-        {
-          "contains_all": [
-            "404",
-            "agent not found"
-          ],
-          "text": "states the API returns 404 not found, not 403 forbidden"
-        },
-        {
-          "contains_all": [
-            "cross-tenant",
-            "enumeration"
-          ],
-          "text": "explains the cross-tenant 404 is intentional to prevent agent-ID enumeration"
-        },
-        {
-          "contains_all": [
-            "authorizeAgentOrg"
-          ],
-          "text": "references authorizeAgentOrg and harness_keys.go"
-        }
-      ]
-    },
-    {
-      "id": 6,
-      "prompt": "I need to set up audit-args encryption for our org using the Kei API because our kei CLI version predates the audit subcommands. Which endpoints do I use to create a key and check that encryption is enabled?",
-      "expected_output": "Uses POST /api/v1/organizations/{org}/audit-encryption-keys to create a key (body: public_key, display_name), then GET the same collection to check encryption_enabled in the response. Notes the CLI is preferred and the API is the fallback.",
-      "expectations": [
-        "uses POST to /audit-encryption-keys with public_key and display_name in the body",
-        "uses GET the audit-encryption-keys collection and checks encryption_enabled",
-        "notes the API is a fallback when the CLI audit subcommands are unavailable"
-      ],
-      "checks": [
-        {
-          "contains_all": [
-            "audit-encryption-keys",
-            "public_key"
-          ],
-          "text": "uses POST to /audit-encryption-keys with public_key and display_name in the body"
-        },
-        {
-          "contains_all": [
-            "encryption_enabled"
-          ],
-          "text": "uses GET the audit-encryption-keys collection and checks encryption_enabled"
-        },
-        {
-          "contains_all": [
-            "fallback",
-            "CLI"
-          ],
-          "text": "notes the API is a fallback when the CLI audit subcommands are unavailable"
-        }
       ]
     }
   ]

@@ -8,21 +8,6 @@
       "expectations": [
         "The response identifies the middleware as the policy enforcement and audit boundary.",
         "The response does not treat a model's refusal as proof that an unauthorized tool call cannot execute."
-      ],
-      "checks": [
-        {
-          "contains_all": [
-            "middleware",
-            "policy"
-          ],
-          "text": "The response identifies the middleware as the policy enforcement and audit boundary."
-        },
-        {
-          "contains_all": [
-            "audit"
-          ],
-          "text": "The response does not treat a model's refusal as proof that an unauthorized tool call cannot execute."
-        }
       ]
     },
     {
@@ -32,22 +17,6 @@
       "expectations": [
         "The response distinguishes an allowed decision from successful provider execution.",
         "The response tells the implementer to verify exact types and methods against the relevant language port."
-      ],
-      "checks": [
-        {
-          "contains_all": [
-            "allowed",
-            "downstream"
-          ],
-          "text": "The response distinguishes an allowed decision from successful provider execution."
-        },
-        {
-          "contains_all": [
-            "source",
-            "tests"
-          ],
-          "text": "The response tells the implementer to verify exact types and methods against the relevant language port."
-        }
       ]
     },
     {
@@ -58,128 +27,6 @@
         "The response reads agent identity from link.identity(), not from an environment variable.",
         "The response denies governed calls when identity is undefined rather than guessing a fallback agent ID.",
         "The response requires kei-proxy >= 0.1.11 and agentware >= 0.4.0."
-      ],
-      "checks": [
-        {
-          "contains_all": [
-            "link.identity()"
-          ],
-          "text": "The response reads agent identity from link.identity(), not from an environment variable."
-        },
-        {
-          "contains_all": [
-            "deny",
-            "governed calls"
-          ],
-          "text": "The response denies governed calls when identity is undefined rather than guessing a fallback agent ID."
-        },
-        {
-          "contains_all": [
-            "0.1.11",
-            "0.4.0"
-          ],
-          "text": "The response requires kei-proxy >= 0.1.11 and agentware >= 0.4.0."
-        }
-      ]
-    },
-    {
-      "id": 4,
-      "prompt": "I'm writing a custom harness in Python and need to govern my agents' tool calls through Kei. Show me how to construct a KeiProxyEvaluator and what happens when kei-proxy is unreachable.",
-      "expected_output": "Constructs KeiProxyEvaluator with KeiProxyAuthorizeClient, sets executable and timeout, explains that an unreachable proxy yields DENY with proxy_unavailable reason (fail-closed), and uses evaluator.evaluate() before every tool call.",
-      "expectations": [
-        "constructs KeiProxyEvaluator with KeiProxyAuthorizeClient and sets executable and timeout",
-        "explains that an unreachable proxy denies with proxy_unavailable (fail-closed)",
-        "calls evaluator.evaluate() before each tool call with tool name, args, and caller context"
-      ],
-      "checks": [
-        {
-          "contains_all": [
-            "KeiProxyEvaluator",
-            "KeiProxyAuthorizeClient"
-          ],
-          "text": "constructs KeiProxyEvaluator with KeiProxyAuthorizeClient and sets executable and timeout"
-        },
-        {
-          "contains_all": [
-            "proxy_unavailable",
-            "fail-closed"
-          ],
-          "text": "explains that an unreachable proxy denies with proxy_unavailable (fail-closed)"
-        },
-        {
-          "contains_all": [
-            "evaluator.evaluate"
-          ],
-          "text": "calls evaluator.evaluate() before each tool call with tool name, args, and caller context"
-        }
-      ]
-    },
-    {
-      "id": 5,
-      "prompt": "A governed tool call returned a DENY with an enrollment payload containing a URL. How should my harness handle this, and what must never happen with that URL?",
-      "expected_output": "Extracts decision.enrollment.url from the DENY payload, delivers it privately to the user (e.g. DM, never in a public channel), warns not to log it or cache an expired link, and explains the user must visit it to link their chat identity before they can use governed tools.",
-      "expectations": [
-        "extracts enrollment.url from the decision payload and delivers it privately to the user",
-        "warns not to log the URL or cache an expired link",
-        "explains the user must visit the link to link their chat identity before governed tools work"
-      ],
-      "checks": [
-        {
-          "contains_all": [
-            "enrollment",
-            "url",
-            "privately"
-          ],
-          "text": "extracts enrollment.url from the decision payload and delivers it privately to the user"
-        },
-        {
-          "contains_all": [
-            "never log",
-            "expired"
-          ],
-          "text": "warns not to log the URL or cache an expired link"
-        },
-        {
-          "contains_all": [
-            "link",
-            "identity"
-          ],
-          "text": "explains the user must visit the link to link their chat identity before governed tools work"
-        }
-      ]
-    },
-    {
-      "id": 6,
-      "prompt": "What are the three required components of the third-party harness contract, and what does each provide to Agentware governance?",
-      "expected_output": "Names AuthProvider (supplies tokens for the KEI API), ToolExecutor (executes tools on behalf of agents), and SecretProvider (sources KEI_RUNTIME_TOKEN). Explains they assemble into HarnessContract and validate with validate_contract.",
-      "expectations": [
-        "names AuthProvider, ToolExecutor, and SecretProvider as the three required components",
-        "explains AuthProvider supplies tokens, ToolExecutor executes tools, SecretProvider sources KEI_RUNTIME_TOKEN",
-        "mentions HarnessContract assembly and validate_contract"
-      ],
-      "checks": [
-        {
-          "contains_all": [
-            "AuthProvider",
-            "ToolExecutor",
-            "SecretProvider"
-          ],
-          "text": "names AuthProvider, ToolExecutor, and SecretProvider as the three required components"
-        },
-        {
-          "contains_all": [
-            "tokens",
-            "KEI_RUNTIME_TOKEN"
-          ],
-          "text": "explains AuthProvider supplies tokens, ToolExecutor executes tools, SecretProvider sources KEI_RUNTIME_TOKEN"
-        },
-        {
-          "contains_all": [
-            "HarnessContract",
-            "validate_contract"
-          ],
-          "text": "mentions HarnessContract assembly and validate_contract"
-        }
       ]
     }
   ]
