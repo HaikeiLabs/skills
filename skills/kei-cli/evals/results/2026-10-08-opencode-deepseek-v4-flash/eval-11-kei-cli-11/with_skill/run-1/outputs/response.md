@@ -8,7 +8,7 @@ Based on the skill, here's the two-command sequence:
   --agent 3f2c9a1e-0000-4000-8000-000000000001 \
   --display-name "vLLM spark" \
   --endpoint https://spark.example.ts.net/v1 \
-  --default-model dvl-default \
+  --default-model team-default \
   --auth-type api_key
 ```
 

@@ -13,14 +13,14 @@
       }
     },
     {
-      "text": "The response includes `--default-model dvl-default` and `--auth-type api_key`.",
+      "text": "The response includes `--default-model team-default` and `--auth-type api_key`.",
       "passed": true,
-      "evidence": "Found all: --default-model, dvl-default, --auth-type, api_key",
+      "evidence": "Found all: --default-model, team-default, --auth-type, api_key",
       "check": {
-        "text": "The response includes `--default-model dvl-default` and `--auth-type api_key`.",
+        "text": "The response includes `--default-model team-default` and `--auth-type api_key`.",
         "contains_all": [
           "--default-model",
-          "dvl-default",
+          "team-default",
           "--auth-type",
           "api_key"
         ]

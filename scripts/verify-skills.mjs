@@ -3,9 +3,8 @@
  *
  * Requires: python3 with PyYAML (preinstalled on GitHub ubuntu runners).
  *
- * Ported from DVL-Group/assistant scripts/verify-skills.mjs (branch
- * docs/kei-agentware-skills, PR #44), adapted from a .opencode/skills root to
- * this repo's skills/ root.
+ * Adapted from an earlier verifier for a .opencode/skills root to this repo's
+ * skills/ root.
  *
  * Checks every SKILL.md the way the suite's contract expects:
  *   - frontmatter is valid YAML (rejects unquoted ': ' in scalars);

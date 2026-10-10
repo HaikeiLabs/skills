@@ -1,13 +1,13 @@
 ---
 name: kei-teams-ingress
-description: Microsoft Teams and Bot Framework integration for the Kei assistant and its chat harness. Use when touching inbound Bot Framework activities, the Connector JWT verifier, SSO signin/tokenExchange invokes, OAuthCards, the mention/audience gate, reply routes, outbound Connector sends, the Teams app manifest (appPackage/manifest.template.json), messaging endpoints, or the kei-chat-harness Teams adapter (microsoft-teams-apps SDK, Bot Connector REST, TEAMS_BOT_TOKEN/TEAMS_CLIENT_ID/TEAMS_TENANT_ID). Also use for Azure Bot registration and Entra SSO configuration. Combine with kei-assistant-security for the ingress gates.
+description: Microsoft Teams and Bot Framework integration for a customer assistant's TypeScript ingress service and the Kei chat harness. Use when touching inbound Bot Framework activities, the Connector JWT verifier, SSO signin/tokenExchange invokes, OAuthCards, the mention/audience gate, reply routes, outbound Connector sends, the Teams app manifest (appPackage/manifest.template.json), messaging endpoints, or the kei-chat-harness Teams adapter (microsoft-teams-apps SDK, Bot Connector REST, TEAMS_BOT_TOKEN/TEAMS_CLIENT_ID/TEAMS_TENANT_ID). Also use for Azure Bot registration and Entra SSO configuration. Combine with kei-ingress-security for the ingress gates.
 ---
 
 # Teams / Bot Framework ingress
 
 Two codebases speak Teams here; keep them separate:
 
-- **The Kei assistant** (`DVL-Group/assistant`) — a Node 24 ingress boundary that
+- **A customer assistant** (a TypeScript ingress service) — a Node 24 ingress boundary that
   authenticates Bot Framework activities and runs the SSO/OBO tool lanes. Zero-tool by design.
 - **The chat harness** (`HaikeiLabs/Kei-Chat-Harness`) — a Python bot (service `pedro_service`)
   whose `teams_main.py` uses the `microsoft-teams-apps` SDK to speak Bot Framework activities
@@ -18,7 +18,7 @@ Two assistant facts answer most questions. Outbound replies use `claimTurn(ident
 one-shot outbound capability, and go only to a route built by `buildReplyRoute`. An SSO deny is
 always the same closed `412` with a fixed `failureDetail`, so the body never says why it was denied.
 
-The assistant skill `kei-assistant-security` owns the ingress gates; this skill owns the
+The skill `kei-ingress-security` owns the ingress gates; this skill owns the
 Teams/Bot Framework mechanics on both sides.
 
 ## Bot Framework activity flow (assistant)
@@ -44,13 +44,12 @@ Inbound `POST /api/messages` body is an **activity** (JSON). The pipeline is:
   the full auth chain above. Denies are the same closed `412` with three fixed fields
   (`id`, `connectionName`, `failureDetail`), so the client only ever learns "fall back to the
   card". `signin/verifyState` is acknowledged and inert.
-- The OAuthCard is solicited in personal chat by `src/app.ts` (the `.14` lane composition)
+- The OAuthCard is solicited in personal chat by `src/app.ts`
   and pinned with `BOT_SSO_APPLICATION_ID_URI` as `tokenExchangeResource.uri`. `BOT_SSO_CONNECTION_NAME`
   is the connection label.
 - The redeemed nonce → `src/auth/broker.ts` (OboBroker) → MSAL on-behalf-of exchange →
   the lane's downstream. `src/auth/claims.ts`, `src/auth/liveClaimsVerifier.ts` verify the
-  incoming v2.0 token: audience is the **client id**, not an `api://` URI (see the
-  `fix/sso-v2-audience` history).
+  incoming v2.0 token: audience is the **client id**, not an `api://` URI.
 
 ### Outbound
 
@@ -66,8 +65,6 @@ Inbound `POST /api/messages` body is an **activity** (JSON). The pipeline is:
   `groupChat`. Package zip = manifest + `color.png` + `outline.png`.
 - Azure Bot resource: Messaging endpoint is `https://<host>/api/messages`; the Teams channel
   must be enabled; app type must be `SingleTenant`. Bot OAuth connection must exist and match.
-- The full operator contract is `deployment/azure/LIVE_TEAMS_POSTGRES_DEMO.md` (fixed demo
-  scope, isolation boundaries, dark preflight, activation gate, rollback, no-go conditions).
 
 ### Teams activity types reference
 
@@ -97,7 +94,7 @@ Inbound `POST /api/messages` body is an **activity** (JSON). The pipeline is:
 
 ## Validation commands
 
-Assistant (DVL-Group/assistant):
+Customer assistant (TypeScript ingress service):
 
 ```bash
 npm run typecheck
@@ -152,6 +149,6 @@ docker build -f Dockerfile.teams -t pedro-teams:latest .
 
 ## Related skills
 
-- `kei-assistant-security` — the ingress gates that protect the Teams endpoint.
+- `kei-ingress-security` — the ingress gates that protect the Teams endpoint.
 - `kei-tool-adapters` — the tool lanes that receive the verified grant from Teams SSO.
 - `agentware-sdk` — generic middleware for tool-call policy and audit in the chat harness.

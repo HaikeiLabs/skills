@@ -1,6 +1,6 @@
 ---
 name: kei-openai-backends
-description: OpenAI-compatible LLM backend integration for the Kei chat harness and the pedro-agentware evals. Use when the task mentions LLM_ENDPOINT, LLM_MODEL, OPENAI_BASE_URL, OpenAIChatModel, pydantic-ai, /v1 chat/completions, llama.cpp, vLLM, Ollama, llamafile, the kei local stack (docker-compose.kei-local.yml, scripts/seed-local-kei.sh), abac-engine/oidc-bridge, or wiring any model backend. Use for the harness's model-format tool renderers (OpenAI/Anthropic/Ollama in tool_definitions.py) and the evals ModelBackend. For the DVL Assistant repo there is deliberately NO LLM — do not reach for this skill inside src/.
+description: OpenAI-compatible LLM backend integration for the Kei chat harness and the pedro-agentware evals. Use when the task mentions LLM_ENDPOINT, LLM_MODEL, OPENAI_BASE_URL, OpenAIChatModel, pydantic-ai, /v1 chat/completions, llama.cpp, vLLM, Ollama, llamafile, the kei local stack (docker-compose.kei-local.yml, scripts/seed-local-kei.sh), abac-engine/oidc-bridge, or wiring any model backend. Use for the harness's model-format tool renderers (OpenAI/Anthropic/Ollama in tool_definitions.py) and the evals ModelBackend. A zero-LLM ingress service deliberately has NO LLM — do not reach for this skill inside one.
 ---
 
 # OpenAI-compatible backends
@@ -126,8 +126,9 @@ agent construction and recreated on every `POST /message`.
 ## Chat harness (HaikeiLabs/Kei-Chat-Harness)
 
 - `src/pedro_service/config.py` — `LLM_ENDPOINT` and `LLM_MODEL` must BOTH be non-empty for
-  real mode; otherwise `FakePedroAgent` (deterministic fake) is used. Default endpoint
-  `http://pedrogpt:8000`, default model `qwen3.6-27b-mtp`.
+  real mode; otherwise `FakePedroAgent` (deterministic fake) is used. The code default
+  endpoint is an internal host, so always set `LLM_ENDPOINT` explicitly; default model
+  `qwen3.6-27b-mtp`.
 - `src/pedro_service/agent.py` `create_agent()`:
   ```python
   os.environ["OPENAI_API_KEY"] = config.openai_key or "any-key-works"
@@ -242,8 +243,8 @@ for new ones.
   presence-gated. Do not log it, mint it, or send it to hosts you do not trust.
 - **Do not** run the model-backed suites as the default CI gate — they are flaky by nature
   and are marked `integration` (each PR-review eval case runs 5x for reliability).
-- **Do not** confuse the harness's LLM path with the DVL Assistant repo: the DVL Assistant
-  (`DVL-Group/assistant`) is **zero-LLM** — a model must never run inside `src/`.
+- **Do not** confuse the harness's LLM path with a zero-LLM ingress service (see
+  `kei-ingress-security`): a model must never run inside that service.
 - `KEI_PROXY_DISABLED=true` is a local/harness escape hatch only. It permits everything; it
   must never be set in a deployed, real-data environment.
 

@@ -15,7 +15,7 @@ the scripts in `scripts/` (see the repo README).
 | `kei-agents` | Agent tool definitions, schemas, permissions, governed connector read schemas |
 | `kei-api` | Governed Kei API contracts for organizations, workspaces, connectors, policies |
 | `kei-api-conventions` | Resource-oriented API endpoint conventions (AIP-style) |
-| `kei-assistant-security` | DVL Assistant ingress boundary security invariants |
+| `kei-ingress-security` | Fail-closed ingress boundary security invariants for a customer assistant |
 | `kei-cli` | `kei` CLI platform-administration commands |
 | `kei-credential-rotation` | Rotate runtime installation credentials |
 | `kei-harness-policy` | Harness command policies — import, create, verify, and export shell:/skill:/path: policies; register harnesses and sync tool registrations |

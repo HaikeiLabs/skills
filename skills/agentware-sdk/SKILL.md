@@ -839,8 +839,8 @@ cd go && go test ./middleware/... -run ActionToolBoundary -v
   three ports follow the same parity table; a bug report must name which port
   and which fixture case it fails.
 - The tool-adapter/governor tool-lane pattern (closed catalogs, branded governor
-  proposals, typed registries) is specific to the DVL Assistant's developer skills, not
-  part of this generic SDK skill.
+  proposals, typed registries) lives in `kei-tool-adapters`, not
+  in this generic SDK skill.
 
 ## Related skills
 
