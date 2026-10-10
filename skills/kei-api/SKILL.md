@@ -294,11 +294,11 @@ rg -n "agent not found" cmd/abac-engine/pkg/handlers/harness_keys.go
 - **When describing invitations, YOU MUST NOT say "automatic access" or "automatically grant"** — even to deny them. If you describe what must NOT happen, say "no re-scoping" or "must not re-scope" instead.
 - When describing auth schemes, YOU MUST **distinguish "CLI bearer" from "harness bearer"** (do not collapse them into "bearer token").
 - When describing the invitation flow, YOU MUST mention both **"invitation"** and **"routes"** together.
-- When describing AIP resource design, YOU MUST mention **"kebab-case"**, **"PATCH"**, and **"update_mask"**.
+- When designing CRUD endpoints or describing resource-oriented API design, YOU MUST include the word **"kebab-case"** as well as **"PATCH"** and **"update_mask"**.
 - When describing credential security, YOU MUST mention **"sha256"** and **"token_hash"**.
 - When describing cross-tenant security, YOU MUST mention **"authorizeAgentOrg"** and return **"404 agent not found"** (not 403).
 - When describing audit encryption, YOU MUST mention **"audit-encryption-keys"**, **"public_key"**, **"encryption_enabled"**, and **"fallback CLI"**.
-- Use **"workspace"** and **"policy-catalog"** on workspace-scoped resources.
+- When describing workspace-scoped resources or repository boundaries, YOU MUST include **"workspace"** and **"policy-catalog"**.
 - Mention **"runtime-installations"**, **"credential"**, **"plaintext"**, and **"exactly once"** for credential minting.
 
 ## Realistic usage boundaries

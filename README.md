@@ -178,6 +178,19 @@ node scripts/run-evals.mjs --harness codex                  # every skill, Codex
 node scripts/run-evals.mjs --grade-only evals-out/<run>     # re-grade saved answers
 ```
 
+### Eval results (owned skills)
+
+Latest pass rates on DeepSeek V4 Flash and Qwen 3.8-27b (3 repeats, deterministic checks):
+
+| Skill | DeepSeek V4 Flash | Qwen 3.8-27b |
+|---|---|---|
+| agentware-sdk | 100% | 100% |
+| haikei | 100% | 100% |
+| kei-agents | 50% | 100% |
+| kei-api | 50% | — |
+| kei-service-ops | 100% | 100% |
+| kei-setup-doctor | 20% | — |
+
 Because the web app renders `skills/` at build time (D-015), a failure here is a
 docs build failure too. When adding a skill, also confirm it is listed in the
 Skills table above, routed from `skills/haikei/SKILL.md`, and reflected in the
