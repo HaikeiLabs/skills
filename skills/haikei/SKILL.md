@@ -1,6 +1,6 @@
 ---
 name: haikei
-description: "Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime installation credential (KEI_RUNTIME_TOKEN); connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing a customer assistant's ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring; reading or writing data through governed connectors (discover which connectors the workspace has via `kei connectors list --workspace W` — released in kei; v0.1.13 is current — fallback to `GET /api/v1/data-connectors`); creating or importing harness command policies; registering harnesses and syncing tool registrations; or creating a new connector skill from templates; operating Kei's own platform services from the operator's view (deploying or rolling back oidc-bridge/catalog, goose migrations on the private RDS, identity signing keys, KMS token re-encryption, KeiIdentity* alerts). Routes the task to the right skill: kei-cli, kei-proxy, kei-runtime-setup, kei-credential-rotation, kei-harness-setup, kei-harness-policy, kei-audit-encryption, kei-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-service-ops, kei-ingress-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, kei-api-conventions, the matching `<provider>-connector` skill (discovered at runtime), or templates/connector-skill."
+description: "Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime installation credential (KEI_RUNTIME_TOKEN); connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing a customer assistant's ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring; reading or writing data through governed connectors (discover which connectors the workspace has via `kei connectors list --workspace W` — released in kei; v0.1.13 is current — fallback to `GET /api/v1/data-connectors`); creating or importing harness command policies; registering harnesses and syncing tool registrations; or creating a new connector skill from templates; operating Kei's own platform services from the operator's view (deploying or rolling back oidc-bridge/catalog, goose migrations on the private RDS, identity signing keys, KMS token re-encryption, KeiIdentity* alerts). Routes the task to the right skill: kei-cli, kei-proxy, kei-runtime-setup, kei-credential-rotation, kei-harness-setup, kei-pi-setup, kei-harness-policy, kei-audit-encryption, kei-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-service-ops, kei-ingress-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, kei-api-conventions, the matching `<provider>-connector` skill (discovered at runtime), or templates/connector-skill."
 ---
 
 # Discover and build with Haikei
@@ -68,7 +68,8 @@ Need to operate Kei from a terminal?
 └─ Org, workspace, agent, policy, user → web app (no CLI); HTTP API → kei-api
 
 Need a coding agent governed by Kei?
-├─ Install the Haikei skills in Claude Code / Codex / OpenCode / Pi / Cursor → kei-harness-setup
+├─ Install/configure Pi with Kei's local adapter → kei-pi-setup
+├─ Install the Haikei skills in Claude Code / Codex / OpenCode / Cursor → kei-harness-setup
 ├─ Wrap tool calls with policy + audit in your own harness code → agentware-sdk
 └─ Define agent tools and schemas → kei-agents
 ```
@@ -88,7 +89,8 @@ exist in the code today.
 | Make an agent's tool call go through Kei (allow/deny, connector calls, audit) | `kei-proxy` runtime | Harness or adapter code that calls Kei at run time; never `kei login` | `kei-proxy` |
 | Stand up a customer-hosted runtime / kei-proxy | kei CLI (`kei bot …`) + `kei-proxy runtime` | New installation → credential → config → bootstrap → heartbeat → bind. The CLI surface (login, init, credential, bind) lives in `kei-cli`; the boot/run surface lives in `kei-runtime-setup` | `kei-runtime-setup` + `kei-cli` |
 | Rotate or revoke a runtime credential (KEI_RUNTIME_TOKEN) | kei CLI `bot credential --rotate` | Scheduled rotation, suspected leak, or a bootstrap missing `workspace_id` | `kei-credential-rotation` |
-| Connect Claude Code, Codex, OpenCode, Pi, or Cursor to Kei | Haikei skills + kei-proxy | Install these skills in a harness and route its governed calls through the runtime | `kei-harness-setup` |
+| Connect Claude Code, Codex, OpenCode, or Cursor to Kei | Haikei skills + kei-proxy | Install these skills in a harness and route its governed calls through the runtime | `kei-harness-setup` |
+| Set up Pi with Kei | `kei-lime-pi` extension + local `kei-proxy` socket | Install the Pi package, keep the runtime token out of Pi, and verify supported tool calls fail closed | `kei-pi-setup` |
 | Create an organization or workspace | Kei API | Set up an org, workspaces, seats, plans, members. Always inspect the actual API routes before calling an endpoint | `kei-api` |
 | Add or manage a data connector | Kei API | Register a governed data source (GitHub, Linear, Drive, S3, http_api/CRM) and its status | `kei-api` |
 | Manage groups, policies, users, roles, access levels | Kei API | Administer RBAC/ABAC state that decides agent and user access | `kei-api` |
@@ -147,6 +149,7 @@ exist in the code today.
 - **"Rotate the Kei token for our prod harness."** → `kei-credential-rotation`.
   Rotation invalidates the old token immediately, so plan the restart.
 - **"Set up Kei in Claude Code for the team."** → `kei-harness-setup`.
+- **"Install the Kei adapter in Pi and govern its tools."** → `kei-pi-setup`.
 - **"Add an endpoint that approves an invoice."** → API conventions. Spell it as
   a custom method (`POST /api/v1/invoices/{id}:approve`), not a trailing
   `/approve` segment, and run `aipcheck` before committing. Load

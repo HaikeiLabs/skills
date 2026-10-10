@@ -1,0 +1,37 @@
+{
+  "skill_name": "kei-pi-setup",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Set up Pi with Kei on my Mac. I want the instructions and adapter, and I do not want the runtime token in Pi's environment.",
+      "expected_output": "Install HaikeiLabs/skills and HaikeiLabs/kei-lime-pi with Pi's Git package manager. Keep the runtime credential in kei-proxy's protected configuration; Pi calls the local owner-only socket. Confirm an active v2 bundle and test both a permitted and denied call.",
+      "expectations": [
+        "The answer gives both Pi package install commands from the official GitHub repositories.",
+        "The answer keeps KEI_RUNTIME_TOKEN out of Pi and identifies the local Unix socket path.",
+        "The answer states that installing the packages does not itself grant policy permission.",
+        "The answer recommends a fail-closed denial test."
+      ],
+      "checks": [
+        {"text":"The answer gives both Pi package install commands from the official GitHub repositories.","contains_all":["pi install git:github.com/HaikeiLabs/skills","pi install git:github.com/HaikeiLabs/kei-lime-pi"]},
+        {"text":"The answer keeps KEI_RUNTIME_TOKEN out of Pi and identifies the local Unix socket path.","contains_all":["KEI_RUNTIME_TOKEN","Unix socket"]},
+        {"text":"The answer states that installing the packages does not itself grant policy permission.","contains_all":["install","permission"]},
+        {"text":"The answer recommends a fail-closed denial test.","contains_any":["denied","deny","fail closed"]}
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "The policy bundle permits search_wiki. Can I just ask Pi to call search_wiki now?",
+      "expected_output": "Not with the current kei-lime-pi package: it implements read/write/edit and kei_connector, not search_wiki. A policy or Discord harness registration does not add a Pi executor. Add a Pi-side implementation and matching runtime registration/policy; do not call the provider directly as a fallback.",
+      "expectations": [
+        "The answer says the current Pi package does not implement search_wiki or web_search.",
+        "The answer distinguishes policy registration from a Pi-side executor implementation.",
+        "The answer rejects direct provider calls as a fallback and keeps the decision fail-closed."
+      ],
+      "checks": [
+        {"text":"The answer says the current Pi package does not implement search_wiki or web_search.","contains_all":["does not implement","search_wiki"]},
+        {"text":"The answer distinguishes policy registration from a Pi-side executor implementation.","contains_all":["policy","executor"]},
+        {"text":"The answer rejects direct provider calls as a fallback and keeps the decision fail-closed.","contains_any":["directly","direct provider","fallback"]}
+      ]
+    }
+  ]
+}

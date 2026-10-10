@@ -180,6 +180,21 @@
           "text": "states the connector supplies the credential and the agent never reads or stores it"
         }
       ]
+    },
+    {
+      "id": 7,
+      "prompt": "Set up Kei's Pi integration on my workstation. Which skill covers installing the Pi adapter and what should happen to the runtime token?",
+      "expected_output": "Routes to kei-pi-setup. Install the skills and kei-lime-pi packages with Pi's Git package manager; keep KEI_RUNTIME_TOKEN in the runtime daemon and use the owner-only Unix socket.",
+      "expectations": [
+        "The response routes Pi adapter setup to kei-pi-setup.",
+        "The response names kei-lime-pi as the Pi adapter package.",
+        "The response keeps the runtime token out of Pi and uses the local socket."
+      ],
+      "checks": [
+        {"text":"The response routes Pi adapter setup to kei-pi-setup.","contains_all":["kei-pi-setup"]},
+        {"text":"The response names kei-lime-pi as the Pi adapter package.","contains_all":["kei-lime-pi"]},
+        {"text":"The response keeps the runtime token out of Pi and uses the local socket.","contains_all":["token","socket"]}
+      ]
     }
   ]
 }

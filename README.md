@@ -34,9 +34,10 @@ the harness it is running in:
 ```text
 Install the Haikei Agent Skills from https://github.com/HaikeiLabs/skills.git.
 First inspect which harness you are running (Claude Code, Cursor, OpenCode,
-Pi, or Codex) and its documented user/project skill directory. Clone the
-repository to a temporary directory, review the skills/ folders, then copy or
-symlink each folder containing SKILL.md into that harness's skill directory.
+Pi, or Codex) and use its documented install flow. For Pi, run
+`pi install git:github.com/HaikeiLabs/skills`. For other harnesses, clone the repository
+to a temporary directory, review the skills/ folders, then copy or symlink
+each folder containing SKILL.md into that harness's skill directory.
 Preserve existing skills, do not overwrite a same-named skill without asking,
 and do not copy .git metadata. After installation, verify that all SKILL.md
 files have name and description frontmatter and report the destination and
@@ -71,19 +72,21 @@ Clone this repo and symlink or copy the skill folders into
 
 ### Pi
 
-Pi loads the same Agent Skills directories. Clone this repo and either add
-the repository's `skills/` directory to `~/.pi/agent/skills/`, or configure
-the clone in Pi's settings:
+Install this repository as a Pi package; Pi discovers its conventional
+`skills/` directory:
 
-```json
-{
-  "skills": ["/path/to/skills/skills"]
-}
+```sh
+pi install git:github.com/HaikeiLabs/skills
+# For project-local settings instead of user settings:
+pi install -l git:github.com/HaikeiLabs/skills
+pi list
 ```
 
-For a project-local install, use `.pi/skills/` or configure the repository's
-`skills/` directory in `.pi/settings.json`. Pi also discovers the skills
-through `~/.agents/skills/` and project `.agents/skills/` directories.
+For Kei-governed Pi tool calls, install the separate adapter package too:
+`pi install git:github.com/HaikeiLabs/kei-lime-pi`. See
+[`kei-pi-setup`](skills/kei-pi-setup/SKILL.md) for runtime and policy
+requirements. Skills and adapter packages are separate; installing either does
+not grant policy permissions.
 
 ### Cursor
 
@@ -117,7 +120,8 @@ skill.
 | [kei-runtime-setup](skills/kei-runtime-setup/SKILL.md) | Stand up a customer-hosted runtime end to end: login, installation, credential to secret manager, `KEI_RUNTIME_*` env, `kei-proxy runtime bootstrap`/`heartbeat`, bind, and a fail-closed check |
 | [kei-credential-rotation](skills/kei-credential-rotation/SKILL.md) | Rotate or revoke a runtime installation credential (`kei bot credential --rotate`, immediate cutover) and the console-only agent-key rotation |
 | [kei-audit-encryption](skills/kei-audit-encryption/SKILL.md) | Opt-in, customer-held age (X25519) encryption of audit tool-call arguments: `kei audit keys create\|list\|disable`, `kei audit decrypt`, the audit-encryption-keys AIP resource, the keyed `args_digest`, rotation (add-new-then-disable-old), and the escrow setting (off by default). `kei audit` ships in the next kei release |
-| [kei-harness-setup](skills/kei-harness-setup/SKILL.md) | Connect Claude Code, Codex, OpenCode, Pi, or Cursor to Kei: install these skills, pair with a runtime, pass agent identity to `kei-proxy authorize`, prove denials |
+| [kei-harness-setup](skills/kei-harness-setup/SKILL.md) | Connect Claude Code, Codex, OpenCode, or Cursor to Kei: install these skills, pair with a runtime, pass agent identity to `kei-proxy authorize`, prove denials |
+| [kei-pi-setup](skills/kei-pi-setup/SKILL.md) | Install the Pi adapter and skills packages, connect Pi to the local `kei-proxy` socket, understand supported tools, and verify fail-closed behavior |
 | [kei-api](skills/kei-api/SKILL.md) | The Kei HTTP API (`/api/v1/*`): organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles — where org management actually lives today |
 | [kei-api-conventions](skills/kei-api-conventions/SKILL.md) | Resource-oriented (AIP-style) HTTP endpoint conventions from ADR-019: collection naming, `:verb` custom methods, pagination, the dual-write migration, and the `aipcheck` CI gate |
 | [agentware-sdk](skills/agentware-sdk/SKILL.md) | The open-source agentware SDK: policy enforcement, audit records, and delegation for agent tool calls, in Go, Python, and TypeScript |
