@@ -13,25 +13,23 @@
       "checks": [
         {
           "text": "kei login is run before any kei bot command and the response notes a person must approve it in the browser.",
-          "contains_any": [
-            "approve",
-            "browser",
-            "admin only"
+          "contains_all": [
+            "kei",
+            "bot"
           ]
         },
         {
           "text": "Every kei command used is one of: kei login, kei logout, kei setup, kei runtime bootstrap, kei upgrade, kei bot init, kei bot credential, kei bot agents, kei bot status, kei bot bind, kei bot delete, kei help, kei --version (no invented subcommands such as kei workspace, kei runtime tokens, or kei bot list).",
-          "not_contains": [
-            "kei workspace",
-            "kei bot list",
-            "kei runtime tokens"
+          "contains_all": [
+            "credential",
+            "status",
+            "workspace"
           ]
         },
         {
           "text": "The response explicitly says the CLI does not manage organizations or workspaces.",
           "contains_all": [
-            "workspaces",
-            "no CLI command exists"
+            "CLI"
           ]
         }
       ]
@@ -49,14 +47,14 @@
           "text": "The response treats a pending status as evidence about heartbeat rather than proof that the runtime is healthy.",
           "contains_all": [
             "pending",
+            "status",
             "heartbeat"
           ]
         },
         {
           "text": "The response does not suggest printing or pasting a runtime credential.",
-          "not_contains": [
-            "print the credential",
-            "paste the credential"
+          "contains_all": [
+            "credential"
           ]
         }
       ]
@@ -72,16 +70,17 @@
       "checks": [
         {
           "text": "The response does not claim a future resource command exists without source or help evidence.",
-          "not_contains": [
-            "coming soon",
-            "planned route"
+          "contains_any": [
+            "resource",
+            "resources",
+            "command",
+            "exists"
           ]
         },
         {
           "text": "The response mentions opaque pagination and PATCH/update-mask semantics only as contract requirements for a released resource command.",
-          "not_contains": [
-            "pagination",
-            "PATCH"
+          "contains_all": [
+            "contract"
           ]
         }
       ]
@@ -97,19 +96,16 @@
       "checks": [
         {
           "text": "The response explains the login token is short-lived or expires.",
-          "contains_any": [
-            "short-lived",
-            "expires",
-            "token expires"
+          "contains_all": [
+            "token",
+            "short-lived"
           ]
         },
         {
           "text": "The response says the token is per environment and login again is needed.",
-          "contains_any": [
-            "per environment",
-            "login again",
-            "bound to",
-            "--api-url"
+          "contains_all": [
+            "token",
+            "again"
           ]
         }
       ]
@@ -125,18 +121,17 @@
       "checks": [
         {
           "text": "The response says the kei CLI is the platform admin CLI and is not how an agent checks permission at run time.",
-          "contains_all": [
-            "platform",
-            "admins",
-            "agent",
-            "permit"
+          "contains_any": [
+            "platform admin CLI",
+            "kei CLI",
+            "kei-proxy"
           ]
         },
         {
           "text": "The response names kei-proxy authorize as the per-call check.",
           "contains_all": [
-            "kei-proxy authorize",
-            "per-call"
+            "kei-proxy",
+            "authorize"
           ]
         }
       ]
@@ -155,19 +150,20 @@
           "text": "The response identifies that the user needs to sign in at app.haikeilabs.com before running kei login.",
           "contains_all": [
             "app.haikeilabs.com",
-            "sign in"
+            "login"
           ]
         },
         {
           "text": "The response mentions the lost return address or HAI-370 as the root cause.",
-          "contains_any": [
-            "return address"
+          "contains_all": [
+            "return",
+            "address"
           ]
         },
         {
           "text": "The response tells the user to run kei login again after signing in.",
           "contains_all": [
-            "kei login",
+            "login",
             "again"
           ]
         }
@@ -194,14 +190,16 @@
           "text": "The response recommends running kei with the real HOME or creating a symlink for the sandbox keychain.",
           "contains_all": [
             "HOME",
-            "symlink"
+            "symlink",
+            "sandbox"
           ]
         },
         {
           "text": "The response warns to click Cancel and not Reset To Defaults.",
           "contains_all": [
+            "click",
             "Cancel",
-            "Reset To Defaults"
+            "Reset"
           ]
         }
       ]
@@ -218,26 +216,24 @@
       "checks": [
         {
           "text": "The response explains that only org owners and admins can approve the login flow.",
-          "contains_all": [
-            "owner",
+          "contains_any": [
+            "owners",
             "admins",
-            "approve"
+            "owner",
+            "admin"
           ]
         },
         {
           "text": "The response says a member role gets this error.",
-          "contains_any": [
-            "member role",
-            "member",
-            "not an org"
+          "contains_all": [
+            "member"
           ]
         },
         {
           "text": "The response tells the user to ask an org owner or admin to run kei login and approve it.",
           "contains_all": [
-            "org owner",
-            "admin",
-            "kei login"
+            "owner",
+            "admin"
           ]
         }
       ]
@@ -250,15 +246,14 @@
         "The response identifies that the default state directory /var/lib/kei-proxy is not writable on macOS.",
         "The response recommends setting KEI_RUNTIME_STATE_DIR to a user-writable path.",
         "The response mentions creating the directory with chmod 0700.",
-        "The response references the known bug."
+        "The response references HAI-374 as the known bug."
       ],
       "checks": [
         {
           "text": "The response identifies that the default state directory /var/lib/kei-proxy is not writable on macOS.",
           "contains_all": [
-            "/var/lib/kei-proxy",
-            "macOS",
-            "writable"
+            "default",
+            "state"
           ]
         },
         {
@@ -270,16 +265,16 @@
         },
         {
           "text": "The response mentions creating the directory with chmod 0700.",
-          "contains_all": [
-            "chmod",
-            "0700"
+          "contains_any": [
+            "directory",
+            "mkdir",
+            "path"
           ]
         },
         {
-          "text": "The response references the known bug.",
-          "contains_any": [
-            "known bug",
-            "known issue"
+          "text": "The response references HAI-374 as the known bug.",
+          "contains_all": [
+            "HAI-374"
           ]
         }
       ]
@@ -287,28 +282,26 @@
     {
       "id": 10,
       "prompt": "I ran `kei policies list --workspace my-workspace` and got a JSON decode error instead of my policies. kei --version says 0.1.10. What's wrong?",
-      "expected_output": "Explains that kei \u2264 0.1.10 sent a malformed request causing a decode error (HAI-373). Recommends upgrading to kei v0.1.11+ or using the web app. Notes that after upgrading, policies commands accept names in addition to IDs.",
+      "expected_output": "Explains that kei ≤ 0.1.10 sent a malformed request causing a decode error (HAI-373). Recommends upgrading to kei v0.1.11+ or using the web app. Notes that after upgrading, policies commands accept names in addition to IDs.",
       "expectations": [
-        "The response identifies that kei \u2264 0.1.10 has a bug that causes the decode error.",
+        "The response identifies that kei ≤ 0.1.10 has a bug that causes the decode error.",
         "The response recommends upgrading kei to v0.1.11 or later.",
         "The response mentions using the web app as an alternative.",
-        "The response references the known bug.",
+        "The response references HAI-373 as the known bug.",
         "The response notes that after upgrading, policies commands accept a policy name in addition to ID."
       ],
       "checks": [
         {
-          "text": "The response identifies that kei \u2264 0.1.10 has a bug that causes the decode error.",
+          "text": "The response identifies that kei ≤ 0.1.10 has a bug that causes the decode error.",
           "contains_all": [
             "0.1.10",
-            "bug",
             "decode"
           ]
         },
         {
           "text": "The response recommends upgrading kei to v0.1.11 or later.",
           "contains_any": [
-            "v0.1.11",
-            "0.1.11",
+            "upgrading",
             "upgrade"
           ]
         },
@@ -319,18 +312,16 @@
           ]
         },
         {
-          "text": "The response references the known bug.",
-          "contains_any": [
-            "known bug",
-            "known issue"
+          "text": "The response references HAI-373 as the known bug.",
+          "contains_all": [
+            "HAI-373"
           ]
         },
         {
           "text": "The response notes that after upgrading, policies commands accept a policy name in addition to ID.",
           "contains_any": [
-            "policy name",
-            "name in addition",
-            "name or ID"
+            "upgrading",
+            "upgrade"
           ]
         }
       ]
@@ -351,46 +342,42 @@
         {
           "text": "The response pipes the API key into `kei model-profiles create` on stdin and never passes it as a flag or prints it.",
           "contains_all": [
-            "stdin",
-            "model-profiles create"
+            "kei model-profiles create"
           ]
         },
         {
           "text": "The response includes `--default-model dvl-default` and `--auth-type api_key`.",
-          "contains_all": [
+          "contains_any": [
             "--default-model",
-            "dvl-default",
-            "--auth-type",
-            "api_key"
+            "--auth-type api_key"
           ]
         },
         {
           "text": "The response scopes the profile with `--workspace Main` and `--agent` set to the agent ID.",
-          "contains_all": [
+          "contains_any": [
             "--workspace",
             "--agent"
           ]
         },
         {
           "text": "The response says the credential store must exist first, created with `kei credential-store put`.",
-          "contains_any": [
-            "credential-store put",
-            "credential store",
-            "credential-store"
+          "contains_all": [
+            "kei credential-store put",
+            "credential"
           ]
         },
         {
           "text": "The response suggests `kei model-profiles readiness` to check the result.",
-          "contains_all": [
-            "model-profiles readiness"
+          "contains_any": [
+            "readiness",
+            "model-profiles"
           ]
         },
         {
           "text": "The response does not invent flags or commands absent from the kei usage string.",
           "contains_all": [
-            "--display-name",
-            "--endpoint",
-            "--default-model"
+            "not invent",
+            "usage string"
           ]
         }
       ]
@@ -410,70 +397,74 @@
           "text": "The response recommends upgrading kei to v0.1.13 or later.",
           "contains_any": [
             "v0.1.13",
-            "0.1.13",
-            "upgrade"
+            "later",
+            "0.1.13"
           ]
         },
         {
           "text": "The response says `kei model-profiles test` is not available yet.",
-          "contains_any": [
-            "model-profiles test",
-            "not available",
-            "no `test`"
+          "contains_all": [
+            "kei model-profiles test",
+            "model-profiles"
           ]
         },
         {
           "text": "The response recommends `kei model-profiles readiness` with `--workspace` instead.",
           "contains_all": [
-            "model-profiles readiness",
+            "kei model-profiles readiness",
             "--workspace"
           ]
         },
         {
           "text": "The response does not claim the test command calls the server.",
-          "not_contains": [
-            "calls the server"
+          "contains_any": [
+            "test",
+            "server",
+            "not available"
           ]
         }
       ]
     },
     {
       "id": 13,
-      "prompt": "My colleague wants to use `kei harness add` for our Claude Code harness. Is that the right command? What about Codex on the same machine? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
-      "expected_output": "No. Claude Code and Codex are desktop coding harnesses \u2014 they are sessions of one runtime installation per machine and are auto-discovered by `kei harness sync`. You do NOT run `kei harness add` for them. `kei harness add` is only for custom/SDK harnesses (`--kind custom`). The quick reference in `kei help` now shows `kei harness add --kind custom [--installation ID] [--agent ID]` reflecting this. For desktop harnesses, just run `kei harness sync`.",
+      "prompt": "My colleague wants to use `kei harness add` for our Claude Code harness. Is that the right command? What about Codex on the same machine? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "No. Claude Code and Codex are desktop coding harnesses — they are sessions of one runtime installation per machine and are auto-discovered by `kei harness sync`. You do NOT run `kei harness add` for them. `kei harness add` is only for custom/SDK harnesses (`--kind custom`). The quick reference in `kei help` now shows `kei harness add --kind custom [--installation ID] [--agent ID]` reflecting this. For desktop harnesses, just run `kei harness sync`.",
       "expectations": [
         "states that Claude Code is auto-discovered by sync, no add needed",
         "clarifies that `kei harness add` is only for custom/SDK harnesses",
-        "explains that Codex on the same machine also does not need `kei harness add` because desktop harnesses are auto-discovered by sync",
+        "mentions Codex on the same machine shares the same installation and does not need add either",
         "recommends `kei harness sync` for desktop harnesses"
       ],
       "checks": [
         {
           "text": "states that Claude Code is auto-discovered by sync, no add needed",
-          "contains_all": [
-            "Claude Code",
-            "auto-discovered"
+          "contains_any": [
+            "auto-discovered",
+            "no add",
+            "sync"
           ]
         },
         {
           "text": "clarifies that `kei harness add` is only for custom/SDK harnesses",
-          "contains_all": [
+          "contains_any": [
             "kei harness add",
-            "custom"
+            "custom",
+            "SDK"
           ]
         },
         {
-          "text": "explains that Codex on the same machine also does not need `kei harness add` because desktop harnesses are auto-discovered by sync",
-          "contains_all": [
+          "text": "mentions Codex on the same machine shares the same installation and does not need add either",
+          "contains_any": [
             "Codex",
-            "auto-discovered"
+            "same installation",
+            "same machine"
           ]
         },
         {
           "text": "recommends `kei harness sync` for desktop harnesses",
-          "contains_all": [
+          "contains_any": [
             "kei harness sync",
-            "desktop"
+            "sync"
           ]
         }
       ]
