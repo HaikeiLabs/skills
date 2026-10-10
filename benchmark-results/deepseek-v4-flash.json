@@ -1,0 +1,326 @@
+{
+  "schema": "haikei.eval-benchmark.v1",
+  "harness": "opencode",
+  "model_profile": "deepseek-v4-flash",
+  "model": "eval/deepseek-ai/DeepSeek-V4-Flash",
+  "created_at": "2026-10-10T10:02:22.774Z",
+  "git_sha": "10ebc1ea1f9c19a9ec3aa5714f688c9dd10746fa",
+  "repeats": 2,
+  "results": [
+    {
+      "suite": "kei-audit-encryption",
+      "kind": "skill",
+      "passed": 5,
+      "failed": 6,
+      "errors": 0,
+      "total": 11,
+      "pass_rate": 0.45454545454545453,
+      "cases": [
+        {
+          "id": 1,
+          "passed": false,
+          "reason": "repeat 1: states that registering the first key turns encryption on for new records (opt-in): Missing: registering; repeat 2: states that registering the first key turns encryption on for new records (opt-in): Missing: registering"
+        },
+        {
+          "id": 2,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 3,
+          "passed": false,
+          "reason": "repeat 1: states only the public key is registered (`kei audit keys create` uploads the public key only): Missing: public; notes escrow keypair generation and escrow decrypt are a later task / not implemented yet: Missing: keypair, generation; repeat 2: states only the public key is registered (`kei audit keys create` uploads the public key only): Missing: public; notes escrow keypair generation and escrow decrypt are a later task / not implemented yet: Missing: generation"
+        },
+        {
+          "id": 4,
+          "passed": false,
+          "reason": "repeat 1: writes to a file with `--out` (mode 0600): Missing: writes; notes the CLI fetches the ciphertext via the audit records API and decrypts locally with the identity: Missing: CLI, fetches; repeat 2: writes to a file with `--out` (mode 0600): Missing: writes; states stdout output requires an explicit `--stdout` flag (no implicit printing): Missing: --stdout, stdout"
+        },
+        {
+          "id": 5,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 6,
+          "passed": false,
+          "reason": "repeat 1: states only the content of the call (arguments/payload: code body, script, prompt text) is encrypted: Missing: script, prompt; repeat 2: explains args_ciphertext is age-encrypted (X25519, multi-recipient) to all active recipients, base64-encoded, with recipient_key_ids: Missing: args_ciphertext; explains args_digest is a keyed HMAC (hmac-sha256:) that groups repeated calls and is never reversible: Missing: keyed"
+        },
+        {
+          "id": 7,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 8,
+          "passed": false,
+          "reason": "repeat 1: notes escrow keypair generation and escrow decrypt are a later task / not implemented yet: Missing: keypair; repeat 2: notes escrow keypair generation and escrow decrypt are a later task / not implemented yet: Missing: keypair"
+        },
+        {
+          "id": 9,
+          "passed": false,
+          "reason": "repeat 1: explains disabled keys stay listed so old records can name their recipient_key_ids: Missing: listed"
+        },
+        {
+          "id": 10,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 11,
+          "passed": true,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "suite": "kei-cli",
+      "kind": "skill",
+      "passed": 8,
+      "failed": 5,
+      "errors": 0,
+      "total": 13,
+      "pass_rate": 0.6153846153846154,
+      "cases": [
+        {
+          "id": 1,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 2,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 3,
+          "passed": false,
+          "reason": "repeat 1: The response mentions opaque pagination and PATCH/update-mask semantics only as contract requirements for a released resource command.: Missing: contract; repeat 2: The response mentions opaque pagination and PATCH/update-mask semantics only as contract requirements for a released resource command.: Missing: contract"
+        },
+        {
+          "id": 4,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 5,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 6,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 7,
+          "passed": false,
+          "reason": "repeat 1: The response recommends running kei with the real HOME or creating a symlink for the sandbox keychain.: Missing: symlink"
+        },
+        {
+          "id": 8,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 9,
+          "passed": false,
+          "reason": "repeat 2: The response identifies that the default state directory /var/lib/kei-proxy is not writable on macOS.: Missing: default"
+        },
+        {
+          "id": 10,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 11,
+          "passed": false,
+          "reason": "repeat 1: The response does not invent flags or commands absent from the kei usage string.: Missing: not invent, usage string; repeat 2: The response says the credential store must exist first, created with `kei credential-store put`.: Missing: kei credential-store put, credential; The response does not invent flags or commands absent from the kei usage string.: Missing: not invent, usage string"
+        },
+        {
+          "id": 12,
+          "passed": false,
+          "reason": "repeat 1: The response says `kei model-profiles test` is not available yet.: Missing: kei model-profiles test; repeat 2: The response says `kei model-profiles test` is not available yet.: Missing: kei model-profiles test"
+        },
+        {
+          "id": 13,
+          "passed": true,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "suite": "kei-harness-policy",
+      "kind": "skill",
+      "passed": 8,
+      "failed": 4,
+      "errors": 0,
+      "total": 12,
+      "pass_rate": 0.6666666666666666,
+      "cases": [
+        {
+          "id": 1,
+          "passed": false,
+          "reason": "repeat 1: warns that the commands ship in kei >v0.1.6: None found: >v0.1.6, ship, commands"
+        },
+        {
+          "id": 2,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 3,
+          "passed": false,
+          "reason": "repeat 1: notes kei >v0.1.6 requirement: None found: >v0.1.6; repeat 2: notes kei >v0.1.6 requirement: None found: >v0.1.6"
+        },
+        {
+          "id": 4,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 5,
+          "passed": false,
+          "reason": "repeat 1: explains what the hook would do (allow with annotation / audit instead of deny): None found: allow, annotation, audit; repeat 2: explains what the hook would do (allow with annotation / audit instead of deny): None found: allow, annotation, audit"
+        },
+        {
+          "id": 6,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 7,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 8,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 9,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 10,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 11,
+          "passed": false,
+          "reason": "repeat 1: mentions the kei-backup file Kei creates before each write: Missing: write"
+        },
+        {
+          "id": 12,
+          "passed": true,
+          "reason": ""
+        }
+      ]
+    },
+    {
+      "suite": "kei-harness-setup",
+      "kind": "skill",
+      "passed": 4,
+      "failed": 6,
+      "errors": 0,
+      "total": 10,
+      "pass_rate": 0.4,
+      "cases": [
+        {
+          "id": 1,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 2,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 3,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 4,
+          "passed": false,
+          "reason": "repeat 2: The response mentions Anthropic-specific format features like input_schema and thinking blocks.: Missing: input_schema, thinking"
+        },
+        {
+          "id": 5,
+          "passed": false,
+          "reason": "repeat 1: The response cross-references kei-openai-backends and kei-runtime-setup for details.: None found: kei-openai-backends, kei-runtime-setup"
+        },
+        {
+          "id": 6,
+          "passed": false,
+          "reason": "repeat 1: The response mentions that kei-proxy fails closed (denies everything) when the schema is invalid.: Missing: fails; repeat 2: The response mentions that kei-proxy fails closed (denies everything) when the schema is invalid.: Missing: fails"
+        },
+        {
+          "id": 7,
+          "passed": false,
+          "reason": "repeat 1: The response references the scripts/ directory and setup-claude-code.sh.: Missing: scripts/; repeat 2: The response mentions verify.sh runs at the end to confirm the setup is valid.: Missing: verify.sh"
+        },
+        {
+          "id": 8,
+          "passed": false,
+          "reason": "repeat 1: The response references kei-harness-policy references/bundle-versioning.md for versioning details.: None found: kei-harness-policy, references/bundle-versioning.md; repeat 2: The response references kei-harness-policy references/bundle-versioning.md for versioning details.: None found: kei-harness-policy, references/bundle-versioning.md"
+        },
+        {
+          "id": 9,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 10,
+          "passed": false,
+          "reason": "repeat 1: The response states the runtime service must be running for the audit upload and gives kei runtime service status to check it.: Missing: running; repeat 2: The response says the installation's card shows the recent activity.: Missing: installation, recent activity; The response states the runtime service must be running for the audit upload and gives kei runtime service status to check it.: Missing: kei runtime service status, running"
+        }
+      ]
+    },
+    {
+      "suite": "kei-runtime-setup",
+      "kind": "skill",
+      "passed": 3,
+      "failed": 3,
+      "errors": 0,
+      "total": 6,
+      "pass_rate": 0.5,
+      "cases": [
+        {
+          "id": 1,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 2,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 3,
+          "passed": false,
+          "reason": "repeat 2: The response says the daemon serves a governed authorize route over the socket (local PDP), not that it is unavailable.: None found: daemon, serves"
+        },
+        {
+          "id": 4,
+          "passed": false,
+          "reason": "repeat 1: mentions workspace_id check: Missing: workspace_id; repeat 2: mentions workspace_id check: Missing: workspace_id"
+        },
+        {
+          "id": 5,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 6,
+          "passed": false,
+          "reason": "repeat 1: mentions kei bot status: None found: kei bot status; notes failure mode: None found: fail closed; repeat 2: mentions kei bot status: None found: kei bot status; notes failure mode: None found: fail closed"
+        }
+      ]
+    }
+  ]
+}

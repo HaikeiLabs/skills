@@ -10,6 +10,35 @@
         "The runtime credential is piped to a secret manager and never printed, pasted, or passed as a command-line argument.",
         "Bootstrap runs before bind, and the response says to keep kei-proxy runtime heartbeat running.",
         "The response tells the user to confirm a deliberately unbound call is denied."
+      ],
+      "checks": [
+        {
+          "text": "kei login appears before any kei bot command and the response says the user must approve the device flow in a browser.",
+          "contains_all": [
+            "login"
+          ]
+        },
+        {
+          "text": "The runtime credential is piped to a secret manager and never printed, pasted, or passed as a command-line argument.",
+          "contains_all": [
+            "runtime"
+          ]
+        },
+        {
+          "text": "Bootstrap runs before bind, and the response says to keep kei-proxy runtime heartbeat running.",
+          "contains_all": [
+            "Bootstrap",
+            "kei-proxy",
+            "runtime"
+          ]
+        },
+        {
+          "text": "The response tells the user to confirm a deliberately unbound call is denied.",
+          "contains_any": [
+            "unbound call",
+            "denied"
+          ]
+        }
       ]
     },
     {
@@ -19,6 +48,21 @@
       "expectations": [
         "The response refuses to fall back to organization-wide scope.",
         "The response says to re-mint or rotate the credential."
+      ],
+      "checks": [
+        {
+          "text": "The response refuses to fall back to organization-wide scope.",
+          "contains_any": [
+            "scope"
+          ]
+        },
+        {
+          "text": "The response says to re-mint or rotate the credential.",
+          "contains_any": [
+            "re-mint",
+            "rotate"
+          ]
+        }
       ]
     },
     {
@@ -30,7 +74,138 @@
         "The response distinguishes one-shot CLI (subprocess per call) from daemon mode (Unix socket; same-host or same-container daemon).",
         "The response says the daemon serves a governed authorize route over the socket (local PDP), not that it is unavailable.",
         "The response does not describe a network-exposed listener or TCP port for governed calls."
+      ],
+      "checks": [
+        {
+          "text": "The response does not invent a registry URL for a kei-proxy image.",
+          "contains_all": [
+            "kei-proxy"
+          ]
+        },
+        {
+          "text": "The response distinguishes one-shot CLI (subprocess per call) from daemon mode (Unix socket; same-host or same-container daemon).",
+          "contains_any": [
+            "one-shot",
+            "CLI",
+            "daemon",
+            "mode",
+            "unix",
+            "socket"
+          ]
+        },
+        {
+          "text": "The response says the daemon serves a governed authorize route over the socket (local PDP), not that it is unavailable.",
+          "contains_any": [
+            "daemon",
+            "serves"
+          ]
+        },
+        {
+          "text": "The response does not describe a network-exposed listener or TCP port for governed calls.",
+          "contains_all": [
+            "TCP"
+          ]
+        }
       ]
+    },
+    {
+      "prompt": "What does kei runtime bootstrap do?",
+      "expected_output": "`kei runtime bootstrap` sends the installation credential to the control plane to register the runtime, gets back the installation status and workspace binding. It must show workspace_id for a valid installation. Run after credential rotation and after any configuration change. Run via kei-proxy runtime bootstrap on deployed runtimes.",
+      "expectations": [
+        "describes bootstrap purpose",
+        "mentions workspace_id check",
+        "notes kei-proxy alternative"
+      ],
+      "checks": [
+        {
+          "text": "describes bootstrap purpose",
+          "contains_any": [
+            "register the runtime",
+            "installation status",
+            "bootstrap"
+          ]
+        },
+        {
+          "text": "mentions workspace_id check",
+          "contains_all": [
+            "workspace_id"
+          ]
+        },
+        {
+          "text": "notes kei-proxy alternative",
+          "contains_all": [
+            "kei-proxy runtime bootstrap"
+          ]
+        }
+      ],
+      "id": 4
+    },
+    {
+      "prompt": "How do I pair a runtime with a harness?",
+      "expected_output": "Use `kei bot bind --installation INSTALLATION_ID --harness HARNESS_ID` to link a runtime installation to a harness. After binding, run `kei harness sync` to synchronize tool metadata. The harness must already be registered via `kei harness add`.",
+      "expectations": [
+        "describes bot bind command",
+        "mentions harness sync",
+        "requires harness add first"
+      ],
+      "checks": [
+        {
+          "text": "describes bot bind command",
+          "contains_any": [
+            "kei bot bind",
+            "INSTALLATION_ID",
+            "HARNESS_ID"
+          ]
+        },
+        {
+          "text": "mentions harness sync",
+          "contains_any": [
+            "kei harness sync",
+            "harness"
+          ]
+        },
+        {
+          "text": "requires harness add first",
+          "contains_any": [
+            "kei harness add",
+            "harness",
+            "first"
+          ]
+        }
+      ],
+      "id": 5
+    },
+    {
+      "prompt": "What happens during runtime heartbeat?",
+      "expected_output": "The runtime sends periodic heartbeats to the control plane to show it is alive and healthy. Running `kei bot status --installation INSTALLATION_ID` shows the last heartbeat time and the current status. A missing heartbeat indicates the runtime is down and governed calls will fail closed.",
+      "expectations": [
+        "explains heartbeat purpose",
+        "mentions kei bot status",
+        "notes failure mode"
+      ],
+      "checks": [
+        {
+          "text": "explains heartbeat purpose",
+          "contains_any": [
+            "periodic heartbeats",
+            "alive",
+            "healthy"
+          ]
+        },
+        {
+          "text": "mentions kei bot status",
+          "contains_any": [
+            "kei bot status"
+          ]
+        },
+        {
+          "text": "notes failure mode",
+          "contains_any": [
+            "fail closed"
+          ]
+        }
+      ],
+      "id": 6
     }
   ]
 }
