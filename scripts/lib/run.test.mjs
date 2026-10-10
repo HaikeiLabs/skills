@@ -10,12 +10,13 @@ import { DEFAULT_RUN_TIMEOUT_SECONDS, parseModelProfile, resolveRunTimeoutSecond
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const profiles = readFileSync(path.join(ROOT, 'evals/model-profiles.yaml'), 'utf8');
 
-test('qwen3.8-27b profile sets an 1800 s run timeout; deepseek keeps the default', () => {
+test('both model profiles set an 1800 s run timeout', () => {
   assert.deepEqual(parseModelProfile(profiles, 'qwen3.8-27b'),
     { model: 'eval/qwen3.8-27b', baseUrlEnv: 'EVAL_QWEN_BASE_URL', runTimeoutSeconds: 1800 });
   const deepseek = parseModelProfile(profiles, 'deepseek-v4-flash');
-  assert.equal(deepseek.runTimeoutSeconds, undefined);
-  assert.equal(resolveRunTimeoutSeconds({ profile: deepseek.runTimeoutSeconds }), DEFAULT_RUN_TIMEOUT_SECONDS);
+  assert.equal(deepseek.runTimeoutSeconds, 1800);
+  assert.equal(resolveRunTimeoutSeconds({ profile: deepseek.runTimeoutSeconds }), 1800);
+  assert.equal(resolveRunTimeoutSeconds({}), DEFAULT_RUN_TIMEOUT_SECONDS);
   assert.equal(parseModelProfile(profiles, 'no-such-profile'), null);
 });
 
