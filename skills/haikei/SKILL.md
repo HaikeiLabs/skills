@@ -1,6 +1,6 @@
 ---
 name: haikei
-description: "Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime installation credential (KEI_RUNTIME_TOKEN); connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing the DVL Assistant ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring; reading or writing data through governed connectors (discover which connectors the workspace has via `kei connectors list --workspace W` — released in kei; v0.1.13 is current — fallback to `GET /api/v1/data-connectors`); creating or importing harness command policies; registering harnesses and syncing tool registrations; or creating a new connector skill from templates; operating Kei's own platform services from the operator's view (deploying or rolling back oidc-bridge/catalog, goose migrations on the private RDS, identity signing keys, KMS token re-encryption, KeiIdentity* alerts). Routes the task to the right skill: kei-cli, kei-proxy, kei-runtime-setup, kei-credential-rotation, kei-harness-setup, kei-harness-policy, kei-audit-encryption, kei-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-service-ops, kei-assistant-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, kei-api-conventions, the matching `<provider>-connector` skill (discovered at runtime), or templates/connector-skill."
+description: "Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime installation credential (KEI_RUNTIME_TOKEN); connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing a customer assistant's ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring; reading or writing data through governed connectors (discover which connectors the workspace has via `kei connectors list --workspace W` — released in kei; v0.1.13 is current — fallback to `GET /api/v1/data-connectors`); creating or importing harness command policies; registering harnesses and syncing tool registrations; or creating a new connector skill from templates; operating Kei's own platform services from the operator's view (deploying or rolling back oidc-bridge/catalog, goose migrations on the private RDS, identity signing keys, KMS token re-encryption, KeiIdentity* alerts). Routes the task to the right skill: kei-cli, kei-proxy, kei-runtime-setup, kei-credential-rotation, kei-harness-setup, kei-harness-policy, kei-audit-encryption, kei-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-service-ops, kei-ingress-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, kei-api-conventions, the matching `<provider>-connector` skill (discovered at runtime), or templates/connector-skill."
 ---
 
 # Discover and build with Haikei
@@ -102,7 +102,7 @@ exist in the code today.
 | Define governed connector read schemas | kei-agents | Express what an agent may read through a governed connector, with delegated context | `kei-agents` |
 | Diagnose a broken or unverified Kei installation | kei CLI (`setup`, `runtime bootstrap`, `bot status`) driven as a workflow | An installation already exists (or is being stood up) and needs read-only diagnosis, verification, or handoff across local, AWS, or Azure | `kei-setup-doctor` |
 | Operate Kei's own platform services (the operator's view, not tenant use) | Service repos + helm/kubectl on the Kei cluster | Deploy or roll back oidc-bridge/catalog (merge = deploy, ADR-031), run or reach a goose migration on the private RDS, bootstrap/rotate/retire identity signing keys, re-encrypt tokens at rest with KMS, explain east-west `X-KEI-API-Key` auth, or respond to a `KeiIdentity*` alert | `kei-service-ops` |
-| Develop or review the DVL Assistant ingress boundary | DVL Assistant security invariants | Work on the assistant's fail-closed auth, SSO, governor, auditor, or enrollment gates; security reviews of `src/app.ts`, `src/config.ts`, `src/verifier.ts`, `src/authz/`, `src/governor/` | `kei-assistant-security` |
+| Develop or review a customer assistant's ingress boundary | Ingress security invariants | Work on fail-closed feature flags, token verification, SSO, governor, audit, enrollment, or idempotency gates of a bot ingress service, or review their security | `kei-ingress-security` |
 | Wire Teams/Bot Framework activities, SSO, or OAuthCards | Teams / Bot Framework ingress | Integrate Bot Framework activity parsing, Connector auth, SSO tokenExchange, mention gate, or outbound Connector sends in either the assistant or the chat harness | `kei-teams-ingress` |
 | Build or extend a tool lane, governor proposal, or tool adapter | Tool adapters and governor pattern | Add a new tool lane (schema/client/guard/envelope/renderer/runtime + proposal + registry), modify the governor stdio protocol, or develop the chat harness agent tools and tool-definition renderers | `kei-tool-adapters` |
 | Run or extend headless deterministic evals | Headless evaluation harnesses | Work with EvalSuite fixtures, ScriptedBackend, the assistant eval CLI, the chat harness eval_harness.py, or the agentware eval suites in Python/Go/TypeScript | `kei-headless-evals` |
@@ -125,11 +125,11 @@ exist in the code today.
 | service operations (operator's view) | each service's own repo (chart + `deploy.yaml`, migrations, scripts) + the Kei cluster | Deploy (merge = deploy, ADR-031), rollback (helm/kubectl, catalog `credentialRelease.authMode`), goose migrations (relay pod + port-forward to private RDS), signing keys (dry-run only for agents), KMS re-encryption, `X-KEI-API-Key` east-west auth (ADR-009), `KeiIdentity*` alert response | Tenant-facing work (customer runtimes, credentials, installations — that is `kei-runtime-setup`/`kei-credential-rotation`/`kei-setup-doctor`); applying terraform or mutating prod (human-only); printing secrets |
 | harness command policy | the `kei-cli` repository (`kei policies`, `kei harness` subcommands — released; v0.1.13 is current) | Harness command policies (`shell:`/`skill:`/`path:` dst), native config import and render (via `kei harness sync`), agent-keyed harness registration and tool sync | Tool-call policy (kei-proxy ABAC); org-level ABAC policy management (Kei API); report-only hook implementation (follow-up) |
 | audit-args encryption | the `kei-cli` repository (`kei audit` subcommands — unreleased as of 2026-10-03) + the catalog `audit-encryption-keys` resource | Opt-in customer-held age (X25519) encryption of audit tool-call arguments: local identity generation, public-key registration, local decrypt, rotation (add-new-then-disable-old), escrow setting (off by default) | Kei-side decryption (removed; no Kei path reads args by default); the keyed `args_digest` (Kei-held, never customer-facing); runtime credential rotation (`kei-credential-rotation`) |
-| assistant security | `DVL-Group/assistant` (`src/`) | Fail-closed ingress: master switches, auth gates, SSO exchange, governor, pseudonymous audit, enrollment, idempotency, deployment contract | `sso-card` lane composition, middleware pattern for other repos |
-| Teams / Bot Framework | assistant (`src/teams/`) + chat harness (`teams_main.py`) | Activity parsing, Connector auth, SSO/OAuthCard, mention/audience gate, reply routing, outbound sends, manifest, Teams adapter | The invite-only MS Teams library (`@microsoft/teams.apps`-auth) — not a public dependency |
-| tool adapters / governor | assistant (`src/tools/`, `src/governor/`) + chat harness (`tool_definitions.py`, agent tools) | Tool lane stacks, governor proposals and stdio protocol, registry, chat harness tool-format renderers and KEI proxy integration | LLM-driven dynamic tool selection; free-form endpoint selection |
-| headless evals | assistant (`src/eval/`) + chat harness (`eval_harness.py`) + agentware (`python/src/evals`, `go/evals`, `typescript/src/evals`) | Offline deterministic eval harnesses, golden fixtures, ScriptedBackend, eval CLI, ModelBackend | The `agentware` eval backend seam (intentionally unwired) |
-| OpenAI-compatible backends | chat harness (`agent.py`, `config.py`, `tool_definitions.py`) + agentware evals | LLM endpoint wiring, tool-format renderers, eval ModelBackend, Kei local docker stack | Non-OpenAI-compatible endpoints; the DVL Assistant repo (zero-LLM) |
+| ingress security | a customer assistant's ingress service | Fail-closed ingress: master switches, auth gates, SSO exchange, governor, pseudonymous audit, enrollment, idempotency, eager fail-stop startup | Generic tool-call middleware (that is `agentware-sdk`) |
+| Teams / Bot Framework | customer assistant ingress (`src/teams/`) + chat harness (`teams_main.py`) | Activity parsing, Connector auth, SSO/OAuthCard, mention/audience gate, reply routing, outbound sends, manifest, Teams adapter | The invite-only MS Teams library (`@microsoft/teams.apps`-auth) — not a public dependency |
+| tool adapters / governor | customer assistant ingress (tool lanes, governor) + chat harness (`tool_definitions.py`, agent tools) | Tool lane stacks, governor proposals and stdio protocol, registry, chat harness tool-format renderers and KEI proxy integration | LLM-driven dynamic tool selection; free-form endpoint selection |
+| headless evals | customer assistant ingress (`src/eval/`) + chat harness (`eval_harness.py`) + agentware (`python/src/evals`, `go/evals`, `typescript/src/evals`) | Offline deterministic eval harnesses, golden fixtures, ScriptedBackend, eval CLI, ModelBackend | The `agentware` eval backend seam (intentionally unwired) |
+| OpenAI-compatible backends | chat harness (`agent.py`, `config.py`, `tool_definitions.py`) + agentware evals | LLM endpoint wiring, tool-format renderers, eval ModelBackend, Kei local docker stack | Non-OpenAI-compatible endpoints; a zero-LLM ingress service |
 | Provider connector skills | `skills/<provider>-connector/` | Governed reads and writes through a provider's API under Kei governance; entity hierarchy and ADR-028 resource types are provider-specific; discover which connectors the workspace has via `kei connectors list --workspace W` (released in kei; v0.1.13 is current; fallback `GET /api/v1/data-connectors`). The connector supplies the credential; the agent never reads or stores it | Credential management (Kei supplies the credential); provider-specific SDKs; the list of providers is not enumerable via CLI — pending ticket |
 | Connector skill templates | `templates/connector-skill/` + `templates/connector-plugin/` | Forkable template for building new governed connector skills with Lexicon/Pragmatics/Semantics sections, evals, and plugin manifests | The template itself; use the example skills as concrete references |
 
@@ -183,17 +183,17 @@ exist in the code today.
   daemonset before blaming the service — a CNI change blocks new pod creation
   while existing pods keep running.
 - **"Add a new environment variable for the assistant that controls a gate."** →
-  `kei-assistant-security`. The master-switch must be strict-equality, fail-closed,
-  and dark by non-construction; the gate must follow the slice pattern, pseudonymous
-  audit, and fixed `OutcomeCode`.
+  `kei-ingress-security`. The master-switch must be strict-equality, fail-closed,
+  and dark by non-construction; the gate needs a negative test, pseudonymous
+  audit, and a fixed outcome code.
 - **"The bot is receiving duplicate Teams activities."** → `kei-teams-ingress`
-  (idempotency) + `kei-assistant-security` (the scoped-activity-key pattern).
+  (idempotency) + `kei-ingress-security` (the scoped idempotency key).
   The duplicate is acknowledged with zero reprocessing; do not loosen the
   idempotency reserve.
 - **"Add a tool that queries the company expense-report dataset."** → `kei-tool-adapters`.
   Create the full lane stack (schema/client/guard/envelope/renderer/runtime + governor
-  proposal + registry entry), then `kei-assistant-security` to wire it into the
-  assistant's `onVerifiedGrant`.
+  proposal + registry entry), then `kei-ingress-security` to wire it into the
+  ingress service's one verified-grant callback.
 - **"I need to pin the closed command parser for a new skill without hitting the LLM."** →
   `kei-headless-evals`. Add a golden fixture to `eval/fixtures/`, a `ScriptedBackend` case
   in the runner, and a `test/eval.harness.test.ts` assertion for the case count.
@@ -315,18 +315,18 @@ against the relevant product repo (see each skill's `## Validation commands`).
   rotation, and installation diagnosis go to `kei-runtime-setup`,
   `kei-credential-rotation`, and `kei-setup-doctor`. Agents never apply
   terraform or mutate prod, and never print secrets.
-- `kei-assistant-security` owns the assistant's ingress gates and invariants; do not
+- `kei-ingress-security` owns the ingress gates and invariants; do not
   route generic middleware policy questions there — those go to `agentware-sdk`.
 - `kei-teams-ingress` covers Bot Framework mechanics; do not use it for OBO token
-  exchange or SSO card generation across repos — those are specific to the assistant
-  and live under `kei-assistant-security`.
+  exchange or SSO card generation across repos — those are ingress concerns
+  and live under `kei-ingress-security`.
 - `kei-tool-adapters` covers the governor tool-lane pattern and chat harness agent
   tools; it does NOT cover free-form model-chosen tool invocation or tool loops —
   those would be agentware SDK concerns.
 - `kei-headless-evals` is for deterministic, offline eval harnesses and golden
   fixtures; do not route live model evaluation there — that is `kei-openai-backends`.
 - `kei-openai-backends` is for OpenAI-compatible endpoints only; do not use it for
-  the DVL Assistant repo, which has zero LLM.
+  a zero-LLM ingress service.
 - `HaikeiLabs/skills` is the single source of truth for these skills (D-001).
   Its markdown is also what the web app renders as documentation at build time
   (D-015), so a change here is a docs change — do not maintain a second copy

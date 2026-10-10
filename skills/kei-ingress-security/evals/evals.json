@@ -1,0 +1,156 @@
+{
+  "skill_name": "kei-ingress-security",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to add a new environment feature flag to our bot ingress service that enables an optional diagnostic endpoint. Apply the ingress master-switch invariants so the flag is fail-closed and dark by non-construction when not enabled.",
+      "expected_output": "Uses strict-equality comparison to the literal \"true\", builds the endpoint objects only when enabled, and refuses non-canonical truthy values.",
+      "expectations": [
+        "The response does not treat \"TRUE\", \"1\", or \" true \" as enabled.",
+        "The response constructs the endpoint components only inside the enabled branch, not before a runtime check."
+      ],
+      "checks": [
+        {
+          "text": "The response does not treat \"TRUE\", \"1\", or \" true \" as enabled.",
+          "regex": "^(?=[\\s\\S]*strict[- ]equality)(?=[\\s\\S]*true)"
+        },
+        {
+          "text": "The response constructs the endpoint components only inside the enabled branch, not before a runtime check.",
+          "contains_all": [
+            "non-construction"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "A penetration test report says our bot ingress service returns a different HTTP body for an unknown bot token vs a known expired token. Should I enrich the error body to help the operator debug?",
+      "expected_output": "Rejects enrichment and explains that deny responses must remain indistinguishable to avoid leaking gate internals, citing the pseudonymous audit and closed audit-code invariants.",
+      "expectations": [
+        "The response does not recommend adding detail to distinguish denial reasons.",
+        "The response cites the pseudonymous audit and closed-code invariants of the ingress security design."
+      ],
+      "checks": [
+        {
+          "text": "The response does not recommend adding detail to distinguish denial reasons.",
+          "contains_all": [
+            "pseudonymous"
+          ]
+        },
+        {
+          "text": "The response cites the pseudonymous audit and closed-code invariants of the ingress security design.",
+          "contains_any": [
+            "closed-code",
+            "closed code",
+            "audit-code",
+            "invariant 4",
+            "invariant 5",
+            "invariant #4",
+            "invariant #5"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "A PR changes our ingress token verifier to accept any valid JWT from a known issuer without checking the audience claim. Is that safe?",
+      "expected_output": "Explains this is an accept-any-token vulnerability. The verifier must enforce audience, fail with a typed verification error carrying a closed code, and use a deny-all verifier for the disabled path.",
+      "expectations": [
+        "The response rejects the accept-any-token approach and mandates audience verification.",
+        "The response states that verification fails with a typed error carrying a closed code."
+      ],
+      "checks": [
+        {
+          "text": "The response rejects the accept-any-token approach and mandates audience verification.",
+          "contains_all": [
+            "accept-any-token"
+          ]
+        },
+        {
+          "text": "The response states that verification fails with a typed error carrying a closed code.",
+          "contains_any": [
+            "closed code",
+            "closed-code",
+            "closed set",
+            "invariant 4",
+            "invariant #4"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Our bot's enrollment handler receives duplicate Teams activities. I plan to use the bare activity id as the idempotency key. Is that sufficient?",
+      "expected_output": "No: idempotency must be scoped, not bare. The key is scoped to tenant id, conversation id and activity id. Reserve after sender validation, commit on success and expected failure, release on throw so a redelivery can retry.",
+      "expectations": [
+        "The response does not accept a bare activity id for idempotency.",
+        "The response scopes the key with tenant and conversation identifiers."
+      ],
+      "checks": [
+        {
+          "text": "The response does not accept a bare activity id for idempotency.",
+          "contains_all": [
+            "scoped",
+            "bare"
+          ]
+        },
+        {
+          "text": "The response scopes the key with tenant and conversation identifiers.",
+          "contains_all": [
+            "tenant",
+            "conversation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "What invariants should our ingress service enforce around its policy-governor subprocess to prevent tampering?",
+      "expected_output": "The governor is pinned and binding: executable path, script path, cwd, and script SHA-256 are pinned inputs validated at startup. The child runs with isolated interpreter flags and an empty environment. Decisions are bound to the exact request; mismatched binding fields collapse to unavailable as a replay.",
+      "expectations": [
+        "The response describes the governor executable, script path, and SHA-256 as pinned at startup.",
+        "The response explains that a binding mismatch (wrong proposal id, actor, or role list) is treated as a replay and collapses to unavailable."
+      ],
+      "checks": [
+        {
+          "text": "The response describes the governor executable, script path, and SHA-256 as pinned at startup.",
+          "regex": "^(?=[\\s\\S]*sha-?256)(?=[\\s\\S]*pinn?ed)"
+        },
+        {
+          "text": "The response explains that a binding mismatch (wrong proposal id, actor, or role list) is treated as a replay and collapses to unavailable.",
+          "contains_all": [
+            "binding",
+            "unavailable"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "I need to issue a downstream token from a tool lane in our bot ingress service. Can I import the token mint directly in the tool lane code?",
+      "expected_output": "No: the composition root is the only production import site for downstream mints, enforced by a lint rule and a source-scan test. Tool lanes must not import mints directly.",
+      "expectations": [
+        "The response restricts mint imports to the composition root.",
+        "The response cites the lint rule or source-scan test that enforces it."
+      ],
+      "checks": [
+        {
+          "text": "The response restricts mint imports to the composition root.",
+          "contains_all": [
+            "composition root"
+          ]
+        },
+        {
+          "text": "The response cites the lint rule or source-scan test that enforces it.",
+          "contains_any": [
+            "eslint",
+            "lint rule",
+            "linter",
+            "source scan",
+            "source-scan"
+          ]
+        }
+      ]
+    }
+  ]
+}

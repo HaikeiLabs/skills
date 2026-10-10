@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "I need to add a new golden fixture for the semantic-model lane that tests an injection-shaped input. What files do I touch and what contract must the fixture preserve?",
+      "prompt": "I need to add a new golden fixture for one of the tool lanes that tests an injection-shaped input. What files do I touch and what contract must the fixture preserve?",
       "expected_output": "Identifies eval/fixtures/*.golden.json as the location, the EvalCase JSON contract from src/eval/types.ts, and the requirement that the test counts stay pinned in test/eval.harness.test.ts.",
       "expectations": [
         "The response points to the golden fixture location and the EvalCase schema.",
@@ -12,11 +12,19 @@
       "checks": [
         {
           "text": "The response points to the golden fixture location and the EvalCase schema.",
-          "contains_all": ["eval/fixtures", "golden.json"]
+          "contains_all": [
+            "eval/fixtures",
+            "golden.json"
+          ]
         },
         {
           "text": "The response mentions that removing a case is a breaking change because case counts are asserted.",
-          "contains_any": ["case counts", "case cardinality", "case count", "case-count"]
+          "contains_any": [
+            "case counts",
+            "case cardinality",
+            "case count",
+            "case-count"
+          ]
         }
       ]
     },
@@ -31,11 +39,16 @@
       "checks": [
         {
           "text": "The response uses the integration marker filter and does not run model-backed suites.",
-          "contains_all": ["not integration"]
+          "contains_all": [
+            "not integration"
+          ]
         },
         {
           "text": "The response distinguishes the offline scripted path from live model evaluation.",
-          "contains_any": ["ScriptedBackend", "not integration"]
+          "contains_any": [
+            "ScriptedBackend",
+            "not integration"
+          ]
         }
       ]
     },
@@ -50,18 +63,24 @@
       "checks": [
         {
           "text": "The response states that --backend agentware is not wired and exits 2.",
-          "contains_all": ["not wired", "exits 2"]
+          "contains_all": [
+            "not wired",
+            "exits 2"
+          ]
         },
         {
           "text": "The response mentions the stable stub message that CI uses to assert the harness version.",
-          "contains_any": ["stub", "not wired"]
+          "contains_any": [
+            "stub",
+            "not wired"
+          ]
         }
       ]
     },
     {
       "id": 4,
       "prompt": "What trace step kinds are available in an eval report and which ones carry snapshots?",
-      "expected_output": "Lists input, parse, resolve, guard, envelope, render (carry snapshots), and error, aborted (no snapshot). Schema versions are dvl.eval-trace.v1 and dvl.eval-report.v1.",
+      "expected_output": "Lists input, parse, resolve, guard, envelope, render (carry snapshots), and error, aborted (no snapshot). The trace and report schema versions are pinned constants.",
       "expectations": [
         "The response lists the trace step kinds that carry snapshots.",
         "The response mentions the schema version constants used for trace and report."
@@ -69,30 +88,43 @@
       "checks": [
         {
           "text": "The response lists the trace step kinds that carry snapshots.",
-          "contains_all": ["guard", "snapshot"]
+          "contains_all": [
+            "guard",
+            "snapshot"
+          ]
         },
         {
           "text": "The response mentions the schema version constants used for trace and report.",
-          "contains_any": ["dvl.eval-trace.v1", "dvl.eval-report.v1", "schema version"]
+          "contains_any": [
+            "schema version",
+            "version constant",
+            "eval-trace.v1",
+            "eval-report.v1"
+          ]
         }
       ]
     },
     {
       "id": 5,
       "prompt": "What fields does the EvalCase JSON require and what lanes are valid when creating a new golden fixture?",
-      "expected_output": "EvalCase requires id, lane, input, and an optional pinned expect. Lanes are a closed set: project-hours | semantic-model. The schema lives in src/eval/types.ts.",
+      "expected_output": "EvalCase requires id, lane, input, and an optional pinned expect. lane is a closed set of the service's tool lanes. The schema lives in src/eval/types.ts.",
       "expectations": [
         "The response specifies the EvalCase fields: id, lane, input, and optional expect.",
-        "The response lists the valid lanes as a closed set."
+        "The response says the valid lanes are a closed set."
       ],
       "checks": [
         {
           "text": "The response specifies the EvalCase fields: id, lane, input, and optional expect.",
-          "contains_all": ["EvalCase", "id", "lane", "input"]
+          "contains_all": [
+            "EvalCase",
+            "id",
+            "lane",
+            "input"
+          ]
         },
         {
-          "text": "The response lists the valid lanes as a closed set.",
-          "contains_all": ["project-hours", "semantic-model"]
+          "text": "The response says the valid lanes are a closed set.",
+          "regex": "closed (set|union|enum|list)"
         }
       ]
     },
@@ -107,11 +139,16 @@
       "checks": [
         {
           "text": "The response describes EvalRunner's per-case AbortSignal ownership.",
-          "contains_all": ["EvalRunner", "AbortSignal"]
+          "contains_all": [
+            "EvalRunner",
+            "AbortSignal"
+          ]
         },
         {
           "text": "The response mentions the aborted trace step kind for cancelled cases.",
-          "contains_all": ["aborted"]
+          "contains_all": [
+            "aborted"
+          ]
         }
       ]
     }

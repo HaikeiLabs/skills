@@ -1,6 +1,6 @@
 ---
 name: kei-headless-evals
-description: Headless, deterministic evaluation harnesses across the Kei repos. Use when running or extending the DVL Assistant's src/eval harness (EvalSuite/EvalCase/EvalTrace/EvalReport, ScriptedBackend, EvalRunner, --backend scripted|agentware, eval/fixtures/*.golden.json), the kei-chat-harness eval harness (eval_harness.py, testing/evals, ModelBackend openai/anthropic/ollama/llamafile/vllm/ollama_direct, eval_results JSONL), or the pedro-agentware evals (python/src/evals, go/evals, typescript/src/evals). Use whenever the task mentions headless evals, golden fixtures, eval suites, eval traces, scripted backends, or agentware runner seams. The agentware backend is intentionally NOT wired yet — do not invent it.
+description: Headless, deterministic evaluation harnesses across the Kei repos. Use when running or extending a TypeScript ingress service's src/eval harness (EvalSuite/EvalCase/EvalTrace/EvalReport, ScriptedBackend, EvalRunner, --backend scripted|agentware, eval/fixtures/*.golden.json), the kei-chat-harness eval harness (eval_harness.py, testing/evals, ModelBackend openai/anthropic/ollama/llamafile/vllm/ollama_direct, eval_results JSONL), or the pedro-agentware evals (python/src/evals, go/evals, typescript/src/evals). Use whenever the task mentions headless evals, golden fixtures, eval suites, eval traces, scripted backends, or agentware runner seams. The agentware backend is intentionally NOT wired yet — do not invent it.
 ---
 
 # Headless evals
@@ -14,9 +14,9 @@ signal until a real shared agent/tool runner lands.
 
 Each eval run produces an `EvalReport` containing one `EvalTrace` per case. A trace
 is an ordered list of `EvalTraceStep` objects — each with a kind, a message, and an
-optional snapshot. The schema version is pinned in `src/eval/types.ts` as
-`dvl.eval-trace.v1` and `dvl.eval-report.v1`; a future schema change must bump the
-version constant rather than mutate the existing shape, so historical reports remain
+optional snapshot. The trace and report schema versions are pinned constants in
+`src/eval/types.ts` (`<prefix>.eval-trace.v1`, `<prefix>.eval-report.v1`); a future schema
+change must bump the version constant rather than mutate the existing shape, so historical reports remain
 comparable. The report summary includes pass/fail/error counts, total duration, and the
 backend version string. Every report field is a frozen serializable JSON value — no
 class instances, no `undefined`, no `Date` objects — so `JSON.parse(JSON.stringify(report))`
@@ -39,17 +39,16 @@ All snapshots are plain JSON; hostile or cyclic values are replaced with `null` 
 step message records the rejection reason. This ensures a golden fixture can assert any
 step's snapshot verbatim.
 
-## Assistant harness (DVL-Group/assistant — `src/eval/`, `eval/`, `test/eval.harness.test.ts`)
+## TypeScript ingress harness (`src/eval/`, `eval/`, `test/eval.harness.test.ts`)
 
-The track lives on the `feat/headless-agent-evals` branch (its own git worktree); the files
-below are that branch's additions to the repo. If they are absent in the worktree you are in,
-work on that branch.
+The reference layout for a headless harness in a TypeScript ingress service (a customer
+assistant). Check the repo you are in for the actual files before relying on them.
 
 - `src/eval/types.ts` — the JSON contract: `EvalCase` (id, lane, input, label, optional
   pinned `expect`), `EvalSuite`, `EvalTraceStep`, `EvalTrace`, `EvalReport`, and the
   `EvalBackend` interface. Schema versions are pinned constants
-  (`dvl.eval-trace.v1`, `dvl.eval-report.v1`). `isEvalCaseId` bounds ids (≤128, no unpaired
-  surrogates). Lanes are closed: `project-hours` | `semantic-model`.
+  (`<prefix>.eval-trace.v1`, `<prefix>.eval-report.v1`). `isEvalCaseId` bounds ids (≤128, no
+  unpaired surrogates). `lane` is a closed set: the service's tool lanes, nothing else.
 - `src/eval/scriptedBackend.ts` — `ScriptedBackend`: answers from a construction-pinned
   script Map, else a deterministic echo path. Hostile inputs (Proxy, class instances, extra
   keys, symbols, accessors) fail closed to `kind: 'error'` without throwing.
@@ -58,20 +57,20 @@ work on that branch.
 - `src/eval/cli.ts` — the headless CLI:
   `node --experimental-strip-types src/eval/cli.ts --backend scripted --suite <fixture> [--out report.json]`.
   `--backend agentware` is recognized but **not wired**: it exits 2 with a stable stub message.
-- `eval/fixtures/*.golden.json` — golden suites for the two lanes
-  (`semantic-model-commands.golden.json` pins the closed command router incl. help routing
-  and injection-shaped inputs; `project-hours.golden.json` pins the selection validator).
+- `eval/fixtures/*.golden.json` — one golden suite per lane (for example, one pins a closed
+  command router incl. help routing and injection-shaped inputs; another pins a selection
+  validator).
 - `test/eval.harness.test.ts` — node:test covering types round-trip, determinism, hostile
-  input, aggregation, abort, and both golden fixtures.
+  input, aggregation, abort, and every golden fixture.
 
-Run (from the eval branch):
+Run:
 
 ```bash
 node --experimental-strip-types src/eval/cli.ts --help
 node --experimental-strip-types src/eval/cli.ts --backend scripted \
-  --suite eval/fixtures/semantic-model-commands.golden.json
+  --suite eval/fixtures/<lane>.golden.json
 node --experimental-strip-types src/eval/cli.ts --backend scripted \
-  --suite eval/fixtures/project-hours.golden.json --out /tmp/eval-report.json
+  --suite eval/fixtures/<lane>.golden.json --out /tmp/eval-report.json
 node --test test/eval.harness.test.ts
 ```
 
@@ -80,7 +79,7 @@ node --test test/eval.harness.test.ts
 - `src/pedro_service/eval_harness.py` — `EvalHarness` with `ModelBackend`
   (`openai`, `anthropic`, `ollama`, `llamafile`, `vllm`, `ollama_direct`), `TestCase`,
   `ModelConfig`; writes JSONL under `./eval_results` (default). `create_test_cases()` ships 13
-  cases. This one DOES call a model backend — it is the harness-side, not the assistant-side.
+  cases. This one DOES call a model backend — it is the harness side, not the ingress side.
 - `testing/evals/` — standalone runner (`runner.py`, `models.py` hitting
   `{base_url}/chat/completions`), `cases/github.py` (GitHub tool-calling cases), `main.py`
   CLI: `python -m testing.evals.main [--github|--all] [--models ...] [--base-url ...]`.
@@ -117,9 +116,9 @@ preserve the CI contract.
 ## Validation commands
 
 ```bash
-# assistant eval track (from the feat/headless-agent-evals branch)
+# TypeScript ingress harness
 node --test test/eval.harness.test.ts
-node --experimental-strip-types src/eval/cli.ts --backend scripted --suite eval/fixtures/semantic-model-commands.golden.json
+node --experimental-strip-types src/eval/cli.ts --backend scripted --suite eval/fixtures/<lane>.golden.json
 
 # chat harness
 uv run ruff check src/ tests/
@@ -133,7 +132,7 @@ uv run pytest tests/test_eval_harness.py tests/test_headless_harness.py -q -m "n
 
 - When describing the golden-fixture JSON contract always refer to it as `EvalCase` by type name (e.g. "EvalCase requires id, lane, input").
 - When describing per-case cancellation always refer to `EvalRunner` by class name (e.g. "EvalRunner owns a per-case AbortSignal").
-- When listing trace step kinds always include the schema version constants (`dvl.eval-trace.v1`, `dvl.eval-report.v1`).
+- When listing trace step kinds always mention that the trace and report schema versions are pinned constants.
 - **Do not** wire `--backend agentware` or invent an agentware runner. The contract is the
   seam: a future backend implements `EvalBackend` in `src/eval/agentwareBackend.ts` and is
   constructed in `cli.ts`. Until then, `agentware` must exit non-zero with the stable stub
