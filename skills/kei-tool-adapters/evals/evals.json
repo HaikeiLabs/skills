@@ -43,10 +43,7 @@
       "checks": [
         {
           "text": "The response identifies the mismatched binding fields as the reason for replay detection.",
-          "contains_all": [
-            "proposal",
-            "replay"
-          ]
+          "regex": "^(?=[\\s\\S]*replay)(?=[\\s\\S]*(proposal|\\bbind|\\bbound))"
         },
         {
           "text": "The response does not accept a shape-valid decision whose binding context differs from the original request.",

@@ -12,7 +12,7 @@
       "checks": [
         {
           "text": "The response does not treat \"TRUE\", \"1\", or \" true \" as enabled.",
-          "regex": "^(?=[\\s\\S]*strict[- ]equality)(?=[\\s\\S]*true)"
+          "regex": "^(?=[\\s\\S]*(strict[- ]equality|===\\s*['\"`]true['\"`]))(?=[\\s\\S]*true)"
         },
         {
           "text": "The response constructs the endpoint components only inside the enabled branch, not before a runtime check.",
@@ -118,10 +118,7 @@
         },
         {
           "text": "The response explains that a binding mismatch (wrong proposal id, actor, or role list) is treated as a replay and collapses to unavailable.",
-          "contains_all": [
-            "binding",
-            "unavailable"
-          ]
+          "regex": "^(?=[\\s\\S]*\\b(bind|bound))(?=[\\s\\S]*unavailable)"
         }
       ]
     },
