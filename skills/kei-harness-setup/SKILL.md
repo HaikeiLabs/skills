@@ -456,6 +456,65 @@ you re-prompt, show the link from the latest response, not a cached one.
 The claim-link lifecycle is documented in detail at the canonical API contract:
 `kei-policy-catalog docs/chat-identity-claims.md`.
 
+## Report a bug from your harness
+
+When something in Kei misbehaves during a harness session, the user can send a
+bug report from the terminal with `kei feedback`, with the harness transcript
+attached. It needs `kei` 0.1.20 or later (`kei --version`; upgrade with
+`kei upgrade`) and a `kei login` session. The **Report a bug** button in the
+console header sends to the same place.
+
+Run it from the project directory the harness session ran in: without
+`--session`, `--export` picks the most recent session for the current working
+directory. `--description` is required (1 to 4000 characters).
+
+```bash
+# Claude Code (also Claude Code inside the Claude Desktop app)
+kei feedback --description "What happened and what you expected" --export claude
+kei feedback --description "..." --export claude --session <session-id>
+
+# Codex
+kei feedback --description "What happened and what you expected" --export codex
+kei feedback --description "..." --export codex --session <session-id>
+
+# OpenCode (needs the opencode binary on PATH; it runs opencode export)
+kei feedback --description "What happened and what you expected" --export opencode
+kei feedback --description "..." --export opencode --session <session-id>
+
+# Any other harness: attach transcript files directly (repeatable)
+kei feedback --description "..." --session /path/to/transcript.jsonl
+```
+
+With `--export`, `--session` takes one session ID. Without `--export`, each
+`--session` is a transcript file path. `--file PATH` and `--screenshot PATH`
+attach other evidence (at most 8 files, 4 MiB in total).
+
+What happens:
+
+1. Kei finds the transcript (or uses the session or file given).
+2. Token-shaped strings are redacted on the user's machine before anything is
+   sent: API keys (Anthropic, OpenAI), GitHub and Slack tokens, AWS keys,
+   JWTs and `Bearer` tokens, private-key blocks, Kei runtime tokens, and
+   `password=` / `token=` / `secret=` style values. Each becomes
+   `[REDACTED:<kind>]`.
+3. The CLI prints a preview: the description, each evidence file with its
+   size, and the redaction counts per kind (never the content). Then it asks
+   `Send? [y/N]`.
+4. Anything other than `y`/`yes` cancels: `Feedback not submitted.` and
+   nothing leaves the machine.
+5. If a Kei runtime token turns up in a transcript, the CLI warns that it is a
+   leak: rotate the credential (`kei bot credential --rotate`, see
+   `kei-credential-rotation`) and say where it came from in the report.
+
+Only transcripts are redacted. `--file` and `--screenshot` are sent as they
+are, so check them for secrets first. Plain Claude Desktop chat sessions
+(not Claude Code) are not supported yet.
+
+**As an agent, give the user the command; do not send it for them.** The
+confirmation is the user's preview of what leaves their machine. Never add
+`--yes`, which skips it. In Claude Code the user can run it in the session by
+typing `! kei feedback ...`.
+
 ## Troubleshooting setup
 
 This section catalogs real failures observed during harness setup (e2e,

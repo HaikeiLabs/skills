@@ -477,6 +477,47 @@
           ]
         }
       ]
+    },
+    {
+      "id": 14,
+      "prompt": "How do I send the Kei team a bug report from the CLI with a specific Codex session attached? I'm worried about API keys in the transcript. Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "expected_output": "kei feedback --description \"...\" --export codex --session <session-id> (kei 0.1.20+, after kei login, run from the project directory). The transcript is redacted locally before upload: token-shaped strings such as API keys, GitHub/Slack/AWS tokens, JWTs, bearer tokens, private keys and Kei runtime tokens become [REDACTED:<kind>]. The CLI prints a preview with redaction counts (not content) and asks Send? [y/N]; anything but y sends nothing. --file/--screenshot attachments are not redacted.",
+      "expectations": [
+        "The response gives the kei feedback command with --export and a harness value (claude, codex or opencode).",
+        "The response passes a specific session with --session.",
+        "The response includes the required --description flag.",
+        "The response says token-shaped strings in the transcript are redacted before upload.",
+        "The response says the user previews the report and must confirm before it is sent, and that answering no sends nothing."
+      ],
+      "checks": [
+        {
+          "text": "The response gives the kei feedback command with --export and a harness value (claude, codex or opencode).",
+          "contains_all": [
+            "kei feedback",
+            "--export"
+          ]
+        },
+        {
+          "text": "The response passes a specific session with --session.",
+          "contains_all": [
+            "--session"
+          ]
+        },
+        {
+          "text": "The response includes the required --description flag.",
+          "contains_all": [
+            "--description"
+          ]
+        },
+        {
+          "text": "The response says token-shaped strings in the transcript are redacted before upload.",
+          "regex": "redact"
+        },
+        {
+          "text": "The response says the user previews the report and must confirm before it is sent, and that answering no sends nothing.",
+          "regex": "preview[\\s\\S]*(confirm|\\[y/N\\])|(confirm|\\[y/N\\])[\\s\\S]*preview"
+        }
+      ]
     }
   ]
 }

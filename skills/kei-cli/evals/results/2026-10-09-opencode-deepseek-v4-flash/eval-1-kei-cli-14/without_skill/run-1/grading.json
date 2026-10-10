@@ -1,0 +1,62 @@
+{
+  "expectations": [
+    {
+      "text": "The response gives the kei feedback command with --export and a harness value (claude, codex or opencode).",
+      "passed": false,
+      "evidence": "Missing: kei feedback, --export",
+      "check": {
+        "text": "The response gives the kei feedback command with --export and a harness value (claude, codex or opencode).",
+        "contains_all": [
+          "kei feedback",
+          "--export"
+        ]
+      }
+    },
+    {
+      "text": "The response passes a specific session with --session.",
+      "passed": false,
+      "evidence": "Missing: --session",
+      "check": {
+        "text": "The response passes a specific session with --session.",
+        "contains_all": [
+          "--session"
+        ]
+      }
+    },
+    {
+      "text": "The response includes the required --description flag.",
+      "passed": false,
+      "evidence": "Missing: --description",
+      "check": {
+        "text": "The response includes the required --description flag.",
+        "contains_all": [
+          "--description"
+        ]
+      }
+    },
+    {
+      "text": "The response says token-shaped strings in the transcript are redacted before upload.",
+      "passed": false,
+      "evidence": "No match for /redact/i",
+      "check": {
+        "text": "The response says token-shaped strings in the transcript are redacted before upload.",
+        "regex": "redact"
+      }
+    },
+    {
+      "text": "The response says the user previews the report and must confirm before it is sent, and that answering no sends nothing.",
+      "passed": false,
+      "evidence": "No match for /preview[\\s\\S]*(confirm|\\[y/N\\])|(confirm|\\[y/N\\])[\\s\\S]*preview/i",
+      "check": {
+        "text": "The response says the user previews the report and must confirm before it is sent, and that answering no sends nothing.",
+        "regex": "preview[\\s\\S]*(confirm|\\[y/N\\])|(confirm|\\[y/N\\])[\\s\\S]*preview"
+      }
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 5,
+    "total": 5,
+    "pass_rate": 0
+  }
+}

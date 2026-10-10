@@ -1,0 +1,62 @@
+{
+  "expectations": [
+    {
+      "text": "The response gives the kei feedback command with --export and a harness value (claude, codex or opencode).",
+      "passed": true,
+      "evidence": "Found all: kei feedback, --export",
+      "check": {
+        "text": "The response gives the kei feedback command with --export and a harness value (claude, codex or opencode).",
+        "contains_all": [
+          "kei feedback",
+          "--export"
+        ]
+      }
+    },
+    {
+      "text": "The response passes a specific session with --session.",
+      "passed": true,
+      "evidence": "Found all: --session",
+      "check": {
+        "text": "The response passes a specific session with --session.",
+        "contains_all": [
+          "--session"
+        ]
+      }
+    },
+    {
+      "text": "The response includes the required --description flag.",
+      "passed": true,
+      "evidence": "Found all: --description",
+      "check": {
+        "text": "The response includes the required --description flag.",
+        "contains_all": [
+          "--description"
+        ]
+      }
+    },
+    {
+      "text": "The response says token-shaped strings in the transcript are redacted before upload.",
+      "passed": true,
+      "evidence": "Matched: redact",
+      "check": {
+        "text": "The response says token-shaped strings in the transcript are redacted before upload.",
+        "regex": "redact"
+      }
+    },
+    {
+      "text": "The response says the user previews the report and must confirm before it is sent, and that answering no sends nothing.",
+      "passed": true,
+      "evidence": "Matched: preview showing what was redacted and the file sizes, then you confirm",
+      "check": {
+        "text": "The response says the user previews the report and must confirm before it is sent, and that answering no sends nothing.",
+        "regex": "preview[\\s\\S]*(confirm|\\[y/N\\])|(confirm|\\[y/N\\])[\\s\\S]*preview"
+      }
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1
+  }
+}
