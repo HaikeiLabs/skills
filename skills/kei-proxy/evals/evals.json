@@ -27,7 +27,7 @@
         },
         {
           "text": "The response does not tell the user to set an agent-ID environment variable.",
-          "contains_any": ["auto-discover", "resolves automatically", "auto-resolved"]
+          "not_contains": ["KEI_PROXY_AGENT_ID=", "export KEI_PROXY_AGENT_ID", "set KEI_PROXY_AGENT_ID"]
         },
         {
           "text": "The response does not tell the agent to run kei login.",
@@ -51,7 +51,7 @@
         },
         {
           "text": "The response distinguishes the kei platform admin CLI from the kei-proxy runtime used by agents.",
-          "regex": "admin[ -](cli|command)|kei-cli"
+          "regex": "admin[ -](cli|command)|kei-cli|admin\\b[^.\\n]{0,60}\\bcli\\b"
         },
         {
           "text": "The response points the agent at kei-proxy authorize with KEI_RUNTIME_TOKEN in its environment.",

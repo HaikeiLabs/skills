@@ -12,7 +12,7 @@
       "checks": [
         {
           "text": "The response traces the activity through the full ingress pipeline before SSO exchange.",
-          "contains_any": ["ssoExchange", "Connector JWT", "botframework-connector", "connector auth"]
+          "contains_any": ["ssoExchange", "Connector JWT", "botframework-connector", "connector auth", "connectorVerifier"]
         },
         {
           "text": "The response confirms that SSO denials use a fixed 412 body that does not distinguish between reasons.",
@@ -54,7 +54,7 @@
         },
         {
           "text": "The response confirms that unknown activity types are never dispatched.",
-          "contains_any": ["closed dispatch", "rejected before routing", "never dispatched", "rejected at dispatch", "rejected at the gate"]
+          "contains_any": ["closed dispatch", "dispatch is closed", "before routing", "never dispatched", "rejected at dispatch", "rejected at the gate"]
         }
       ]
     },

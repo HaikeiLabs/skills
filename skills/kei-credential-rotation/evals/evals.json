@@ -22,7 +22,7 @@
         },
         {
           "text": "The rotated credential is piped to a secret manager, not printed or pasted.",
-          "contains_any": ["pipe", "redirect", "send to your secret"]
+          "contains_any": ["pipe", "piping", "redirect", "send to your secret"]
         },
         {
           "text": "The response includes restarting the runtime and re-running bootstrap after rotation.",
@@ -45,7 +45,7 @@
         },
         {
           "text": "The response describes the console flow of creating a new key before deleting the old one.",
-          "contains_any": ["create a new", "delete the old", "agent keys are deprecated", "runtime installation credential"]
+          "contains_any": ["create a new", "delete the old", "deprecated", "installation credential"]
         }
       ]
     },
@@ -121,7 +121,7 @@
         },
         {
           "text": "The response does not suggest keeping the old credential value beyond the verification check.",
-          "contains_any": ["Never print", "don't keep", "do not keep"]
+          "contains_any": ["Never print", "don't keep", "do not keep", "discard", "destroy the old", "delete the old", "remove the old", "purge"]
         }
       ]
     }

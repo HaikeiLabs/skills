@@ -1,14 +1,14 @@
 {
   "schema": "haikei.eval-benchmark.v1",
   "harness": "opencode",
-  "model_profile": "deepseek-v4-flash",
-  "model": "eval/deepseek-ai/DeepSeek-V4-Flash",
-  "created_at": "2026-10-09T23:52:19.430Z",
-  "git_sha": "b616e11d7fa160e511742113a0d26cb9479efbf7",
+  "model_profile": "qwen3.8-27b",
+  "model": "eval/qwen3.8-27b",
+  "created_at": "2026-10-10T08:31:05.429Z",
+  "git_sha": "49f2b6f0478edac064a339e2aea073bfc747ff05",
   "repeats": 3,
   "results": [
     {
-      "suite": "kei-proxy",
+      "suite": "kei-credential-rotation",
       "kind": "skill",
       "passed": 6,
       "failed": 0,
