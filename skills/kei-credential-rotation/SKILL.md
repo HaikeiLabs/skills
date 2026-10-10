@@ -12,11 +12,17 @@ consumes the new token and is restarted and re-bootstrapped afterwards
 
 The safe order, in short: run `kei login` (owner/admin), confirm the
 installation with `kei bot status --installation INSTALLATION_ID` (it must be
-`pending` or `active`), then pipe `kei bot credential --rotate` straight into
+`pending` or `active`; when you are not sure which installation ID is the right
+one, this is the first check), then pipe `kei bot credential --rotate` straight into
 the secret manager (never print or paste the token). Restart the runtime,
 re-bootstrap, check `workspace_id` and the heartbeat, and confirm the old token
 now fails closed. Do not keep the old token value after that check. Rotation
-is immediate: there is no overlap window.
+is immediate: there is no overlap window. Every `kei bot` command needs
+`kei login` first, so list it as step 1.
+
+To kill a leaked credential when downtime is acceptable, run
+`kei bot delete --installation INSTALLATION_ID --yes` or rotate immediately.
+Both invalidate the old token at once.
 
 ## Retrieval sources
 
