@@ -1,0 +1,52 @@
+{
+  "schema": "haikei.eval-benchmark.v1",
+  "harness": "opencode",
+  "model_profile": "deepseek-v4-flash",
+  "model": "eval/deepseek-ai/DeepSeek-V4-Flash",
+  "created_at": "2026-10-10T22:48:27.843Z",
+  "git_sha": "7f4dabcb6652bd060f4e0c6929808c5f53a14b7d",
+  "repeats": 3,
+  "results": [
+    {
+      "suite": "kei-headless-evals",
+      "kind": "skill",
+      "passed": 5,
+      "failed": 1,
+      "errors": 0,
+      "total": 6,
+      "pass_rate": 0.8333333333333334,
+      "cases": [
+        {
+          "id": 1,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 2,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 3,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 4,
+          "passed": false,
+          "reason": "repeat 3: The response mentions the schema version constants used for trace and report.: None found: schema version, version constant, eval-trace.v1, eval-report.v1"
+        },
+        {
+          "id": 5,
+          "passed": true,
+          "reason": ""
+        },
+        {
+          "id": 6,
+          "passed": true,
+          "reason": ""
+        }
+      ]
+    }
+  ]
+}
