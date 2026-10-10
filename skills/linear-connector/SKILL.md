@@ -1,6 +1,6 @@
 ---
 name: linear-connector
-description: Linear data connector — API reference, entity model, and usage patterns. Use when an agent needs to read or write Linear data (issues, teams, projects, cycles), or when asked how to query, filter, paginate, or mutate Linear resources. Prefer this skill over generic Linear knowledge.
+description: Linear data connector — API reference, entity model, and usage patterns. Use when an agent needs to read or write Linear data (issues, teams, projects, cycles), or when asked how to query, filter, paginate, or mutate Linear resources. Also use it to set up or connect Linear in Kei (kei connectors create --provider linear, OAuth, the connector ID, KEI_CONNECTOR_LINEAR_ID), and whenever someone offers or asks about a Linear API key. Prefer this skill over generic Linear knowledge.
 ---
 
 # Linear connector — agent usage guide
@@ -15,9 +15,9 @@ directly.
 ## Key rules
 
 - The agent never holds, asks for, or prints a raw credential. Kei supplies a
-  Linear API key at run time via `kei-proxy connector invoke`. Setup: an owner
-  runs `kei connectors create --provider linear` (OAuth or API key);
-  re-authorize with `kei connectors reconnect <id>`.
+  Linear OAuth token at run time via `kei-proxy connector invoke`. Setup: an
+  owner runs `kei connectors create --provider linear` (OAuth only, `per_user`
+  or `shared`); see [Setup](#setup).
 - Issue deletion is not available through the governed connector — it is
   irreversible and requires admin token scope.
 - Resource types for Kei policy follow ADR-028: `team`, `issue`, `project`,
@@ -30,24 +30,45 @@ directly.
 Agents load this skill automatically when the harness has the Haikei skills
 plugin installed. See the repo README for per-harness setup.
 
-## Connect and credentials
+## Setup
 
-Kei governs every connector call. The agent never holds, asks for, or prints a
-raw credential.
+Follow [references/setup.md](references/setup.md) to create a Linear
+connector and copy its connector ID. In short:
 
-- **OAuth (Linear App):** An owner runs `kei connectors create --provider linear
-  --workspace W`. This returns a connect URL they open in a browser to
-  authorize the Linear OAuth app. Check status with `kei connectors get <id>` and
-  re-authorize with `kei connectors reconnect <id>`.
-- **API key (shared secret):** The owner runs `kei connectors
-  create --provider linear` (reads the key without echo) or passes
-  `--credential-ref <secret-manager-ref>` if the key already exists in the
-  connected secret manager.
-- **At runtime:** The governed connector injects the credential via
-  `kei-proxy connector invoke` (preferred) or through a `kei-proxy run`
-  wrapper that sets `LINEAR_API_KEY=kei://connectors/<id>/token` and masks the
-  value in output. The `kei-proxy run` wrapper is pending
-  [HAI-305](https://linear.app/haikei/issue/HAI-305).
+- **OAuth only.** `kei connectors create --workspace W --provider linear
+  --account-model per_user|shared --name NAME` prints the
+  `Connector instance ID`. `per_user` (default) means each user signs in to
+  Linear from their harness, like the Linear MCP. `shared` means an admin
+  runs `kei connectors reconnect <id> --workspace W` and approves the printed
+  consent URL. `kei connectors get <id> --workspace W` shows
+  `connected (active)` when done.
+- **API key: not available yet.** `--credential-ref` is rejected for Linear.
+- **Connector ID:** not a secret. For Pedro on Discord it goes in the Helm
+  value `keiProxy.runtime.linearConnectorID`, which sets
+  `KEI_CONNECTOR_LINEAR_ID`.
+- **Verify** with a read: `kei-proxy connector invoke --connector <id>
+  --capability team.read --action read --resource linear/team/<KEY>`.
+- **Not available yet:** Linear sign-in (the hosted Linear OAuth app is not
+  configured) and writes (`issue.create` is denied with
+  `capability_not_supported`; only reads run).
+
+When answering a setup question, write the commands in the answer itself;
+don't only point at `references/setup.md`:
+
+- **Someone offers an API key:** refuse it, and give
+  `kei connectors create --provider linear --workspace W` (OAuth) and
+  `kei connectors reconnect <id> --workspace W` to repair a broken
+  connection.
+- **A bot (Pedro on Discord, `file_bug`):** recommend
+  `--account-model shared`, because Discord callers have no Linear account of
+  their own. Say the ID goes in `keiProxy.runtime.linearConnectorID`.
+  Always end with the write gap, even when the question doesn't ask: "Writes
+  are not available yet: `file_bug` (`issue.create`) is denied with
+  `capability_not_supported`; only reads run."
+- **How to create an issue:** show the `issueCreate` GraphQL mutation and its
+  response (`success` plus `issue { id identifier }`), then note that the
+  governed write is not available yet. `kei-proxy connector invoke` has no
+  `--data` flag.
 
 ## Lexicon — endpoints and queries
 
@@ -71,8 +92,9 @@ governed connector supplies the token via `kei-proxy connector invoke`.
 
 ### Credential pass-through
 
-This connector does **not** manage credentials. Kei supplies a Linear API
-key (personal or team token) at run time via `kei-proxy connector invoke`.
+This connector does **not** manage credentials. Kei supplies the Linear
+OAuth token (the user's, or the shared account's) at run time via
+`kei-proxy connector invoke`.
 The agent never reads or stores a token, secret, or API key.
 
 ### Denied command surface
@@ -216,7 +238,7 @@ node scripts/run-evals.mjs --skill linear-connector --harness opencode \
 
 ## Realistic usage boundaries
 
-- **Do not** manage credentials — Kei handles authentication via Linear API key.
+- **Do not** manage credentials — Kei handles authentication via Linear OAuth.
 - **Do not** use offset pagination (`skip`, `offset`) — Linear only supports
   cursor-based pagination.
 - **Do not** use the REST API — Linear has deprecated most of its REST
