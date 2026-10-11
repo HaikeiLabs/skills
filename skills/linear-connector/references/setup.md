@@ -9,16 +9,17 @@ a Linear account with OAuth, and copying the connector ID that a harness
 needs (for example, `KEI_CONNECTOR_LINEAR_ID` for the Discord `file_bug`
 tool).
 
-> **Status, 2026-10-09.** The commands below exist in `kei` today. Two
-> platform pieces are still missing, so a Linear connector cannot reach the
-> **connected** state yet:
+> **Status, 2026-10-10.** The commands below exist in `kei` today. One
+> platform piece is still rolling out:
 >
 > - **Not available yet:** the hosted identity service has no Linear OAuth
 >   app configured. Starting the Linear sign-in fails with "connector provider
->   not configured".
-> - **Not available yet:** the runtime runs Linear **reads** only.
->   `issue.create` and `issue.update` are defined capabilities, but an
->   invocation is denied with `capability_not_supported`.
+>   not configured" until it is.
+>
+> Writes: the runtime runs `issue.create` and `comment.create` (with an
+> idempotency key, see the skill's *Governed capabilities*). `issue.update` is
+> defined but denied with `capability_not_supported`. `comment.create` needs a
+> `kei` release built on kei-connector-contracts v0.8.0 or later.
 >
 > Each step marks what is not available yet. See [Troubleshooting](#troubleshooting).
 
@@ -55,7 +56,8 @@ their browser, and calls run as that person.
 
    ```bash
    kei connectors create --workspace <workspace> --provider linear \
-     --account-model per_user --name linear
+     --account-model per_user --name linear \
+     --capabilities team.read,project.read,cycle.read,issue.read,issue.create,comment.create
    ```
 
    `kei` prints the connector ID:
@@ -66,8 +68,10 @@ their browser, and calls run as that person.
    users connect their own accounts through their chat harness
    ```
 
-   Copy the **Connector instance ID**. By default the connector gets Linear's
-   read capabilities: `team.read`, `project.read`, `cycle.read`, `issue.read`.
+   Copy the **Connector instance ID**. Without `--capabilities` the connector
+   gets Linear's read capabilities only (`team.read`, `project.read`,
+   `cycle.read`, `issue.read`); add `issue.create` and `comment.create` for
+   agents that file issues or comment.
 
 2. **Each user connects their Linear account.** There is no admin step and no
    URL to share. The first time a user's harness calls the connector,
@@ -93,7 +97,7 @@ their browser, and calls run as that person.
    Provider:    linear
    State:       connected (active)
    Credential:  oauth (per_user)
-   Capabilities: team.read, project.read, cycle.read, issue.read
+   Capabilities: team.read, project.read, cycle.read, issue.read, issue.create, comment.create
    ```
 
 ## Option 2: OAuth, shared account
@@ -105,7 +109,8 @@ through that account.
 
    ```bash
    kei connectors create --workspace <workspace> --provider linear \
-     --account-model shared --name linear-shared
+     --account-model shared --name linear-shared \
+     --capabilities team.read,issue.read,issue.create
    ```
 
    ```text
@@ -175,9 +180,9 @@ The chart passes it to the container as `KEI_CONNECTOR_LINEAR_ID`. When the
 value is empty, `file_bug` is still authorized and audited, but Pedro replies
 that bug filing is not configured and writes nothing.
 
-**Not available yet:** `file_bug` creates an issue (`issue.create`), which the
-runtime does not run today. With the ID set, the call is denied with
-`capability_not_supported`.
+`file_bug` creates an issue with `issue.create` on `linear/team/<KEY>`
+(input `team_id`, `title`, `description`, `priority`) and an idempotency key,
+so the connector must declare `issue.create`.
 
 ## Verify
 
@@ -206,7 +211,8 @@ session belongs to a user who connected Linear.
 | `account model "..." is not allowed for provider "linear"` | Linear accepts `per_user` and `shared` only. | Pass one of those to `--account-model`. |
 | `users connect their own accounts through their chat harness` from `reconnect` | `reconnect` only applies to `shared` connectors. | Each user connects from their harness. |
 | `connector_not_connected` or `connector_reconnect_required` | The calling user has not connected Linear, or the connection must be renewed. | The user signs in to Linear again from their harness. |
-| `capability_not_supported` | The call is a write (`issue.create`, `issue.update`). | Not available yet. Only reads run today. |
+| `capability_not_supported` | The call is a write the runtime does not run (`issue.update`, deletes). | Only `issue.create` and `comment.create` run. |
+| `input_invalid` on a write | Missing `--idempotency-key`, `team_id`/`issue_id` differs from the resource, an unknown field, or the user's grant lacks `issues:create`/`comments:create`. | Fix the call; a user missing the write scope reconnects Linear. |
 | `capability is not declared on the connector` | The connector was created without that capability. | Recreate it with `--capabilities team.read,issue.read,...`. |
 | **State** stays `pending` | The OAuth sign-in never finished. | Finish the Linear consent (`reconnect` for `shared`). |
 | **State** is `needs reconnect (failed)` | The Linear token was revoked or expired. | `kei connectors reconnect <connector-id> --workspace <workspace>` for `shared`. Users reconnect from their harness for `per_user`. |
