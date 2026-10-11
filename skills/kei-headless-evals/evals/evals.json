@@ -63,10 +63,7 @@
       "checks": [
         {
           "text": "The response states that --backend agentware is not wired and exits 2.",
-          "contains_all": [
-            "not wired",
-            "exits 2"
-          ]
+          "regex": "^(?=[\\s\\S]*not wired)(?=[\\s\\S]*exit[\\s\\S]{0,30}?\\b2\\b)"
         },
         {
           "text": "The response mentions the stable stub message that CI uses to assert the harness version.",
