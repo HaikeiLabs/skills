@@ -64,10 +64,12 @@ env:
   # Model profiles and the runner come from the pinned grader commit below, not
   # from this pull request's evals/ or scripts/, so nothing here is global.
   EVAL_GLOBAL_PATHS: ""
-  # HaikeiLabs/skills 8c6964d (main after #67): the runner and model profiles a
-  # local run on main uses, so the gate reports the same numbers; its profiles
-  # carry the concurrency the gate runs each model at (deepseek 4, qwen 2).
-  EVAL_RUNNER_REF: "8c6964da7a509cef9939a123679252b4b4563046"
+  # HaikeiLabs/skills 6eac1f4 (main after #73): the runner and model profiles a
+  # local run on main uses, so the gate reports the same numbers. #73 gives each
+  # opencode run its own data home (no "database is locked" or "params:" runner
+  # errors); its profiles carry the concurrency the gate runs each model at
+  # (deepseek 4, qwen 2).
+  EVAL_RUNNER_REF: "6eac1f4d83c5ec3298fcfcd989e67deb31835123"
   # EDIT-END settings
   EVAL_THRESHOLD: "0.95"
   # EV-C1 §3 profile names; each needs its base_url_env set on the runner.
