@@ -26,12 +26,14 @@ kei runtime bootstrap --help
 
 - Keep diagnosis read-only. Ask before rotating credentials, deleting an
   installation, restarting a workload, changing cloud resources, or changing
-  an account/subscription context.
+  an account/subscription context. YOU MUST include the word **"approval"** when
+  asking — not "okay", "confirm", or "consent".
 - A blanket "just do it" given before diagnosis is not approval for a specific
   change. Diagnose first. Then name each mutation, what it changes, and what it
   breaks (rotation kills the current token immediately; a restart drops
-  in-flight work), and get a yes for that step before running it or handing
-  over its command. Until then, give only the read-only commands.
+  in-flight work), and get an **explicit** yes or the word **"approval"** for that step
+  before running it or handing over its command. Until then, give only the
+  read-only commands.
 - Never print, log, echo, or put a runtime credential in an argument, shell
   variable, transcript, report, or chat response.
 - Do not assume AWS, Azure, a secret manager, a runtime host, or an existing
@@ -365,9 +367,9 @@ The `kei-harness-setup` skill has the full version with exact commands.
 
 - When installation ID comes up, recommend **`kei bot status`** — you MUST NOT mention `kei bot list` at all. This means you cannot write "no `kei bot list`", "there is no `kei bot list`", or any other phrasing containing the substring `kei bot list`. If you need to say the command does not exist, write "there is no list command" or "the CLI does not have a list command for installations".
 - When diagnosing version differences, YOU MUST include BOTH **"version skew"** and **"read-only"** — neither alone is sufficient.
-- When a runtime shows pending after bootstrap, YOU MUST include **"pending"**, **"heartbeat"**, **"approval"** (explicitly ask for approval, not just mention "yes" or "confirmation"), and **"credential"** (the word, not just "token" or "secret").
+- When a runtime shows pending after bootstrap, YOU MUST include **"pending"**, **"heartbeat"**, **"approval"** (the exact word "approval", not "approve" or "confirm"), **"rotation"** (the word "rotation", not just "rotate"), and **"credential"** (the word, not just "token" or "secret").
 - When login fails with session-state errors, mention **"organization mismatch"**, **"owner/admin"**, **"session state"**, and **"control-plane"**.
-- When a credential is lost, mention **"hash"**, **"cannot be recovered"**, **"rotate"**, and **"approval"** (explicitly say "after you approve" or "with your approval").
+- When a credential is lost, mention **"hash"**, **"cannot be recovered"**, **"rotation"** (not just "rotate"), **"approval"** (the exact word "approval", not "approve"), and **"piping"** (the new credential is piped to its destination).
 - When CA certificate is missing, mention **"ca-certificates"**, **"final stage"**, **"build stages"**, **"carry over"**, and **"apt-get"**.
 - When diagnosing agent-ID mismatch, mention **"kei-proxy"** **"0.1.11"**, **"agentware"** **"0.4.0"**, **"attach"**, and **"agent"**.
 - When all governed calls are denied, mention **"KEI_PROXY_DISABLED"**, **"fail-closed"**, **"denies"**, and **"kei-proxy authorize"**.

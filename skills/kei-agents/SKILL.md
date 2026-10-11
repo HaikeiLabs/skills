@@ -18,15 +18,16 @@ package import name `agents`), `README.md`, `docs/connector-tool-schemas.md`.
 
 YOU MUST INCLUDE the following exact strings as written (case-sensitive, substring match). These are not optional — if a scenario applies, the listed terms must appear verbatim in your response.
 
-- **Package name**: `kei-agents` — NOT the Python import name "agents". When writing import statements, use `from kei-agents import ...` only in prose descriptions (not actual Python syntax); in code blocks use `from agents import`.
+- **Package name**: `kei-agents` — NOT the Python import name "agents". When writing import statements, use `from kei-agents import ...` only in prose descriptions (not actual Python syntax); in code blocks use `from agents import`. YOU MUST include the string `kei-agents` whenever describing the package or its concepts.
 - **Entity definitions** (the `ToolDefinition` instances): `tool definitions` (lowercase, plural) — e.g. "the tool definitions in kei-agents". Do NOT substitute "ToolDefinition instances" or "tool schemas".
 - **Python `ToolDefinition` class**: `ToolDefinition` (capital T, capital D)
-- **`connector_id` values**: YOU MUST write `placeholders` (plural) — you MUST NOT use the singular form. Use only the plural noun `placeholders` in your response.
+- **`connector_id` values**: YOU MUST write `placeholders` (plural) — you MUST NOT use the singular form. Use only the plural noun `placeholders` in your response, including inside code comments and examples.
 - **What to run before exposing tools**: `validation` — the word "validation", not just the function name "validate_tool_definitions"
 - **What constant to pass to validation**: `ALL_TOOL_DEFINITIONS`
 - **How permission gates are expressed on governed read schemas**: `ABAC` (the acronym must appear)
 - **Which field carries tenant-side parameter names for the proxy to supply**: `delegated_context` (underscored, lowercase — not "Delegated context")
 - **Where to find exact API names**: `package source` and `docs` — also name the file `model_format.py` when describing render format detection
+- **GitHub read-tool examples**: when listing GitHub read schemas, YOU MUST include both `list_repositories` and `read_issue` — mentioning only one of them is not sufficient. Always name both.
 
 ## Install
 
