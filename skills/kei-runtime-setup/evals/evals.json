@@ -34,10 +34,7 @@
         },
         {
           "text": "The response tells the user to confirm a deliberately unbound call is denied.",
-          "contains_any": [
-            "unbound call",
-            "denied"
-          ]
+          "regex": "unbound call|\\bdenied\\b|\\bdenial\\b|fails?[- ]closed"
         }
       ]
     },
@@ -52,9 +49,7 @@
       "checks": [
         {
           "text": "The response refuses to fall back to organization-wide scope.",
-          "contains_any": [
-            "scope"
-          ]
+          "regex": "^\\W*(no|nope|don't|do not|stop)\\b|\\b(no|not|never|don't|do not)\\b[^.\\n]{0,60}\\b(org|organi[sz]ation)\\b|\\b(widen|broaden)|organi[sz]ation-wide|org-wide"
         },
         {
           "text": "The response says to re-mint or rotate the credential.",
@@ -95,10 +90,7 @@
         },
         {
           "text": "The response says the daemon serves a governed authorize route over the socket (local PDP), not that it is unavailable.",
-          "contains_any": [
-            "daemon",
-            "serves"
-          ]
+          "regex": "authorize[\\s\\S]{0,300}socket|socket[\\s\\S]{0,300}authorize"
         },
         {
           "text": "The response does not describe a network-exposed listener or TCP port for governed calls.",
@@ -142,34 +134,30 @@
     },
     {
       "prompt": "How do I pair a runtime with a harness?",
-      "expected_output": "Use `kei bot bind --installation INSTALLATION_ID --harness HARNESS_ID` to link a runtime installation to a harness. After binding, run `kei harness sync` to synchronize tool metadata. The harness must already be registered via `kei harness add`.",
+      "expected_output": "`kei bot bind --installation INSTALLATION_ID` activates the runtime; it has no --harness flag. Desktop harnesses (Claude Code, Codex, OpenCode) are sessions of the installation and are paired with `kei harness sync`, with no `kei harness add`. Only a custom (SDK) harness is registered first with `kei harness add --kind custom --installation INSTALLATION_ID --agent AGENT_ID`, then synced.",
       "expectations": [
         "describes bot bind command",
         "mentions harness sync",
-        "requires harness add first"
+        "says `kei harness add` is needed first only for a custom (SDK) harness"
       ],
       "checks": [
         {
           "text": "describes bot bind command",
           "contains_any": [
             "kei bot bind",
-            "INSTALLATION_ID",
-            "HARNESS_ID"
+            "INSTALLATION_ID"
           ]
         },
         {
           "text": "mentions harness sync",
-          "contains_any": [
-            "kei harness sync",
-            "harness"
+          "contains_all": [
+            "harness sync"
           ]
         },
         {
-          "text": "requires harness add first",
-          "contains_any": [
-            "kei harness add",
-            "harness",
-            "first"
+          "text": "says `kei harness add` is needed first only for a custom (SDK) harness",
+          "contains_all": [
+            "harness add"
           ]
         }
       ],
@@ -186,11 +174,7 @@
       "checks": [
         {
           "text": "explains heartbeat purpose",
-          "contains_any": [
-            "periodic heartbeats",
-            "alive",
-            "healthy"
-          ]
+          "regex": "periodic|alive|healthy|liveness"
         },
         {
           "text": "mentions kei bot status",
@@ -200,9 +184,7 @@
         },
         {
           "text": "notes failure mode",
-          "contains_any": [
-            "fail closed"
-          ]
+          "regex": "fails?[- ]closed"
         }
       ],
       "id": 6
