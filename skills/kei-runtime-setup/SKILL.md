@@ -127,9 +127,9 @@ From the CLI (after `kei login`):
 kei bot init --platform cli --name "Acme local runtime"
 ```
 
-`--platform` takes exactly `cli`, `teams`, `discord`, or `slack`; confirm with
-`kei help` because older releases and the console docs list only
-`teams|discord|slack`. Use `cli` for a local coding harness runtime. Record the
+`--platform` takes `cli`, `teams`, `discord`, `slack`, `whatsapp`, or
+`openwebui` (the last two since v0.1.15); confirm with `kei help` because older
+releases and the console docs list only `teams|discord|slack`. Use `cli` for a local coding harness runtime. Record the
 returned `installation_id` — it is not secret.
 
 From the web app instead: **Agents → Runtime installations → Create**. The
@@ -250,8 +250,17 @@ docker build -f cmd/kei-connector-runtime/Dockerfile -t kei-proxy:local .
 ```
 
 The image contains only `kei-proxy`; add the harness to the same image. No
-public `kei-proxy` image is published; do not invent a registry URL. Then, in
-the runtime, before the harness accepts work:
+public `kei-proxy` image is published; do not invent a registry URL. When
+someone asks for a sidecar "listening on a port", answer with all three:
+
+1. There is no image to pull; build `kei-proxy:local` as above.
+2. One-shot CLI mode runs `kei-proxy authorize` as a subprocess per call;
+   daemon mode (`kei-proxy serve`) is a same-host or same-container daemon.
+3. The daemon serves the governed `POST /v1/authorize` route over its Unix
+   socket (decided locally by the runtime PDP), not over a TCP port. Name the
+   authorize route; "it uses a socket" alone is not enough.
+
+Then, in the runtime, before the harness accepts work:
 
 ```sh
 kei-proxy runtime bootstrap
@@ -298,18 +307,63 @@ kei-connector-runtime repo for the full socket contract.
 Bootstrap prints safe JSON: `installation_id`, `org_id`, `platform`, `status`,
 `binding_status`, and `workspace_id`.
 
+When someone asks what `kei runtime bootstrap` does, cover all three: it
+verifies the runtime credential against the control plane, sends the first
+heartbeat, and prints the installation status; the output must include
+`workspace_id`; and on a deployed runtime the same step is
+`kei-proxy runtime bootstrap` (the workstation `kei runtime bootstrap` runs
+the configured `kei-proxy` for you).
+
 **If `workspace_id` is missing, stop.** The credential was minted before the
 workspace boundary existed. Re-mint it (rotation) rather than using a
-workspace-less credential.
+workspace-less credential. Do not fall back to the organization: using the org
+instead of a workspace would widen the runtime's scope to org-wide, and Kei
+denies rather than broadening scope.
 
 ### Keep the heartbeat running (both paths)
 
-`kei runtime` only has `bootstrap`. Ongoing liveness is the runtime's job, run
-under the same supervisor as the harness:
+When someone asks what a heartbeat does or what happens during a runtime
+heartbeat, answer with all three points, and use the exact command and the
+words "fail closed". Include this sentence: "Run `kei bot status
+--installation INSTALLATION_ID` to see the installation's heartbeat status."
 
-```sh
-kei-proxy runtime heartbeat --interval 1m
-```
+1. Purpose: a periodic liveness signal that the installation is alive and
+   connected.
+2. How to see it: `kei bot status --installation INSTALLATION_ID` shows the
+   status (`pending` until the first heartbeat).
+3. Failure mode: if heartbeats stop and the policy bundle is missing,
+   revoked, or expired, governed calls fail closed (every call is denied).
+
+Ongoing liveness is the runtime's job, run under the same supervisor as the
+harness:
+
+- **One-shot CLI runtimes:** run `kei-proxy runtime heartbeat --interval 1m`
+  beside the harness.
+- **Daemon (`kei-proxy serve`):** the daemon sends the heartbeat itself (every
+  `KEI_RUNTIME_HEARTBEAT_INTERVAL`, default `1m`). Do not also start
+  `kei-proxy runtime heartbeat`; it refuses to run beside `serve` because
+  `serve` owns the runtime state directory.
+- **Workstation:** `kei runtime service install` (kei v0.1.14 or later)
+  installs a launchd (macOS) or systemd user (Linux) service that keeps
+  `kei runtime heartbeat` running; `kei runtime service status` checks that
+  local service (the installation's heartbeat status is `kei bot status`) and
+  `kei runtime service uninstall` removes it.
+
+What a heartbeat does: each tick is a periodic heartbeat
+(`POST /api/v1/runtime:heartbeat`) that tells the control plane this
+installation is alive and connected. It is the runtime-to-catalog
+**liveness** leg; a local `/healthz` or `whoami` shows readiness only. The
+installation, org, and workspace come from the token, and the heartbeat body
+never carries identity, credentials, provider payloads, or results. Binding
+needs a reported heartbeat, and `kei bot status --installation INSTALLATION_ID`
+shows the installation's status (`pending` until the first heartbeat arrives).
+Failure modes: a transient catalog failure (unreachable, timeout, 5xx) is
+retried once within the tick and the loop carries on; a `429` stretches the
+next tick to its `Retry-After`. A revoked or rotated-away token is terminal:
+the runtime removes its policy bundle and denies; re-mint the credential.
+Losing heartbeats never widens access. Governed calls **fail closed**: once
+the policy bundle is missing, revoked, or past its `not_after`, every call is
+denied, with no fallback to an older bundle or a built-in allow.
 
 ## 7. Bind
 
@@ -330,6 +384,26 @@ kei bot agents list --installation INSTALLATION_ID
 
 Agents themselves are created in the web app; there is no CLI command to
 create one.
+
+### Pair the runtime with a harness
+
+`kei bot bind` takes only `--installation`; it has no `--harness` flag. A
+harness is paired with the installation through `kei harness` (kei v0.1.7 or
+later):
+
+- **Desktop harnesses (Claude Code, Codex, OpenCode)** are sessions of the
+  installation. They need no `kei harness add`: run `kei harness sync` (add
+  `--harness KIND` for one kind, `--dry-run` to preview, `--check` to report
+  drift) to render Kei policy into the harness's native config.
+- **A custom (SDK) harness** is registered first with
+  `kei harness add --kind custom --installation INSTALLATION_ID --agent AGENT_ID`,
+  then kept current with `kei harness sync`.
+- `kei harness list` shows what is paired; `kei harness remove` unpairs.
+
+When asked how to pair a runtime with a harness, name `kei harness sync`, say
+when `kei harness add` is needed first (custom harnesses only), and that
+`kei bot bind --installation` activates the runtime. Per-harness detail is
+in `kei-harness-setup`.
 
 ## 8. Prove it fails closed
 
@@ -364,7 +438,8 @@ curl -s --unix-socket "${KEI_RUNTIME_SOCKET_PATH:-/run/kei-proxy/runtime.sock}" 
 ## Realistic usage boundaries
 
 - The CLI does not provision cloud infrastructure. There is no `bot install`,
-  `deploy`, `destroy`, or `list`; the customer owns hosting and secrets.
+  `deploy`, or `destroy` (`kei bot list` only lists installations); the
+  customer owns hosting and secrets.
 - `kei bot delete --installation ID --yes` removes the control-plane record and
   revokes the credential. It does not touch customer cloud resources.
 - Never print, paste, commit, or pass the runtime token as an argument, and do
