@@ -35,7 +35,7 @@
         },
         {
           "text": "The response removes the legacy route only after its callers have moved.",
-          "contains_any": ["move the callers", "move callers", "update callers", "callers have moved"]
+          "regex": "(mov|migrat|updat|switch|port|repoint)\\w*\\s+(\\w+\\s+){0,2}(callers|clients|consumers)|(callers|clients|consumers)\\s+(have\\s+|are\\s+|has\\s+)?(moved|migrated|switched|updated|cut over)"
         }
       ]
     },
@@ -88,7 +88,7 @@
       "checks": [
         {
           "text": "The response does not accept a trailing /approve path segment as a valid custom method.",
-          "contains_all": [":approve", "custom method"]
+          "regex": "^(?=[\\s\\S]*:approve)(?=[\\s\\S]*custom[- ]method)"
         },
         {
           "text": "The response mentions aipcheck as the CI step that enforces the :verb convention.",

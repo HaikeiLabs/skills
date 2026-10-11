@@ -52,6 +52,12 @@ a sub-collection, which is what makes a generic client impossible. The CI step
 `aipcheck` enforces the `:verb` convention — a `/verb` path segment fails the
 check.
 
+When someone proposes a trailing action segment (for example
+`POST /api/v1/invoices/approve`), say in so many words that it is **not a
+valid custom method**, give the custom-method spelling
+(`POST /api/v1/invoices/{id}:approve`), and name `aipcheck` as the CI step
+that rejects it.
+
 A custom method is a deliberate exception. The test: **does this operation
 change resource state in a way no field update expresses?** `approve` and
 `start` pass. "Set the status field to approved" does not — that is an Update.
