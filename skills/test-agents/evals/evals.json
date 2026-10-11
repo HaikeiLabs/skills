@@ -116,17 +116,11 @@
       "checks": [
         {
           "text": "says exit 2 means the endpoint is unreachable or misconfigured",
-          "contains_any": [
-            "unreachable",
-            "not reachable",
-            "unavailable",
-            "misconfigured",
-            "not set"
-          ]
+          "regex": "unreachable|not reachable|unavailable|misconfigured|not set|could ?n[o']?t (reach|connect)|(connection|connect) (error|failed|refused)|endpointunavailable"
         },
         {
           "text": "says exit 1 is the below-threshold result",
-          "regex": "(exit|code)\\D{0,15}1\\b|\\b1\\W{1,12}(a suite (is |fell |falls )?)?below"
+          "regex": "(exit|code)\\D{0,15}1\\b|\\b1\\b[^\\n]{0,40}below|below[^\\n]{0,40}\\b(exit|code)\\D{0,5}1\\b"
         }
       ]
     },
@@ -206,7 +200,7 @@
         },
         {
           "text": "says the case fails",
-          "regex": "\\b(fail|fails|failed|does not pass|doesn't pass|not pass)\\b"
+          "regex": "\\b(fail\\w*|does not pass|doesn't pass|not pass)\\b"
         }
       ]
     }

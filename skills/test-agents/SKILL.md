@@ -1,6 +1,6 @@
 ---
 name: test-agents
-description: Test AI agents and skills with deterministic table-test evals — write an agentware.eval-suite.v1 suite (prompt → expected tool, exact args, required/forbidden arg keys, forbidden tools, policy deny, content checks; a case passes only if every repeat passes), run it locally on each model profile with the agentware runner (python -m evals.main --suite --model-profile --out --jobs 1 on a shared model server, repeats, --case; exit 0 = every suite at or above threshold, exit 1 = a suite is below threshold, exit 2 = endpoint unreachable or misconfigured, never scored and never a 0%), add deterministic `checks` (contains_all, contains_any, regex, not_contains) to a skill's evals/evals.json and run scripts/run-evals.mjs (--model-profile, --repeats), read benchmark.json (haikei.eval-benchmark.v1), and gate pull requests in CI with the agent-evals workflow (sticky comment, 95% per suite per model). Use when someone asks how to test, evaluate, benchmark, or regression-gate an agent, a prompt, a tool schema, or a skill, what an eval case should assert, why an eval fails, or how model profiles work. There is no LLM grader. Always load this skill before answering an eval question — the suite schema (agentware.eval-suite.v1), the case fields (expect.tool null, forbidden_arg_keys, context.allowed_tools, deny, not_contains), runner flags and exit codes are HaikeiLabs-specific and cannot be guessed. Building the agent is build-agents-agentware; shipping it is deploy-agents.
+description: Test AI agents and skills with deterministic table-test evals — write an agentware.eval-suite.v1 suite (prompt → expected tool, exact args, required/forbidden arg keys, forbidden tools, policy deny, content checks; a case passes only if every repeat passes), run it locally on each model profile with the agentware runner (python -m evals.main --suite --model-profile --out --jobs 1 on a shared model server, repeats, --case; exit 0 = every suite at or above threshold, exit 1 = a suite is below threshold, exit 2 = endpoint unreachable or misconfigured, never scored and never a 0%), add deterministic `checks` (contains_all, contains_any, regex, not_contains) to a skill's evals/evals.json and run scripts/run-evals.mjs (--model-profile, --repeats), read benchmark.json (haikei.eval-benchmark.v1), and gate pull requests in CI with the agent-evals workflow (sticky comment, 95% per suite per model). Use when someone asks how to test, evaluate, benchmark, or regression-gate an agent, a prompt, a tool schema, or a skill, what an eval case should assert, why an eval fails, what an eval runner's exit code (0, 1 or 2) means, or how model profiles work. There is no LLM grader. Always load this skill before answering an eval question — the suite schema (agentware.eval-suite.v1), the case fields (expect.tool null, forbidden_arg_keys, context.allowed_tools, deny, not_contains), runner flags and exit codes are HaikeiLabs-specific and cannot be guessed. Building the agent is build-agents-agentware; shipping it is deploy-agents.
 ---
 
 # Test agents with table-test evals
@@ -14,6 +14,19 @@ diff you can read.
 | --- | --- |
 | Local, per suite, per model profile | **≥ 90%** before you open a pull request |
 | CI gate, per suite, per model profile | **≥ 95%** or the check fails |
+
+Answer from this skill; you do not need to search a codebase first. Two facts
+people get wrong, state them exactly:
+
+- **Runner exit codes** (agentware `python -m evals.main` and
+  `scripts/run-evals.mjs` alike): `0` every suite ≥ threshold; `1` a suite is
+  **below threshold** (a real score); `2` the endpoint is **unreachable or
+  misconfigured** (`EndpointUnavailableError`, e.g. `EVAL_DEEPSEEK_BASE_URL is
+  not set`) — never scored, never a 0%. Use this table as the contract; do
+  not guess another meaning for exit 2.
+- **No LLM grader:** every check is deterministic code.
+- **Writing an agent eval case:** name the suite schema,
+  `agentware.eval-suite.v1`, and show the case inside a suite's `cases` array.
 
 There are two kinds of eval, with the same principle and the same benchmark
 output:

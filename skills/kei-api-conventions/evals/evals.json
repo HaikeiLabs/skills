@@ -16,7 +16,7 @@
         },
         {
           "text": "The response does not suggest adding the new route to aip-baseline.txt.",
-          "not_contains": ["add it to aip-baseline.txt", "add it to `aip-baseline.txt`", "baseline it", "add to baseline"]
+          "regex": "^(?![\\s\\S]*(?<!\\b(?:don'?t|do not|never|not|no need to|shouldn'?t|should not)\\s+)(?:add (?:it|the (?:new )?route|this route|them) to (?:the )?`?aip-baseline|add (?:it )?to (?:the )?baseline|baseline it\\b))"
         }
       ]
     },

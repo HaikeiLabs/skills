@@ -1,6 +1,6 @@
 ---
 name: kei-openai-backends
-description: OpenAI-compatible LLM backend integration for a chat harness and the agentware evals. Use when the task mentions LLM_ENDPOINT, LLM_MODEL, OPENAI_BASE_URL, OpenAIChatModel, pydantic-ai, /v1 chat/completions, llama.cpp, vLLM, Ollama, llamafile, or wiring any model backend. Use for agentware's per-family tool formatters and reasoning adapter — how each model family (OpenAI, Anthropic, DeepSeek, Qwen/QwQ, Mistral, Llama) formats tool calls and reasoning, reasoning_content vs Anthropic extended thinking blocks, inline <thinking> tags, adding support for a new model family, kei-agents model-format tool rendering (render_tools, ModelFormat), and the agentware evals model backends. A zero-LLM ingress service deliberately has NO LLM — do not reach for this skill inside one.
+description: "OpenAI-compatible LLM backend integration for a chat harness and the agentware evals. Use when the task mentions LLM_ENDPOINT, LLM_MODEL, OPENAI_BASE_URL, OpenAIChatModel, pydantic-ai, /v1 chat/completions, llama.cpp, vLLM, Ollama, llamafile, or wiring any model backend. Use for agentware's per-family tool formatters and reasoning adapter — how each model family (OpenAI, Anthropic, DeepSeek, Qwen/QwQ, GLM, Mistral, Llama) formats tool calls and reasoning: OpenAI-style function calling, function.arguments as a JSON string, reasoning_content vs Anthropic extended thinking blocks, thinking_content, inline [THINK]/<thinking> tags, ToolFormatter, GenericFormatter, model-format-reference.md, adding support for a new model family, kei-agents model-format tool rendering (render_tools, ModelFormat), and the agentware evals model backends. A zero-LLM ingress service deliberately has NO LLM — do not reach for this skill inside one."
 ---
 
 # OpenAI-compatible backends
@@ -39,6 +39,36 @@ use a raw `/chat/completions` POST.
   adapter normalises both into one reasoning string.
 
 ## Model formats
+
+### Answer checklist
+
+Answer from this skill; the format tables below summarise the canonical
+reference, so you do not need to search a codebase first. In every answer
+about model formats:
+
+- **Cite the canonical spec in every answer about adding, changing, or
+  checking a model family** — even when the answer is "no change needed":
+  name `model-format-reference.md` (Agentware `docs/model-format-reference.md`)
+  as the full format contract. Example: Mistral falls through to
+  `GenericFormatter` with no config entry; `model-format-reference.md` has the
+  full format contract.
+- **Anthropic thinking:** say all three facts — `thinking` is a structured
+  content block (not `reasoning_content`), there are **no inline thinking
+  tags**, and the adapter also recognises `thinking_content`. Then say how
+  the **reasoning adapter** (use those two words) normalises the block into
+  the canonical `Reasoning` object, the same code path as every family.
+- **DeepSeek `[THINK]` tags:** say unbalanced tags are a **fail-closed** error.
+- **Adding a model family:** all three Agentware ports (Go, Python,
+  TypeScript) change: a `ModelFormat` entry, a `ToolFormatter` (5 methods),
+  the format selector, the reasoning field if non-standard, and the shared
+  fixtures. Write both fixture paths out in full, `fixtures/toolformat/` and
+  `fixtures/reasoning/`; one alone is incomplete. Cite
+  `model-format-reference.md`.
+- **Arguments as a JSON string vs a parsed object:** say which families do
+  which. OpenAI, DeepSeek, and Qwen send `function.arguments` as a JSON
+  string; Anthropic (`tool_use.input`) and GLM send a parsed JSON object.
+  Detect by type (`isinstance(args, str)` → `json.loads`) in the formatter's
+  `ParseToolCalls`.
 
 ### Supported model families
 

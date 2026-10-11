@@ -40,13 +40,13 @@ YOU MUST INCLUDE the following exact strings verbatim (case-sensitive, substring
 
 - When routing tool schemas to the agent-definition package, YOU MUST include **`kei-agents`** and describe what it covers as **`tool definitions`** and **`schemas`** — not "tool schemas".
 - When routing HTTP endpoint design, YOU MUST include **`kei-api-conventions`**, **`AIP`**, and **`resource-oriented`** together.
-- When diagnosing a broken installation (stale policy bundle or credential switch), YOU MUST include **`kei-setup-doctor`** and **`kei-harness-setup`**.
+- When diagnosing a broken installation (stale policy bundle or credential switch), YOU MUST include **`kei-setup-doctor`** (diagnosis) and **`kei-harness-setup`** (the full fix) — name both skills, never only one.
 - When giving the macOS cache path for a stale proxy bundle, YOU MUST include **`Application Support`** and **`kei-proxy`**.
 - When routing a governed connector read to the provider skill, YOU MUST name the provider skill (for Linear, **`linear-connector`**) and include this sentence verbatim: "Discover the workspace's connectors with `kei connectors list --workspace W`; the connector supplies the credential, and the agent never reads or stores it."
 - When describing the agent-action surface (sending messages, creating issues, etc.), YOU MUST include **`agentware-sdk`** (hyphenated, lowercase) — not "agentware SDK".
-- When explaining credential rotation impact (any question that mentions rotating a runtime credential or token), YOU MUST include the sentence "Rotation invalidates the old token immediately, so plan the restart."
-- When deploying a runtime or granting workspace access, route the deployment to **`kei-runtime-setup`** with **`kei-cli`** (the `kei bot` commands live in `kei-cli`) and workspace access to **`kei-api`**, and YOU MUST include **`CLI help`** and **`API routes`**, for example: "Inspect the installed CLI help before running a `kei` command, and the actual API routes before calling an endpoint."
-- When routing Pi setup, YOU MUST include **`kei-pi-setup`**, the adapter package **`kei-lime-pi`**, and say the runtime **token** stays in the kei-proxy daemon behind the owner-only Unix **socket**.
+- When explaining credential rotation impact, or whenever you route to `kei-credential-rotation` (even in a routing-only answer), YOU MUST include the sentence "Rotation invalidates the old token immediately, so plan the restart."
+- When deploying a runtime or granting workspace access, route the deployment to **`kei-runtime-setup`** with **`kei-cli`** (the `kei bot` commands live in `kei-cli`) and workspace access to **`kei-api`**, and YOU MUST include **`CLI help`** and **`API routes`**, for example: "Inspect the installed CLI help before running a `kei` command, and the actual API routes before calling an endpoint." When the task has both parts, keep them as two workstreams and name both skills.
+- When routing Pi setup, YOU MUST include **`kei-pi-setup`**, the adapter package **`kei-lime-pi`**, and say the runtime **token** stays in the kei-proxy daemon behind the owner-only Unix **socket** (out of Pi).
 
 ## Quick decision trees
 
@@ -59,7 +59,7 @@ Need to operate Kei from a terminal?
 ├─ Which admin command / what flags / install or upgrade kei → kei-cli
 ├─ Which runtime command (authorize, connector invoke, heartbeat, collector) → kei-proxy
 ├─ New runtime next to a harness (installation, credential, bootstrap, bind) → kei-runtime-setup
-├─ Rotate / revoke a runtime credential (KEI_RUNTIME_TOKEN) — agent keys deprecated for runtime → kei-credential-rotation
+├─ Rotate / revoke a runtime credential (KEI_RUNTIME_TOKEN) — agent keys deprecated for runtime; rotation invalidates the old token immediately → kei-credential-rotation
 ├─ Sync Entra (Azure AD) app roles into Kei groups and users, or debug that sync (`kei directory-sync`) → kei-directory-sync
 ├─ Existing installation misbehaving → kei-setup-doctor
 ├─ Operating Kei's own services (deploy/rollback oidc-bridge, migrations, signing keys, KeiIdentity* alerts) → kei-service-ops
@@ -89,7 +89,7 @@ exist in the code today.
 | Log in to Haikei from the CLI, or look up any `kei` command | kei CLI | Human operator (owner/admin) needs an org-bound CLI token via the device flow, or exact command syntax. Always inspect the installed CLI help before using a command | `kei-cli` |
 | Make an agent's tool call go through Kei (allow/deny, connector calls, audit) | `kei-proxy` runtime | Harness or adapter code that calls Kei at run time; never `kei login` | `kei-proxy` |
 | Stand up a customer-hosted runtime / kei-proxy | kei CLI (`kei bot …`) + `kei-proxy runtime` | New installation → credential → config → bootstrap → heartbeat → bind. The CLI surface (login, init, credential, bind) lives in `kei-cli`; the boot/run surface lives in `kei-runtime-setup` | `kei-runtime-setup` + `kei-cli` |
-| Rotate or revoke a runtime credential (KEI_RUNTIME_TOKEN) | kei CLI `bot credential --rotate` | Scheduled rotation, suspected leak, or a bootstrap missing `workspace_id` | `kei-credential-rotation` |
+| Rotate or revoke a runtime credential (KEI_RUNTIME_TOKEN) | kei CLI `bot credential --rotate` | Scheduled rotation, suspected leak, or a bootstrap missing `workspace_id`. Rotation invalidates the old token immediately; plan the restart | `kei-credential-rotation` |
 | Sync a customer's Entra groups and users into a Kei org | Azure portal + kei CLI `kei directory-sync` | App roles → Kei groups (`group:<role value>`), users created as org members; set up the sync app's Graph permissions and federated credential, dry run, report, go live, or debug a failed run | `kei-directory-sync` |
 | Connect Claude Code, Codex, OpenCode, or Cursor to Kei | Haikei skills + kei-proxy | Install these skills in a harness and route its governed calls through the runtime | `kei-harness-setup` |
 | Set up Pi with Kei | `kei-lime-pi` extension + local `kei-proxy` socket | Install the Pi package, keep the runtime token out of Pi, and verify supported tool calls fail closed | `kei-pi-setup` |
@@ -112,7 +112,7 @@ exist in the code today.
 | Run or extend headless deterministic evals | Headless evaluation harnesses | Work with EvalSuite fixtures, ScriptedBackend, the assistant eval CLI, or the agentware eval suites in Python/Go/TypeScript | `kei-headless-evals` |
 | Wire an OpenAI-compatible LLM backend | OpenAI-compatible backends | Point a harness at an OpenAI-compatible endpoint (LLM_ENDPOINT/LLM_MODEL), work with agentware's per-family tool formatters and reasoning adapter, or wire agentware eval model backends | `kei-openai-backends` |
 | List, get, create, update, delete, or import harness command policies; register an agent-keyed harness and sync tool registrations | kei-harness-policy | Manage `shell:`/`skill:`/`path:` policies (ADR-029), import native harness config, render native config via `kei harness sync`, register agent-keyed harnesses (kinds claude_code|codex|opencode|custom) and sync tool metadata. Requires a released kei (v0.1.13 is current) for `kei policies` and `kei harness` subcommands | `kei-harness-policy` |
-| Encrypt audit tool-call arguments; create, list, disable, or rotate audit encryption keys; decrypt an audit record locally | kei-audit-encryption | Opt-in, customer-held age (X25519) encryption of audit args: `kei audit keys create\|list\|disable`, `kei audit decrypt`, the audit-encryption-keys AIP resource, the keyed `args_digest`, opt-in semantics, rotation, escrow (off by default). `kei audit` ships in the next kei release (unreleased as of 2026-10-03) | `kei-audit-encryption` |
+| Encrypt audit tool-call arguments; create, list, disable, or rotate audit encryption keys; decrypt an audit record locally | kei-audit-encryption | Opt-in, customer-held age (X25519) encryption of audit args: `kei audit keys create\|list\|disable`, `kei audit decrypt`, the audit-encryption-keys AIP resource, the keyed `args_digest`, opt-in semantics, rotation, escrow (off by default). `kei audit` needs kei v0.1.9 or later | `kei-audit-encryption` |
 | Read or write data through a governed connector (GitHub, Linear, Drive, or any connector in the workspace) | Provider connector skill | Discover which connectors the workspace has via `kei connectors list --workspace W` (released in kei; v0.1.13 is current; fallback `GET /api/v1/data-connectors`), then load `skills/<provider>-connector/`. The connector supplies the credential; the agent never reads or stores it | `<provider>-connector` (discovered at runtime) |
 | Create a new governed connector skill from a template | Connector skill templates | Fork the connector-skill template to build a new governed data-source skill following the Lexicon/Pragmatics/Semantics pattern | `templates/connector-skill` |
 
@@ -128,7 +128,7 @@ exist in the code today.
 | setup doctor (workflow, not a command) | the `kei-cli` binary + the customer's environment | Read-only diagnosis of an installation: control-plane target, runtime health, credential destination, handoff | Any `kei setup doctor` subcommand — none exists; provisioning decisions, org management, remediation without consent |
 | service operations (operator's view) | each service's own repo (chart + `deploy.yaml`, migrations, scripts) + the Kei cluster | Deploy (merge = deploy, ADR-031), rollback (helm/kubectl, catalog `credentialRelease.authMode`), goose migrations (relay pod + port-forward to private RDS), signing keys (dry-run only for agents), KMS re-encryption, `X-KEI-API-Key` east-west auth (ADR-009), `KeiIdentity*` alert response | Tenant-facing work (customer runtimes, credentials, installations — that is `kei-runtime-setup`/`kei-credential-rotation`/`kei-setup-doctor`); applying terraform or mutating prod (human-only); printing secrets |
 | harness command policy | the `kei-cli` repository (`kei policies`, `kei harness` subcommands — released; v0.1.13 is current) | Harness command policies (`shell:`/`skill:`/`path:` dst), native config import and render (via `kei harness sync`), agent-keyed harness registration and tool sync | Tool-call policy (kei-proxy ABAC); org-level ABAC policy management (Kei API); report-only hook implementation (follow-up) |
-| audit-args encryption | the `kei-cli` repository (`kei audit` subcommands — unreleased as of 2026-10-03) + the catalog `audit-encryption-keys` resource | Opt-in customer-held age (X25519) encryption of audit tool-call arguments: local identity generation, public-key registration, local decrypt, rotation (add-new-then-disable-old), escrow setting (off by default) | Kei-side decryption (removed; no Kei path reads args by default); the keyed `args_digest` (Kei-held, never customer-facing); runtime credential rotation (`kei-credential-rotation`) |
+| audit-args encryption | the `kei-cli` repository (`kei audit` subcommands — kei v0.1.9 and later) + the catalog `audit-encryption-keys` resource | Opt-in customer-held age (X25519) encryption of audit tool-call arguments: local identity generation, public-key registration, local decrypt, rotation (add-new-then-disable-old), escrow setting (off by default) | Kei-side decryption (removed; no Kei path reads args by default); the keyed `args_digest` (Kei-held, never customer-facing); runtime credential rotation (`kei-credential-rotation`) |
 | ingress security | a customer assistant's ingress service | Fail-closed ingress: master switches, auth gates, SSO exchange, governor, pseudonymous audit, enrollment, idempotency, eager fail-stop startup | Generic tool-call middleware (that is `agentware-sdk`) |
 | Teams / Bot Framework | customer assistant ingress (`src/teams/`) | Activity parsing, Connector auth, SSO/OAuthCard, mention/audience gate, reply routing, outbound sends, manifest | The invite-only MS Teams library (`@microsoft/teams.apps`-auth) — not a public dependency |
 | tool adapters / governor | customer assistant ingress (tool lanes, governor) + agentware TS SDK tool formats | Tool lane stacks, governor proposals and stdio protocol, registry | LLM-driven dynamic tool selection; free-form endpoint selection |
@@ -155,7 +155,16 @@ exist in the code today.
   app with three Graph permissions and a federated credential (no secret); a
   Kei org admin runs `kei directory-sync set`, `enable` (dry run), `report`, then
   `set --dry-run=false`. Policies then use `group:<role value>`.
+- **"Rotate our runtime credential and turn on audit-args encryption."** → two
+  skills, both CLI work in the `kei-cli` repository: `kei-credential-rotation`
+  (`kei bot credential --rotate`; say that rotation **invalidates** the old
+  token immediately, so a planned restart is needed) and `kei-audit-encryption`
+  (`kei audit keys create`).
 - **"Set up Kei in Claude Code for the team."** → `kei-harness-setup`.
+- **"Define tool schemas for our assistant and add a new HTTP endpoint."** →
+  two skills, and say what each covers: `kei-agents` for the **tool
+  definitions** and **schemas**, and `kei-api-conventions` for **AIP**-style,
+  **resource-oriented** endpoint design.
 - **"Install the Kei adapter in Pi and govern its tools."** → `kei-pi-setup`.
 - **"Add an endpoint that approves an invoice."** → API conventions. Spell it as
   a custom method (`POST /api/v1/invoices/{id}:approve`), not a trailing
@@ -217,6 +226,14 @@ exist in the code today.
   `linear`, `googledrive`), load `skills/<provider>-connector/` (e.g.
   `skills/github-connector/` or `skills/linear-connector/`). Each connector skill documents its CLI, API, and
   entity model. The governed connector supplies the credential; the agent never reads
+  or stores it.
+- **"Read our Linear issues through the connector, then post a message from my
+  agent."** Two surfaces. The read: discover the connector with
+  `kei connectors list --workspace W`, then load `linear-connector`; the
+  connector supplies the credential and the agent never reads or stores it.
+  The action (posting the message): `agentware-sdk` wraps the tool call with
+  policy and audit, `kei-agents` defines the tool, and `kei-proxy` authorizes
+  it at run time. Name all of these in the answer.
 - **"Build a new connector skill for our internal CRM."** → connector skill
   templates. Fork `templates/connector-skill/`, fill in the Lexicon/Pragmatics/
   Semantics placeholders, add eval cases, and register the resource types per
@@ -234,8 +251,8 @@ exist in the code today.
   turns encryption on, and `kei audit decrypt --record ID --identity PATH
   --out FILE` recovers one record locally. Kei never receives or stores a
   private key, and there is no Kei-side decrypt path. The `kei audit`
-  subcommands ship in the next kei release (unreleased as of 2026-10-03);
-  until then use the console (Settings → Audit encryption).
+  subcommands need kei v0.1.9 or later; on an older kei, upgrade or use the
+  console (Settings → Audit encryption).
 
 ## Routing notes
 
@@ -257,12 +274,11 @@ exist in the code today.
   v0.1.13 is current. If the installed version predates them (check `kei
   help`), upgrade, or route the work to the web console or the Kei API. Model
   profiles need v0.1.13 or later: earlier versions call retired routes.
-- **`kei audit` is unreleased.** The audit-args encryption commands
-  (`kei audit keys create|list|disable`, `kei audit decrypt`) ship in the next
-  kei release (not released as of 2026-10-03; latest release v0.1.8). Do
-  not present them as available in the current version; route to the console
-  (Settings → Audit encryption) or the Kei API in the meantime. The
-  `kei-audit-encryption` skill documents the planned surface, and its
+- **`kei audit` needs kei v0.1.9 or later.** The audit-args encryption
+  commands (`kei audit keys create|list|disable`, `kei audit decrypt`) shipped
+  in v0.1.9. On an older kei, upgrade, or route to the console
+  (Settings → Audit encryption) or the Kei API. The
+  `kei-audit-encryption` skill documents the surface, and its
   boundary: Kei never receives or stores a private key, and no Kei path reads
   the arguments by default.
 - **`kei setup doctor` is not a command.** `kei-setup-doctor` is a skill that

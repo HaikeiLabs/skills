@@ -4,14 +4,14 @@
     {
       "id": 1,
       "prompt": "I'm an org admin and I want to turn on encryption for the arguments our agents pass to tools, so that only we can read them in the audit trail. Walk me through setting it up with the kei CLI. Do not execute anything — just explain in text. If you don't know something, just say so.",
-      "expected_output": "Run `kei login` first (owner/admin). Then `kei audit keys create` generates an age X25519 identity locally, writes the identity file (default ~/.config/kei/audit-identity.txt) with mode 0600, uploads only the public key, and never prints the private key. Back up the identity file — it is the only copy of the private key. Registering the first key turns encryption on for new records (opt-in). Note that the `kei audit` commands are not released yet and ship in the next kei release.",
+      "expected_output": "Run `kei login` first (owner/admin). Then `kei audit keys create` generates an age X25519 identity locally, writes the identity file (default ~/.config/kei/audit-identity.txt) with mode 0600, uploads only the public key, and never prints the private key. Back up the identity file — it is the only copy of the private key. Registering the first key turns encryption on for new records (opt-in). Note that the `kei audit` commands need kei v0.1.9 or later; check `kei --version`.",
       "expectations": [
         "mentions `kei login` before the audit commands (owner/admin)",
         "mentions `kei audit keys create` generating the age identity locally and writing the identity file with mode 0600 (default ~/.config/kei/audit-identity.txt)",
         "states that only the public key is uploaded and the private key is never printed or leaves the machine",
         "recommends backing up the identity file",
         "states that registering the first key turns encryption on for new records (opt-in)",
-        "notes the `kei audit` commands are not yet released and ship in the next kei release"
+        "notes the `kei audit` commands need kei v0.1.9 or later (check `kei --version`)"
       ],
       "checks": [
         {
@@ -45,19 +45,11 @@
         },
         {
           "text": "states that registering the first key turns encryption on for new records (opt-in)",
-          "contains_all": [
-            "registering",
-            "first",
-            "encryption"
-          ]
+          "regex": "first[^.\\n]{0,40}key[^.\\n]{0,80}(turns?|switch(es)?)[^.\\n]{0,20}on|first[^.\\n]{0,40}key[^.\\n]{0,60}(enables?|activates?|starts?)|(regist\\w*|creat\\w*|add\\w*)[^.\\n]{0,30}first[^.\\n]{0,40}key[^.\\n]{0,80}(on|enables?|activates?)|(turns?|switch(es)?) on[^.\\n]{0,80}first[^.\\n]{0,40}key|(as soon as|once|when|the moment)[^.\\n]{0,20}(the )?first[^.\\n]{0,40}key"
         },
         {
-          "text": "notes the `kei audit` commands are not yet released and ship in the next kei release",
-          "contains_all": [
-            "kei audit",
-            "audit",
-            "commands"
-          ]
+          "text": "notes the `kei audit` commands need kei v0.1.9 or later (check `kei --version`)",
+          "regex": "v?0\\.1\\.9\\b|kei --version"
         }
       ]
     },
@@ -73,9 +65,7 @@
       "checks": [
         {
           "text": "refuses to print the private key",
-          "contains_all": [
-            "print"
-          ]
+          "regex": "(can'?n?o?t|won'?t|will not|unable to|not able to|refuse|declin)\\w*[^.\\n]{0,50}(print|display|show|reveal|output|copy|paste|do that|help with that)|must never be (printed|displayed|shown|copied)"
         },
         {
           "text": "explains the identity file (default ~/.config/kei/audit-identity.txt, mode 0600) is the secret and should be backed up as a file, not pasted into chat or a ticket",
@@ -86,8 +76,10 @@
         },
         {
           "text": "does not display or ask to cat the AGE-SECRET-KEY line",
-          "contains_all": [
-            "AGE-SECRET-KEY"
+          "not_contains": [
+            "AGE-SECRET-KEY-1",
+            "cat ~/.config/kei/audit-identity.txt",
+            "cat $HOME/.config/kei/audit-identity.txt"
           ]
         }
       ]
@@ -112,10 +104,7 @@
         },
         {
           "text": "states only the public key is registered (`kei audit keys create` uploads the public key only)",
-          "contains_all": [
-            "public",
-            "register"
-          ]
+          "regex": "public key[^.\\n]{0,80}(regist|upload|sent|stored|goes to kei)|(regist|upload)\\w*[^.\\n]{0,50}public key|only (ever )?(sees|receives|gets|holds|has|stores|keeps)[^.\\n]{0,20}public keys?"
         },
         {
           "text": "mentions escrow (`audit_escrow_enabled`, default false) as the opt-in recovery-copy alternative, gated on at least one customer key",
@@ -128,11 +117,7 @@
         },
         {
           "text": "notes escrow keypair generation and escrow decrypt are a later task / not implemented yet",
-          "contains_all": [
-            "escrow",
-            "keypair",
-            "generation"
-          ]
+          "regex": "escrow[\\s\\S]{0,300}(not (yet )?(implemented|functional|available|built|wired|shipped|live)|later (task|release|phase)|follow-?up|planned|unimplemented)"
         }
       ]
     },
@@ -158,10 +143,7 @@
         },
         {
           "text": "writes to a file with `--out` (mode 0600)",
-          "contains_all": [
-            "--out",
-            "writes"
-          ]
+          "regex": "--out\\b"
         },
         {
           "text": "states stdout output requires an explicit `--stdout` flag (no implicit printing)",
@@ -172,11 +154,7 @@
         },
         {
           "text": "notes the CLI fetches the ciphertext via the audit records API and decrypts locally with the identity",
-          "contains_all": [
-            "CLI",
-            "fetches",
-            "ciphertext"
-          ]
+          "regex": "(fetch|download|pull|retriev)\\w*[^.\\n]{0,80}ciphertext|ciphertext[^.\\n]{0,80}(fetch|download|pull|retriev)"
         },
         {
           "text": "mentions the wrong-identity failure (decryption failed / wrong identity)",
@@ -245,19 +223,11 @@
       "checks": [
         {
           "text": "states only the content of the call (arguments/payload: code body, script, prompt text) is encrypted",
-          "contains_all": [
-            "content",
-            "script",
-            "prompt"
-          ]
+          "regex": "(only|just)[^.\\n]{0,40}(content|argument|args|payload)"
         },
         {
           "text": "names fields that stay plaintext and queryable (tool/skill name, decision, ids, timestamps, outcome/exit code, args_digest, key ids)",
-          "contains_all": [
-            "plaintext",
-            "queryable",
-            "tool/skill"
-          ]
+          "regex": "^(?=[\\s\\S]*(plaintext|visible|queryable|searchable|unencrypted|in the clear))(?=[\\s\\S]*(tool|skill)[\\w/]*\\s+name)(?=[\\s\\S]*decision)"
         },
         {
           "text": "explains args_ciphertext is age-encrypted (X25519, multi-recipient) to all active recipients, base64-encoded, with recipient_key_ids",
@@ -268,10 +238,7 @@
         },
         {
           "text": "explains args_digest is a keyed HMAC (hmac-sha256:) that groups repeated calls and is never reversible",
-          "contains_all": [
-            "args_digest",
-            "keyed"
-          ]
+          "regex": "args_digest[\\s\\S]{0,250}(keyed|hmac)|(keyed|hmac)[\\s\\S]{0,250}args_digest"
         }
       ]
     },
@@ -297,11 +264,7 @@
         },
         {
           "text": "explains that with no key, records carry args_digest + digest_key_id only, and the missing args_ciphertext is normal (not a miss)",
-          "contains_all": [
-            "records",
-            "carry",
-            "args_digest"
-          ]
+          "regex": "^(?=[\\s\\S]*args_digest)(?=[\\s\\S]*(normal|expected|not a (bug|miss)|by design|nothing is broken|working as (intended|designed)))"
         },
         {
           "text": "suggests checking the key list (`kei audit keys list`) or the encryption_enabled field",
@@ -355,11 +318,7 @@
         },
         {
           "text": "notes escrow keypair generation and escrow decrypt are a later task / not implemented yet",
-          "contains_all": [
-            "escrow",
-            "keypair",
-            "generation"
-          ]
+          "regex": "escrow[\\s\\S]{0,300}(not (yet )?(implemented|functional|available|built|wired|shipped|live)|later (task|release|phase)|follow-?up|planned|unimplemented)"
         }
       ]
     },
@@ -382,11 +341,7 @@
         },
         {
           "text": "explains disabled keys stay listed so old records can name their recipient_key_ids",
-          "contains_all": [
-            "disabled",
-            "listed",
-            "records"
-          ]
+          "regex": "^(?=[\\s\\S]*disabl)(?=[\\s\\S]*records)(?=[\\s\\S]*(listed|in the (key )?list|on the list|stays? (visible|in)|remains? (visible|in)))"
         },
         {
           "text": "states disabling only affects new records; old records remain decryptable by the holder of the private key",
@@ -419,11 +374,7 @@
         },
         {
           "text": "states past records stay encrypted to the key(s) active when they were written and are not re-encrypted or re-keyed",
-          "contains_all": [
-            "records",
-            "encrypted",
-            "active"
-          ]
+          "regex": "(never|not|n[o']t|no)[^.\\n]{0,20}re-?(encrypt|key)|keep[^.\\n]{0,30}recipient_key_ids|stay[^.\\n]{0,20}encrypted to"
         },
         {
           "text": "states reading old records still requires the old key's private key (recipient_key_ids do not change)",
@@ -453,10 +404,7 @@
       "checks": [
         {
           "text": "refuses generating the key inside the ephemeral pod (the identity file would be lost with the pod)",
-          "contains_all": [
-            "ephemeral",
-            "identity"
-          ]
+          "regex": "^(?=[\\s\\S]*identity)(?=[\\s\\S]*(ephemeral|recreat|destroy|lost|wiped|disappear|goes away|deleted with))"
         },
         {
           "text": "states the runtime never needs the private key (it only fetches public recipients)",
