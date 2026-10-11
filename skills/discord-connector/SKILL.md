@@ -26,7 +26,10 @@ before execution.
   connector; they are irreversible and outside its scope (see the denied
   command surface).
 - Discord declares six Snowflake-keyed resource types for Kei policy (per
-  ADR-028): `guild`, `channel`, `thread`, `message`, `member`, `role`.
+  ADR-028): `guild`, `channel`, `thread`, `message`, `member`, `role`. When
+  asked which resource types Discord declares, give all three facts: the six
+  names, that each is keyed by a Discord **Snowflake** ID (an integer
+  string), and that they are declared per **ADR-028**.
 
 ## Install
 
