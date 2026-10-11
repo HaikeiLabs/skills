@@ -22,7 +22,21 @@ export function parseModelProfile(yamlText, name) {
     model: fields.opencode_model,
     baseUrlEnv: fields.base_url_env,
     runTimeoutSeconds: timeout === undefined ? undefined : positiveSeconds(timeout, `${name}.run_timeout_seconds`),
+    temperature: fields.temperature === undefined ? undefined : temperature(fields.temperature, `${name}.temperature`),
+    seed: fields.seed === undefined ? undefined : seed(fields.seed, `${name}.seed`),
   };
+}
+
+function temperature(value, label) {
+  const t = Number(value);
+  if (!Number.isFinite(t) || t < 0) throw new Error(`${label} must be a number >= 0`);
+  return t;
+}
+
+function seed(value, label) {
+  const s = Number(value);
+  if (!/^\d+$/.test(value) || !Number.isSafeInteger(s)) throw new Error(`${label} must be a non-negative integer`);
+  return s;
 }
 
 // --run-timeout wins over the profile's run_timeout_seconds, which wins over

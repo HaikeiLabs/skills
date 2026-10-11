@@ -9,11 +9,15 @@
  *      teaching content is installed: never evals/ (the answer key), results,
  *      benchmarks or dotfiles;
  *   2. runs the eval prompt headlessly in each with the chosen harness;
- *   3. applies the fixture's deterministic check for each expectation and
- *      requires every repeat to pass a case;
+ *   3. applies the fixture's deterministic check for each expectation; each
+ *      repeat is one run, and a skill's pass rate is passed runs / total runs
+ *      (the average over repeats, as for tool-call evals);
  *   4. writes response.md + grading.json per run and benchmark.{json,md}, in
  *      the skill-creator layout (eval-N/<config>/run-N/) so its eval viewer
  *      can open the results directly.
+ *
+ * With --model-profile, the profile's temperature and seed (EV-C1 §3) are
+ * sent with every model request.
  *
  * Unlike the verify-* scripts this calls models, so it is not run in CI.
  * It needs the harness CLI on PATH and logged in.
@@ -80,6 +84,8 @@ function parseArgs(argv) {
     if (!profile) throw new Error(`unknown model profile ${opts.modelProfile}`);
     opts.model = profile.model;
     opts.baseUrlEnv = profile.baseUrlEnv;
+    opts.temperature = profile.temperature;
+    opts.seed = profile.seed;
   }
   opts.runTimeoutSeconds = resolveRunTimeoutSeconds({ flag: opts.runTimeout, profile: profile?.runTimeoutSeconds });
   return opts;
@@ -186,6 +192,7 @@ function report(results, out, opts) {
 
   const lines = [`# Skill eval benchmark (${opts.modelProfile ?? opts.model ?? opts.harness})`, '',
     `Model: ${opts.model ?? 'unspecified'} · Repeats: ${benchmark.repeats} · Threshold: ${opts.threshold}`, '',
+    'Counts are runs (cases × repeats); the pass rate is passed runs / total runs.', '',
     '| Skill | Pass rate | Passed | Failed | Errors | Total |', '| --- | ---: | ---: | ---: | ---: | ---: |'];
   for (const result of benchmark.results) {
     lines.push(`| ${result.suite} | ${Math.round(result.pass_rate * 100)}% | ${result.passed} | ${result.failed} | ${result.errors} | ${result.total} |`);

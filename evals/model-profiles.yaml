@@ -6,6 +6,10 @@ profiles:
     concurrency: 4
     # Sandboxed harness runs can exceed 600 s on complex prompts.
     run_timeout_seconds: 1800
+    # Greedy sampling with a fixed seed (EV-C1 §3), so a rerun of an unchanged
+    # skill asks the model the same question the same way.
+    temperature: 0
+    seed: 42
   qwen3.8-27b:
     opencode_model: eval/qwen3.8-27b
     base_url_env: EVAL_QWEN_BASE_URL
@@ -13,3 +17,5 @@ profiles:
     concurrency: 2
     # opencode runs on the shared 5090 can exceed the 600 s default.
     run_timeout_seconds: 1800
+    temperature: 0
+    seed: 42
