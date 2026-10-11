@@ -19,7 +19,10 @@ governed operations. Agents use the Google Drive API v3 directly.
   Setup: an owner runs `kei connectors create --provider googledrive` (OAuth or
   service-account key); re-authorize with `kei connectors reconnect <id>`.
 - Permanent file deletion is not available through the governed connector —
-  files move to trash instead (trash is available and reversible).
+  files move to trash instead (trash is available and reversible). When asked
+  whether you can permanently delete a file, start with this sentence: "No,
+  permanent deletion is not available (not supported) through the governed
+  connector." Then offer moving the file to trash.
 - Resource types for Kei policy follow ADR-028: `folder` (no parent) and
   `file` (parent: folder).
 - The optional `drive_id` field scopes the connector to one shared drive;
@@ -36,6 +39,12 @@ plugin installed. See the repo README for per-harness setup.
 
 Kei governs every connector call. The agent never holds, asks for, or prints a
 raw credential.
+
+If a user offers to paste a key (a service account JSON key, a token), do not
+accept it, and name the Kei commands instead: an owner runs
+`kei connectors create --provider googledrive --workspace W` (OAuth, or
+`--credential-ref` for a key already in the secret manager), and a broken
+connection is repaired with `kei connectors reconnect <id>`.
 
 - **OAuth (Google Workspace):** An owner runs `kei connectors create --provider googledrive
   --workspace W`. This returns a connect URL they open in a browser to
@@ -59,6 +68,12 @@ The Kei connector has an optional `drive_id` field. It scopes the connector
 to ONE Google shared drive; `kei-proxy` supplies it as the drive scope on
 Drive calls. Blank = the connecting user's My Drive plus every shared drive
 they can access.
+
+When someone gives you a drive URL and asks what to enter, answer with the
+ID and say to paste only the ID, not the URL. For example: enter
+`0AExampleSharedDrive01`, the last URL segment; paste only the ID, not the
+URL. For a My Drive URL (`.../my-drive`), say that My Drive has no Drive ID
+and to leave the field blank.
 
 - **Account index:** `/u/N/` is the Google account index in that browser. At
   OAuth consent pick the same account that can see the drive, or the
