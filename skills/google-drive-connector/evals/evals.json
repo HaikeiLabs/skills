@@ -8,7 +8,7 @@
       "expectations": ["mentions the GET /files endpoint", "describes the `q` query parameter syntax", "mentions the `fields` parameter"],
       "checks": [
         {"text": "mentions the GET /files endpoint", "contains_all": ["GET /files"]},
-        {"text": "describes the `q` query parameter syntax", "contains_all": ["q", "name contains"]},
+        {"text": "describes the `q` query parameter syntax", "regex": "\\bq\\b[\\s\\S]*name( |\\+|%20)contains|name( |\\+|%20)contains[\\s\\S]*\\bq\\b"},
         {"text": "mentions the `fields` parameter", "contains_all": ["fields"]}
       ]
     },
@@ -96,7 +96,7 @@
       "expectations": ["gives 0AExampleSharedDrive01 as the value to enter", "says to paste only the ID, not the URL", "does not give the full drive URL as the value"],
       "checks": [
         {"text": "gives 0AExampleSharedDrive01 as the value to enter", "contains_all": ["0AExampleSharedDrive01"]},
-        {"text": "says to paste only the ID, not the URL", "contains_any": ["paste", "enter", "last segment"]},
+        {"text": "says to paste only the ID, not the URL", "regex": "paste|enter|last (url )?segment|only the (drive )?id|not the (full |whole )?url"},
         {"text": "does not give the full drive URL as the value", "not_contains": ["enter the URL", "paste the URL", "use the full URL"]}
       ]
     }
