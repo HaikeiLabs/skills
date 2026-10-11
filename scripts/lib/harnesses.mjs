@@ -67,15 +67,21 @@ export function opencodeConfig(opts, skill, baseURL) {
   return config;
 }
 
+// Each run also gets its own data home. opencode keeps its session database
+// there; with one shared database, concurrent runs fail with "database is
+// locked".
 export function opencodeEnv(config, cwd) {
   const configHome = path.join(cwd, '.eval-config-home');
+  const dataHome = path.join(cwd, '.eval-data-home');
   fs.mkdirSync(configHome, { recursive: true });
+  fs.mkdirSync(dataHome, { recursive: true });
   return {
     OPENCODE_CONFIG_CONTENT: JSON.stringify(config),
     OPENCODE_CONFIG: '',
     OPENCODE_PURE: '1',
     OPENCODE_DISABLE_AUTOUPDATE: '1',
     XDG_CONFIG_HOME: configHome,
+    XDG_DATA_HOME: dataHome,
     OPENCODE_DISABLE_CLAUDE_CODE_SKILLS: '1',
     OPENCODE_DISABLE_EXTERNAL_SKILLS: '1',
   };

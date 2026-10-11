@@ -73,6 +73,10 @@ test('opencode runs with_skill and without_skill under the same sandbox, isolate
     for (const [env, cwd] of [[a, dirs[0]], [b, dirs[1]]]) {
       assert.equal(env.XDG_CONFIG_HOME, path.join(cwd, '.eval-config-home'));
       assert.ok(statSync(env.XDG_CONFIG_HOME).isDirectory());
+      // Per-run session database: a shared one fails concurrent runs with
+      // "database is locked".
+      assert.equal(env.XDG_DATA_HOME, path.join(cwd, '.eval-data-home'));
+      assert.ok(statSync(env.XDG_DATA_HOME).isDirectory());
       assert.equal(env.OPENCODE_CONFIG, '');
       assert.equal(env.OPENCODE_PURE, '1');
       assert.equal(env.OPENCODE_DISABLE_EXTERNAL_SKILLS, '1');
