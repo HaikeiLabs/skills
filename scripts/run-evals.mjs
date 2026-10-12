@@ -47,7 +47,7 @@ import { makeBenchmark, belowThreshold } from './lib/benchmark.mjs';
 import { resolveSkillsDir } from './lib/paths.mjs';
 import { HARNESSES } from './lib/harnesses.mjs';
 import { stageSkill } from './lib/stage.mjs';
-import { parseModelProfile, resolveRunTimeoutSeconds, runCommand, runError, timeoutSummary, timingRecord } from './lib/run.mjs';
+import { noAnswer, parseModelProfile, resolveRunTimeoutSeconds, runCommand, runError, timeoutSummary, timingRecord } from './lib/run.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -114,11 +114,12 @@ async function answer(skill, prompt, withSkill, opts, runDir) {
   fs.mkdirSync(path.join(runDir, 'outputs'), { recursive: true });
   fs.writeFileSync(path.join(runDir, 'outputs', 'response.md'), response);
   fs.writeFileSync(path.join(runDir, 'timing.json'), JSON.stringify(timingRecord(res, opts.runTimeoutSeconds), null, 2));
-  if (res.code !== 0) fs.writeFileSync(path.join(runDir, 'stderr.txt'), res.stderr);
+  const empty = noAnswer(res, response);
+  if (res.code !== 0 || empty) fs.writeFileSync(path.join(runDir, 'stderr.txt'), res.stderr);
   fs.rmSync(cwd, { recursive: true, force: true });
   // A harness failure (auth, usage limit, crash, timeout) is not a skill
   // failure: report it instead of grading an empty or partial answer.
-  const error = runError(res, response);
+  const error = runError(res);
   if (error) {
     // Permission rejection means the model tried to act but was blocked.
     // Treat as a completed run with whatever we got — grade it normally
@@ -128,7 +129,18 @@ async function answer(skill, prompt, withSkill, opts, runDir) {
     }
     return { error, timedOut: res.timedOut };
   }
+  // A clean exit with no answer is a failed run, not an incomplete one.
+  if (empty) return { response: '', noAnswer: empty };
   return { response };
+}
+
+// Every check fails on a run with no answer (a not_contains check would
+// otherwise pass on empty text).
+function noAnswerResult(row, checks, reason, runDir) {
+  const expectations = checks.map((check) => ({ text: check.text, passed: false, evidence: reason, check }));
+  const summary = { passed: 0, failed: checks.length, total: checks.length, pass_rate: 0 };
+  fs.writeFileSync(path.join(runDir, 'grading.json'), JSON.stringify({ expectations, summary }, null, 2));
+  return { ...row, ...summary, casePassed: false, reason };
 }
 
 function grade(expectations, checks, response, runDir) {
@@ -259,9 +271,10 @@ async function main() {
             if (!hasChecks(ev.checks)) return { skill, id: ev.id, config, repeat, passed: 0, failed: 0, total: 1, error: MISSING_CHECKS };
             const runDir = path.join(evalDir, config, `run-${repeat}`);
             process.stderr.write(`running ${skill} #${ev.id} ${config} repeat ${repeat}\n`);
-            const { response, error, timedOut } = await answer(skill, ev.prompt, config === 'with_skill', opts, runDir);
+            const { response, error, timedOut, noAnswer: empty } = await answer(skill, ev.prompt, config === 'with_skill', opts, runDir);
             if (error) return { skill, id: ev.id, config, repeat, passed: 0, failed: 0, total: 1, error, timedOut };
             if (!ev.checks) throw new Error(`${skill} eval #${ev.id} has no checks`);
+            if (empty) return noAnswerResult({ skill, id: ev.id, config, repeat }, ev.checks, empty, runDir);
             const grading = grade(ev.expectations, ev.checks, response, runDir);
             const reason = grading.expectations.filter((item) => !item.passed)
               .map((item) => `${item.text}: ${item.evidence}`).join('; ');
