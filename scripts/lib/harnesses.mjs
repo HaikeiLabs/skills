@@ -55,14 +55,26 @@ export function opencodePermission(skill) {
   };
 }
 
+// The profile's sampling settings (EV-C1 §3). opencode 1.18 sends a model's
+// `options` in the body of every chat completions request, and otherwise sends
+// no temperature at all, so the server would sample at its own default.
+export function samplingOptions(opts) {
+  const options = {};
+  if (opts.temperature !== undefined) options.temperature = opts.temperature;
+  if (opts.seed !== undefined) options.seed = opts.seed;
+  return options;
+}
+
 export function opencodeConfig(opts, skill, baseURL) {
   const config = { permission: opencodePermission(skill) };
   if (opts.modelProfile) {
     const [, ...modelParts] = opts.model.split('/');
     const modelId = modelParts.join('/');
+    const options = samplingOptions(opts);
     config.model = opts.model;
     config.provider = { eval: { npm: '@ai-sdk/openai-compatible', name: 'Eval model server',
-      options: { baseURL }, models: { [modelId]: { name: modelId } } } };
+      options: { baseURL },
+      models: { [modelId]: { name: modelId, ...(Object.keys(options).length ? { options } : {}) } } } };
   }
   return config;
 }

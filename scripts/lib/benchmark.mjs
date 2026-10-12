@@ -1,3 +1,9 @@
+// haikei.eval-benchmark.v1 for skill evals (EV-C1 §5). Each repeat of a case is
+// one run, and every count is in runs: passed/failed/errors/total sum the runs
+// of the skill's cases, and pass_rate = passed runs / total runs, the average
+// over repeats that tool-call evals use. With one repeat a run is a case.
+// cases[].passed is true only when every run passed; cases[].runs and
+// cases[].passed_runs are additive v1 fields.
 export function makeBenchmark(results, { harness, modelProfile = null, model = null, repeats = 1, gitSha, createdAt = new Date().toISOString() }) {
   const grouped = {};
   for (const row of results) {
@@ -8,23 +14,21 @@ export function makeBenchmark(results, { harness, modelProfile = null, model = n
     cases.set(row.id, observations);
   }
   const skillResults = Object.entries(grouped).map(([suite, cases]) => {
-    const counts = { passed: 0, failed: 0, errors: 0, total: cases.size, cases: [] };
+    const counts = { passed: 0, failed: 0, errors: 0, total: 0, cases: [] };
     for (const [id, observations] of cases) {
-      const errorRows = observations.filter((row) => row.error);
-      const allRepeatsPassed = observations.length === repeats && observations.every((row) => !row.error && row.casePassed);
-      let reason = '';
-      if (errorRows.length) {
-        counts.errors += 1;
-        reason = errorRows.map((row) => `repeat ${row.repeat}: ${row.error}`).join('; ');
-      } else if (allRepeatsPassed) {
-        counts.passed += 1;
-      } else {
-        counts.failed += 1;
-        reason = observations.filter((row) => !row.casePassed)
-          .map((row) => `repeat ${row.repeat}: ${row.reason || 'one or more checks failed'}`).join('; ');
-        if (observations.length !== repeats) reason ||= `expected ${repeats} repeats, got ${observations.length}`;
-      }
-      counts.cases.push({ id, passed: allRepeatsPassed, reason });
+      // A run that never reported back is an error, not a silent skip.
+      const missing = Math.max(0, repeats - observations.length);
+      const runs = observations.length + missing;
+      const passedRuns = observations.filter((row) => !row.error && row.casePassed).length;
+      const errorRuns = observations.filter((row) => row.error).length + missing;
+      counts.passed += passedRuns;
+      counts.errors += errorRuns;
+      counts.failed += runs - passedRuns - errorRuns;
+      counts.total += runs;
+      const reasons = observations.filter((row) => row.error || !row.casePassed)
+        .map((row) => `repeat ${row.repeat}: ${row.error || row.reason || 'one or more checks failed'}`);
+      if (missing) reasons.push(`expected ${repeats} repeats, got ${observations.length}`);
+      counts.cases.push({ id, passed: passedRuns === runs, runs, passed_runs: passedRuns, reason: reasons.join('; ') });
     }
     return { suite, kind: 'skill', passed: counts.passed, failed: counts.failed, errors: counts.errors,
       total: counts.total, pass_rate: counts.total ? counts.passed / counts.total : 0, cases: counts.cases };

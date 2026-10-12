@@ -10,22 +10,35 @@ import { DEFAULT_RUN_TIMEOUT_SECONDS, parseModelProfile, resolveRunTimeoutSecond
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const profiles = readFileSync(path.join(ROOT, 'evals/model-profiles.yaml'), 'utf8');
 
-test('both model profiles set an 1800 s run timeout', () => {
+test('both shipped profiles set an 1800 s run timeout, temperature 0 and a fixed seed', () => {
   assert.deepEqual(parseModelProfile(profiles, 'qwen3.8-27b'),
-    { model: 'eval/qwen3.8-27b', baseUrlEnv: 'EVAL_QWEN_BASE_URL', runTimeoutSeconds: 1800 });
-  const deepseek = parseModelProfile(profiles, 'deepseek-v4-flash');
-  assert.equal(deepseek.runTimeoutSeconds, 1800);
-  assert.equal(resolveRunTimeoutSeconds({ profile: deepseek.runTimeoutSeconds }), 1800);
-  assert.equal(resolveRunTimeoutSeconds({}), DEFAULT_RUN_TIMEOUT_SECONDS);
+    { model: 'eval/qwen3.8-27b', baseUrlEnv: 'EVAL_QWEN_BASE_URL', runTimeoutSeconds: 1800, temperature: 0, seed: 42 });
+  assert.deepEqual(parseModelProfile(profiles, 'deepseek-v4-flash'),
+    { model: 'eval/deepseek-ai/DeepSeek-V4-Flash', baseUrlEnv: 'EVAL_DEEPSEEK_BASE_URL', runTimeoutSeconds: 1800,
+      temperature: 0, seed: 42 });
   assert.equal(parseModelProfile(profiles, 'no-such-profile'), null);
 });
 
 test('parses profile fields in any order and stops at the next profile', () => {
   const yaml = 'profiles:\n  a:\n    run_timeout_seconds: 90\n    # note\n\n    opencode_model: eval/a\n  b:\n    opencode_model: eval/b\n';
-  assert.deepEqual(parseModelProfile(yaml, 'a'), { model: 'eval/a', baseUrlEnv: undefined, runTimeoutSeconds: 90 });
-  assert.equal(parseModelProfile(yaml, 'b').runTimeoutSeconds, undefined);
+  assert.deepEqual(parseModelProfile(yaml, 'a'),
+    { model: 'eval/a', baseUrlEnv: undefined, runTimeoutSeconds: 90, temperature: undefined, seed: undefined });
+  const b = parseModelProfile(yaml, 'b');
+  assert.equal(b.runTimeoutSeconds, undefined);
+  assert.equal(resolveRunTimeoutSeconds({ profile: b.runTimeoutSeconds }), DEFAULT_RUN_TIMEOUT_SECONDS);
   assert.throws(() => parseModelProfile('profiles:\n  c:\n    opencode_model: m\n    run_timeout_seconds: soon\n', 'c'),
     /c\.run_timeout_seconds must be a positive number/);
+});
+
+test('validates temperature and seed', () => {
+  const p = (field) => parseModelProfile(`profiles:\n  c:\n    opencode_model: m\n    ${field}\n`, 'c');
+  assert.equal(p('temperature: 0.2').temperature, 0.2);
+  assert.equal(p('seed: 7').seed, 7);
+  assert.throws(() => p('temperature: -1'), /c\.temperature must be a number >= 0/);
+  assert.throws(() => p('temperature: hot'), /c\.temperature must be a number >= 0/);
+  for (const bad of ['seed: 1.5', 'seed: -3', 'seed: abc']) {
+    assert.throws(() => p(bad), /c\.seed must be a non-negative integer/, bad);
+  }
 });
 
 test('--run-timeout overrides the profile, which overrides the default', () => {

@@ -45,7 +45,7 @@ test('requires one contract-shaped check per expectation and rejects legacy or m
   assert.match(validateChecks([{ text: 'different text', contains_any: ['a'] }], ['expectation']).join('; '), /verbatim/);
 });
 
-test('records repeat count and requires every repeat to pass a skill case', () => {
+test('records repeat count and scores a skill by passed runs over total runs', () => {
   const benchmark = makeBenchmark([
     { skill: 's', id: 1, config: 'with_skill', repeat: 1, casePassed: true },
     { skill: 's', id: 1, config: 'with_skill', repeat: 2, casePassed: false, reason: 'missing expected phrase' },
@@ -57,13 +57,30 @@ test('records repeat count and requires every repeat to pass a skill case', () =
   assert.equal(benchmark.repeats, 2);
   assert.deepEqual(Object.keys(benchmark.results[0]), ['suite', 'kind', 'passed', 'failed', 'errors', 'total', 'pass_rate', 'cases']);
   assert.equal(benchmark.schema, 'haikei.eval-benchmark.v1');
-  assert.deepEqual(benchmark.results, [{ suite: 's', kind: 'skill', passed: 1, failed: 1, errors: 0, total: 2,
-    pass_rate: 0.5, cases: [
-      { id: 1, passed: false, reason: 'repeat 2: missing expected phrase' },
-      { id: 2, passed: true, reason: '' },
+  // Four runs, three passed: the average over repeats, not "every repeat".
+  assert.deepEqual(benchmark.results, [{ suite: 's', kind: 'skill', passed: 3, failed: 1, errors: 0, total: 4,
+    pass_rate: 0.75, cases: [
+      { id: 1, passed: false, runs: 2, passed_runs: 1, reason: 'repeat 2: missing expected phrase' },
+      { id: 2, passed: true, runs: 2, passed_runs: 2, reason: '' },
     ] }]);
   assert.deepEqual(belowThreshold(benchmark, 0.9), ['s']);
-  assert.deepEqual(belowThreshold(benchmark, 0.5), []);
+  assert.deepEqual(belowThreshold(benchmark, 0.75), []);
+});
+
+test('errored and missing runs count against the average', () => {
+  const benchmark = makeBenchmark([
+    { skill: 's', id: 1, config: 'with_skill', repeat: 1, casePassed: true },
+    { skill: 's', id: 1, config: 'with_skill', repeat: 2, casePassed: true },
+    { skill: 's', id: 1, config: 'with_skill', repeat: 3, error: 'timeout' },
+    { skill: 's', id: 2, config: 'with_skill', repeat: 1, casePassed: true },
+  ], { harness: 'opencode', repeats: 3, gitSha: 'abc' });
+  const [suite] = benchmark.results;
+  assert.deepEqual({ passed: suite.passed, failed: suite.failed, errors: suite.errors, total: suite.total },
+    { passed: 3, failed: 0, errors: 3, total: 6 });
+  assert.equal(suite.pass_rate, 0.5);
+  assert.equal(suite.cases[0].reason, 'repeat 3: timeout');
+  assert.equal(suite.cases[1].reason, 'expected 3 repeats, got 1');
+  assert.equal(suite.cases[1].passed, false);
 });
 
 test('grade-only exits non-zero below threshold and writes contract benchmark files', () => {

@@ -78,7 +78,10 @@ access is enforced by policy, so that is what we test.
 
 Every case can also check the final reply: `contains_all`, `contains_any`,
 `regex`, `not_contains`, all case-insensitive. And `"repeats": 3` means each
-case runs three times and passes only if **all three** pass. Flaky is failing.
+case runs three times, and the suite scores **passed runs / total runs**: the
+average over repeats, which is what the threshold checks. The model profiles
+set `temperature: 0` and a fixed `seed`, so repeats measure the variance that
+is left, not sampling noise.
 
 Two habits help. First, generate the suite from code, so a change to a tool
 description shows up as a diff in the suite. kei-agents does this, and its CI

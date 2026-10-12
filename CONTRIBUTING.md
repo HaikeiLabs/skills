@@ -67,12 +67,14 @@ node scripts/verify-evals.mjs
 
 These run in CI as well (Node 22, Python yamllint), on pull requests and pushes to `main`.
 
-7. Run the evals for any skill you add or change with the required model
-   profiles, with and without the skill, and include both pass rates in the PR:
+7. Run the evals for any skill you add or change, on both required model
+   profiles, to tune it to at least 90% locally. Don't commit the results: the
+   agent-evals CI gate runs the same evals on the pull request and posts the pass
+   rates as a sticky comment, which is the record (see the Evals section of [AGENTS.md](AGENTS.md)):
 
 ```bash
-node scripts/run-evals.mjs --skill <name> --model-profile deepseek-v4-flash --jobs 1 --repeats 1
-node scripts/run-evals.mjs --skill <name> --model-profile qwen3.8-27b --jobs 1 --repeats 1
+node scripts/run-evals.mjs --skill <name> --model-profile deepseek-v4-flash --jobs 1 --repeats 3
+node scripts/run-evals.mjs --skill <name> --model-profile qwen3.8-27b --jobs 1 --repeats 3
 node scripts/run-evals.mjs --skills-dir ~/code/haikei/ev-wt/sk-int-kei/skills \
   --skill kei-api-gateway --harness opencode --model-profile deepseek-v4-flash --jobs 1
 ```
@@ -86,9 +88,12 @@ Each case runs in a scratch project with the skill installed in that harness's
 project skill directory (`.opencode/skills`) and again without it. The runner
 uses the selected model to generate responses, so responses can vary between
 runs. It grades them with deterministic, case-insensitive checks from each
-eval's `checks` array; there is no LLM grader. A case passes only when every
-repeat passes. Results go to `evals-out/` (ignored by git), including
-`benchmark.json` and `benchmark.md`. The default threshold is 0.9. The profiles
+eval's `checks` array; there is no LLM grader. Each repeat is one run, and a
+skill's pass rate is passed runs / total runs. A model profile's `temperature`
+and `seed` are sent with every request. Results go to `evals-out/` (ignored by git), including
+`benchmark.json` and `benchmark.md`, for your own tuning. Don't commit them
+under `evals/results/`: the agent-evals CI gate and its sticky pull request
+comment are the record. The default threshold is 0.9. The profiles
 resolve their OpenCode model names from `evals/model-profiles.yaml`; `--model`
 can select an explicit model, and `--repeats N` controls response repetitions
 (default 1).
