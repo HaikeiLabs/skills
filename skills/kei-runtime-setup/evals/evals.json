@@ -226,6 +226,129 @@
           ]
         }
       ]
+    },
+    {
+      "id": 8,
+      "prompt": "Our runtime needs model-profile API keys through Kei credential sync. How do I generate the sync key, what format does it need, and how do I register it with Kei?",
+      "expected_output": "Says kei-proxy has no keygen command: generate a raw 32-byte X25519 private key, base64-encoded, straight into the secret manager. Bootstrap derives the public key and registers it automatically, but only when KEI_CREDENTIAL_STORE_INSTALLATION_ID, KEI_CREDENTIAL_SYNC_KEY_ID and KEI_CREDENTIAL_SYNC_PRIVATE_KEY are all set. Does not call model-profile key delivery not live.",
+      "expectations": [
+        "The response says the private key is a base64-encoded 32-byte X25519 key.",
+        "The response names all three variables that must be set for registration.",
+        "The response says bootstrap registers the key automatically."
+      ],
+      "checks": [
+        {
+          "text": "The response says the private key is a base64-encoded 32-byte X25519 key.",
+          "contains_all": [
+            "X25519",
+            "base64"
+          ]
+        },
+        {
+          "text": "The response names all three variables that must be set for registration.",
+          "contains_all": [
+            "KEI_CREDENTIAL_STORE_INSTALLATION_ID",
+            "KEI_CREDENTIAL_SYNC_KEY_ID",
+            "KEI_CREDENTIAL_SYNC_PRIVATE_KEY"
+          ]
+        },
+        {
+          "text": "The response says bootstrap registers the key automatically.",
+          "contains_any": [
+            "bootstrap"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "We're putting the Kei credential store in Azure Key Vault and the runtime container uses a user-assigned managed identity. What does kei-proxy need to authenticate, and what permissions should the identity get on the vault?",
+      "expected_output": "Says kei-proxy uses DefaultAzureCredential and needs AZURE_CLIENT_ID set to the user-assigned identity's client ID; grant get and set on secrets in that vault only, no delete (sync never deletes; admins remove old secrets by hand). Key Vault Secrets User is read-only and not enough.",
+      "expectations": [
+        "The response says to set AZURE_CLIENT_ID for the user-assigned managed identity.",
+        "The response says to grant get and set on secrets.",
+        "The response says not to grant delete."
+      ],
+      "checks": [
+        {
+          "text": "The response says to set AZURE_CLIENT_ID for the user-assigned managed identity.",
+          "contains_all": [
+            "AZURE_CLIENT_ID"
+          ]
+        },
+        {
+          "text": "The response says to grant get and set on secrets.",
+          "contains_any": [
+            "get and set",
+            "get + set",
+            "get/set",
+            "get, set"
+          ]
+        },
+        {
+          "text": "The response says not to grant delete.",
+          "contains_any": [
+            "no delete",
+            "not delete",
+            "not grant delete",
+            "n't grant delete",
+            "without delete",
+            "by hand"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Does the openwebui-kei container's supervisor run kei-proxy credential sync for us, or do we have to do something after changing a model-profile key?",
+      "expected_output": "Says no: the entrypoint starts bootstrap, serve and heartbeat but not credential sync. Run kei-proxy credential sync after each key change; each run claims one pending delivery, so repeat until claimed is false.",
+      "expectations": [
+        "The response says the supervisor does not run credential sync.",
+        "The response says to run kei-proxy credential sync.",
+        "The response says each run claims one delivery."
+      ],
+      "checks": [
+        {
+          "text": "The response says the supervisor does not run credential sync.",
+          "contains_any": [
+            "n't run",
+            "not run",
+            "**not** run",
+            "not credential sync",
+            "not `kei-proxy credential sync`",
+            "not start",
+            "not include",
+            "isn't run",
+            "is not run",
+            "run it yourself",
+            "run it manually",
+            "need to run",
+            "have to run",
+            "must run",
+            "no:",
+            "no,",
+            "no.",
+            "no —",
+            "**no**"
+          ]
+        },
+        {
+          "text": "The response says to run kei-proxy credential sync.",
+          "contains_all": [
+            "credential sync"
+          ]
+        },
+        {
+          "text": "The response says each run claims one delivery.",
+          "contains_any": [
+            "one delivery",
+            "one pending delivery",
+            "claims one",
+            "**one**",
+            "one per run"
+          ]
+        }
+      ]
     }
   ]
 }
