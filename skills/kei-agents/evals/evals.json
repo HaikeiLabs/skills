@@ -168,10 +168,46 @@
           "text": "warns connector_id values are placeholders and must not be treated as real identifiers"
         },
         {
-          "contains_all": [
-            "placeholders"
-          ],
+          "regex": "\\bplaceholders?\\b",
           "text": "states not to embed endpoints or credentials in binding config"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Our assistant uses the http_api_read schemas from kei-agents for our CRM. Do those reads execute in kei-proxy identity mode, do I need a crm provider, and should I put the CRM base URL in the binding config?",
+      "expected_output": "CRM is an http_api connector named crm; there is no separate crm provider. The http_api_read tool definitions in kei-agents do not change: delegated_context stays tenant_id and the base URL never goes into binding config (validation rejects it). In identity mode kei-proxy serve runs the http_api call from the bundle's non-secret descriptor and injects the API key; the agent never reads the credential. Not live yet: ships after proxy-v0.2.4 and needs POLICY_BUNDLE_V2_CONNECTORS enabled.",
+      "expectations": [
+        "The response says CRM is an http_api connector named crm.",
+        "The response says the read executes in identity mode in kei-proxy.",
+        "The response says it is not live until POLICY_BUNDLE_V2_CONNECTORS is enabled.",
+        "The response names the kei-agents package."
+      ],
+      "checks": [
+        {
+          "text": "The response says CRM is an http_api connector named crm.",
+          "contains_all": [
+            "http_api",
+            "crm"
+          ]
+        },
+        {
+          "text": "The response says the read executes in identity mode in kei-proxy.",
+          "contains_all": [
+            "identity mode"
+          ]
+        },
+        {
+          "text": "The response says it is not live until POLICY_BUNDLE_V2_CONNECTORS is enabled.",
+          "contains_all": [
+            "POLICY_BUNDLE_V2_CONNECTORS"
+          ]
+        },
+        {
+          "text": "The response names the kei-agents package.",
+          "contains_all": [
+            "kei-agents"
+          ]
         }
       ]
     }

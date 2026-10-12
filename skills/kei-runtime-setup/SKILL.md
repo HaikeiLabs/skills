@@ -11,6 +11,22 @@ allow/deny decision and executes allowed work locally, so provider payloads,
 results, and credentials never enter Kei. This skill takes a runtime from
 "nothing" to "bound and heartbeating".
 
+The order, start to finish (sections 0–8 below have the commands):
+
+1. `kei login`: an org owner or admin approves the device flow in a browser.
+2. `kei bot init` creates the runtime installation.
+3. Pipe `kei bot credential` straight into the secret manager.
+4. Configure the runtime: `kei setup` on a workstation, or `KEI_RUNTIME_*`
+   environment variables on a deployed runtime.
+5. Bootstrap with `kei-proxy runtime bootstrap`. On a workstation,
+   `kei runtime bootstrap` runs the configured `kei-proxy` for you.
+6. Keep kei-proxy runtime heartbeat running: `kei-proxy runtime heartbeat`
+   beside a one-shot CLI harness, or `kei-proxy serve`, which sends the
+   heartbeat itself. Name the `kei-proxy` binary when you give this step; it
+   is the runtime on every path.
+7. Bind with `kei bot bind` only after the first heartbeat is reported.
+8. Confirm a deliberately unbound call is denied (fail closed).
+
 ## Concepts
 
 - **Harness** — software that lets an LLM act as an agent (for example Claude
@@ -302,6 +318,54 @@ the governed authorize and session routes are **socket-only** (the TCP
 listener returns 404 for them). See `docs/unix-socket.md` in the
 kei-connector-runtime repo for the full socket contract.
 
+#### Identity mode: deliver each `opaque_ref` secret first
+
+Not live yet: this needs the catalog's `POLICY_BUNDLE_V2_CONNECTORS` gate
+enabled and kei-proxy 0.2.5 or newer deployed (see the release status below).
+
+With `KEI_CREDENTIAL_RELEASE=identity` the daemon runs connector calls itself
+(`POST /v1/connectors:invoke`). A user's own OAuth connection (github, gmail,
+google_drive, linear) loads when their session starts. An `opaque_ref`
+connector works differently: an `http_api` connector such as the one named
+`crm`, or notion, discord or tito. The daemon reads its secret from your
+tenant secret store, and it can only find that secret if
+**`kei-proxy credential sync` has already delivered it to this runtime**.
+
+1. The runtime needs a credential-sync key (`KEI_CREDENTIAL_SYNC_KEY_ID`,
+   `KEI_CREDENTIAL_SYNC_PRIVATE_KEY`) next to `KEI_RUNTIME_TOKEN` and
+   `KEI_RUNTIME_CONTROL_PLANE_URL`. Without a runtime that can receive
+   secrets, `kei connectors create` refuses the secret ("set up a credential
+   store and a runtime with a credential-sync key first").
+2. Setting a connector secret (`kei connectors create`, or
+   `kei connectors reconnect ID --workspace WS` for a replacement, with the
+   value on stdin) seals it to the runtime and queues a delivery. The
+   connector stays `pending` until a runtime acknowledges the delivery.
+3. Run `kei-proxy credential sync` on the runtime. Each run claims one pending
+   delivery, writes it to the secret store and acknowledges it. Repeat until
+   the output shows `"claimed": false`. The JSON names the connector and
+   field, never the value.
+4. Run `credential sync` with the same `KEI_RUNTIME_STATE_DIR` as
+   `kei-proxy serve`. Sync records each delivery in the connector reference
+   index (`connector-credentials.json` in that directory), and that index is
+   where the daemon looks the secret up. The runtime's cloud identity must be
+   able to read the secret (AWS Secrets Manager or Azure Key Vault).
+
+A connector whose secret was never delivered, or was synced into another state
+directory, denies `credential_unavailable`. A secret delivered to a different
+backend than the bundle names denies `credential_backend_mismatch` (see
+`kei-setup-doctor`). Rotating a secret is another `reconnect` plus
+`credential sync`, and does not re-issue the policy bundle.
+
+**Release status: not live yet.** Running `opaque_ref` connectors in identity
+mode needs both of these: a kei-proxy release that contains the change
+(kei-connector-runtime 719866b), which is kei-proxy 0.2.5 or newer
+(proxy-v0.2.4 and older don't have it), deployed on the runtime; and the
+catalog's `POLICY_BUNDLE_V2_CONNECTORS` gate enabled in the control plane,
+which is off by default. Only with the gate on does the control plane send
+the connector descriptors. Until both are in place, those connectors deny
+`credential_source_not_supported` in identity mode. Delivering the secrets
+now is still the right first step.
+
 ### Check the bootstrap output (both paths)
 
 Bootstrap prints safe JSON: `installation_id`, `org_id`, `platform`, `status`,
@@ -433,6 +497,9 @@ kei-proxy runtime bootstrap | jq '{installation_id, status, binding_status, work
 # Default socket: $TMPDIR/kei-proxy/runtime.sock on macOS, /run/kei-proxy/runtime.sock on Linux.
 curl -s --unix-socket "${KEI_RUNTIME_SOCKET_PATH:-/run/kei-proxy/runtime.sock}" http://localhost/healthz || \
   echo "socket not ready — check KEI_RUNTIME_SOCKET_PATH and daemon logs"
+# Identity mode with opaque_ref connectors: repeat until claimed is false (never prints a value)
+kei-proxy credential sync | jq '{claimed, success, connector_id, field}'
+kei connectors list --workspace WS           # the connector is active once its secret was acknowledged
 ```
 
 ## Realistic usage boundaries
@@ -454,3 +521,14 @@ curl -s --unix-socket "${KEI_RUNTIME_SOCKET_PATH:-/run/kei-proxy/runtime.sock}" 
 - Kei's own control plane runs on AWS EKS (production) and a Tailscale cluster
   (staging). The earlier GCP runtime was retired on 2026-08-31 and is not a
   deployment target.
+
+## Response requirements
+
+- Whenever an answer walks through setting up a runtime, YOU MUST name the
+  `kei-proxy` binary for the bootstrap and heartbeat steps: bootstrap with
+  `kei-proxy runtime bootstrap`, then keep kei-proxy runtime heartbeat
+  running, then bind.
+- Whenever an answer covers identity-mode connector descriptors,
+  `opaque_ref` secrets, or `kei-proxy credential sync`, YOU MUST say it is
+  not live yet: it needs the catalog's **`POLICY_BUNDLE_V2_CONNECTORS`** gate
+  enabled (off by default) and kei-proxy **0.2.5 or newer** deployed.
