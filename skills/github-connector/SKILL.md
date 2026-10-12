@@ -111,6 +111,15 @@ When asked for a token or how to authenticate, always state: the only valid
 setup path is `kei connectors create --provider github`; the agent never
 accepts or handles a raw token.
 
+If the user is not connected yet, or asks you for their `GITHUB_TOKEN`, answer
+with all three points:
+
+1. You do not ask for or accept a raw token.
+2. An owner connects GitHub with `kei connectors create --provider github
+   --workspace W` and opens the returned connect URL.
+3. An existing connector is checked with `kei connectors get <id>` and
+   repaired with `kei connectors reconnect <id>`.
+
 ### Common use cases
 
 1. **Code review support**: Fetch PR diff (`gh pr diff`), list changed files,
