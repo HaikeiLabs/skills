@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "I'm integrating a new OpenAI-compatible model that formats tool-call arguments as a JSON string instead of a parsed object. How do I detect and handle this in the chat harness?",
+      "prompt": "I'm integrating a new OpenAI-compatible model that formats tool-call arguments as a JSON string instead of a parsed object. How do agentware's per-family formatters detect and handle this?",
       "expected_output": "Classify the model's ToolFormatter based on its arguments format: DeepSeek and GLM family models pass arguments as a JSON string while Anthropic models pass them as a parsed JSON object. The render_tools function will apply the correct per-model formatting.",
       "expectations": [
         "The response correctly classifies DeepSeek's arguments format as a JSON string.",
@@ -103,7 +103,7 @@
     },
     {
       "id": 6,
-      "prompt": "What's the difference between how Qwen and DeepSeek models produce reasoning in the chat harness?",
+      "prompt": "What's the difference between how Qwen and DeepSeek models produce reasoning, and how does agentware's reasoning adapter handle each?",
       "expected_output": "Both use reasoning_content on the delta but Qwen wraps its reasoning in XML <thinking> tags while DeepSeek uses [THINK] tags. DeepSeek has fail-closed behavior for unbalanced [THINK] tags.",
       "expectations": [
         "The response states both families use reasoning_content.",

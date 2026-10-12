@@ -22,11 +22,11 @@
     },
     {
       "id": 2,
-      "prompt": "My Teams bot sees all messages but responds to messages that don't mention it. Which ingress gate controls this and how does the harness adapter differ from the assistant's routing?",
-      "expected_output": "The mention gate controls whether a message is dispatched to SSO. The assistant uses buildReplyRoute for structured routing, while the chat harness adapter uses a simpler broadcast approach with no routing state.",
+      "prompt": "My Teams bot sees all messages but responds to messages that don't mention it. Which ingress gate controls this, and where can the assistant's reply go?",
+      "expected_output": "The mention gate: personal chat is always addressed, but channel and group chat need a verified bot mention matched against recipient.id; anything else is a benign 200 ignored. A reply goes only to the in-thread route built by buildReplyRoute from validated ids.",
       "expectations": [
         "The response identifies the mention gate and buildReplyRoute as the correct reply mechanism in the assistant.",
-        "The response distinguishes between the assistant's routing and the harness adapter's simpler approach."
+        "The response says channel and group chat need a verified bot mention matched against recipient.id."
       ],
       "checks": [
         {
@@ -34,8 +34,8 @@
           "contains_all": ["buildReplyRoute", "mention gate"]
         },
         {
-          "text": "The response distinguishes between the assistant's routing and the harness adapter's simpler approach.",
-          "contains_any": ["teams_main.py", "teams_adapter", "microsoft-teams-apps", "harness adapter"]
+          "text": "The response says channel and group chat need a verified bot mention matched against recipient.id.",
+          "contains_any": ["recipient.id", "verified bot mention", "verified mention"]
         }
       ]
     },
@@ -98,20 +98,20 @@
     },
     {
       "id": 6,
-      "prompt": "How does the chat harness Teams adapter differ from the assistant's full Teams integration?",
-      "expected_output": "The chat harness uses the microsoft-teams-apps SDK, listens on port 3001 with ingress path /teams/webhook. It does not perform OBO or render adaptive cards. It is simpler by design.",
+      "prompt": "Teams SSO never signs users in silently; it always falls back to the sign-in card. What in the Teams app manifest has to line up with the bot's SSO configuration?",
+      "expected_output": "webApplicationInfo.resource in appPackage/manifest.template.json must byte-match BOT_SSO_APPLICATION_ID_URI, the tokenExchangeResource.uri pinned in the OAuthCard. The Azure Bot OAuth connection (BOT_SSO_CONNECTION_NAME) must also exist and match.",
       "expectations": [
-        "The response describes the chat harness's port and ingress path.",
-        "The response notes the chat harness does not do OBO or adaptive cards."
+        "The response names BOT_SSO_APPLICATION_ID_URI as the value the manifest must match.",
+        "The response points at webApplicationInfo or tokenExchangeResource."
       ],
       "checks": [
         {
-          "text": "The response describes the chat harness's port and ingress path.",
-          "contains_any": ["3001", "/teams/webhook", "port 3001", "ingress path /teams"]
+          "text": "The response names BOT_SSO_APPLICATION_ID_URI as the value the manifest must match.",
+          "contains_all": ["BOT_SSO_APPLICATION_ID_URI"]
         },
         {
-          "text": "The response notes the chat harness does not do OBO or adaptive cards.",
-          "contains_all": ["adaptive cards"]
+          "text": "The response points at webApplicationInfo or tokenExchangeResource.",
+          "contains_any": ["webApplicationInfo", "tokenExchangeResource"]
         }
       ]
     }
