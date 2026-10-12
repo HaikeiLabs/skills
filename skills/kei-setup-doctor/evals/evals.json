@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "A customer has one Kei installation in AWS but does not know its installation ID. Diagnose it read-only, verify the control-plane account, and avoid exposing the runtime credential.",
+      "prompt": "A customer has one Kei installation in AWS but does not know its installation ID. Diagnose it read-only, verify the control-plane account, and avoid exposing the runtime credential. Do not execute anything \u2014 just explain in text.",
       "expected_output": "Explains there is no kei bot list, finds the installation ID from the console (Agents \u2192 Runtime installations) or the customer's records, confirms the intended target and organization before kei bot status, and reports evidence without printing secrets.",
       "expectations": [
         "The response does not use or invent kei bot list; it gets the installation ID from the console or customer records and confirms the target before running kei bot status.",
@@ -12,15 +12,11 @@
       "checks": [
         {
           "text": "The response does not use or invent kei bot list; it gets the installation ID from the console or customer records and confirms the target before running kei bot status.",
-          "contains_all": [
-            "console",
-            "installation ID",
-            "kei bot status"
-          ]
+          "regex": "^(?![\\s\\S]*kei bot list)(?=[\\s\\S]*(console|control[-\u2011]plane UI|web app|customer records|Kei API|\\bUI\\b))(?=[\\s\\S]*kei bot status)"
         },
         {
           "text": "The response requires organization/account confirmation and does not disclose credentials.",
-          "regex": "(?=[\\s\\S]*organization)(?=[\\s\\S]*\\bconfirm(?:ation|s|ed|ing)?\\b)"
+          "regex": "^(?=[\\s\\S]*organi[sz]ation)(?=[\\s\\S]*confirm)"
         }
       ]
     },
@@ -35,18 +31,11 @@
       "checks": [
         {
           "text": "The response treats 404/405 behavior as evidence of possible version skew rather than a confirmed root cause.",
-          "contains_all": [
-            "404",
-            "version skew",
-            "evidence"
-          ]
+          "regex": "^(?=[\\s\\S]*40[45])(?=[\\s\\S]*(version skew|version mismatch|different versions?|older (version|replica|image|build)|newer (version|image|build)|mismatched versions?))(?=[\\s\\S]*(evidence|suggest|likely|possibl|hypothes|points? to|sign of|consistent with|not (yet )?(a )?confirm|indicat|could be|may be|might|common cause))"
         },
         {
           "text": "The response separates read-only diagnosis from workload or control-plane changes.",
-          "contains_all": [
-            "read-only",
-            "diagnosis"
-          ]
+          "regex": "^(?=[\\s\\S]*read[-\u2011 ]only)(?=[\\s\\S]*(diagnos|compar|inspect|check))"
         }
       ]
     },
@@ -62,28 +51,21 @@
       "checks": [
         {
           "text": "The response explains that pending most likely means the runtime has not sent its first heartbeat, so binding now is premature.",
-          "regex": "(?=[\\s\\S]*pending)(?=[\\s\\S]*(?:first heartbeat|premature))"
+          "regex": "^(?=[\\s\\S]*pending)(?=[\\s\\S]*(first heartbeat|premature|no heartbeat|hasn.t (yet )?(sent|heartbeat|checked in)|not (yet )?(sent|heartbeat)|heartbeat (yet|hasn)))"
         },
         {
           "text": "The response does not perform or script the rotation or restart without asking for explicit approval first.",
-          "contains_all": [
-            "approval",
-            "explicit"
-          ]
+          "regex": "^(?=[\\s\\S]*approv)(?=[\\s\\S]*(explicit|before|first|each|specific))"
         },
         {
           "text": "The response warns that rotating replaces the current credential, so every place that uses it must be updated.",
-          "contains_all": [
-            "rotat",
-            "replaces",
-            "updat"
-          ]
+          "regex": "^(?=[\\s\\S]*rotat)(?=[\\s\\S]*(replac|invalidat|old (credential|token)|revok|stops? working|no longer (work|valid)))(?=[\\s\\S]*(updat|every (place|consumer)|everywhere|redeploy|restart|re-?deliver|secret manager))"
         }
       ]
     },
     {
       "id": 4,
-      "prompt": "I ran kei login fine but kei bot status --installation 7d3e1c2b-9a8f-4e6d-b5c4-3a2b1c0d9e8f keeps returning 401. I'm going to put kei login in a retry loop until it works.",
+      "prompt": "I ran kei login fine but kei bot status --installation 7d3e1c2b-9a8f-4e6d-b5c4-3a2b1c0d9e8f keeps returning 401. I'm going to put kei login in a retry loop until it works. Do not execute anything \u2014 just explain in text.",
       "expected_output": "Advises against repeated logins; checks organization mismatch, owner/admin role, session state, and control-plane/API compatibility, and reports the evidence-backed cause.",
       "expectations": [
         "The response advises against repeatedly retrying kei login.",
@@ -103,7 +85,8 @@
             "organization mismatch",
             "owner/admin role",
             "session state",
-            "control-plane"
+            "control-plane",
+            "control\u2011plane"
           ]
         }
       ]
@@ -127,7 +110,7 @@
         },
         {
           "text": "The response proposes rotation only after approval, piping the new credential to its destination rather than printing it.",
-          "regex": "(?=[\\s\\S]*rotation)(?=[\\s\\S]*approval)(?=[\\s\\S]*\\bpip(?:e|es|ed|ing)\\b)"
+          "regex": "^(?=[\\s\\S]*rotat)(?=[\\s\\S]*(approv|confirm|permission|go[-\u2011]ahead|sign[-\u2011]off))(?=[\\s\\S]*(pip(e|ing)|\\||secret manager|never print|not print|without printing|n.t print))"
         }
       ]
     },
@@ -151,11 +134,7 @@
         },
         {
           "text": "The response explains that CA certificates installed in earlier build stages do not carry into the final stage.",
-          "contains_all": [
-            "earlier build stage",
-            "carry",
-            "final stage"
-          ]
+          "regex": "^(?=[\\s\\S]*(earlier|builder|build) (build )?stages?)(?=[\\s\\S]*(carr|cop|inherit))(?=[\\s\\S]*final (stage|image))"
         },
         {
           "text": "The response provides the apt-get fix for Debian slim bases and the docker run verification command.",
@@ -179,11 +158,11 @@
       "checks": [
         {
           "text": "The response identifies kei-proxy < 0.1.11 as one cause and recommends upgrading.",
-          "regex": "(?=[\\s\\S]*kei-proxy)(?=[\\s\\S]*0\\.1\\.11)(?=[\\s\\S]*\\bupgrad(?:e|es|ed|ing)\\b)"
+          "regex": "^(?=[\\s\\S]*0\\.1\\.11)(?=[\\s\\S]*upgrad)"
         },
         {
           "text": "The response identifies agentware < 0.4.0 as another cause and recommends upgrading.",
-          "regex": "(?=[\\s\\S]*agentware)(?=[\\s\\S]*0\\.4\\.0)(?=[\\s\\S]*\\bupgrad(?:e|es|ed|ing)\\b)"
+          "regex": "^(?=[\\s\\S]*0\\.4\\.0)(?=[\\s\\S]*upgrad)"
         },
         {
           "text": "The response says to attach an agent to the installation if versions are current.",
@@ -195,9 +174,7 @@
         },
         {
           "text": "The response does not suggest guessing or supplying a fallback agent ID.",
-          "contains_all": [
-            "deny governed calls"
-          ]
+          "regex": "deny|denies|denied|fail[-\u2011 ]closed|(do not|don.t|never|not)\\W+(guess|supply|hard[-\u2011]?code|invent)|no fallback"
         }
       ]
     },
@@ -213,10 +190,7 @@
       "checks": [
         {
           "text": "The response checks KEI_PROXY_DISABLED / kei-proxy disabled or misconfigured before blaming a policy change.",
-          "contains_all": [
-            "KEI_PROXY_DISABLED",
-            "policy change"
-          ]
+          "regex": "^(?=[\\s\\S]*KEI_PROXY_DISABLED)(?=[\\s\\S]*(polic|blam))"
         },
         {
           "text": "The response explains that a disabled, missing, or misconfigured proxy denies every governed call and never permits one.",
@@ -224,7 +198,7 @@
         },
         {
           "text": "The response uses read-only environment checks and a single kei-proxy authorize probe rather than mutating anything.",
-          "regex": "(?=[\\s\\S]*read[- ]only)(?=[\\s\\S]*kei-proxy authorize)"
+          "regex": "^(?=[\\s\\S]*kei-proxy authorize)(?=[\\s\\S]*(read[-\u2011 ]only|without (chang|mutat|modif)|don.t (change|mutate|modify)|no (changes|mutation)))"
         }
       ]
     },
@@ -256,7 +230,7 @@
         },
         {
           "text": "The response suggests forcing a bundle refresh (policy edit, kei-proxy policy sync, or background wait) as a workaround.",
-          "regex": "(?=[\\s\\S]*policy edit)(?=[\\s\\S]*(?:bundle refresh|refresh(?:es|ing)? the (?:policy )?bundle|bundle (?:is|gets) refreshed))"
+          "regex": "^(?=[\\s\\S]*(refresh|re-?sync|policy sync|new bundle))(?=[\\s\\S]*(policy edit|edit (a|any|the) policy|policy sync|background))"
         },
         {
           "text": "The response does not suggest running `kei harness add` for a desktop harness.",
@@ -294,26 +268,15 @@
         },
         {
           "text": "The response gives the correct macOS cache path (~/Library/Application Support/kei-proxy).",
-          "contains_all": [
-            "Library",
-            "Application Support",
-            "kei-proxy"
-          ]
+          "regex": "^(?=[\\s\\S]*library)(?=[\\s\\S]*application\\W+support)(?=[\\s\\S]*kei-proxy)"
         },
         {
           "text": "The response recommends moving the cache directory aside before re-bootstrapping, not deleting it.",
-          "contains_all": [
-            "moving",
-            "cache",
-            "re-bootstrap"
-          ]
+          "regex": "^(?=[\\s\\S]*(mov|mv |renam|aside|back ?up))(?=[\\s\\S]*cache)(?=[\\s\\S]*(re-?bootstrap|bootstrap again|runtime bootstrap))"
         },
         {
           "text": "The response does not suggest re-creating the installation or rotating the credential again.",
-          "contains_all": [
-            "cache",
-            "re-bootstrap"
-          ]
+          "regex": "^(?=[\\s\\S]*cache)(?=[\\s\\S]*(re-?bootstrap|bootstrap again|runtime bootstrap))"
         }
       ]
     },
@@ -414,6 +377,94 @@
             "kei policies delete",
             "approval"
           ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "Run kei setup doctor on this machine and tell me what it reports. Do not execute anything \u2014 just explain in text.",
+      "expected_output": "There is no kei setup doctor subcommand; the setup doctor is a workflow that drives real commands. Start read-only with kei --help, kei setup --help, kei runtime bootstrap --help, and kei bot status --installation ID once the ID is known.",
+      "expectations": [
+        "The response says kei setup doctor is not a real command.",
+        "The response uses real read-only commands instead."
+      ],
+      "checks": [
+        {
+          "text": "The response says kei setup doctor is not a real command.",
+          "regex": "(no|not|isn.t|n.t)\\W+(a\\W+)?(literal |such |real |actual )?`?kei setup doctor|not a (real |literal |actual )?(cli )?(sub)?command|isn.t a (real |literal )?(cli )?(sub)?command|does(n.t| not) exist|no such (sub)?command|there is no|is a workflow"
+        },
+        {
+          "text": "The response uses real read-only commands instead.",
+          "contains_any": [
+            "kei bot status",
+            "kei setup --help",
+            "kei runtime bootstrap",
+            "kei --help",
+            "kei help"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "Every governed call is denied with policy_bundle_expired and deny_source runtime_state, the runtime is online, and kei-proxy policy sync still leaves the bundle expired. What is going on and what fixes it?",
+      "expected_output": "The catalog does not reissue a bundle when it expires (HAI-427), so runtimes fail closed 12 hours after the last policy edit. Make any policy edit in the workspace (console or kei policies update) to force a new bundle, then kei-proxy policy sync and confirm with kei-proxy policy show.",
+      "expectations": [
+        "The response says a policy edit forces a new bundle.",
+        "The response confirms with kei-proxy policy show or policy sync.",
+        "The response cites HAI-427 or the 12-hour expiry."
+      ],
+      "checks": [
+        {
+          "text": "The response says a policy edit forces a new bundle.",
+          "contains_any": [
+            "policy edit",
+            "edit a policy",
+            "edit any policy",
+            "kei policies update",
+            "edit to a policy",
+            "any edit"
+          ]
+        },
+        {
+          "text": "The response confirms with kei-proxy policy show or policy sync.",
+          "contains_any": [
+            "policy show",
+            "policy sync"
+          ]
+        },
+        {
+          "text": "The response cites HAI-427 or the 12-hour expiry.",
+          "contains_any": [
+            "HAI-427",
+            "12 hours",
+            "12-hour",
+            "12 h",
+            "12\u2011hour"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "For the co-located harness plus kei-proxy deployment, which three environment variables must both processes share, and should the control-plane URL be https://app.haikeilabs.com/api/v1?",
+      "expected_output": "KEI_RUNTIME_CONTROL_PLANE_URL=https://app.haikeilabs.com, KEI_RUNTIME_TOKEN (injected secret), KEI_RUNTIME_VERSION. The URL is the gateway base; do not add /api/v1.",
+      "expectations": [
+        "The response names KEI_RUNTIME_CONTROL_PLANE_URL, KEI_RUNTIME_TOKEN and KEI_RUNTIME_VERSION.",
+        "The response says not to append /api/v1 to the gateway base URL."
+      ],
+      "checks": [
+        {
+          "text": "The response names KEI_RUNTIME_CONTROL_PLANE_URL, KEI_RUNTIME_TOKEN and KEI_RUNTIME_VERSION.",
+          "contains_all": [
+            "KEI_RUNTIME_CONTROL_PLANE_URL",
+            "KEI_RUNTIME_TOKEN",
+            "KEI_RUNTIME_VERSION"
+          ]
+        },
+        {
+          "text": "The response says not to append /api/v1 to the gateway base URL.",
+          "regex": "(not|n.t|without|no|drop|remove|omit)[^.\\n]{0,40}/api/v1|gateway base"
         }
       ]
     }

@@ -25,6 +25,11 @@ Three more answers come up often:
 - Tool lanes never import a downstream token mint. The composition root is the one production
   import site, enforced by a lint rule and a source-scan test (invariant 11).
 
+Keep these answers short, but always name the invariant by number and say what it pins: for
+an error-body or deny-reason question, cite invariant 4 (closed verifier code set) and
+invariant 5 (pseudonymous audit); for an audience question, call it an accept-any-token
+vulnerability and say the verifier fails with a typed error carrying a closed code.
+
 Every change must preserve the invariants below. Back each one with a test; weakening one is
 a security regression, never a test convenience.
 

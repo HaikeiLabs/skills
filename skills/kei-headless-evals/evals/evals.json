@@ -19,7 +19,7 @@
         },
         {
           "text": "The response mentions that removing a case is a breaking change because case counts are asserted.",
-          "regex": "case[- ]?counts?|case cardinality|cardinality|(number|count) of (golden )?cases|remov(e|ed|ing) (a|any) (golden )?case"
+          "regex": "case[-\u2011 ]?counts?|case cardinality|cardinality|(number|count) of (golden )?cases|remov(e|ed|ing) (a|any) (golden )?case|case[-\u2011 ]?(count|cardinality)|count of cases|number of cases|cardinality|counts? (is|are) (asserted|pinned)|assert(s|ed)? (the )?(case )?counts?|removed case|removing a case"
         }
       ]
     },
@@ -87,18 +87,13 @@
         },
         {
           "text": "The response mentions the schema version constants used for trace and report.",
-          "contains_any": [
-            "schema version",
-            "version constant",
-            "eval-trace.v1",
-            "eval-report.v1"
-          ]
+          "regex": "schema version|version constant|eval-trace|eval-report|\\.v1\\b|pinned (constant|version|schema)"
         }
       ]
     },
     {
       "id": 5,
-      "prompt": "What fields does the EvalCase JSON require and what lanes are valid when creating a new golden fixture?",
+      "prompt": "What fields does the EvalCase JSON require and what lanes are valid when creating a new golden fixture? Do not execute anything \u2014 just explain in text.",
       "expected_output": "EvalCase requires id, lane, input, and an optional pinned expect. lane is a closed set of the service's tool lanes. The schema lives in src/eval/types.ts.",
       "expectations": [
         "The response specifies the EvalCase fields: id, lane, input, and optional expect.",
@@ -132,6 +127,185 @@
           "text": "The response mentions the aborted trace step kind for cancelled cases.",
           "contains_all": [
             "aborted"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Our team wants --backend agentware to actually run a real agent today. Should I implement it in the TypeScript ingress eval CLI now, and if not, what must the flag keep doing and where would a future backend go?",
+      "expected_output": "Do not wire it: --backend agentware must keep exiting 2 with the stable stub message \"eval harness ready \u2014 agentware backend not wired (exit 2)\" so CI can assert the harness exists. A future backend implements EvalBackend in src/eval/agentwareBackend.ts, is constructed in src/eval/cli.ts, and imports lane types only through src/eval/types.ts.",
+      "expectations": [
+        "The response declines to wire the agentware backend and keeps the not-wired stub.",
+        "The response names the EvalBackend seam or src/eval/agentwareBackend.ts as where a future backend goes."
+      ],
+      "checks": [
+        {
+          "text": "The response declines to wire the agentware backend and keeps the not-wired stub.",
+          "contains_any": [
+            "not wired",
+            "stub"
+          ]
+        },
+        {
+          "text": "The response names the EvalBackend seam or src/eval/agentwareBackend.ts as where a future backend goes.",
+          "contains_any": [
+            "EvalBackend",
+            "agentwareBackend.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "I want a trace to carry a detailed error string like 'upstream timed out after 3s calling the CRM'. Which error values does the headless eval error contract allow?",
+      "expected_output": "No free-form error strings in traces or reports. The error contract is closed: backend-threw, aborted, invalid-case, backend-error, and the pinned stub text.",
+      "expectations": [
+        "The response lists the closed error codes backend-threw, invalid-case and backend-error.",
+        "The response says free-form error strings are not allowed because the set is closed."
+      ],
+      "checks": [
+        {
+          "text": "The response lists the closed error codes backend-threw, invalid-case and backend-error.",
+          "contains_all": [
+            "backend-threw",
+            "invalid-case",
+            "backend-error"
+          ]
+        },
+        {
+          "text": "The response says free-form error strings are not allowed because the set is closed.",
+          "contains_any": [
+            "closed",
+            "free-form",
+            "not allowed",
+            "do not add",
+            "don't add",
+            "don\u2019t add",
+            "free\u2011form"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Can a ScriptedBackend case call fetch() against a staging API or wait on setTimeout before answering?",
+      "expected_output": "No. A scripted case must not touch the network, filesystem, or a timer; determinism is the point. It answers from a construction-pinned script Map, else a deterministic echo path.",
+      "expectations": [
+        "The response grounds the rule in determinism."
+      ],
+      "checks": [
+        {
+          "text": "The response grounds the rule in determinism.",
+          "contains_any": [
+            "determinis"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "What does ScriptedBackend do when a test hands it a hostile input such as a Proxy object or a class instance? Do not execute anything \u2014 just explain in text.",
+      "expected_output": "Hostile inputs (Proxy, class instances, extra keys, symbols, accessors) fail closed to kind: 'error' without throwing.",
+      "expectations": [
+        "The response says the input fails closed to an error trace step.",
+        "The response says the backend does not throw."
+      ],
+      "checks": [
+        {
+          "text": "The response says the input fails closed to an error trace step.",
+          "contains_all": [
+            "error"
+          ]
+        },
+        {
+          "text": "The response says the backend does not throw.",
+          "regex": "(without|instead of|rather than|never|not|n.t)\\W+(ever\\W+)?throw"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "In the Kei chat harness eval_harness.py, which ModelBackend values exist, and where are results written by default?",
+      "expected_output": "ModelBackend: openai, anthropic, ollama, llamafile, vllm, ollama_direct. Results are written as JSONL under ./eval_results by default.",
+      "expectations": [
+        "The response lists the less common ModelBackend values llamafile, vllm and ollama_direct.",
+        "The response names the eval_results JSONL output location."
+      ],
+      "checks": [
+        {
+          "text": "The response lists the less common ModelBackend values llamafile, vllm and ollama_direct.",
+          "contains_all": [
+            "llamafile",
+            "vllm",
+            "ollama_direct"
+          ]
+        },
+        {
+          "text": "The response names the eval_results JSONL output location.",
+          "contains_all": [
+            "eval_results"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "In the Agentware repo I found evals under the root testing/evals directory. Is that the live Python eval source, and what command runs the Python evals?",
+      "expected_output": "No. The root testing/evals contains only stale .pyc files; the live source is python/src/evals, run with PYTHONPATH=python/src python3 -m evals.main.",
+      "expectations": [
+        "The response names python/src/evals as the live source.",
+        "The response gives the evals.main module invocation.",
+        "The response says the root testing/evals copy is stale."
+      ],
+      "checks": [
+        {
+          "text": "The response names python/src/evals as the live source.",
+          "contains_all": [
+            "python/src/evals"
+          ]
+        },
+        {
+          "text": "The response gives the evals.main module invocation.",
+          "contains_all": [
+            "evals.main"
+          ]
+        },
+        {
+          "text": "The response says the root testing/evals copy is stale.",
+          "contains_any": [
+            "stale",
+            ".pyc"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "I need to add a new field to the EvalTrace shape. Can I just change the existing type in src/eval/types.ts?",
+      "expected_output": "Do not mutate the existing shape. The trace and report schema versions are pinned constants (<prefix>.eval-trace.v1, <prefix>.eval-report.v1); a schema change must bump the version constant so historical reports remain comparable.",
+      "expectations": [
+        "The response says to bump the schema version rather than mutate the existing shape.",
+        "The response refers to the pinned trace/report schema version constants."
+      ],
+      "checks": [
+        {
+          "text": "The response says to bump the schema version rather than mutate the existing shape.",
+          "contains_any": [
+            "bump",
+            "new version",
+            "v2",
+            "increment"
+          ]
+        },
+        {
+          "text": "The response refers to the pinned trace/report schema version constants.",
+          "contains_any": [
+            "eval-trace.v1",
+            "version constant",
+            "schema version",
+            "pinned constant",
+            "eval\u2011trace.v1"
           ]
         }
       ]

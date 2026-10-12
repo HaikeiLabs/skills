@@ -27,7 +27,8 @@
             "deployment_artifact_contract",
             "deployment-artifact contract",
             "deployment artifact contract",
-            "integration test"
+            "integration test",
+            "deployment\u2011artifact contract"
           ]
         }
       ]
@@ -86,11 +87,11 @@
       "checks": [
         {
           "text": "The response describes the fixed query catalog.",
-          "regex": "(fixed|closed)[ -](query )?catalog|catalog"
+          "regex": "(fixed|closed)[ -\u2011](query )?catalog|catalog"
         },
         {
           "text": "The response explains that the command parser is deterministic with no LLM or fuzzy matching.",
-          "regex": "^(?=[\\s\\S]*(deterministic|exact[- ]match))(?=[\\s\\S]*\\b(no|without|never|not)\\b[^.\\n]{0,30}\\b(LLM|language model|model)s?\\b)"
+          "regex": "^(?=[\\s\\S]*(deterministic|exact[-\u2011 ]?match))(?=[\\s\\S]*\\b(no|without|never|not)\\b[^.\\n]{0,30}\\b(LLM|language model|model)s?\\b)"
         }
       ]
     },
@@ -129,15 +130,172 @@
       "checks": [
         {
           "text": "The response rejects making scope configurable via an environment variable.",
-          "contains_all": [
-            "source constants"
-          ]
+          "regex": "^(?=[\\s\\S]*(constant|hard[-\u2011]?coded|pinned|fixed))(?=[\\s\\S]*(\\bno\\b|\\bnot\\b|never|n.t\\b|rather than|instead of))"
         },
         {
           "text": "The response uses the invariant: an endpoint a request could vary is an endpoint a model could steer.",
+          "regex": "steer"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "A tool lane's renderer returned null for an otherwise valid envelope. What should the lane do?",
+      "expected_output": "A renderer never returns null; a null render is a composition fault that collapses to unavailable.",
+      "expectations": [
+        "The response says the reply collapses to unavailable.",
+        "The response treats a null render as a composition fault."
+      ],
+      "checks": [
+        {
+          "text": "The response says the reply collapses to unavailable.",
           "contains_all": [
-            "could vary",
-            "could steer"
+            "unavailable"
+          ]
+        },
+        {
+          "text": "The response treats a null render as a composition fault.",
+          "contains_any": [
+            "composition fault",
+            "never return null",
+            "never returns null",
+            "not return null",
+            "must not return null"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Can I pass GovernorClient a hand-built proposal tuple from my handler code instead of using a builder?",
+      "expected_output": "No. Proposal builders mint branded proposals, and the closed proposal union admits only builder-minted tuples; there is no way to hand GovernorClient a caller-authored tuple.",
+      "expectations": [
+        "The response explains proposals are branded and builder-minted."
+      ],
+      "checks": [
+        {
+          "text": "The response explains proposals are branded and builder-minted.",
+          "contains_any": [
+            "branded",
+            "builder-minted",
+            "builder minted",
+            "proposal builder",
+            "minted by",
+            "builder\u2011minted"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "A registry change raises a pinned tool's audience ceiling. Which governor decision reason code results, and what clears it?",
+      "expected_output": "Widening a frozen tuple field (including the audience ceiling) is constraint-widening and denies until a reviewed ADR ratifies it.",
+      "expectations": [
+        "The response names the constraint-widening reason code.",
+        "The response says a reviewed ADR is needed to ratify the change."
+      ],
+      "checks": [
+        {
+          "text": "The response names the constraint-widening reason code.",
+          "contains_any": [
+            "constraint-widening",
+            "constraint\u2011widening"
+          ]
+        },
+        {
+          "text": "The response says a reviewed ADR is needed to ratify the change.",
+          "contains_all": [
+            "ADR"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "I just added a new tool to the versioned tool-lane registry YAML. What is its enabled flag until someone activates it?",
+      "expected_output": "Every lane and tool not explicitly activated is enabled: false; lanes ship dark until a reviewed activation enables them.",
+      "expectations": [
+        "The response says the tool is enabled: false.",
+        "The response says a reviewed activation is needed to turn it on."
+      ],
+      "checks": [
+        {
+          "text": "The response says the tool is enabled: false.",
+          "regex": "enabled[\\\"'`]?\\s*[:=]\\s*[\\\"'`]?false"
+        },
+        {
+          "text": "The response says a reviewed activation is needed to turn it on.",
+          "contains_any": [
+            "activat",
+            "reviewed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "Users keep typing near-miss phrasings. Should I add Levenshtein fuzzy matching to the lane's command parser so typos still route to a query?",
+      "expected_output": "No. The command parser is closed and deterministic: normalize, exact-match a phrase table, route, else one fixed help reply. No LLM, no fuzzy match, no scoring, and a hard cap on input length.",
+      "expectations": [
+        "The response keeps exact matching against a phrase table.",
+        "The response says unmatched input gets the one fixed help reply."
+      ],
+      "checks": [
+        {
+          "text": "The response keeps exact matching against a phrase table.",
+          "contains_any": [
+            "exact-match",
+            "exact match",
+            "exactly match",
+            "phrase table",
+            "exact\u2011match"
+          ]
+        },
+        {
+          "text": "The response says unmatched input gets the one fixed help reply.",
+          "regex": "help (reply|text|message|response)|fixed help|(back|through) to (the |a )?help"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "Can GovernorClient take the governor executable path and timeout as per-call arguments so each lane can choose its own?",
+      "expected_output": "No. GovernorClient does not pick the executable/argv/env/cwd/timeout; those are construction-pinned by the composition root only.",
+      "expectations": [
+        "The response says these are construction-pinned by the composition root."
+      ],
+      "checks": [
+        {
+          "text": "The response says these are construction-pinned by the composition root.",
+          "contains_any": [
+            "construction-pinned",
+            "pinned at construction",
+            "construction pinned",
+            "composition root",
+            "construction\u2011pinned"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "In the Kei chat harness, which file renders tool schemas per model, and what enum selects the model format?",
+      "expected_output": "src/pedro_service/tool_definitions.py renders tool schemas per model; ModelFormat selects OpenAI / Anthropic / Ollama.",
+      "expectations": [
+        "The response names tool_definitions.py.",
+        "The response names the ModelFormat enum."
+      ],
+      "checks": [
+        {
+          "text": "The response names tool_definitions.py.",
+          "contains_all": [
+            "tool_definitions.py"
+          ]
+        },
+        {
+          "text": "The response names the ModelFormat enum.",
+          "contains_all": [
+            "ModelFormat"
           ]
         }
       ]

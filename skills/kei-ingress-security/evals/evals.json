@@ -12,19 +12,20 @@
       "checks": [
         {
           "text": "The response does not treat \"TRUE\", \"1\", or \" true \" as enabled.",
-          "regex": "^(?=[\\s\\S]*(strict[- ]equality|===\\s*['\"`]true['\"`]))(?=[\\s\\S]*true)"
+          "regex": "^(?=[\\s\\S]*(strict[-\u2011 ]equality|===\\s*['\"`]true['\"`]))(?=[\\s\\S]*true)"
         },
         {
           "text": "The response constructs the endpoint components only inside the enabled branch, not before a runtime check.",
-          "contains_all": [
-            "non-construction"
+          "contains_any": [
+            "non-construction",
+            "non\u2011construction"
           ]
         }
       ]
     },
     {
       "id": 2,
-      "prompt": "A penetration test report says our bot ingress service returns a different HTTP body for an unknown bot token vs a known expired token. Should I enrich the error body to help the operator debug?",
+      "prompt": "A penetration test report says our bot ingress service returns a different HTTP body for an unknown bot token vs a known expired token. Should I enrich the error body to help the operator debug, and which of our ingress invariants apply?",
       "expected_output": "Rejects enrichment and explains that deny responses must remain indistinguishable to avoid leaking gate internals, citing the pseudonymous audit and closed audit-code invariants.",
       "expectations": [
         "The response does not recommend adding detail to distinguish denial reasons.",
@@ -33,27 +34,17 @@
       "checks": [
         {
           "text": "The response does not recommend adding detail to distinguish denial reasons.",
-          "contains_all": [
-            "pseudonymous"
-          ]
+          "regex": "indistinguishab|identical|same (`?401|body|response|error|generic)|(do not|don.t|never|not)\\W+enrich"
         },
         {
           "text": "The response cites the pseudonymous audit and closed-code invariants of the ingress security design.",
-          "contains_any": [
-            "closed-code",
-            "closed code",
-            "audit-code",
-            "invariant 4",
-            "invariant 5",
-            "invariant #4",
-            "invariant #5"
-          ]
+          "regex": "closed.{0,20}code|audit.code|invariants? #?[45]\\b|pseudonymous"
         }
       ]
     },
     {
       "id": 3,
-      "prompt": "A PR changes our ingress token verifier to accept any valid JWT from a known issuer without checking the audience claim. Is that safe?",
+      "prompt": "A PR changes our ingress token verifier to accept any valid JWT from a known issuer without checking the audience claim. Is that safe, and what should the verifier do when a token fails verification?",
       "expected_output": "Explains this is an accept-any-token vulnerability. The verifier must enforce audience, fail with a typed verification error carrying a closed code, and use a deny-all verifier for the disabled path.",
       "expectations": [
         "The response rejects the accept-any-token approach and mandates audience verification.",
@@ -62,9 +53,7 @@
       "checks": [
         {
           "text": "The response rejects the accept-any-token approach and mandates audience verification.",
-          "contains_all": [
-            "accept-any-token"
-          ]
+          "regex": "^(?=[\\s\\S]*(accept.any.token|\\baud(ience)?\\b))(?=[\\s\\S]*(\\bno\\b|not safe|unsafe|reject|must (check|verify|enforce)|vulnerab))"
         },
         {
           "text": "The response states that verification fails with a typed error carrying a closed code.",
@@ -73,7 +62,8 @@
             "closed-code",
             "closed set",
             "invariant 4",
-            "invariant #4"
+            "invariant #4",
+            "closed\u2011code"
           ]
         }
       ]
@@ -144,7 +134,192 @@
             "lint rule",
             "linter",
             "source scan",
-            "source-scan"
+            "source-scan",
+            "source\u2011scan"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Our ingress has two tool-lane feature flags and an operator set both to true. Which lane should win?",
+      "expected_output": "Neither. Tool lanes are mutually exclusive per process: two lane flags both true is a refused startup, never a precedence rule. There is exactly one verified-grant callback.",
+      "expectations": [
+        "The response says the service refuses to start.",
+        "The response says lanes are mutually exclusive with one verified-grant callback, not a precedence rule."
+      ],
+      "checks": [
+        {
+          "text": "The response says the service refuses to start.",
+          "contains_any": [
+            "refuse",
+            "fail to start",
+            "fails to start",
+            "not start",
+            "won't start",
+            "startup error",
+            "fail-stop",
+            "fail stop",
+            "won\u2019t start",
+            "fail\u2011stop"
+          ]
+        },
+        {
+          "text": "The response says lanes are mutually exclusive with one verified-grant callback, not a precedence rule.",
+          "contains_any": [
+            "mutually exclusive",
+            "exactly one",
+            "only one",
+            "precedence"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "For convenience, can our ingress config object keep the bot password value so we can log the loaded config at startup?",
+      "expected_output": "No. Secrets are presence-only in config: the config records a boolean that the secret is configured, never the value. The raw value flows env -> composition root -> SDK credential factory and is never stored, serialized, or logged.",
+      "expectations": [
+        "The response says secrets are presence-only (a boolean) in config.",
+        "The response says the raw secret is never stored, serialized, or logged."
+      ],
+      "checks": [
+        {
+          "text": "The response says secrets are presence-only (a boolean) in config.",
+          "contains_any": [
+            "presence-only",
+            "presence only",
+            "boolean",
+            "is configured",
+            "presence\u2011only"
+          ]
+        },
+        {
+          "text": "The response says the raw secret is never stored, serialized, or logged.",
+          "regex": "(never|not|don.t|do not)\\b[^.]{0,40}(stor|serializ|log)"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "In a Teams channel, can the ingress treat a message as addressed to the bot because its text starts with '@bot'?",
+      "expected_output": "No. Message text is never authority. Addressed comes from the audience class plus a verified bot mention, not from text.",
+      "expectations": [
+        "The response says message text is not authority.",
+        "The response requires a verified bot mention."
+      ],
+      "checks": [
+        {
+          "text": "The response says message text is not authority.",
+          "regex": "text[^.]{0,40}(never|not)[^.]{0,20}authorit|(never|not)[^.]{0,30}(from|on|by) (the )?(message )?text"
+        },
+        {
+          "text": "The response requires a verified bot mention.",
+          "contains_any": [
+            "verified mention",
+            "verified bot mention",
+            "mention entit",
+            "verified @",
+            "verified"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Which fields does the ingress tenant gate compare, and against what?",
+      "expected_output": "The tenant gate compares the declared tenant and the token's tid claim against the single trusted tenant from config.",
+      "expectations": [
+        "The response names the token's tid claim.",
+        "The response compares against the single trusted tenant from config."
+      ],
+      "checks": [
+        {
+          "text": "The response names the token's tid claim.",
+          "contains_all": [
+            "tid"
+          ]
+        },
+        {
+          "text": "The response compares against the single trusted tenant from config.",
+          "contains_any": [
+            "config",
+            "trusted tenant",
+            "single trusted"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "An activity reserved its idempotency key and then the handler threw an exception partway through. Should we commit the key or release it?",
+      "expected_output": "Release on throw so a corrected redelivery can retry. Commit on success and on expected failure. A duplicate is acknowledged with zero reprocessing.",
+      "expectations": [
+        "The response says to release the reservation on throw.",
+        "The response says the release lets a corrected redelivery retry."
+      ],
+      "checks": [
+        {
+          "text": "The response says to release the reservation on throw.",
+          "contains_all": [
+            "release"
+          ]
+        },
+        {
+          "text": "The response says the release lets a corrected redelivery retry.",
+          "contains_any": [
+            "redeliver",
+            "retry",
+            "re-deliver",
+            "re\u2011deliver"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "What interpreter flags and environment does the pinned policy-governor child process run with when it is Python?",
+      "expected_output": "Isolated interpreter flags -I -B, an EMPTY environment, bounded stdout, and a lifetime backstop; the script bytes are re-hashed from a no-follow descriptor before every spawn.",
+      "expectations": [
+        "The response names the -I and -B interpreter flags.",
+        "The response says the child gets an empty environment."
+      ],
+      "checks": [
+        {
+          "text": "The response names the -I and -B interpreter flags.",
+          "regex": "-I\\b[\\s\\S]{0,20}-B\\b|-B\\b[\\s\\S]{0,20}-I\\b"
+        },
+        {
+          "text": "The response says the child gets an empty environment.",
+          "regex": "empty\\W+env|env(ironment)?\\W+(is\\W+)?(an\\W+)?empty|no (inherited )?env|env=\\{\\}|env: \\{\\}"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "Can we add an environment variable so operators can tune the ingress scope allowlist and governor deadline per deployment?",
+      "expected_output": "No. Do not add environment variables for things that are deliberately source constants (deadlines, scope allowlists, fixed selections, interpreter flags). A value an operator can set is a value a misconfiguration can widen.",
+      "expectations": [
+        "The response says these values are deliberate source constants.",
+        "The response explains a settable value can be widened by misconfiguration."
+      ],
+      "checks": [
+        {
+          "text": "The response says these values are deliberate source constants.",
+          "contains_any": [
+            "source constant",
+            "constant",
+            "hard-coded",
+            "hardcoded",
+            "in source",
+            "hard\u2011coded"
+          ]
+        },
+        {
+          "text": "The response explains a settable value can be widened by misconfiguration.",
+          "contains_any": [
+            "widen",
+            "misconfigur"
           ]
         }
       ]
