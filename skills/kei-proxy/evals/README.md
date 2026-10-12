@@ -25,6 +25,8 @@ gate's report is the record.
 
 Case 7 covers identity mode running `opaque_ref`/`http_api` connectors from v2 bundle descriptors (HAI-378): the new deny codes and the release status (not live in proxy-v0.2.4; needs `POLICY_BUNDLE_V2_CONNECTORS`). It asks one bounded question so a run stays short.
 
+Case 8 covers what `kei-proxy hook claude` records for a failed call and an asked call (the `failed` flag, `decision` and `permission_reply` events), that the hook never answers a permission prompt, and which versions it needs.
+
 ## Results
 
 See `results/` for detailed outputs.
