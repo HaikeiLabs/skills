@@ -113,8 +113,9 @@ test('codex runs read-only with web search, subagents and browsing disabled', ()
 
 // opencode 1.18 puts a model's `options` in the body of every chat completions
 // request; without them it sends no temperature and the server samples at its
-// default. The profile's temperature and seed must reach that config.
-test('a model profile sends its temperature and seed with every opencode request', () => {
+// default. The profile's temperature, seed and thinking switch must reach that
+// config.
+test('a model profile sends its temperature, seed and no-thinking switch with every opencode request', () => {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
   const yaml = readFileSync(path.join(root, 'evals/model-profiles.yaml'), 'utf8');
   const cwd = mkdtempSync(path.join(tmpdir(), 'sampling-'));
@@ -124,15 +125,19 @@ test('a model profile sends its temperature and seed with every opencode request
     for (const name of ['deepseek-v4-flash', 'qwen3.8-27b']) {
       const profile = parseModelProfile(yaml, name);
       const opts = { modelProfile: name, model: profile.model, baseUrlEnv: 'EVAL_DEEPSEEK_BASE_URL',
-        temperature: profile.temperature, seed: profile.seed };
+        temperature: profile.temperature, seed: profile.seed, thinking: profile.thinking };
       const config = JSON.parse(HARNESSES.opencode.env(opts, { cwd, skill: SKILL }).OPENCODE_CONFIG_CONTENT);
       const modelId = profile.model.split('/').slice(1).join('/');
       assert.equal(config.model, profile.model);
-      assert.deepEqual(config.provider.eval.models[modelId], { name: modelId, options: { temperature: 0, seed: 42 } }, name);
+      assert.deepEqual(config.provider.eval.models[modelId], { name: modelId, options: { temperature: 0, seed: 42,
+        chat_template_kwargs: { enable_thinking: false, thinking: false } } }, name);
     }
     // No sampling fields in the profile: no options, the old behaviour.
     const bare = opencodeConfig({ modelProfile: 'x', model: 'eval/m' }, SKILL, 'http://model.invalid/v1');
     assert.deepEqual(bare.provider.eval.models.m, { name: 'm' });
+    // thinking: true (or unset) leaves the server's default alone.
+    const on = opencodeConfig({ modelProfile: 'x', model: 'eval/m', thinking: true }, SKILL, 'http://model.invalid/v1');
+    assert.deepEqual(on.provider.eval.models.m, { name: 'm' });
   } finally {
     if (saved === undefined) delete process.env.EVAL_DEEPSEEK_BASE_URL;
     else process.env.EVAL_DEEPSEEK_BASE_URL = saved;

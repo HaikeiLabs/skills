@@ -17,7 +17,8 @@
  *      can open the results directly.
  *
  * With --model-profile, the profile's temperature and seed (EV-C1 §3) are
- * sent with every model request.
+ * sent with every model request, and `thinking: false` turns the model's
+ * reasoning off.
  *
  * Unlike the verify-* scripts this calls models, so it is not run in CI.
  * It needs the harness CLI on PATH and logged in.
@@ -86,6 +87,7 @@ function parseArgs(argv) {
     opts.baseUrlEnv = profile.baseUrlEnv;
     opts.temperature = profile.temperature;
     opts.seed = profile.seed;
+    opts.thinking = profile.thinking;
   }
   opts.runTimeoutSeconds = resolveRunTimeoutSeconds({ flag: opts.runTimeout, profile: profile?.runTimeoutSeconds });
   return opts;

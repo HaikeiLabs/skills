@@ -90,7 +90,10 @@ uses the selected model to generate responses, so responses can vary between
 runs. It grades them with deterministic, case-insensitive checks from each
 eval's `checks` array; there is no LLM grader. Each repeat is one run, and a
 skill's pass rate is passed runs / total runs. A model profile's `temperature`
-and `seed` are sent with every request. Results go to `evals-out/` (ignored by git), including
+and `seed` are sent with every request. Both shipped profiles also set
+`thinking: false`: evals don't need the model's reasoning, so the runner sends
+`chat_template_kwargs` with `enable_thinking: false` (Qwen's template) and
+`thinking: false` (DeepSeek V4's) and the model answers directly. Results go to `evals-out/` (ignored by git), including
 `benchmark.json` and `benchmark.md`, for your own tuning. Don't commit them
 under `evals/results/`: the agent-evals CI gate and its sticky pull request
 comment are the record. The default threshold is 0.9. The profiles
