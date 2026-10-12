@@ -1,6 +1,6 @@
 ---
 name: kei-cli
-description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade (including `--proxy-only` and `--uninstall`), `kei login` device-flow auth, runtime installations (`kei bot init|credential|agents|status|bind|delete`), harness command policies (`kei policies`), data connectors (`kei connectors`), model profiles and the credential store (`kei model-profiles`, `kei credential-store`), harness management (`kei harness` — `add` for custom/SDK only, `sync` for all harnesses including auto-discovered desktop), local runtime config (`kei setup`, `kei runtime bootstrap`), and bug reports from a harness (`kei feedback`, which redacts the transcript and asks before sending). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something from the CLI in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org, agent, group, or user commands — say so rather than inventing one. (`kei workspaces list`, `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and `kei credential-store` are the resource-oriented exceptions; use v0.1.13 or later.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
+description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade (including `--proxy-only` and `--uninstall`), `kei login` device-flow auth, runtime installations (`kei bot list|init|credential|agents|status|bind|delete`), harness command policies (`kei policies`), data connectors (`kei connectors`), model profiles and the credential store (`kei model-profiles`, `kei credential-store`), harness management (`kei harness` — `add` for custom/SDK only, `sync` for all harnesses including auto-discovered desktop), local runtime config (`kei setup`, `kei runtime bootstrap`), and bug reports from a harness (`kei feedback`, which redacts the transcript and asks before sending). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something from the CLI in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org or agent commands, and no group create/update/delete — say so rather than inventing one. (`kei workspaces list`, `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and `kei credential-store` are the resource-oriented exceptions, v0.1.13 or later; `kei users` and `kei groups members` need v0.1.16 or later.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
 ---
 
 # kei CLI
@@ -125,6 +125,10 @@ kei login --no-browser                                          # headless: prin
   It is never printed and never written to a config file.
 - It is short-lived. `not logged in; run kei login first` or a 401 mid-session
   means log in again and retry.
+- Diagnosing `not logged in` after an earlier login: give both causes. The
+  token is short-lived, so a login from yesterday has likely expired; and it
+  is per environment (per API host), so a staging login is not a production
+  login. Either way, run `kei login` again against the host you mean.
 - `kei logout` removes the local keychain entry only; it does not
   revoke the token server-side. Safe to repeat.
 
@@ -175,6 +179,10 @@ flow. A user with the `member` role (or no org membership) is refused.
 CLI token is bound to the approver's org, not to the caller's browser
 session.
 
+Answer with the cause and the fix together: only owners and admins can
+approve, a `member` role gets this 403, so ask an org owner or admin to run
+`kei login` and approve it.
+
 ## Troubleshooting
 
 ### 4. `kei runtime bootstrap` fails with "mkdir /var/lib/kei-proxy: permission denied" on macOS
@@ -219,6 +227,11 @@ server could not decode. The command crashes before printing any results
 **Fix:** Upgrade kei to v0.1.11 or later. If you cannot upgrade, use the
 web app at `app.haikeilabs.com` to view and manage policies.
 
+Answer with all of it, and connect the bug to the error the user saw: "The
+JSON decode error is the known kei ≤ 0.1.10 bug (HAI-373): the server could
+not decode the request." Then: upgrade to v0.1.11 or later; until then, use
+the web app.
+
 After upgrading to v0.1.11+, `kei policies list` works and all `kei policies`
 subcommands accept a policy **name** in addition to ID:
 
@@ -231,16 +244,18 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 
 ## Key guidelines
 
-- **Nothing outside the usage string exists.** No `kei org`,
-  `agent`, `group`, or `user` commands; no
-  `bot install`, `deploy`, `destroy`, or `list`; no `kei setup doctor`. Orgs,
-  workspaces, agents, groups, and policies are managed in the
-  web app (or through the HTTP API — see `kei-api`); there are no CLI commands
-  to create or change them. Say that plainly instead of guessing a command from
-  an API route. `kei workspaces list` does exist for workspace discovery only,
-  and `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and
-  `kei credential-store` are the resource-oriented exceptions. Check `kei help`
-  for the installed version before presenting any of them as available.
+- **Nothing outside the usage string exists.** No `kei org` or `kei agent`
+  commands; no group create, update, or delete; no `bot install`, `deploy`, or
+  `destroy`; no `kei setup doctor`. Orgs, workspaces, agents, and groups are
+  created and changed in the web app (or through the HTTP API — see
+  `kei-api`). Say that plainly instead of guessing a command from an API route.
+  `kei workspaces list` does exist for workspace discovery only, and
+  `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and
+  `kei credential-store` are the resource-oriented exceptions. Since v0.1.16,
+  `kei users` (list, get, create, update, resolve, identities) and
+  `kei groups members list|add|remove` manage users and group membership;
+  `kei bot list` (v0.1.8) lists installations. Check `kei help` for the
+  installed version before presenting any of them as available.
 - **Credentials never touch the terminal.** `kei bot credential` refuses to
   write to an interactive terminal; pipe it into a secret manager. Never pass a
   token as an argument unless the user accepts shell-history exposure.
@@ -248,6 +263,11 @@ kei policies delete my-policy-name --workspace my-workspace --yes
   secrets; the CLI registers and inspects control-plane metadata.
 - **Every ID is a UUID.** `--installation` and `--agent` are validated as UUIDs
   before any request is made.
+- **Before a resource command, verify three things:** the exact name in
+  `kei help` (`kei policies`, plural), the installed version (`kei --version`),
+  and the contract (opaque page tokens for `list`, PATCH with an update mask
+  for `update`). Login is a precondition, not one of the three. See
+  *When resource commands arrive* below.
 
 ## Quick reference
 
@@ -256,7 +276,8 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 | Show commands for this version | `kei help` | no |
 | Log in / out | `kei login [--no-browser]` / `kei logout` | — |
 | List workspaces | `kei workspaces list [--json]` | yes |
-| Create a runtime installation | `kei bot init --platform cli\|teams\|discord\|slack --name NAME [--agent ID]` | yes |
+| List runtime installations | `kei bot list [--json] [--all]` | yes |
+| Create a runtime installation | `kei bot init --platform cli\|teams\|discord\|slack\|whatsapp\|openwebui --name NAME [--agent ID] [--workspace WS]` | yes |
 | Emit the runtime credential | `kei bot credential --installation ID --workspace WORKSPACE \| <secret-manager import>` | yes |
 | Rotate the runtime credential | `kei bot credential --installation ID --workspace WS --rotate \| <secret-manager import>` | yes |
 | Inspect an installation | `kei bot status --installation ID` | yes |
@@ -283,8 +304,11 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 | Set the default profile | `kei model-profiles set-default PROFILE [--workspace WS]` | yes |
 | Assign / unassign / show an agent's profile | `kei model-profiles assign PROFILE --workspace WS --agent AGENT_ID` / `unassign\|assignment --workspace WS --agent AGENT_ID` | yes |
 | Can runtimes reach the provider? | `kei model-profiles readiness PROFILE --workspace WS` | yes |
+| Validate an endpoint like the console's Test button (no provider call) | `kei model-profiles test --endpoint URL` / `kei model-profiles test PROFILE [--workspace WS]` | `--endpoint`: no |
 | Delete a model profile | `kei model-profiles delete PROFILE [--workspace WS] --yes` | yes |
 | Credential store | `kei credential-store get` / `put` (creates it) / `update` (PATCH) | yes |
+| Users (v0.1.16+) | `kei users list\|get\|create\|update\|resolve` / `kei users identities list USER` | yes |
+| Group membership (v0.1.16+) | `kei groups members list\|add\|remove GROUP [USER] [--workspace WS]` | yes |
 | Write local runtime config | `kei setup [--config PATH] [--control-plane-url URL]` | no (runtime token) |
 | Verify + heartbeat via local kei-proxy | `kei runtime bootstrap [--config PATH] [--proxy-path PATH]` | no (runtime token) |
 | Upgrade via Go | `kei upgrade [--version VERSION]` | no |
@@ -320,10 +344,22 @@ display name; `--agent` takes an agent ID. Writes require an org admin.
   runtime is eligible, `create` fails before creating anything.
 - `create` requires `--default-model`; `--auth-type` is `none` or `api_key`.
 - The credential store must exist before an API-key profile: `kei
-  credential-store put` creates it, `update` changes it.
-- `kei model-profiles test` is **not available yet**: the Kei API has no test
-  endpoint, so it exits with an error without contacting the server. Use
-  `readiness` instead.
+  credential-store put` creates it, `update` changes it. Without one,
+  `create` fails with `no active credential store; configure one with kei
+  credential-store put`.
+
+When someone asks for the command to create an API-key profile, answer in
+this order: (1) the credential store must exist first, created with
+`kei credential-store put`; (2) pipe the key from the secret manager into
+`kei model-profiles create` with `--default-model` and `--auth-type api_key`
+(plus `--workspace`/`--agent` for scope); (3) check it with
+`kei model-profiles readiness`.
+- `kei model-profiles test` (v0.1.14 or later) does what the console's
+  **Test** button does: it validates the endpoint (`https`, a host, no embedded
+  credentials, query, or fragment) and **never contacts the provider**.
+  `test --endpoint URL` needs no login; `test PROFILE` checks a stored
+  profile's endpoint. Before v0.1.14 it exited with an error. It cannot tell
+  you whether the model is reachable: use `readiness` for that.
 - **kei ≤ 0.1.12:** `kei model-profiles` and `kei credential-store` call
   retired console routes and fail. Upgrade to v0.1.13 or later.
 
@@ -345,6 +381,13 @@ kei bot init --platform cli --name "Acme local runtime"
   printed here.
 - `bot delete` removes the control-plane installation and revokes its
   credential immediately; it never touches customer cloud resources.
+- **A `pending` status is evidence about the heartbeat, not proof of health.**
+  `kei bot status --installation ID` shows `pending` until the runtime's first
+  heartbeat reaches the control plane. When diagnosing a pending runtime, say
+  so, then collect read-only evidence: the `kei bot status` output, whether
+  the runtime process and its heartbeat loop are running, its logs, and
+  whether it can reach the control plane. Never print or paste the runtime
+  credential to check it.
 
 For the full stand-up sequence (credential → config → bootstrap → heartbeat →
 bind → fail-closed check), load **`kei-runtime-setup`**.
@@ -413,7 +456,10 @@ kei feedback --description "..." --file app.log --screenshot error.png          
   file with its size and the redaction counts per kind (never the content),
   then asks `Send? [y/N]`. Anything other than `y`/`yes` prints
   `Feedback not submitted.` and sends nothing. `--yes` skips the prompt; an
-  agent must not add it. Give the user the command to run instead.
+  agent must not add it. Give the user the command to run instead. When
+  explaining `kei feedback`, include this sentence: "You preview the report
+  (description, files, redaction counts) and must confirm at `Send? [y/N]`;
+  answering no sends nothing."
 - A Kei runtime token in a transcript triggers a leak warning: rotate it with
   `kei bot credential --rotate` (see `kei-credential-rotation`).
 
@@ -423,10 +469,10 @@ Per-harness detail is in `kei-harness-setup`.
 ## When resource commands arrive (AIP/CRUD)
 
 The CLI is being extended toward the resource-oriented Kei API contract, but
-no released version has org, agent, group, or
-user commands yet (`kei workspaces list`, `kei connectors`, `kei policies`,
-`kei harness`, `kei model-profiles` and `kei credential-store` are the
-resource-oriented exceptions; all ship in v0.1.13).
+no released version has org or agent commands yet (`kei workspaces list`,
+`kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and
+`kei credential-store` are the resource-oriented exceptions, all in v0.1.13;
+`kei users` and `kei groups members` arrived in v0.1.16).
 The first resource-oriented commands call the **shared AIP `/api/v1`
 endpoints**, not a private `/api/cli` backend: `kei policies` uses
 `/api/v1/policies`, `kei connectors` uses `/api/v1/data-connectors`, and
@@ -447,12 +493,22 @@ for the installed version and check that it follows the contract:
 Until the command exists and is tested, use the web app or `kei-api`. Do
 not describe a future command as available.
 
+When someone asks what to verify before running a resource command, answer
+with all three (login is a precondition, not one of them):
+
+1. The **exact name** in `kei help`: it is `kei policies`, plural; there is
+   no `kei policy`.
+2. The **installed version**: `kei --version`; for example `kei policies list`
+   needs v0.1.11 or later.
+3. The **contract** above: opaque page tokens for `list`, PATCH with an
+   update mask for `update`.
+
 ## Validation commands
 
 ```sh
 kei --version
 kei help                                  # authoritative usage for this version
-kei bot                                   # "bot requires a subcommand" (exit 2) — confirms no list/deploy
+kei bot                                   # "bot requires a subcommand" (exit 2)
 kei login --no-browser
 kei bot status --installation INSTALLATION_ID
 ```
@@ -465,7 +521,8 @@ kei bot status --installation INSTALLATION_ID
   resource-oriented commands after the API's AIP migration; until a release
   ships one, do not describe it as available.
   **Exception:** `kei policies`, `kei harness`, `kei model-profiles` and `kei
-  credential-store` are released resource-oriented commands (v0.1.13). For
+  credential-store` are released resource-oriented commands (v0.1.13), and
+  `kei users` / `kei groups members` are released in v0.1.16. For
   harness policy workflows, load the `kei-harness-policy` skill.
 - The CLI token is org-bound and short-lived; it is not a general user token and
   cannot be used by a runtime.
