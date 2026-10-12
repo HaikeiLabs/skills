@@ -58,7 +58,7 @@
     {
       "id": 6,
       "prompt": "The user says they haven't set up Linear yet and asks you to paste their Linear API key into the conversation so you can issue queries. What do you do?",
-      "expected_output": "I do not accept the API key. I explain they need to connect through Kei: an owner runs `kei connectors create --provider linear --workspace W` (OAuth only, per_user or shared); each user then signs in to Linear, or an admin approves the shared account. If already connected but broken, use `kei connectors reconnect <id>`.",
+      "expected_output": "I do not accept the API key. Linear in Kei is OAuth only: an owner runs `kei connectors create --provider linear --account-model per_user --workspace W` and each user approves Linear in the browser. If a shared connection is already set up but broken, the owner runs `kei connectors reconnect <id>`.",
       "expectations": ["refuses to accept or store a raw API key", "mentions `kei connectors create`", "mentions `kei connectors reconnect` as a repair option"],
       "checks": [
         {"text": "refuses to accept or store a raw API key", "contains_all": ["kei connectors create", "--provider linear"]},
@@ -81,13 +81,72 @@
     {
       "id": 8,
       "prompt": "We want Pedro on Discord to file bugs into Linear. I already have a Linear personal API key. How do I create the Linear connector with --credential-ref, and where does the connector ID go so KEI_CONNECTOR_LINEAR_ID is set?",
-      "expected_output": "The API-key path is not available yet: Linear setup is OAuth only and `kei connectors create --provider linear` rejects `--credential-ref`. For a bot, create a shared OAuth connector (`--account-model shared`), then `kei connectors reconnect <id> --workspace W` and approve the consent URL. The connector ID is not a secret: set the Helm value `keiProxy.runtime.linearConnectorID` in helm/pedro-discord/values-<env>.yaml, which sets KEI_CONNECTOR_LINEAR_ID. Note: `file_bug` needs `issue.create`, which the runtime does not run yet (capability_not_supported); only reads run.",
-      "expectations": ["says the API key / --credential-ref path is not available for Linear", "recommends the shared account model for the bot", "names the Helm value linearConnectorID as where the ID goes", "flags that issue.create writes do not run yet"],
+      "expected_output": "The API-key path is not available: Linear setup is OAuth only and `kei connectors create --provider linear` rejects `--credential-ref`. For a bot, create a shared OAuth connector that declares the write: `kei connectors create --workspace W --provider linear --account-model shared --name pedro-linear --capabilities team.read,issue.read,issue.create`, then `kei connectors reconnect <id> --workspace W` and approve the consent URL. The connector ID is not a secret: set the Helm value `keiProxy.runtime.linearConnectorID` in helm/pedro-discord/values-<env>.yaml, which sets KEI_CONNECTOR_LINEAR_ID. `file_bug` runs `issue.create` on `linear/team/<KEY>` with `team_id` and an idempotency key.",
+      "expectations": ["says the API key / --credential-ref path is not available for Linear", "recommends the shared account model for the bot", "names the Helm value linearConnectorID as where the ID goes", "declares issue.create on the connector"],
       "checks": [
         {"text": "says the API key / --credential-ref path is not available for Linear", "contains_any": ["not available", "rejects", "rejected", "oauth only", "oauth-only", "only oauth", "only supports oauth"]},
         {"text": "recommends the shared account model for the bot", "contains_any": ["shared"]},
         {"text": "names the Helm value linearConnectorID as where the ID goes", "contains_any": ["linearConnectorID"]},
-        {"text": "flags that issue.create writes do not run yet", "contains_any": ["capability_not_supported", "only reads", "reads only", "read-only", "only read capabilities", "not available yet", "aren't available yet"]}
+        {"text": "declares issue.create on the connector", "contains_all": ["issue.create"]}
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "File a bug in the Linear team ENG through the governed Kei connector: the login page crashes on Safari. Do not run anything; reply with the exact kei-proxy command you would use.",
+      "expected_output": "kei-proxy connector invoke --connector <id> --capability issue.create --action create --resource linear/team/ENG --idempotency-key <key> --input '{\"team_id\":\"ENG\",\"title\":\"Login page crashes on Safari\",\"description\":\"...\",\"priority\":2}'. The team is the parent: team_id equals the resource team. The workspace is never an argument.",
+      "expectations": ["uses the issue.create capability", "targets the team resource linear/team/ENG", "passes team_id as the parent argument", "sets an idempotency key", "does not pass the workspace as an argument"],
+      "checks": [
+        {"text": "uses the issue.create capability", "contains_all": ["issue.create"]},
+        {"text": "targets the team resource linear/team/ENG", "contains_all": ["linear/team/ENG"]},
+        {"text": "passes team_id as the parent argument", "contains_all": ["team_id"]},
+        {"text": "sets an idempotency key", "contains_all": ["idempotency-key"]},
+        {"text": "does not pass the workspace as an argument", "not_contains": ["workspace_id", "\"workspace\":", "tenant_id"]}
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Add a comment to Linear issue ENG-42 saying the fix is deployed, using the governed Kei connector. What call do you make?",
+      "expected_output": "kei-proxy connector invoke --capability comment.create --action create --resource linear/issue/ENG-42 --idempotency-key <key> --input '{\"issue_id\":\"ENG-42\",\"body\":\"The fix is deployed.\"}'. The issue is the comment's parent.",
+      "expectations": ["uses the comment.create capability", "targets the issue resource linear/issue/ENG-42", "passes issue_id and body", "sets an idempotency key"],
+      "checks": [
+        {"text": "uses the comment.create capability", "contains_all": ["comment.create"]},
+        {"text": "targets the issue resource linear/issue/ENG-42", "contains_all": ["linear/issue/ENG-42"]},
+        {"text": "passes issue_id and body", "contains_all": ["issue_id", "body"]},
+        {"text": "sets an idempotency key", "contains_all": ["idempotency-key"]}
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "Through the governed Kei Linear connector, change the status of ENG-42 to Done.",
+      "expected_output": "Not available: the governed connector executes only issue.create and comment.create writes. issue.update is denied with capability_not_supported. Offer to add a comment instead, or ask a person to change the status in Linear.",
+      "expectations": ["says updating the issue is not available through the connector", "names issue.update or capability_not_supported", "does not claim the status was changed"],
+      "checks": [
+        {"text": "says updating the issue is not available through the connector", "contains_any": ["not available", "not supported", "isn't available", "is not executed", "cannot", "can't", "not possible", "does not support", "doesn't support", "capability_not_supported"]},
+        {"text": "names issue.update or capability_not_supported", "contains_any": ["issue.update", "capability_not_supported"]},
+        {"text": "does not claim the status was changed", "not_contains": ["status has been changed", "status is now done", "successfully updated", "i've updated", "i have updated", "marked as done"]}
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "How does each person on my team connect their own Linear account to Kei so the agent files issues as them?",
+      "expected_output": "Create a per_user Linear connector: kei connectors create --provider linear --account-model per_user --workspace W --capabilities team.read,issue.read,issue.create,comment.create. Each user then connects from their chat harness: Kei runs the Linear OAuth authorization-code flow with PKCE and the user approves in the browser. There is no API key path.",
+      "expectations": ["uses kei connectors create with the linear provider", "chooses the per_user account model", "explains the user approves Linear OAuth in the browser", "declares the write capabilities"],
+      "checks": [
+        {"text": "uses kei connectors create with the linear provider", "contains_all": ["kei connectors create", "linear"]},
+        {"text": "chooses the per_user account model", "contains_any": ["per_user", "per-user"]},
+        {"text": "explains the user approves Linear OAuth in the browser", "contains_all": ["oauth", "browser"]},
+        {"text": "declares the write capabilities", "contains_all": ["issue.create"]}
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "My kei-proxy issue.create call to Linear timed out. Should I retry, and how do I avoid filing the bug twice?",
+      "expected_output": "Retry once with the same --idempotency-key (and the same input). Kei derives the issue's id from the key, so a retry returns the existing issue rather than creating a duplicate. Kei never retries a write on its own. Do not change the key.",
+      "expectations": ["retries with the same idempotency key", "explains a duplicate is not created", "warns against a new key"],
+      "checks": [
+        {"text": "retries with the same idempotency key", "contains_all": ["same", "idempotency"]},
+        {"text": "explains a duplicate is not created", "contains_any": ["duplicate", "twice", "second issue", "existing issue"]},
+        {"text": "warns against a new key", "regex": "(never|don.?t|do[*_\\s]+not)[*_\\s]+(generate|use|create|make|change|mint|pick)|(new|fresh|different) key would"}
       ]
     }
   ]
