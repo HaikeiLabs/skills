@@ -10,6 +10,9 @@ profiles:
     # skill asks the model the same question the same way.
     temperature: 0
     seed: 42
+    # No thinking on evals (owner decision 2026-10-12): the score measures the
+    # answer, and reasoning tokens only make runs slower and longer.
+    thinking: false
   qwen3.8-27b:
     opencode_model: eval/qwen3.8-27b
     base_url_env: EVAL_QWEN_BASE_URL
@@ -19,3 +22,4 @@ profiles:
     run_timeout_seconds: 1800
     temperature: 0
     seed: 42
+    thinking: false

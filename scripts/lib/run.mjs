@@ -24,7 +24,14 @@ export function parseModelProfile(yamlText, name) {
     runTimeoutSeconds: timeout === undefined ? undefined : positiveSeconds(timeout, `${name}.run_timeout_seconds`),
     temperature: fields.temperature === undefined ? undefined : temperature(fields.temperature, `${name}.temperature`),
     seed: fields.seed === undefined ? undefined : seed(fields.seed, `${name}.seed`),
+    thinking: fields.thinking === undefined ? undefined : bool(fields.thinking, `${name}.thinking`),
   };
+}
+
+function bool(value, label) {
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  throw new Error(`${label} must be true or false`);
 }
 
 function temperature(value, label) {

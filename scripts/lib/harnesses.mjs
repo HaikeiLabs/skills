@@ -58,10 +58,18 @@ export function opencodePermission(skill) {
 // The profile's sampling settings (EV-C1 §3). opencode 1.18 sends a model's
 // `options` in the body of every chat completions request, and otherwise sends
 // no temperature at all, so the server would sample at its own default.
+//
+// `thinking: false` turns the model's reasoning off through the chat template.
+// The servers spell the switch differently: Qwen's template reads
+// `enable_thinking`, DeepSeek V4's reads `thinking`, and each ignores the
+// other's key, so both are sent.
+export const NO_THINKING_TEMPLATE_KWARGS = Object.freeze({ enable_thinking: false, thinking: false });
+
 export function samplingOptions(opts) {
   const options = {};
   if (opts.temperature !== undefined) options.temperature = opts.temperature;
   if (opts.seed !== undefined) options.seed = opts.seed;
+  if (opts.thinking === false) options.chat_template_kwargs = { ...NO_THINKING_TEMPLATE_KWARGS };
   return options;
 }
 
