@@ -1,6 +1,6 @@
 ---
 name: kei-setup-doctor
-description: Diagnose and guide Kei runtime installations across local, AWS, Azure, or other customer environments. Use for Kei installation, configuration, verification, troubleshooting, or handoff.
+description: Diagnose and guide Kei runtime installations across local, AWS, Azure, or other customer environments. Use for Kei installation, configuration, verification, troubleshooting, legacy (v1) policy rows with a bare dst_pattern, or handoff.
 ---
 
 # Kei setup doctor
@@ -36,7 +36,9 @@ out.
   account: that this is the intended target and that its organization
   matches the account you logged in with. Then name and run
   `kei bot status --installation ID`: it is the command that confirms the ID
-  from its non-secret metadata. None of this discloses credentials; never
+  from its non-secret metadata. Name `kei bot status` in the same answer even
+  while you are still waiting for the ID; never end on the question alone.
+  None of this discloses credentials; never
   print, ask for, or paste the runtime credential.
 - **A new replica gets 404/405 from the control plane while an older one
   works.** Treat the 404 or 405 as evidence of possible version skew between
@@ -49,9 +51,14 @@ out.
   heartbeat, so binding now is premature: bind only after a heartbeat is
   reported. Stay read-only. Rotation and restart are mutations; ask for
   explicit approval for each one separately, even if the user said "just do
-  it". Say what rotation does: it replaces the current credential and
+  it". Write the words "explicit approval" in the answer. Say what rotation does: it replaces the current credential and
   invalidates the old token immediately, so every place that uses it must be
   updated before the runtime restarts.
+- **`kei bot status` returns 401 right after a successful `kei login`.** Do
+  not retry `kei login` in a loop: say "do not retry kei login", because a new
+  session will not fix it. Check organization mismatch, owner/admin role,
+  session state, and control-plane/API version compatibility, then report the
+  cause the evidence supports.
 - **The runtime token is lost.** Kei stores only a hash, so the plaintext
   cannot be recovered. After approval, rotation is the fix: rotate by piping
   the new credential from `kei bot credential --rotate` straight into its
@@ -80,22 +87,42 @@ out.
   a single probe, the literal command `kei-proxy authorize`, for a
   known-permitted tool (`kei-proxy authorize --user USER --tool TOOL
   --action ACTION --resource RESOURCE`), expecting an allow. Change nothing.
+  YOU MUST say "the diagnosis is read-only" in the answer, using the word
+  "read-only".
+- **Legacy (v1) policy rows** (a bare `dst_pattern` like `search_wiki`, often
+  with no agent). They are skipped with `bare_target` and grant nothing.
+  Converting one to `tool:search_wiki` would newly grant access: say it is a
+  policy decision, not a cleanup. The fix is to delete them, and YOU MUST
+  include this sentence: "Delete them only after approval for the listed
+  rows." Name both ways to delete: the console **Delete this legacy row**
+  action and `kei policies delete`. Section 4c has the commands.
 - **`kei harness sync` says "No registered harnesses selected".** The
   policy bundle cached by kei-proxy (in its cache directory,
   `~/Library/Application Support/kei-proxy` on macOS or
   `~/.local/share/kei-proxy` on Linux) is stale (HAI-403). Retrying sync does not
   help until the bundle is refreshed. The workaround is a bundle refresh:
-  force one with a no-op policy edit or `kei-proxy policy sync`, or wait for
-  the background refresh poll (up to 6 hours). Desktop harnesses (Claude Code, Codex, OpenCode) are auto-discovered,
+  make a no-op policy edit first (any policy edit triggers a new bundle),
+  then `kei-proxy policy sync` to fetch it, or wait for the background refresh
+  poll (up to 6 hours). YOU MUST write the phrase "bundle refresh" and name
+  the policy edit, for example: "The workaround is a bundle refresh: make a
+  no-op policy edit, then run `kei-proxy policy sync`." Desktop harnesses (Claude Code, Codex, OpenCode) are auto-discovered,
   so they need no `kei harness add`.
 - **Old policy applies after switching to a new credential or
   installation.** kei-proxy's on-disk cache from the old installation is
   stale (HAI-404). Always give the full cache path: on macOS it is
   `~/Library/Application Support/kei-proxy`, on Linux
-  `~/.local/share/kei-proxy`. Recommend moving that cache directory aside,
+  `~/.local/share/kei-proxy`. Write that literal path in prose, not only
+  `<state_dir>` or `KEI_RUNTIME_STATE_DIR`, and quote it in commands rather
+  than escaping the space. Recommend moving that cache directory aside,
   not deleting it, so it can be inspected or
-  restored; then re-bootstrap. Do not re-create the installation or rotate
-  the credential again. In identity mode, moving the directory also drops the
+  restored; then re-bootstrap:
+
+  ```sh
+  mv "$HOME/Library/Application Support/kei-proxy" "$HOME/Library/Application Support/kei-proxy.stale"
+  kei-proxy runtime bootstrap
+  ```
+
+  Do not re-create the installation or rotate the credential again. In identity mode, moving the directory also drops the
   connector reference index, so run `kei-proxy credential sync` again.
 
 ## Guardrails
@@ -396,6 +423,66 @@ Read-only checks. None of them prints a secret value:
 | `credential_source_not_supported` | No descriptors in the bundle (proxy-v0.2.4 or `POLICY_BUNDLE_V2_CONNECTORS` off), so only per-user OAuth connectors run; or an `oauth` connector with a shared account | Expected until the release and the flag are both in place; nothing to fix on the runtime |
 | `account_model_not_supported` | `account_model: domain_delegation` | Not executed yet; no fix |
 
+### 4c. Check for legacy (v1) policy rows
+
+Orgs that predate typed targets can still hold **legacy policy rows**: a
+`dst_pattern` that is a bare tool name (`search_wiki`, not
+`tool:search_wiki`), usually with no `agent_id`. They confuse admins because
+they look like grants. Check every workspace, read-only:
+
+```sh
+kei workspaces list --json
+kei policies list --workspace WORKSPACE_ID --json   # once per workspace
+```
+
+Classify each row by its `dst_pattern` the way the catalog's bundle compiler
+does (`ClassifyPolicyEnforcement` in kei-policy-catalog
+`pkg/database/policy_v2.go`; skip reasons listed in
+`docs/policy-bundle-issuer.md`):
+
+| `dst_pattern` | What the catalog does | Doctor verdict |
+|---|---|---|
+| No `:` at all (`search_wiki`, `web_search`) | Skipped, `skip_reason: bare_target` | **Legacy row.** Grants nothing |
+| `tool:` or `capability:` that is not one exact name (for example `tool:*`) | Skipped (`tool_target_wildcard`, `capability_target_wildcard`) | Legacy row. Grants nothing |
+| `model:<name>` | Skipped, `model_policy_superseded_by_assignment`; model access comes from the agent's model-profile assignment (HAI-459) | Grants nothing; see `kei model-profiles assignment` |
+| `tool:<name>` or `capability:<name>` | Enforced at call time | Live grant or deny |
+| `shell:`, `skill:`, `path:` from a harness or agent principal | Rendered into the native harness config | Live (see `kei-harness-policy`) |
+
+A `tool:<name>` row with **no `agent_id` is still enforced**. The bundle query
+loads rows where `agent_id IS NULL OR agent_id` is one of the installation's
+agents (`pkg/database/policy_v2_builder.go`), so it applies to every agent in
+the workspace that has that tool registered. Report it as workspace-wide, not
+as unenforced.
+
+Explain legacy rows to the admin like this:
+
+- **They grant nothing today.** The catalog skips them when it builds every
+  runtime's policy bundle, logs `skipping unsortable legacy policy in v2
+  bundle` with the policy ID, and refuses to save new rows of this form. Their
+  `enabled: true` changes nothing.
+- **Converting one is a policy decision, not a cleanup.** Rewriting
+  `search_wiki` to `tool:search_wiki` (or adding an agent) turns a row that
+  does nothing into a live permit for everyone its `src_pattern` matches. Only
+  do that if the admin wants to grant that access now, and handle it as a new
+  policy (see `kei-harness-policy`).
+- **The fix is to delete them.** List exactly which rows (workspace, policy
+  ID, name, `src_pattern`, `dst_pattern`) and ask for **approval** to delete
+  those rows. Never delete without the admin's explicit yes for that list.
+  Then either the admin uses **Delete this legacy row** on the policy in the
+  Kei console, or, after approval, run once per row:
+
+  ```sh
+  kei policies delete POLICY_ID --workspace WORKSPACE_ID --yes
+  ```
+
+  Use the policy ID, not the name: legacy rows in different workspaces often
+  share a name. Re-run `kei policies list --workspace WORKSPACE_ID --json` to
+  confirm they are gone. Deleting them does not change any runtime decision.
+
+v1 policy bundles are deprecated (HAI-437). If `kei-proxy policy show` or
+`kei harness sync` reports a v1 bundle, upgrade the runtime rather than
+authoring policies for the v1 shape.
+
 ## 5. Apply approved remediation
 
 For each failure, report the evidence, likely cause, smallest remediation,
@@ -473,7 +560,8 @@ The `kei-harness-setup` skill has the full version with exact commands.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `policy bundle candidate rejected: invalid policy bundle schema` | `dst_pattern` uses bare name instead of `tool:` prefix (HAI-372) | Update `dst_pattern` to `tool:<name>` in console or via `kei policies update`; re-bootstrap |
+| `policy bundle candidate rejected: invalid policy bundle schema` | `dst_pattern` uses bare name instead of `tool:` prefix (HAI-372) | Legacy (v1) row: the catalog now skips it (`bare_target`) instead of rejecting the bundle. Do not convert it to `tool:<name>`; that newly grants access. Delete it with approval (see 4c), then re-bootstrap |
+| Admin sees policies such as `member:workspace:wiki` → `search_wiki` but users are still denied | Legacy (v1) rows with a bare `dst_pattern`, skipped with `bare_target`; they grant nothing | List them per workspace (4c). Offer the console **Delete this legacy row** action or `kei policies delete POLICY_ID --workspace WORKSPACE_ID --yes`, only after approval for the listed rows |
 
 ### Credential
 
@@ -495,4 +583,5 @@ The `kei-harness-setup` skill has the full version with exact commands.
 - When all governed calls are denied, mention **"KEI_PROXY_DISABLED"**, **"fail-closed"**, and that a disabled, missing, or misconfigured proxy **"denies"** every **"governed call"** and never permits one; rule the proxy out before blaming a **"policy change"**; and say the diagnosis is **"read-only"** environment checks plus a single **"kei-proxy authorize"** probe.
 - When the policy bundle is stale, mention **"HAI-403"**, **"stale policy bundle"**, **"retrying sync"**, **"bundle refresh"**, **"policy edit"**, **"background refresh"**, and that **"desktop"** harnesses are **"auto-discovered"**.
 - When an identity-mode connector call denies `credential_unavailable` or `credential_backend_mismatch`, mention **"kei-proxy credential sync"**, **"KEI_RUNTIME_STATE_DIR"**, **"connector-credentials.json"**, **"kei connectors reconnect"**, and **"proxy-v0.2.4"** (it is not live in that release; it needs kei-proxy 0.2.5 or newer and the `POLICY_BUNDLE_V2_CONNECTORS` gate).
+- When legacy policy rows come up (bare `dst_pattern` without a `tool:` prefix), mention **"bare_target"**, **"grant nothing"**, **"newly grant"** (converting is a policy decision), **"Delete this legacy row"**, **"kei policies delete"**, and **"approval"**.
 - When the proxy cache is stale, mention **"HAI-404"**, **"stale proxy cache"**, **"Application Support"**, **"kei-proxy"**, **"moving"** (the cache aside, not deleting it), and **"re-bootstrap"** — do NOT say "re-create the installation".
