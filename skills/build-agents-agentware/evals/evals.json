@@ -195,6 +195,66 @@
           ]
         }
       ]
+    },
+    {
+      "id": 8,
+      "prompt": "I'm writing my own AgentDefinition in kei-agents and want to give it Permission.LINEAR_APPROVE so it can approve its own changes. Will that pass validation? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "No. validate_agent_definitions rejects any *_approve permission: approve permissions are reserved and agents never hold one. It also rejects bare-string permissions, unknown tools, and tools whose permission is not granted.",
+      "expectations": ["says validate_agent_definitions rejects it", "says *_approve permissions are reserved and agents never hold one"],
+      "checks": [
+        {"text": "says validate_agent_definitions rejects it", "contains_all": ["validate_agent_definitions"]},
+        {"text": "says *_approve permissions are reserved and agents never hold one", "contains_any": ["reserved", "never hold", "agents never", "cannot hold", "can't hold", "not allowed", "can’t hold"]}
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "My file_bug tool has a severity argument that the model fills with free text like 'pretty bad'. Per the Semantics rule, what should severity look like in the tool schema? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Enum values come from the Semantics key-fields table: severity is an enum of critical|high|medium|low, not free text.",
+      "expectations": ["makes severity an enum", "lists critical, high, medium and low"],
+      "checks": [
+        {"text": "makes severity an enum", "contains_any": ["enum"]},
+        {"text": "lists critical, high, medium and low", "contains_all": ["critical", "high", "medium", "low"]}
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "I'm defining a tool that creates a Google Drive document. Which argument carries the parent relationship, and should the tool also take drive_id so the agent can choose the shared drive? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "A Drive document is created in a folder, so the tool takes folder_id (the child carries the parent's identifier). drive_id is proxy-delegated scope that comes from the runtime token and connector binding; it is never an argument, because an agent that can pass it can widen its own scope.",
+      "expectations": ["uses folder_id as the parent argument", "says drive_id is proxy-delegated scope, not a tool argument"],
+      "checks": [
+        {"text": "uses folder_id as the parent argument", "contains_all": ["folder_id"]},
+        {"text": "says drive_id is proxy-delegated scope, not a tool argument", "contains_any": ["delegated", "connector binding", "runtime token", "not an argument", "never an argument", "not a tool argument", "never a tool argument", "widen"]}
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "Under the HaikeiLabs Lexicon / Pragmatics / Semantics rule for tool design, which section supplies a tool's argument names, and which section supplies the tool description with its 'Use when… Not for…' guidance? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Lexicon (what the provider calls things) gives the argument names; Pragmatics (when and how to use it) gives the tool description; Semantics gives relationship arguments and enum values.",
+      "expectations": ["maps Lexicon to argument names", "maps Pragmatics to the tool description"],
+      "checks": [
+        {"text": "maps Lexicon to argument names", "regex": "lexicon[\\s\\S]{0,120}(argument|parameter)|(argument|parameter)[^|\\n]{0,40}names?[\\s\\S]{0,120}lexicon"},
+        {"text": "maps Pragmatics to the tool description", "regex": "pragmatics[\\s\\S]{0,120}description|description[\\s\\S]{0,120}pragmatics"}
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "With KeiProxyEvaluator, how do I pin the exact kei-proxy binary my harness runs so a different binary on PATH can't be substituted? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Pin the binary with expected_sha256= on the authorize client; an absolute executable path is required.",
+      "expectations": ["uses expected_sha256", "says an absolute path is required"],
+      "checks": [
+        {"text": "uses expected_sha256", "contains_all": ["expected_sha256"]},
+        {"text": "says an absolute path is required", "contains_any": ["absolute"]}
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "Can my agentware harness read which Kei agent it is from an AGENT_ID environment variable? What happens if the agent identity isn't available? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "No. Agent identity is discovered from the runtime (link.identity()), never from an env var; if it is unavailable, deny governed calls.",
+      "expectations": ["discovers agent identity from the runtime with link.identity", "denies governed calls when the identity is unavailable"],
+      "checks": [
+        {"text": "discovers agent identity from the runtime with link.identity", "contains_any": ["link.identity"]},
+        {"text": "denies governed calls when the identity is unavailable", "regex": "den(y|ied|ies)|fail(s)?[ -]closed"}
+      ]
     }
   ]
 }
