@@ -107,6 +107,13 @@ error with reason `timeout`, and the runner prints
 `N runs timed out after Xs`. If a whole sweep times out, raise
 `--run-timeout` rather than reading the 0% as a skill failure.
 
+A run whose harness exits non-zero is also a benchmark error, reported as
+`exit N: <stderr's last line>`; errors make the runner exit 2 (not graded). A
+run that exits cleanly with no answer text is different: that is the model's
+outcome, so it is a failed run with reason `no answer (the run ended after:
+<the harness's last step>)`, every check fails, and `stderr.txt` in the run
+directory keeps the harness log.
+
 Every run is sandboxed so the score measures what the skill teaches, not what
 the model can find on disk or online. The harness may load the skill and
 answer, and nothing else. The sandbox is the same for `with_skill` and

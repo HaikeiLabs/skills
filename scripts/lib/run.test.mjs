@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeBenchmark } from './benchmark.mjs';
-import { DEFAULT_RUN_TIMEOUT_SECONDS, parseModelProfile, resolveRunTimeoutSeconds, runCommand, runError,
+import { DEFAULT_RUN_TIMEOUT_SECONDS, noAnswer, parseModelProfile, resolveRunTimeoutSeconds, runCommand, runError, stripAnsi,
   timeoutSummary, timingRecord } from './run.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -71,8 +71,25 @@ test('a run that finishes in time is not marked timed out', async () => {
   assert.equal(res.timedOut, false);
   assert.equal(res.code, 0);
   assert.equal(timingRecord(res, 10).timed_out, false);
-  assert.equal(runError(res, res.stdout), null);
-  assert.equal(runError({ code: 1, stderr: 'boom\nlast line\n', timedOut: false }, ''), 'last line');
+  assert.equal(runError(res), null);
+  assert.equal(runError({ code: 1, stderr: 'boom\nlast line\n', timedOut: false }), 'exit 1: last line');
+  assert.equal(runError({ code: 3, stderr: '', timedOut: false }), 'exit 3');
+});
+
+test('a clean exit with no answer is a failed run, not an error', () => {
+  const stderr = '\u001b[0m→ \u001b[0mSkill "kei-proxy"\n';
+  const res = { code: 0, stderr, timedOut: false };
+  assert.equal(runError(res), null);
+  assert.equal(noAnswer(res, '  \n'), 'no answer (the run ended after: → Skill "kei-proxy")');
+  assert.equal(noAnswer({ code: 0, stderr: '', timedOut: false }, ''), 'no answer');
+  assert.equal(noAnswer(res, 'an answer'), null);
+  assert.equal(noAnswer({ code: 1, stderr, timedOut: false }, ''), null);
+  assert.equal(noAnswer({ code: null, stderr, timedOut: true }, ''), null);
+  assert.equal(runError({ code: 2, stderr, timedOut: false }), 'exit 2: → Skill "kei-proxy"');
+});
+
+test('stripAnsi removes colour codes', () => {
+  assert.equal(stripAnsi('\u001b[0m→ \u001b[1;32mok\u001b[0m'), '→ ok');
 });
 
 test('timeouts count as benchmark errors with reason "timeout" and get a summary line', () => {
