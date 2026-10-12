@@ -26,3 +26,12 @@ whichever harness you work in (Claude Code, Codex, opencode).
    If AgentPedro can't push a change, for example a `.github/workflows/*` file
    while its token has no Workflows permission, stop that change and record a
    blocker instead of using another account.
+5. **Local Qwen runs take the Qwen lock.** Qwen is served by a single GPU that
+   the CI gate shares, and the gate runs it at concurrency 1. Run every local
+   `qwen3.8-27b` eval through the worker host's turnlock, whose Qwen queue has
+   1 slot, at `--jobs 1` and one suite per ticket:
+
+   ```sh
+   turnlock.sh qwen <worker> node scripts/run-evals.mjs --skill <name> \
+     --model-profile qwen3.8-27b --jobs 1 --repeats 3
+   ```

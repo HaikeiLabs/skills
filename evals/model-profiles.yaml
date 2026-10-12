@@ -16,8 +16,10 @@ profiles:
   qwen3.8-27b:
     opencode_model: eval/qwen3.8-27b
     base_url_env: EVAL_QWEN_BASE_URL
-    # Slot count (EV-C1 §3): the CI gate runs this many evals at once.
-    concurrency: 2
+    # Slot count (EV-C1 §3): the CI gate runs this many evals at once. One
+    # GPU serves Qwen to up to 4 CI runners and the workers' local runs, so
+    # each CI job sends one request at a time (owner decision 2026-10-12).
+    concurrency: 1
     # opencode runs on the shared 5090 can exceed the 600 s default.
     run_timeout_seconds: 1800
     temperature: 0
