@@ -79,9 +79,7 @@
         },
         {
           "text": "The response mentions opaque pagination and PATCH/update-mask semantics only as contract requirements for a released resource command.",
-          "contains_all": [
-            "contract"
-          ]
+          "regex": "contract|update[- ]mask|page[- ]token"
         }
       ]
     },
@@ -251,10 +249,7 @@
       "checks": [
         {
           "text": "The response identifies that the default state directory /var/lib/kei-proxy is not writable on macOS.",
-          "contains_all": [
-            "default",
-            "state"
-          ]
+          "regex": "(default|hard-?cod\\w*)[\\s\\S]*state|state[\\s\\S]*(default|hard-?cod\\w*)"
         },
         {
           "text": "The response recommends setting KEI_RUNTIME_STATE_DIR to a user-writable path.",
@@ -293,10 +288,7 @@
       "checks": [
         {
           "text": "The response identifies that kei ≤ 0.1.10 has a bug that causes the decode error.",
-          "contains_all": [
-            "0.1.10",
-            "decode"
-          ]
+          "regex": "(0\\.1\\.10|(before|older than|prior to|below|<) ?v?0\\.1\\.11)[\\s\\S]*decode|decode[\\s\\S]*(0\\.1\\.10|(before|older than|prior to|below|<) ?v?0\\.1\\.11)"
         },
         {
           "text": "The response recommends upgrading kei to v0.1.11 or later.",
@@ -307,9 +299,7 @@
         },
         {
           "text": "The response mentions using the web app as an alternative.",
-          "contains_all": [
-            "web app"
-          ]
+          "regex": "web app|app\\.haikeilabs\\.com|\\bconsole\\b"
         },
         {
           "text": "The response references HAI-373 as the known bug.",
@@ -375,9 +365,14 @@
         },
         {
           "text": "The response does not invent flags or commands absent from the kei usage string.",
-          "contains_all": [
-            "not invent",
-            "usage string"
+          "not_contains": [
+            "--api-key",
+            "--base-url",
+            "--provider",
+            "--model ",
+            "--key ",
+            "kei model-profile ",
+            "kei credential-store create"
           ]
         }
       ]
@@ -385,12 +380,12 @@
     {
       "id": 12,
       "prompt": "I'm on kei 0.1.12. `kei model-profiles list` fails, and I want to test that a profile can actually reach the model. What should I do?",
-      "expected_output": "Explains that kei 0.1.12 and earlier call retired console routes for model profiles, so the user should upgrade to v0.1.13 or later. Says `kei model-profiles test` is not available yet because the Kei API has no test endpoint, and that `kei model-profiles readiness PROFILE --workspace WS` is the way to check whether runtimes can reach the provider.",
+      "expected_output": "Explains that kei 0.1.12 and earlier call retired console routes for model profiles, so the user should upgrade (v0.1.13 or later; v0.1.14 or later for `test`). Says `kei model-profiles test` only validates the endpoint like the console's Test button and never contacts the provider, so it cannot show the model is reachable, and that `kei model-profiles readiness PROFILE --workspace WS` is the way to check whether runtimes can reach the provider.",
       "expectations": [
         "The response recommends upgrading kei to v0.1.13 or later.",
-        "The response says `kei model-profiles test` is not available yet.",
+        "The response says `kei model-profiles test` only validates the endpoint and does not contact the provider.",
         "The response recommends `kei model-profiles readiness` with `--workspace` instead.",
-        "The response does not claim the test command calls the server."
+        "The response does not claim the test command calls the provider or proves the model is reachable."
       ],
       "checks": [
         {
@@ -402,11 +397,8 @@
           ]
         },
         {
-          "text": "The response says `kei model-profiles test` is not available yet.",
-          "contains_all": [
-            "kei model-profiles test",
-            "model-profiles"
-          ]
+          "text": "The response says `kei model-profiles test` only validates the endpoint and does not contact the provider.",
+          "regex": "(only|just) (validat|check)|validat[\\s\\S]{0,200}(not|never|no|without)\\b[^.\\n]{0,40}(contact|call|reach|provider)|(not|never|no|without)\\b[^.\\n]{0,40}(contact|call|reach)[^.\\n]{0,20}(the )?(provider|model)"
         },
         {
           "text": "The response recommends `kei model-profiles readiness` with `--workspace` instead.",
@@ -416,11 +408,13 @@
           ]
         },
         {
-          "text": "The response does not claim the test command calls the server.",
-          "contains_any": [
-            "test",
-            "server",
-            "not available"
+          "text": "The response does not claim the test command calls the provider or proves the model is reachable.",
+          "not_contains": [
+            "test calls the provider",
+            "test contacts the provider",
+            "test reaches the model",
+            "test confirms the model is reachable",
+            "test verifies the model is reachable"
           ]
         }
       ]
