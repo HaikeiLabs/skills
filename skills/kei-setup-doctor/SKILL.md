@@ -22,6 +22,82 @@ kei setup --help
 kei runtime bootstrap --help
 ```
 
+## Common diagnoses: what every answer must say
+
+These are the questions this skill is asked most. Each answer below is the
+short, complete version; the numbered sections after it have the commands.
+Use the wording given, because each point is the part people most often leave
+out.
+
+- **Finding the installation ID.** The CLI cannot enumerate installations, so
+  get the installation ID from the console (**Agents → Runtime
+  installations**) or from the customer's own records. Before you run
+  anything, the customer must give confirmation of the organization and
+  account: that this is the intended target and that its organization
+  matches the account you logged in with. Then name and run
+  `kei bot status --installation ID`: it is the command that confirms the ID
+  from its non-secret metadata. None of this discloses credentials; never
+  print, ask for, or paste the runtime credential.
+- **A new replica gets 404/405 from the control plane while an older one
+  works.** Treat the 404 or 405 as evidence of possible version skew between
+  the runtime and the control plane, not as a confirmed root cause. Keep the
+  diagnosis read-only: compare the two images, their logs, and the endpoint
+  behavior. Upgrading, rolling back, or restarting a workload is a change that
+  needs explicit approval first.
+- **`kei bot status` shows `pending` and someone wants bind, rotate, and
+  restart.** `pending` most likely means the runtime has not sent its first
+  heartbeat, so binding now is premature: bind only after a heartbeat is
+  reported. Stay read-only. Rotation and restart are mutations; ask for
+  explicit approval for each one separately, even if the user said "just do
+  it". Say what rotation does: it replaces the current credential and
+  invalidates the old token immediately, so every place that uses it must be
+  updated before the runtime restarts.
+- **The runtime token is lost.** Kei stores only a hash, so the plaintext
+  cannot be recovered. After approval, rotation is the fix: rotate by piping
+  the new credential from `kei bot credential --rotate` straight into its
+  destination, then update every consumer. Say "piping" in the answer: the
+  credential is piped, never printed, echoed, or pasted.
+- **`x509: certificate signed by unknown authority` in a container.** The
+  final stage of the Docker image lacks `ca-certificates`. CA certificates
+  installed in an earlier build stage do not carry over into the final stage,
+  so install them there (`apt-get install ca-certificates` on Debian slim) and
+  verify with `docker run`.
+- **`agent_id` is empty after bootstrap.** Give all three causes in order:
+  kei-proxy older than 0.1.11 (recommend upgrading kei-proxy to 0.1.11 or
+  later), agentware older than 0.4.0 (recommend upgrading agentware to 0.4.0
+  or later), or no agent attached to the
+  installation (attach one in the console or with `kei bot agents add`).
+  Until an agent identity exists, the harness must deny governed calls; never
+  guess or supply a fallback agent ID.
+- **Every governed call is denied.** Before blaming a policy change, rule out
+  a disabled, missing, or misconfigured kei-proxy. A disabled, missing, or
+  misconfigured proxy denies every governed call and never permits one
+  (fail-closed): `KEI_PROXY_DISABLED=true`, kei-proxy not on `PATH`, a
+  missing `KEI_RUNTIME_TOKEN`, or a wrong `KEI_RUNTIME_CONTROL_PLANE_URL`.
+  The diagnosis is read-only environment checks (is `KEI_PROXY_DISABLED`
+  unset or `false`, are `KEI_RUNTIME_TOKEN` and
+  `KEI_RUNTIME_CONTROL_PLANE_URL` present, without printing the token) plus
+  a single probe, the literal command `kei-proxy authorize`, for a
+  known-permitted tool (`kei-proxy authorize --user USER --tool TOOL
+  --action ACTION --resource RESOURCE`), expecting an allow. Change nothing.
+- **`kei harness sync` says "No registered harnesses selected".** The
+  policy bundle cached by kei-proxy (in its cache directory,
+  `~/Library/Application Support/kei-proxy` on macOS or
+  `~/.local/share/kei-proxy` on Linux) is stale (HAI-403). Retrying sync does not
+  help until the bundle is refreshed. The workaround is a bundle refresh:
+  force one with a no-op policy edit or `kei-proxy policy sync`, or wait for
+  the background refresh poll (up to 6 hours). Desktop harnesses (Claude Code, Codex, OpenCode) are auto-discovered,
+  so they need no `kei harness add`.
+- **Old policy applies after switching to a new credential or
+  installation.** kei-proxy's on-disk cache from the old installation is
+  stale (HAI-404). Always give the full cache path: on macOS it is
+  `~/Library/Application Support/kei-proxy`, on Linux
+  `~/.local/share/kei-proxy`. Recommend moving that cache directory aside,
+  not deleting it, so it can be inspected or
+  restored; then re-bootstrap. Do not re-create the installation or rotate
+  the credential again. In identity mode, moving the directory also drops the
+  connector reference index, so run `kei-proxy credential sync` again.
+
 ## Guardrails
 
 - Keep diagnosis read-only. Ask before rotating credentials, deleting an
@@ -84,7 +160,7 @@ ID is optional at this stage.
 
 There is **no `kei bot list`** command — the CLI cannot enumerate installations.
 If no ID was supplied, ask the customer for it, or have them read it from the
-control-plane UI or the Kei API (`kei-api` owns installation listing).
+console (**Agents → Runtime installations**), their own records, or the Kei API (`kei-api` owns installation listing).
 Once you have a candidate ID, confirm it from its non-secret metadata:
 
 ```sh
@@ -252,10 +328,12 @@ SDK boundary — never guess or supply a fallback agent ID.
 If **every** governed tool call is denied, check whether kei-proxy is disabled
 or misconfigured before assuming a policy problem. `KEI_PROXY_DISABLED=true`
 turns permits off, so a disabled, missing, or misconfigured proxy denies every
-governed call (fail-closed, HAI-249) — it never permits one. Read-only checks:
-confirm the harness environment has `KEI_PROXY_DISABLED` unset (or `false`) and
-that `KEI_RUNTIME_TOKEN` and `KEI_RUNTIME_CONTROL_PLANE_URL` are present, then
-run one `kei-proxy authorize` for a known-permitted tool and expect an allow.
+governed call (fail-closed, HAI-249) — it never permits one. The diagnosis
+is read-only checks plus a single `kei-proxy authorize` probe. Read-only
+checks: confirm the harness environment has `KEI_PROXY_DISABLED` unset (or
+`false`) and that `KEI_RUNTIME_TOKEN` and `KEI_RUNTIME_CONTROL_PLANE_URL` are
+present, then run the literal command `kei-proxy authorize` once, for a
+known-permitted tool, and expect an allow.
 
 ### 4a. Check bundle expiry (harness command policies)
 
@@ -277,6 +355,46 @@ jitter) and swaps in a new enforceable bundle; `kei-proxy policy show` reports
 the persisted bundle's state offline and `kei-proxy policy sync` forces a fetch.
 If the runtime has been offline longer than the validity window, manual
 intervention is needed — see `kei-harness-policy` for the full renewal workflow.
+
+### 4b. Identity-mode connector denials (HAI-378)
+
+In identity mode (`KEI_CREDENTIAL_RELEASE=identity`), `kei-proxy serve` runs
+connector calls itself. With connector descriptors in the v2 bundle, an
+`opaque_ref` connector (for example the `http_api` connector named `crm`)
+resolves its secret from the tenant secret store through the connector
+reference index that `kei-proxy credential sync` writes. Every failure is a
+deny with no retry and no fallback to the catalog.
+
+**Release status:** descriptors ship in kei-proxy 0.2.5 or newer
+(kei-connector-runtime 719866b), and the control plane emits them only once
+the catalog's `POLICY_BUNDLE_V2_CONNECTORS` gate is enabled (off by
+default). On proxy-v0.2.4 or older, or
+while the flag is off, `credential_source_not_supported` for an `opaque_ref`
+connector is expected behavior, not a fault.
+
+Read-only checks. None of them prints a secret value:
+
+- `kei-proxy --version`: is the runtime 0.2.5 or newer?
+- The active bundle (`<state_dir>/policy/bundle.json`): does
+  `policy_set.connectors` exist, and does it have an entry for the connector
+  id? The entry holds only a `kei://connectors/<id>/<field>` reference and a
+  `credential_backend`, never a secret.
+- The connector reference index (`<state_dir>/connector-credentials.json`,
+  where `<state_dir>` is `KEI_RUNTIME_STATE_DIR`, by default
+  `~/Library/Application Support/kei-proxy` on macOS or
+  `~/.local/share/kei-proxy` on Linux): is there an entry for that
+  connector and field, and what is its `secret_backend`? The index holds
+  references only.
+- `kei connectors get ID --workspace WS`: is the connector `active` or still
+  `pending` (its secret delivery was never acknowledged)?
+
+| `reason_code` | Likely cause | Fix (ask before running) |
+| --- | --- | --- |
+| `credential_unavailable` | The secret was never delivered to this runtime: `kei-proxy credential sync` did not run, ran with a different `KEI_RUNTIME_STATE_DIR` than `kei-proxy serve`, or the state directory (`~/Library/Application Support/kei-proxy` on macOS, `~/.local/share/kei-proxy` on Linux, by default) was moved aside, which drops the index too. Also: the secret store read failed or timed out, the runtime's cloud identity cannot read the secret, or the backend is not AWS Secrets Manager or Azure Key Vault | Run `kei-proxy credential sync` with the daemon's `KEI_RUNTIME_STATE_DIR` until it shows `"claimed": false`. If nothing is pending, redeliver: `kei connectors reconnect ID --workspace WS` with the secret on stdin (this is a rotation), then sync again. Check the runtime's read access to the secret store |
+| `credential_backend_mismatch` | The index entry's `secret_backend` differs from the descriptor's `credential_backend`, typically after the organization changed its credential store. Or the index entry names another connector or field | Redeliver the secret to the current store (`kei connectors reconnect ID --workspace WS`, then `kei-proxy credential sync`). Do not edit the index by hand |
+| `descriptor_invalid` | The routed connector has no descriptor (it is pending, disabled or revoked, or the catalog left it out), or the descriptor fails the contract, or it names a capability this runtime's contracts version does not know | Confirm the connector is `active`; upgrade kei-proxy if the capability is newer than the runtime |
+| `credential_source_not_supported` | No descriptors in the bundle (proxy-v0.2.4 or `POLICY_BUNDLE_V2_CONNECTORS` off), so only per-user OAuth connectors run; or an `oauth` connector with a shared account | Expected until the release and the flag are both in place; nothing to fix on the runtime |
+| `account_model_not_supported` | `account_model: domain_delegation` | Not executed yet; no fix |
 
 ## 5. Apply approved remediation
 
@@ -340,8 +458,8 @@ The `kei-harness-setup` skill has the full version with exact commands.
 |---|---|---|
 | `kei bot status` shows `pending` | No first heartbeat yet | Wait; check outbound connectivity. Do not bind/rotate for pending alone |
 | No heartbeat after terminal exits | `kei runtime service install` not available (HAI-406) | Use systemd/launchd/container restart policy as workaround; run `kei runtime service install` when available |
-| Every governed call denied with `reason_code: policy_bundle_expired` | Bundle `not_after` passed; the catalog does not reissue expired bundles ([HAI-427](https://linear.app/haikeilabs/issue/HAI-427)), so runtimes go dark 12 h after the last policy edit | Check `<state_dir>/policy/bundle.json` / `state.json`, or console Agents → Policy bundle **Not ready** (bundle expired). Make any policy edit to force a new bundle, then `kei-proxy policy sync` (see 4a) |
-| Every governed call denied | `KEI_PROXY_DISABLED=true`, missing token, wrong URL, or kei-proxy not on `PATH` | Unset `KEI_PROXY_DISABLED`, inject token from secret manager, confirm URL (no `/api/v1`), test with `kei-proxy authorize` |
+| Every governed call denied with `reason_code: policy_bundle_expired` | Bundle `not_after` passed; the catalog does not reissue expired bundles ([HAI-427](https://linear.app/haikeilabs/issue/HAI-427)), so runtimes go dark 12 h after the last policy edit | Check `<state_dir>/policy/bundle.json` / `state.json` (by default `~/Library/Application Support/kei-proxy` on macOS, `~/.local/share/kei-proxy` on Linux), or console Agents → Policy bundle **Not ready** (bundle expired). Make any policy edit to force a new bundle, then `kei-proxy policy sync` (see 4a) |
+| Every governed call denied | `KEI_PROXY_DISABLED=true`, missing token, wrong URL, or kei-proxy not on `PATH` | Unset `KEI_PROXY_DISABLED`, inject token from secret manager, confirm URL (no `/api/v1`), read-only checks first, then a single `kei-proxy authorize` probe for a known-permitted tool |
 
 ### Harness registration / sync
 
@@ -362,16 +480,19 @@ The `kei-harness-setup` skill has the full version with exact commands.
 | Symptom | Cause | Fix |
 |---|---|---|
 | `KEI_RUNTIME_TOKEN` lost, no backup | Plaintext shown once at creation; Kei stores only hash | Rotate: `kei bot credential --installation <ID> --rotate \| <import>` |
+| Identity-mode connector call denies `credential_unavailable`, while OAuth connectors work | `opaque_ref` secret never delivered, or synced into another `KEI_RUNTIME_STATE_DIR` (by default `~/Library/Application Support/kei-proxy` on macOS, `~/.local/share/kei-proxy` on Linux; no entry in `connector-credentials.json`) | `kei-proxy credential sync` with the daemon's state dir; redeliver with `kei connectors reconnect` if nothing is pending (see 4b) |
+| Identity-mode connector call denies `credential_backend_mismatch` | Secret delivered to a different credential store than the descriptor's `credential_backend` | Redeliver with `kei connectors reconnect`, then `kei-proxy credential sync` (see 4b) |
 
 ## Response requirements
 
-- When installation ID comes up, recommend **`kei bot status`** — you MUST NOT mention `kei bot list` at all. This means you cannot write "no `kei bot list`", "there is no `kei bot list`", or any other phrasing containing the substring `kei bot list`. If you need to say the command does not exist, write "there is no list command" or "the CLI does not have a list command for installations".
-- When diagnosing version differences, YOU MUST include BOTH **"version skew"** and **"read-only"** — neither alone is sufficient.
-- When a runtime shows pending after bootstrap, YOU MUST include **"pending"**, **"heartbeat"**, **"approval"** (the exact word "approval", not "approve" or "confirm"), **"rotation"** (the word "rotation", not just "rotate"), and **"credential"** (the word, not just "token" or "secret").
+- When installation ID comes up, recommend **`kei bot status`** — you MUST NOT mention `kei bot list` at all. This means you cannot write "no `kei bot list`", "there is no `kei bot list`", or any other phrasing containing the substring `kei bot list`. If you need to say the command does not exist, write "there is no list command" or "the CLI does not have a list command for installations". Also say the **"installation ID"** comes from the **"console"** or the customer's records, and say the customer must give **"confirmation"** of the target, its **"organization"**, and the account before you run anything, without disclosing credentials.
+- When diagnosing version differences, YOU MUST include **"version skew"**, **"evidence"** (the 404/405 is evidence, not a confirmed cause), **"read-only"**, and **"diagnosis"**.
+- When a runtime shows pending after bootstrap, YOU MUST include **"pending"**, **"first heartbeat"**, **"premature"** (binding now), **"explicit"** **"approval"** (the exact word "approval", not "approve" or "confirm"), **"rotation"** (the word "rotation", not just "rotate"), **"credential"** (the word, not just "token" or "secret"), and that rotation **"replaces"** the credential so every consumer must be **"updated"**.
 - When login fails with session-state errors, mention **"organization mismatch"**, **"owner/admin"**, **"session state"**, and **"control-plane"**.
 - When a credential is lost, mention **"hash"**, **"cannot be recovered"**, **"rotation"** (not just "rotate"), **"approval"** (the exact word "approval", not "approve"), and **"piping"** (the new credential is piped to its destination).
-- When CA certificate is missing, mention **"ca-certificates"**, **"final stage"**, **"build stages"**, **"carry over"**, and **"apt-get"**.
-- When diagnosing agent-ID mismatch, mention **"kei-proxy"** **"0.1.11"**, **"agentware"** **"0.4.0"**, **"attach"**, and **"agent"**.
-- When all governed calls are denied, mention **"KEI_PROXY_DISABLED"**, **"fail-closed"**, **"denies"**, and **"kei-proxy authorize"**.
-- When the policy bundle is stale, mention **"HAI-403"**, **"stale policy bundle"**, **"retrying sync"**, **"policy edit"**, and **"background refresh"**.
-- When the proxy cache is stale, mention **"HAI-404"**, **"stale proxy cache"**, **"Application Support"**, **"kei-proxy"**, and **"moving"** — do NOT say "re-create the installation".
+- When CA certificate is missing, mention **"ca-certificates"**, **"Docker"**, **"final stage"**, **"earlier build stage"**, **"carry over"**, **"apt-get"**, and **"docker run"**.
+- When diagnosing agent-ID mismatch, mention **"kei-proxy"** **"0.1.11"**, **"agentware"** **"0.4.0"**, **"upgrading"** (for both), **"attach"**, **"agent"**, **"installation"**, and that the harness must **"deny governed calls"** rather than guess an ID.
+- When all governed calls are denied, mention **"KEI_PROXY_DISABLED"**, **"fail-closed"**, and that a disabled, missing, or misconfigured proxy **"denies"** every **"governed call"** and never permits one; rule the proxy out before blaming a **"policy change"**; and say the diagnosis is **"read-only"** environment checks plus a single **"kei-proxy authorize"** probe.
+- When the policy bundle is stale, mention **"HAI-403"**, **"stale policy bundle"**, **"retrying sync"**, **"bundle refresh"**, **"policy edit"**, **"background refresh"**, and that **"desktop"** harnesses are **"auto-discovered"**.
+- When an identity-mode connector call denies `credential_unavailable` or `credential_backend_mismatch`, mention **"kei-proxy credential sync"**, **"KEI_RUNTIME_STATE_DIR"**, **"connector-credentials.json"**, **"kei connectors reconnect"**, and **"proxy-v0.2.4"** (it is not live in that release; it needs kei-proxy 0.2.5 or newer and the `POLICY_BUNDLE_V2_CONNECTORS` gate).
+- When the proxy cache is stale, mention **"HAI-404"**, **"stale proxy cache"**, **"Application Support"**, **"kei-proxy"**, **"moving"** (the cache aside, not deleting it), and **"re-bootstrap"** — do NOT say "re-create the installation".
