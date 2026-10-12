@@ -15,8 +15,12 @@ Two codebases speak Teams here; keep them separate:
   OBO or adaptive cards.
 
 Two assistant facts answer most questions. Outbound replies use `claimTurn(identity)`, the
-one-shot outbound capability, and go only to a route built by `buildReplyRoute`. An SSO deny is
+one-shot outbound capability, and go only to a route built by `buildReplyRoute`. Name both
+functions, and the mention gate, whenever you explain reply routing. An SSO deny is
 always the same closed `412` with a fixed `failureDetail`, so the body never says why it was denied.
+To trace a `412`, walk the ingress pipeline in order: `connectorVerifier` (the Connector JWT,
+via `botframework-connector`), tenant and origin, the mention gate, then `ssoExchange`. The
+mention gate answers a channel or group message only when it has a verified bot mention.
 
 The skill `kei-ingress-security` owns the ingress gates; this skill owns the
 Teams/Bot Framework mechanics on both sides.
