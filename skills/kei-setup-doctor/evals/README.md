@@ -4,11 +4,26 @@ Eval cases for the setup doctor skill.
 
 ## Running
 
+Checks are deterministic (case-insensitive string checks in `evals.json`, no
+LLM grader). The CI gate (`.github/workflows/agent-evals.yaml`) runs every
+case 3 times per model profile at temperature 0 with a fixed seed, and gates
+on the average pass rate (threshold 0.95). To reproduce it locally:
+
 ```bash
 node scripts/run-evals.mjs --skill kei-setup-doctor --harness opencode \
-  --model ray/deepseek-ai/DeepSeek-V4-Flash \
-  --out evals-out/kei-setup-doctor-deepseek-$(date +%F) --jobs 2
+  --model-profile deepseek-v4-flash --repeats 3 --jobs 1 \
+  --out evals-out/kei-setup-doctor-deepseek-$(date +%F)
+node scripts/run-evals.mjs --skill kei-setup-doctor --harness opencode \
+  --model-profile qwen3.8-27b --repeats 3 --jobs 1 \
+  --out evals-out/kei-setup-doctor-qwen-$(date +%F)
 ```
+
+`evals-out/` is ignored by git. Don't commit local benchmark results; the CI
+gate's report is the record.
+
+## Cases
+
+Cases 11 and 12 cover identity-mode connector denials (HAI-378): `credential_unavailable` (connector reference index, `credential sync`, state directory, redelivery) and `credential_backend_mismatch` (redeliver to the current credential store).
 
 ## Results
 

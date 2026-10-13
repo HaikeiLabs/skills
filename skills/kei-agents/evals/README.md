@@ -9,8 +9,9 @@ with ABAC conditions, and delegated_context.
 
 Checks are deterministic (case-insensitive string checks in `evals.json`, no
 LLM grader). The CI gate (`.github/workflows/agent-evals.yaml`) runs every
-case 3 times per model profile with its fixed sampling and seed, and gates
-on the average pass rate (threshold 0.95). To reproduce it locally:
+case once per model profile on a pull request and 3 times in the nightly
+sweep of `main`, with the profile's fixed sampling and seed, and gates on the
+average pass rate (threshold 0.95). To reproduce the nightly run locally:
 
 ```bash
 node scripts/run-evals.mjs --skill kei-agents --harness opencode \

@@ -1,25 +1,21 @@
 ---
 name: kei-teams-ingress
-description: Microsoft Teams and Bot Framework integration for a customer assistant's TypeScript ingress service and the Kei chat harness. Use when touching inbound Bot Framework activities, the Connector JWT verifier, SSO signin/tokenExchange invokes, OAuthCards, the mention/audience gate, reply routes, outbound Connector sends, the Teams app manifest (appPackage/manifest.template.json), messaging endpoints, or the kei-chat-harness Teams adapter (microsoft-teams-apps SDK, Bot Connector REST, TEAMS_BOT_TOKEN/TEAMS_CLIENT_ID/TEAMS_TENANT_ID). Also use for Azure Bot registration and Entra SSO configuration. Combine with kei-ingress-security for the ingress gates.
+description: Microsoft Teams and Bot Framework integration for a customer assistant's TypeScript ingress service. Use when touching inbound Bot Framework activities, the Connector JWT verifier, SSO signin/tokenExchange invokes, OAuthCards, the mention/audience gate, reply routes, outbound Connector sends, the Teams app manifest (appPackage/manifest.template.json), messaging endpoints, or Bot Connector REST sends. Also use for Azure Bot registration and Entra SSO configuration. Combine with kei-ingress-security for the ingress gates.
 ---
 
 # Teams / Bot Framework ingress
 
-Two codebases speak Teams here; keep them separate:
-
-- **A customer assistant** (a TypeScript ingress service) — a Node 24 ingress boundary that
-  authenticates Bot Framework activities and runs the SSO/OBO tool lanes. Zero-tool by design.
-- **The chat harness** (`HaikeiLabs/Kei-Chat-Harness`) — a Python bot (service `pedro_service`)
-  whose `teams_main.py` uses the `microsoft-teams-apps` SDK to speak Bot Framework activities
-  to Teams users. It listens on port 3001 at ingress path `/teams/webhook`, and it does not do
-  OBO or adaptive cards.
+The reference here is **a customer assistant** (a TypeScript ingress service): a Node 24
+ingress boundary that authenticates Bot Framework activities and runs the SSO/OBO tool
+lanes. Zero-tool by design. Check the repo you are in for the actual files before relying
+on the paths below.
 
 Two assistant facts answer most questions. Outbound replies use `claimTurn(identity)`, the
 one-shot outbound capability, and go only to a route built by `buildReplyRoute`. An SSO deny is
 always the same closed `412` with a fixed `failureDetail`, so the body never says why it was denied.
 
 The skill `kei-ingress-security` owns the ingress gates; this skill owns the
-Teams/Bot Framework mechanics on both sides.
+Teams/Bot Framework mechanics.
 
 ## Bot Framework activity flow (assistant)
 
@@ -30,10 +26,12 @@ Inbound `POST /api/messages` body is an **activity** (JSON). The pipeline is:
    activity type; `invoke` reaches the closed SSO branch only when an SSO gate is wired.
 2. `src/connectorVerifier.ts` — official `botframework-connector` auth: the JWT in
    `Authorization: Bearer` is validated against the expected app id (`BOT_APP_ID`) and tenant.
-3. `src/teams/audience.ts` + `src/teams/gate.ts` — audience classes (`personal`, `channel`,
-   `groupChat`). **Personal chat is always addressed; channel/group chat requires a verified
-   bot mention** (`src/teams/mention.ts`), matched against `recipient.id`. Non-addressed
-   messages are a benign `200 { outcome: 'ignored', processed: 0 }`.
+3. `src/teams/audience.ts` + `src/teams/gate.ts` — the **mention gate** (audience gate).
+   Audience classes are `personal`, `channel` and `groupChat`. **Personal chat is always
+   addressed; channel/group chat requires a verified bot mention** (`src/teams/mention.ts`),
+   matched against `recipient.id`. Non-addressed messages are a benign
+   `200 { outcome: 'ignored', processed: 0 }`. A bot that answers un-mentioned channel
+   messages has a mention gate bug.
 4. `src/teams/routing.ts` — `buildReplyRoute(audience, parsed)` builds the in-thread reply
    route from validated ids only. It is the ONLY thing a reply can be delivered to.
 5. `src/teams/typing.ts` / `src/teams/manifest.ts` — typing indicators and the manifest helpers.
@@ -76,25 +74,19 @@ Inbound `POST /api/messages` body is an **activity** (JSON). The pipeline is:
 | `invoke` — `signin/verifyState` | After `signin/tokenExchange` succeeded | Acknowledged and inert (`200` empty) |
 | Other / unknown | Never (closed dispatch) | N/A — gate rejects before routing |
 
-## Teams integration in the chat harness (HaikeiLabs/Kei-Chat-Harness)
+## When answering
 
-- `src/pedro_service/teams_main.py` — `App(token=TEAMS_BOT_TOKEN, tenant_id=TEAMS_TENANT_ID,
-  client_id=TEAMS_CLIENT_ID, client_secret=TEAMS_CLIENT_SECRET, http_server_adapter=FastAPIAdapter(...))`,
-  listens on port 3001, ingress path `/teams/webhook`.
-- `src/pedro_service/adapters/teams_adapter.py` — `TeamsMessageParser` reads Bot Framework
-  activity fields (`id`, `text`, `from.id`, `from.name`, `timestamp`, `replyToId`); bots are
-  detected by `from.id` starting with `28:`. Sends are plain `{"type":"message","text":...}`
-  via httpx to `{service_url}/v3/conversations/{id}/activities`. Reactions are NOT implemented.
-- Env vars: `TEAMS_BOT_TOKEN` (file fallback `TEAMS_BOT_TOKEN_PATH`), `TEAMS_TENANT_ID`,
-  `TEAMS_CLIENT_ID`, `TEAMS_CLIENT_SECRET`.
-- Deployment: `Dockerfile.teams` (`CMD python -m src.pedro_service.teams_main`), any
-  container host; `docs/teams-deploy.md` and `docs/teams-setup.md` are the runbooks.
-- This harness is an activities bot; it does NOT do OBO or adaptive cards. Keep it that way
-  unless a reviewed design says otherwise.
+- For a bot that replies to messages that don't mention it, name the **mention gate**, say
+  channel and group chat need a verified bot mention matched against `recipient.id`, and say
+  replies go only to the route built by `buildReplyRoute`.
+- For rejected activities, list what is accepted: `message`, and `invoke` with
+  `signin/tokenExchange` (the SSO branch, only when the SSO gate is wired) or
+  `signin/verifyState`. Say every other activity type is never dispatched
+  (closed dispatch): the gate rejects it before routing.
+- For an unexplained `412`, trace connector auth → mention gate → `ssoExchange`, and say the
+  SSO deny body is fixed (`failureDetail` never names the reason).
 
 ## Validation commands
-
-Customer assistant (TypeScript ingress service):
 
 ```bash
 npm run typecheck
@@ -102,16 +94,6 @@ npm run lint
 node --test test/teams_gate.test.ts test/teams_mention.test.ts test/teams_routing.test.ts \
   test/teams_audience.test.ts test/teams_manifest.test.ts test/teams_sso_exchange.test.ts \
   test/teams_typing.test.ts test/sso_ingress_integration.test.ts test/auth_exchange_msal.test.ts
-```
-
-Chat harness (HaikeiLabs/Kei-Chat-Harness):
-
-```bash
-uv run ruff check src/ tests/
-uv run mypy src/pedro_service
-uv run pytest tests/test_teams_*.py tests/test_slack_main.py -q
-# local container check
-docker build -f Dockerfile.teams -t pedro-teams:latest .
 ```
 
 ## Realistic usage boundaries
@@ -138,17 +120,10 @@ docker build -f Dockerfile.teams -t pedro-teams:latest .
 | `BOT_APP_PASSWORD` / Key Vault ref | Assistant | Bot client secret for Connector auth |
 | `BOT_SSO_APPLICATION_ID_URI` | Assistant | The `tokenExchangeResource.uri` pinned in the OAuthCard |
 | `BOT_SSO_CONNECTION_NAME` | Assistant | Azure Bot OAuth connection name |
-| `TEAMS_BOT_TOKEN` | Chat harness | Bot token for `microsoft-teams-apps` SDK |
-| `TEAMS_CLIENT_ID` | Chat harness | Entra app client id for the harness |
-| `TEAMS_TENANT_ID` | Chat harness + Assistant | Trusted tenant filter |
-| `TEAMS_CLIENT_SECRET` | Chat harness | Client secret for the harness's Entra app |
-
-## Realistic usage boundaries
-
-- When describing the chat harness's Teams adapter, explicitly mention its port (3001) and ingress path (/teams/webhook).
+| `TEAMS_TENANT_ID` | Assistant | Trusted tenant filter |
 
 ## Related skills
 
 - `kei-ingress-security` — the ingress gates that protect the Teams endpoint.
 - `kei-tool-adapters` — the tool lanes that receive the verified grant from Teams SSO.
-- `agentware-sdk` — generic middleware for tool-call policy and audit in the chat harness.
+- `agentware-sdk` — generic middleware for tool-call policy and audit in an agent harness.

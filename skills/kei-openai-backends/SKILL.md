@@ -1,14 +1,44 @@
 ---
 name: kei-openai-backends
-description: OpenAI-compatible LLM backend integration for the Kei chat harness and the pedro-agentware evals. Use when the task mentions LLM_ENDPOINT, LLM_MODEL, OPENAI_BASE_URL, OpenAIChatModel, pydantic-ai, /v1 chat/completions, llama.cpp, vLLM, Ollama, llamafile, the kei local stack (docker-compose.kei-local.yml, scripts/seed-local-kei.sh), abac-engine/oidc-bridge, or wiring any model backend. Use for the harness's model-format tool renderers (OpenAI/Anthropic/Ollama in tool_definitions.py) and the evals ModelBackend. A zero-LLM ingress service deliberately has NO LLM — do not reach for this skill inside one.
+description: OpenAI-compatible LLM backend integration for a chat harness and the agentware evals. Use when the task mentions LLM_ENDPOINT, LLM_MODEL, OPENAI_BASE_URL, OpenAIChatModel, pydantic-ai, /v1 chat/completions, llama.cpp, vLLM, Ollama, llamafile, or wiring any model backend. Use for agentware's per-family tool formatters and reasoning adapter — how each model family (OpenAI, Anthropic, DeepSeek, Qwen/QwQ, Mistral, Llama) formats tool calls and reasoning, reasoning_content vs Anthropic extended thinking blocks, inline <thinking> tags, adding support for a new model family, kei-agents model-format tool rendering (render_tools, ModelFormat), and the agentware evals model backends. A zero-LLM ingress service deliberately has NO LLM — do not reach for this skill inside one.
 ---
 
 # OpenAI-compatible backends
 
-The chat harness and the eval harnesses talk to **any OpenAI-compatible `/v1` endpoint**
-(llama.cpp, vLLM, Ollama-compatible, etc.). There is no hardcoded provider and no `openai`
-SDK dependency: the harness uses pydantic-ai's `OpenAIChatModel` and the eval harnesses use a
-raw `/chat/completions` POST.
+A chat harness and the agentware evals talk to **any OpenAI-compatible `/v1` endpoint**
+(llama.cpp, vLLM, Ollama-compatible, etc.). Keep it that way: no hardcoded provider and no
+vendor SDK. A Python harness can use pydantic-ai's `OpenAIChatModel`; the agentware evals
+use a raw `/chat/completions` POST.
+
+## What every answer must say
+
+- **Adding a model family (Mistral, Llama, a new vendor).** Say whether it is
+  already handled: anything outside the five families falls through to
+  `GenericFormatter`, so Mistral needs no config entry. For first-class
+  support, name `ModelFormat` and `ToolFormatter`. Across all three ports
+  (Go, Python, TypeScript), each port gets its own `ToolFormatter`, and the
+  family needs cases in the shared fixtures at `fixtures/toolformat/` and
+  `fixtures/reasoning/`; name both paths. YOU MUST end the answer
+  with this sentence, even when nothing needs to change: "The full format
+  contract is Agentware's `docs/model-format-reference.md`."
+- **Anthropic extended thinking vs `reasoning_content`.** Anthropic does not
+  use `reasoning_content`. Its reasoning is a `thinking` content block
+  (`type: "thinking"`, with a signature) inside the `content` array. It has
+  no inline thinking tags. The reasoning adapter also recognises
+  `thinking_content` as an alternative field name. Say all three: content
+  block, no inline tags, `thinking_content`.
+- **DeepSeek tool calls and reasoning.** DeepSeek uses the same JSON
+  function-calling format as OpenAI; reasoning comes in the native
+  `reasoning_content` field, parallel to `content`. In text mode it can
+  emit `[THINK]...[/THINK]` tags instead. Always say that unbalanced
+  `[THINK]` tags are a fail-closed error (`ErrUnbalancedThinking`); use the
+  word "fail-closed".
+- **QwQ vs DeepSeek reasoning.** Name QwQ explicitly: QwQ models (the `qwq-*`
+  prefix) put reasoning in `type: "reasoning"` content blocks, while DeepSeek
+  (and other Qwen models) use the `reasoning_content` field. The reasoning
+  adapter normalises both into one reasoning string.
+
+## Model formats
 
 ### Supported model families
 
@@ -61,10 +91,10 @@ format (JSON string) or embeds JSON args in XML attributes.
 
 #### Format selector
 
-The harness selects the formatter by model name (prefix matching,
-case-insensitive). The `ModelFormat` enum drives `render_tools()` at
-construction time (one per agent lifetime); the `FormatAdapter` class
-selects the renderer by format name:
+Agentware selects the formatter by model name (prefix matching,
+case-insensitive). On the Python tool-definition side, kei-agents' `ModelFormat`
+enum drives `render_tools()` at construction time (one per agent lifetime; see
+`kei-agents`); the `FormatAdapter` class selects the renderer by format name:
 
 | Model tag | Formatter struct | Notes |
 |---|---|---|
@@ -108,85 +138,32 @@ All formatters share the `ToolFormatter` interface (5 methods:
 > Do not add model families that are not listed here; they are not supported
 > by Agentware's formatters.
 
-### Chat agent capabilities
+## Wiring a harness to a compatible endpoint
 
-The pydantic-ai agent created by `create_agent()` ships these capabilities, all from
-`pydantic-ai-harness`:
+Your harness takes the endpoint and model as configuration (for example `LLM_ENDPOINT`
+and `LLM_MODEL`). Require both to be set before the harness talks to a real model, and
+always set the endpoint explicitly rather than relying on a code default.
 
-- `CodeMode()` — runs Python code in a subprocess sandbox
-- `FileSystem()` — read/write files within an allowed root
-- `Shell(denied_commands=[...])` — shell command execution with a deny list
-- `WebSearch(native=False, local="duckduckgo")` — web search via DuckDuckGo
-- `Thinking(effort="medium")` — chain-of-thought reasoning with configurable effort
+With pydantic-ai, point the OpenAI provider at the endpoint's `/v1` base:
 
-These are registered as tools on the model at construction time and are available to every
-chat turn. The harness does not support dynamic tool registration — tools are fixed at
-agent construction and recreated on every `POST /message`.
+```python
+import os
+from pydantic_ai.models.openai import OpenAIChatModel
 
-## Chat harness (HaikeiLabs/Kei-Chat-Harness)
+os.environ["OPENAI_BASE_URL"] = f"{llm_endpoint}/v1"
+os.environ.setdefault("OPENAI_API_KEY", "any-key-works")  # see below
+model = OpenAIChatModel(llm_model, provider="openai")
+```
 
-- `src/pedro_service/config.py` — `LLM_ENDPOINT` and `LLM_MODEL` must BOTH be non-empty for
-  real mode; otherwise `FakePedroAgent` (deterministic fake) is used. The code default
-  endpoint is an internal host, so always set `LLM_ENDPOINT` explicitly; default model
-  `qwen3.6-27b-mtp`.
-- `src/pedro_service/agent.py` `create_agent()`:
-  ```python
-  os.environ["OPENAI_API_KEY"] = config.openai_key or "any-key-works"
-  os.environ["OPENAI_BASE_URL"] = f"{config.llm_endpoint}/v1"
-  model = OpenAIChatModel(config.llm_model, provider="openai")
-  ```
-  The API key VALUE is deliberately ignored by most compatible endpoints — only non-emptiness
-  matters. Capabilities: `CodeMode()`, `FileSystem()`, `Shell(denied_commands=[...])`,
-  `WebSearch(native=False, local="duckduckgo")`, `Thinking(effort="medium")` from
-  `pydantic-ai-harness`.
-- Tool schemas are model-format aware: `src/pedro_service/tool_definitions.py` renders
-  `TOOL_DEFINITIONS` per `ModelFormat` (OpenAI / Anthropic / Ollama) via `render_tools()`.
-- Eval client: `testing/evals/models.py` POSTs `{base_url}/chat/completions` directly.
+Most self-hosted compatible endpoints (llama.cpp, vLLM, Ollama's `/v1`) ignore the API key
+VALUE; the client only needs it to be non-empty. A hosted provider needs its real key from
+your secret manager.
 
-### Discord main integration
+Render the harness's tool schemas for the model in use with kei-agents' `render_tools()`
+and `ModelFormat` (see `kei-agents`), and govern each tool call through `kei-proxy` (see
+`kei-proxy` and `agentware-sdk`).
 
-The harness also provides a Discord adapter (`src/pedro_service/discord_main.py`) that
-uses the same `create_agent()` and the same model configuration. The Discord path uses
-`discord.py` for gateway events and reuses the same `OpenAIChatModel` / tool-definition /
-KEI-proxy stack. `LLM_ENDPOINT` and `LLM_MODEL` apply identically. This is the default
-local-development path as it does not require Azure Bot registration.
-
-### Kei local stack
-
-For local development and contract testing the harness can run against a local Kei stack:
-
-- `docker-compose.kei-local.yml` — postgres, `abac-engine` (port 8080), `oidc-bridge`
-  (8081), `credential-admin` (8090), `web`. Built from the sibling `kei` repo
-  (`../kei/cmd/...`), so that checkout must exist.
-- `scripts/seed-local-kei.sh` + `scripts/seed-local-kei.sql` — seeds org/user/group/policy/
-  harness-key fixtures (defaults `LOCAL_KEI_ORG_ID`, `LOCAL_KEI_USER_UUID`, `KEI_RUNTIME_TOKEN=local-dev-token`).
-- `docker-compose.local.yml` — the harness's own local compose (LLM + service).
-
-### Env vars that matter
-
-`LLM_ENDPOINT`, `LLM_MODEL`, `OPENAI_API_KEY`/`OPENAI_KEY`, `KEI_RUNTIME_TOKEN`,
-`KEI_API_URL` (fallback `ABAC_URL`), `KEI_PROXY_PATH`, `KEI_PROXY_DISABLED` (inverted into
-`kei_proxy_enabled`; `true` short-circuits authorization to permit), `INTERNAL_API_KEY`
-(guards the `/message` endpoint). See `config.py` `Config.from_env()` for the full set.
-
-### Eval ModelBackend variants
-
-The chat harness `eval_harness.py` supports these backends:
-
-| `ModelBackend` | Endpoint shape | Typical use |
-|---|---|---|
-| `openai` | OpenAI API (real provider key) | Production-like eval against OpenAI |
-| `anthropic` | Anthropic-compatible (via `base_url` override) | Cross-provider comparison |
-| `ollama` | Ollama `/v1/chat/completions` | Local, air-gapped, or cost-free |
-| `llamafile` | Llama.cpp `/v1/chat/completions` | Single-binary local inference |
-| `vllm` | vLLM `/v1/chat/completions` | GPU-accelerated production eval |
-| `ollama_direct` | Ollama native API (non-OpenAI) | Direct Ollama integration without `/v1` wrapper |
-
-Each backend sends the same `TestCase` shape (`messages`, `tools`, `tool_choice`) but may
-normalize it differently. The `EvalHarness` class selects the backend by name, constructs
-the appropriate client, and writes JSONL results under `./eval_results/`.
-
-## pedro-agentware evals (HaikeiLabs/Agentware)
+## Agentware evals (HaikeiLabs/Agentware)
 
 - Python: `python/src/evals/models.py` — model backends incl. Ollama; examples at
   `docs/evals/examples/{ollama_example.py,openai_example.py}`.
@@ -196,20 +173,8 @@ the appropriate client, and writes JSONL results under `./eval_results/`.
 ## Validation commands
 
 ```bash
-# chat harness, headless (no LLM, no proxy)
-# from the HaikeiLabs/Kei-Chat-Harness repo:
-KEI_PROXY_DISABLED=true uv run pytest tests/test_headless_harness.py -q
-make test-headless
-
-# chat harness with a real local OpenAI-compatible endpoint
-uv run python -m pedro_service.discord_main    # needs LLM_ENDPOINT + LLM_MODEL set
-
-# model-format renderers + eval harness
-uv run pytest tests/test_tool_definitions.py tests/test_eval_harness.py -q
-
-# kei local stack
-docker compose -f docker-compose.kei-local.yml up -d
-./scripts/seed-local-kei.sh
+# is the endpoint OpenAI-compatible? (expects a JSON model list)
+curl -s "$LLM_ENDPOINT/v1/models"
 
 # agentware python evals against ollama
 # from HaikeiLabs/Agentware: PYTHONPATH=python/src python3 -m evals.main --models ollama
@@ -220,37 +185,30 @@ docker compose -f docker-compose.kei-local.yml up -d
 The supported answer is to put the provider behind an OpenAI-compatible
 `/v1/chat/completions` endpoint and point `LLM_ENDPOINT` at that. Many GPU
 serving stacks already expose one (vLLM, llama.cpp/llamafile, Ollama's `/v1`).
-Otherwise, use a translating gateway the team runs and owns. The harness,
-`tool_definitions.py`, and `eval_harness.py` then need no vendor-specific code.
+Otherwise, use a translating gateway the team runs and owns. The harness, its
+tool rendering, and its evals then need no vendor-specific code.
 
-Adding a native, non-OpenAI adapter (a new `ModelFormat`, `ModelBackend`, or
+Adding a native, non-OpenAI adapter (a new `ModelFormat`, eval model backend, or
 model class) changes the project boundary. That needs a reviewed design (an
 ADR or design doc approved by the harness owners) before any code. Until one
 exists, do not write or outline implementation steps for it. Explain the
 boundary, offer the compatible-endpoint path, and suggest opening the design
-discussion. `ollama_direct` is an existing exception, not a template
-for new ones.
+discussion.
 
 ## Realistic usage boundaries
 
-- When describing how to add a new model family, reference `ModelFormat` and `ToolFormatter` by name; for cross-port support point to `model-format-reference.md` as the canonical spec.
-- When a model family is already handled by `GenericFormatter` (e.g. Mistral), still point to `model-format-reference.md` for the full format contract.
-- When describing DeepSeek's `[THINK]` tags, state that unbalanced tags are a fail-closed error.
-- When comparing how families handle extended thinking, mention that Anthropic uses `thinking` as a structured content block, has no inline tags, and the adapter also recognises `thinking_content` as an alternative field name.
 - **Do not** add a hardcoded model vendor, a proprietary SDK, or a non-OpenAI-compatible
   endpoint assumption. The `/v1` + `chat/completions` contract is the boundary.
 - **Do not** treat `OPENAI_API_KEY` as a real credential for compatible endpoints; it is
   presence-gated. Do not log it, mint it, or send it to hosts you do not trust.
-- **Do not** run the model-backed suites as the default CI gate — they are flaky by nature
-  and are marked `integration` (each PR-review eval case runs 5x for reliability).
+- **Do not** run model-backed suites as the default CI gate — they are flaky by nature.
+  Keep them behind an opt-in marker or job and keep the default gate offline.
 - **Do not** confuse the harness's LLM path with a zero-LLM ingress service (see
   `kei-ingress-security`): a model must never run inside that service.
-- `KEI_PROXY_DISABLED=true` is a local/harness escape hatch only. It permits everything; it
-  must never be set in a deployed, real-data environment.
 
 ## Related skills
 
 - `kei-headless-evals` — the eval harnesses that use these backends.
-- `kei-teams-ingress` — the Teams integration that the chat harness provides alongside its
-  LLM path.
-- `agentware-sdk` — the middleware and KEI auth/proxy modules the harness integrates with.
+- `kei-agents` — `render_tools()` and `ModelFormat` for per-model tool schemas.
+- `kei-proxy` — the governed decision a harness asks for before each tool call.
+- `agentware-sdk` — the middleware and KEI auth/proxy modules a harness integrates with.
