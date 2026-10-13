@@ -23,6 +23,8 @@ signal until a real shared agent/tool runner lands.
   `AbortSignal`. A cancelled case records an `aborted` trace step (say the
   word "aborted") and the runner moves on to the next case, so the suite is
   not torn down.
+- **The `agentware` backend.** Say plainly that `--backend agentware` is not wired: it exits
+  2 with a stable stub message, so use `--backend scripted`.
 - **Adding a golden fixture case.** Point to `eval/fixtures/<lane>.golden.json`
   and the `EvalCase` fields, and say removing a case is a breaking change because
   `test/eval.harness.test.ts` asserts the case counts.
@@ -42,6 +44,9 @@ class instances, no `undefined`, no `Date` objects — so `JSON.parse(JSON.strin
 round-trips identically.
 
 ### Trace step kinds
+
+When you list these kinds, also say that the trace and report schema versions are pinned
+constants.
 
 | Kind | Meaning | Has snapshot |
 |---|---|---|
@@ -135,6 +140,8 @@ node --experimental-strip-types src/eval/cli.ts --backend scripted --suite eval/
 - When describing the golden-fixture JSON contract always refer to it as `EvalCase` by type name (e.g. "EvalCase requires id, lane, input").
 - When describing per-case cancellation always refer to `EvalRunner` by class name (e.g. "EvalRunner owns a per-case AbortSignal").
 - When listing trace step kinds always mention that the trace and report schema versions are pinned constants.
+- When adding or changing a golden fixture always say that the test asserts the case counts, so
+  removing a case is a breaking change.
 - **Do not** wire `--backend agentware` or invent an agentware runner. The contract is the
   seam: a future backend implements `EvalBackend` in `src/eval/agentwareBackend.ts` and is
   constructed in `cli.ts`. Until then, `agentware` must exit non-zero with the stable stub

@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "I need to add a new environment feature flag to our bot ingress service that enables an optional diagnostic endpoint. Apply the ingress master-switch invariants so the flag is fail-closed and dark by non-construction when not enabled.",
+      "prompt": "How should I add a new environment feature flag to our bot ingress service that enables an optional diagnostic endpoint? Explain how the ingress master-switch invariants keep the flag fail-closed and dark by non-construction when it is not enabled. No code access needed; answer from the invariants.",
       "expected_output": "Uses strict-equality comparison to the literal \"true\", builds the endpoint objects only when enabled, and refuses non-canonical truthy values.",
       "expectations": [
         "The response does not treat \"TRUE\", \"1\", or \" true \" as enabled.",

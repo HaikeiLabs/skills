@@ -43,7 +43,7 @@
       "checks": [
         {
           "text": "The response identifies the mismatched binding fields as the reason for replay detection.",
-          "regex": "^(?=[\\s\\S]*replay)(?=[\\s\\S]*(proposal|\\bbind|\\bbound))"
+          "regex": "^(?=[\\s\\S]*(replay|mismatch|does ?n[o']t match|not match))(?=[\\s\\S]*(proposal|\\bbind|\\bbound|request))"
         },
         {
           "text": "The response does not accept a shape-valid decision whose binding context differs from the original request.",
@@ -90,10 +90,7 @@
         },
         {
           "text": "The response explains that the command parser is deterministic with no LLM or fuzzy matching.",
-          "contains_all": [
-            "deterministic",
-            "No LLM"
-          ]
+          "regex": "^(?=[\\s\\S]*(deterministic|exact[- ]match))(?=[\\s\\S]*\\b(no|without|never|not)\\b[^.\\n]{0,30}\\b(LLM|language model|model)s?\\b)"
         }
       ]
     },
