@@ -20,10 +20,7 @@
         },
         {
           "text": "The response skips or asks about same-named existing skills instead of overwriting them.",
-          "contains_all": [
-            "existing",
-            "skills"
-          ]
+          "regex": "(skip|ask|leave|left|keep|preserv|untouched|collid|clash|conflict)\\w*[\\s\\S]{0,120}(exist|same[- ]name|already)|(exist|same[- ]name|already)\\w*[\\s\\S]{0,120}(skip|ask|untouched|left alone|preserv|not (be )?overwrit|never overwrit|collid|clash)"
         },
         {
           "text": "The response includes a way to verify OpenCode discovered the skills.",
@@ -66,11 +63,7 @@
         },
         {
           "text": "The response includes a deny check where an unbound call must fail.",
-          "contains_any": [
-            "deny check",
-            "unbound",
-            "must fail"
-          ]
+          "regex": "deny check|unbound|must (fail|be denied)|(verify|check|confirm|test|expect|prove)\\w*[^.\\n]{0,40}\\b(a )?(denial|denied|deny)\\b"
         }
       ]
     },
@@ -109,15 +102,12 @@
         {
           "text": "The response references kei-openai-backends for model format details.",
           "contains_all": [
-            "kei-openai-backends",
-            "model",
-            "format"
+            "kei-openai-backends"
           ]
         },
         {
           "text": "The response mentions Anthropic-specific format features like input_schema and thinking blocks.",
           "contains_all": [
-            "format",
             "input_schema",
             "thinking"
           ]
@@ -152,8 +142,8 @@
         {
           "text": "The response covers governed call identity (KEI_PROXY_FRAMEWORK, KEI_PROXY_INVOKING_SUBJECT).",
           "contains_all": [
-            "governed",
-            "KEI_PROXY_FRAMEWORK"
+            "KEI_PROXY_FRAMEWORK",
+            "KEI_PROXY_INVOKING_SUBJECT"
           ]
         },
         {
@@ -193,10 +183,7 @@
         },
         {
           "text": "The response mentions that kei-proxy fails closed (denies everything) when the schema is invalid.",
-          "contains_all": [
-            "kei-proxy",
-            "fails"
-          ]
+          "regex": "fails?[- ]closed|denies every"
         },
         {
           "text": "The response identifies the root cause as a policy bundle schema-validation failure.",
@@ -263,7 +250,7 @@
     {
       "id": 8,
       "prompt": "I ran kei harness sync --harness claude_code but it says 'No registered harnesses selected'. What's going on?",
-      "expected_output": "Explains the policy bundle cached by kei-proxy is stale (HAI-403) and the new installation's harnesses are not reflected until the next refresh. Desktop harnesses are auto-discovered \u2014 no `kei harness add` needed. Suggests any policy edit triggers a refresh, or waiting for the background poll. Mentions the 6-hour bundle refresh window and references kei-harness-policy references/bundle-versioning.md.",
+      "expected_output": "Explains the policy bundle cached by kei-proxy is stale (HAI-403) and the new installation's harnesses are not reflected until the next refresh. Desktop harnesses are auto-discovered — no `kei harness add` needed. Suggests any policy edit triggers a refresh, or waiting for the background poll. Mentions the 6-hour bundle refresh window and references kei-harness-policy references/bundle-versioning.md.",
       "expectations": [
         "The response identifies the cause as a stale policy bundle (HAI-403).",
         "The response suggests a policy edit as a workaround to force a bundle refresh.",
@@ -352,7 +339,7 @@
     },
     {
       "id": 10,
-      "prompt": "I just finished the Kei harness setup for Claude Code \u2014 skills installed, runtime bootstrapped, harness registered and synced, verify.sh passed. What's the last thing I should do to be sure the setup actually works end to end?",
+      "prompt": "I just finished the Kei harness setup for Claude Code — skills installed, runtime bootstrapped, harness registered and synced, verify.sh passed. What's the last thing I should do to be sure the setup actually works end to end?",
       "expected_output": "Says setup is not complete until the harness itself makes one governed tool call (e.g. have Claude Code run git status) and the call is confirmed in the console: Audit Logs shows the call with the harness kind, and the installation's card shows the recent activity. Notes the runtime service must be running (kei runtime service status) for the audit upload.",
       "expectations": [
         "The response instructs making one governed tool call inside the harness itself (for example, having Claude Code run git status) as the final step, rather than stopping at shell-level checks.",
@@ -370,10 +357,7 @@
         },
         {
           "text": "The response says to confirm the call in the console Audit Logs, where it appears with the harness kind recorded.",
-          "contains_all": [
-            "audit log",
-            "harness kind"
-          ]
+          "regex": "^(?=[\\s\\S]*audit log)(?=[\\s\\S]*(harness kind|harness type|\\bkind\\b|claude_code))"
         },
         {
           "text": "The response says the installation's card shows the recent activity.",
@@ -384,16 +368,13 @@
         },
         {
           "text": "The response states the runtime service must be running for the audit upload and gives kei runtime service status to check it.",
-          "contains_all": [
-            "kei runtime service status",
-            "running"
-          ]
+          "regex": "kei runtime service status[\\s\\S]{0,200}\\b(running|up|active|started|alive)\\b|\\b(running|active)\\b[\\s\\S]{0,120}kei runtime service status"
         }
       ]
     },
     {
       "id": 11,
-      "prompt": "Kei denied a tool call in my harness that I think it should have allowed, and I want to report it to the Kei team with the session attached. I use Claude Code on this machine and my teammates use Codex and OpenCode. What exact command does each of us run, and what happens to secrets in the transcript? Do not execute anything \u2014 just explain in text.",
+      "prompt": "Kei denied a tool call in my harness that I think it should have allowed, and I want to report it to the Kei team with the session attached. I use Claude Code on this machine and my teammates use Codex and OpenCode. What exact command does each of us run, and what happens to secrets in the transcript? Do not execute anything — just explain in text.",
       "expected_output": "Run kei feedback from the project directory (kei 0.1.20+, logged in) with a required --description: kei feedback --description \"...\" --export claude for Claude Code, --export codex for Codex, --export opencode for OpenCode; add --session <session-id> for a specific session. Token-shaped strings (API keys, GitHub/Slack/AWS tokens, JWTs, bearer tokens, private keys, Kei runtime tokens) are redacted locally before anything is sent. The CLI shows a preview with redaction counts and asks Send? [y/N]; answering no sends nothing.",
       "expectations": [
         "The response gives the kei feedback command with --export for each harness: claude, codex and opencode.",

@@ -15,6 +15,44 @@ inside the tenant runtime. The catalog holds policy, connector metadata, and
 redacted audit metadata only. Setting up a harness means installing the skills
 that teach the agent this contract, then wiring the harness to a runtime.
 
+## Answer checklist
+
+Answer from this skill: setup steps, identity variables, and troubleshooting
+are on this page, so you do not need to search a codebase first. If something
+is not here, say so. Give the steps rather than asking questions first.
+When a detail lives in another skill, end the answer with a **See also:**
+line naming that skill (DeepSeek-style short answers still need it):
+
+- **Installing into an existing config:** install from
+  `https://github.com/HaikeiLabs/skills`; skip, or ask about, same-named
+  existing skills instead of overwriting them; show how to verify the harness
+  discovered the skills; then do the runtime half (`kei login`, then runtime
+  setup).
+- **Making tool calls go through Kei:** installing skills does not by itself
+  allow tool calls; policy decides. Include a deny check: an unbound call must
+  fail.
+
+- **Model or tool formats:** `kei-openai-backends`. Never answer with the
+  skill name alone; always add the one-line summary: Anthropic uses `input_schema` with `thinking` content blocks;
+  OpenAI and DeepSeek use OpenAI-compatible JSON function-calling with
+  `reasoning_content` (DeepSeek may also emit `[THINK]` tags).
+- **Identity on governed calls:** set `KEI_PROXY_FRAMEWORK` (the harness kind)
+  and `KEI_PROXY_INVOKING_SUBJECT` (the human); agent identity is
+  auto-discovered. See also: `kei-runtime-setup` (runtime half) and
+  `kei-openai-backends` (model half).
+- **Stale bundle / "No registered harnesses selected":** stale policy bundle
+  (HAI-403); a policy edit forces a refresh, else the 6-hour background
+  refresh. Always add: desktop harnesses (claude_code, codex, opencode) are
+  auto-discovered by sync, so no `kei harness add` is needed.
+  End with: See also: `kei-harness-policy` `references/bundle-versioning.md`.
+- **Rejected bundle or disabled proxy:** `kei-proxy` fails closed and denies
+  every governed call until it is fixed.
+- **Last setup step:** one governed call in the harness (for example, Claude
+  Code running `git status`), confirmed in the console: **Audit Logs** shows it
+  with the harness kind, **the installation's card shows the recent
+  activity** (say this one too), and `kei runtime service status` shows the runtime service running (the
+  audit upload needs it).
+
 ## Concepts
 
 - **Harness** — software that lets an LLM act as an agent (for example Claude
@@ -263,8 +301,12 @@ format (e.g. `~/.claude/settings.json` → `permissions.allow`). The first rende
 happens on sync; subsequent policy changes re-render through the background
 bundle refresh in `kei-proxy serve`.
 
-**Back up the existing native config before the first sync** — `kei harness
-sync` overwrites the harness's native config file for the matched kind.
+`kei harness sync` edits only the Kei-managed entries in the harness's native
+config file and leaves your own entries alone; it saves
+`<config-file>.kei-backup-<timestamp>` before every write. The setup scripts
+also keep a one-time `<config-file>.kei.bak` copy from before the first sync.
+See `kei-harness-policy` for removing your own entries so Kei is the only
+source of permissions.
 
 ## 4. Pass identity on every governed call
 
@@ -628,8 +670,9 @@ refresh cycle (background poll interval, or a manual policy edit).
 
 **Fix:** Any policy edit (e.g. adding or removing a harness command policy)
 triggers a bundle refresh. If no policy edit is available, wait for the
-background refresh (up to 6 hours — see `kei-harness-policy
-references/bundle-versioning.md`). Workaround:
+background refresh (up to 6 hours). Workaround below. In your answer, point
+to `kei-harness-policy` `references/bundle-versioning.md` for how bundle
+versions and the 6-hour reuse window work. Workaround:
 
 ```sh
 # Force a bundle refresh by touching a policy

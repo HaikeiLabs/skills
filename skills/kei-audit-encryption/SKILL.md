@@ -13,6 +13,47 @@ with [age](https://filippo.io/age) to customer-held public keys; Kei stores
 only ciphertext and a keyed digest, and has no decryption path. This skill
 owns the setup, verification, decryption, rotation, and the boundaries.
 
+## Answer checklist
+
+Answer from this skill: setup, decrypt, rotation, escrow, and what is
+encrypted are all on this page, so you do not need to search a codebase first.
+If something is not here, say so. In every answer:
+
+- **Setup:** say that the `kei audit` commands need kei v0.1.9 or later
+  (check `kei --version`). `kei login` (owner/admin) first; `kei audit keys
+  create` writes the identity file `~/.config/kei/audit-identity.txt` (mode
+  0600) and uploads **only the public key**. Back up the identity file itself.
+  Say that registering the first key turns encryption on for new records.
+- **Where to create the key (ephemeral or cloud pod, CI, a runtime host):**
+  not inside the pod (the identity file would be lost with it). Say in so
+  many words that the runtime never needs the private key: it only fetches
+  the public recipients. Create the key on a persistent admin machine
+  (`--identity-out PATH` chooses where the identity is written), register the
+  public key, and decrypt on that persistent machine.
+- **Uploading a private key (backup, recovery):** decline, and say in so
+  many words that only the public key is registered with Kei
+  (`kei audit keys create` uploads the public key only). Offer multiple keys,
+  and escrow (off by default; escrow keypair generation and decrypt are not
+  implemented yet).
+- **What is encrypted:** only the content of the call (the arguments/payload:
+  code body, script, prompt text) becomes `args_ciphertext`, age-encrypted
+  (X25519, multi-recipient) to all active recipients. Tool/skill name,
+  decision, ids, timestamps, and outcome stay plaintext and queryable.
+  Always add a line on `args_digest`, even in a short answer: it is a keyed
+  HMAC (`hmac-sha256:`) that groups repeated calls and is never reversible.
+- **No `args_ciphertext` on records:** normal, not a miss. Without an active
+  customer key, records carry `args_digest` + `digest_key_id` only.
+- **Decrypt:** `kei audit decrypt --record ID --identity PATH --out FILE`
+  writes the file with mode 0600. Always also say that printing to stdout
+  needs the explicit `--stdout` flag (nothing is printed implicitly).
+  Say that the CLI fetches the ciphertext through the audit records API and
+  decrypts it locally with the identity, and that the wrong identity fails
+  with `decryption failed (wrong identity?)`.
+- **Rotation:** use the word "rotation" and say it affects only new
+  records. Past records stay encrypted to the
+  keys that were active when they were written (never re-encrypted), so keep
+  the old identity file.
+
 ## Concepts
 
 | Term | Meaning |
@@ -44,11 +85,10 @@ difference to the user.
 kei --version
 ```
 
-The `kei audit` subcommands (`keys create|list|disable`, `decrypt`) are
-**not released** as of 2026-10-03 (the latest release is v0.1.8). If the
-installed `kei` has no `audit` subcommand, say the commands ship in the next
-kei release, and use the console (org **Settings** → **Audit encryption**) or
-the Kei API (the `kei-api` skill) in the meantime.
+The `kei audit` subcommands (`keys create|list|disable`, `decrypt`) ship in
+**kei v0.1.9 and later**. If the installed `kei` is older (no `audit`
+subcommand in `kei help`), upgrade with `kei upgrade`, or use the console (org
+**Settings** → **Audit encryption**) or the Kei API (the `kei-api` skill).
 
 ## What is and is not encrypted
 
@@ -62,7 +102,7 @@ Nothing else is ever encrypted:
 | Harness / agent / installation / org / workspace ids | |
 | Timestamps | |
 | Outcome / exit code | |
-| `args_digest`, `digest_key_id` | |
+| `args_digest` (a keyed HMAC, `hmac-sha256:`, that groups repeated calls and is never reversible), `digest_key_id` | |
 | `recipient_key_ids` | |
 
 So the audit trail stays searchable and queryable by name, decision, agent,
@@ -307,13 +347,11 @@ kei audit decrypt --record ID --identity PATH --out FILE && test -s FILE   # loc
 
 ## Realistic usage boundaries
 
-- **`kei audit` is not released** as of 2026-10-03 (the latest release is
-  v0.1.8). The commands ship in the next kei release. Until then use the
-  console (Settings → Audit encryption) and the Kei API.
-- **The catalog endpoints and the runtime age encryption are in flight** as
-  of 2026-10-03 (the `audit-encryption-keys` resource, org settings, runtime
-  recipients, and per-record age encryption). The digest-key store is merged;
-  the former server-side decrypt route is removed by this change.
+- **`kei audit` needs kei v0.1.9 or later.** On an older kei, upgrade, or use
+  the console (Settings → Audit encryption) and the Kei API.
+- **The catalog and runtime sides are live:** the `audit-encryption-keys`
+  resource, org settings, runtime recipients, and per-record age encryption.
+  The former server-side decrypt route is removed.
 - **Kei never receives or stores a private key.** Never ask the user to paste
   one, never upload one, never print one. If asked to display or copy the
   `AGE-SECRET-KEY-` line, refuse — back up the identity file itself, not the

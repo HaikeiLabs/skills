@@ -174,7 +174,7 @@
         },
         {
           "text": "The response states there are no inline thinking tags for Anthropic.",
-          "contains_any": ["no inline", "not a top-level", "not a flat top-level", "does not use inline", "does not use", "no inline tags"]
+          "regex": "\\bno\\W{0,4}inline|not a (flat )?top-level|does ?n[o']t use inline|without inline|no\\W{0,4}(<thinking>|\\[think\\]) tags|\\binline[^.\\n]{0,30}\\b(not used|none)\\b"
         }
       ]
     }

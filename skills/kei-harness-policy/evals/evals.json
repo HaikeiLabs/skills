@@ -37,11 +37,7 @@
         },
         {
           "text": "warns that the commands ship in kei >v0.1.6",
-          "contains_any": [
-            ">v0.1.6",
-            "ship",
-            "commands"
-          ]
+          "regex": ">\\s*v?0\\.1\\.6|v?0\\.1\\.([7-9]|[1-9]\\d)\\b"
         },
         {
           "text": "recommends backing up the existing native config before sync",
@@ -133,9 +129,7 @@
         },
         {
           "text": "notes kei >v0.1.6 requirement",
-          "contains_any": [
-            ">v0.1.6"
-          ]
+          "regex": ">\\s*v?0\\.1\\.6|v?0\\.1\\.([7-9]|[1-9]\\d)\\b"
         }
       ]
     },
@@ -248,11 +242,7 @@
       "checks": [
         {
           "text": "explains credentials are resolved through kei-proxy, not embedded in policies",
-          "contains_all": [
-            "credentials",
-            "resolved",
-            "kei-proxy"
-          ]
+          "regex": "kei-proxy[^.\\n]{0,80}resolv|resolv\\w*[^.\\n]{0,80}kei-proxy"
         },
         {
           "text": "mentions kei:// reference syntax for credential references",
@@ -335,11 +325,7 @@
       "checks": [
         {
           "text": "explains rollback protection (monotonic bundle_version per installation)",
-          "contains_all": [
-            "rollback",
-            "protection",
-            "bundle_version"
-          ]
+          "regex": "^(?=[\\s\\S]*rollback)(?=[\\s\\S]*(bundle_version|bundle version|max_activated_version|monoton))"
         },
         {
           "text": "states the proxy rejects bundle_version <= max_activated_version",
@@ -372,11 +358,7 @@
       "checks": [
         {
           "text": "explains bundle_id is UUIDv7 unique per issuance",
-          "contains_all": [
-            "bundle_id",
-            "UUIDv7",
-            "unique"
-          ]
+          "regex": "^(?=[\\s\\S]*bundle_id)(?=[\\s\\S]*uuidv7)(?=[\\s\\S]*(unique|new uuid|fresh uuid|every (single )?(bundle )?(issuance|mint)|each (bundle )?(issuance|mint)|per issuance))"
         },
         {
           "text": "explains bundle_version is per-installation monotonic counter bumped on every issuance",
@@ -433,10 +415,7 @@
         },
         {
           "text": "clarifies that Kei does not deny unmatched commands for native harnesses",
-          "contains_any": [
-            "Kei",
-            "unmatched"
-          ]
+          "regex": "(do(es)?\\s?n[o']t|never|not|no|isn'?t)\\s+(auto[- ]?)?den(y|ies|ied)|falls? through"
         },
         {
           "text": "notes that custom harnesses and connectors deny by default",
@@ -477,18 +456,11 @@
         },
         {
           "text": "advises keeping harness in default ask mode",
-          "contains_all": [
-            "harness",
-            "default"
-          ]
+          "regex": "^(?=[\\s\\S]*harness)(?=[\\s\\S]*(default|(keep|leave)[^.\\n]{0,40}\\bask\\b|\\bask\\b[^.\\n]{0,20}mode|falls? (through|back) to\\W{0,3}ask))"
         },
         {
           "text": "mentions the kei-backup file Kei creates before each write",
-          "contains_all": [
-            "kei-backup",
-            "Kei",
-            "write"
-          ]
+          "regex": "kei-backup[\\s\\S]{0,200}(before|creat|sav|writ)|(before|creat|sav|writ)\\w*[\\s\\S]{0,120}kei-backup"
         }
       ]
     },
@@ -512,11 +484,7 @@
         },
         {
           "text": "explains that both Codex and Claude Code on the same machine share one installation — no new registration",
-          "contains_all": [
-            "Codex",
-            "Claude Code",
-            "same installation"
-          ]
+          "regex": "^(?=[\\s\\S]*codex)(?=[\\s\\S]*claude code)(?=[\\s\\S]*(same|one|single|shared?|the) (runtime )?installation)"
         },
         {
           "text": "mentions `kei harness sync` as the correct command",

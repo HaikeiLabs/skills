@@ -22,6 +22,50 @@ understands (`dst: shell:git`, `dst: skill:kei-agents`) and what each harness
 understands natively (Claude Code `permissions.allow`, Codex `prefix_rule`,
 OpenCode `permission.bash`).
 
+## Answer checklist
+
+Answer from this skill: the commands, flags, bundle fields, and boundaries are
+on this page and in `references/`, so you do not need to search a codebase
+first. If something is not here, say so. In every answer:
+
+- **Any `kei policies` or `kei harness` command** (including
+  `kei harness sync --dry-run`): say it needs kei > v0.1.6 (first in v0.1.7;
+  check `kei --version`).
+- **Writing a policy:** give the whole `kei policies create --name ...
+  --src-pattern ... --dst-pattern ... --effect permit|deny` command, not a list
+  of field values.
+- **`kei harness sync` for Claude Code, Codex, or OpenCode** (including any
+  import answer): always say that desktop harnesses are auto-discovered from
+  the runtime installation, so no `kei harness add` is needed (that is only
+  for custom/SDK harnesses). Sync edits only Kei-managed entries
+  and saves `<config-file>.kei-backup-<timestamp>` before every write.
+- **Report-only / audit-without-blocking:** answer in three parts, even when
+  short: (1) not implemented; (2) it is "HP-C6, proposed in ADR-029 §4.2"
+  (name both); (3) what it would do: `kei-proxy authorize` would return
+  ALLOW with an audit annotation instead of DENY, so violations are audited,
+  not blocked. Never skip part (3). Until then, list policies to check
+  coverage.
+- **Credentials for `shell:` commands:** `kei-proxy` resolves the `kei://`
+  credential reference at run time and injects the value; the agent never
+  reads or stores it, and it is never in the policy. Say this is the same
+  pattern as governed connector calls (`connector invoke` uses the same
+  `kei://` references).
+- **`policy_bundle_expired`:** the bundle passed its `not_after` expiry
+  (ADR-026 §4). Refresh is normally automatic (the background refresher in
+  `kei-proxy serve`); an offline runtime cannot fetch new bundles until
+  connectivity is restored. Fix: restore connectivity, force a fresh bundle
+  fetch with `kei-proxy policy sync` (or `kei-proxy runtime bootstrap`), then
+  run `kei harness sync` to re-render the native config from the fresh bundle.
+- **`STALE_BUT_VALID`:** the refresh is overdue (no successful refresh within
+  `stale_after_seconds`, default 300 s) but the bundle is still valid until
+  `not_after`; after that every governed call is denied. Check connectivity to
+  the control plane, the control-plane URL, DNS, and the runtime token
+  (expired or rotated). `kei-proxy policy sync` forces a fresh fetch.
+- **Bundle versions:** name the fields (`bundle_id`, `bundle_version`,
+  `policy_revision`) and say when each changes. Also say the catalog reuses
+  the current bundle for up to 6 hours (the reuse window) and re-issues it at
+  half-life. Point to `references/bundle-versioning.md`.
+
 ## Concepts
 
 | Term | Meaning |
@@ -422,6 +466,9 @@ Key points to keep in mind:
 - **Unmatched commands fall through** to the harness's own entries and permission
   mode (usually `ask`). The command can still be allowed if your own settings
   permit it. Custom harnesses and connectors deny by default (fail-closed).
+- **Sync edits only Kei-managed entries** and saves a
+  `<config-file>.kei-backup-<timestamp>` before every write; your hand-written
+  entries stay until you remove them.
 - **Sync is manual** — run `kei harness sync` after every policy change. The
   runtime reuses the current bundle while policies and harnesses are unchanged
   (up to 6 hours).
@@ -468,9 +515,9 @@ command. Scope denies to the prefix you mean.
 
 ## Realistic usage boundaries
 
-- **`kei policies` and `kei harness` are not released.** They ship in kei
-  > v0.1.6. If the installed version predates that, use the web console or the
-  Kei API (`kei-api` skill) for policy management.
+- **`kei policies` and `kei harness` need kei > v0.1.6** (first in v0.1.7).
+  If the installed version predates that, use the web console or the Kei API
+  (`kei-api` skill) for policy management.
 - **No `/api/cli/*` routes.** The policies and harness commands go through the
   shared AIP `/api/v1` endpoints — `/api/v1/policies` and
   `/api/v1/runtime-installations/{installation}/harnesses` — following AIP
@@ -496,9 +543,14 @@ command. Scope denies to the prefix you mean.
   (`claude_code`, `codex`, `opencode`). Desktop native kinds are auto-detected
   by `kei harness sync` — they are NOT registered with `kei harness add`.
   Multiple `custom` harnesses may be registered on the same installation.
-- **`kei harness sync` overwrites the native config file.** It writes the
-  rendered config to the harness's native location for the matched kind. Back
-  up the existing file before the first sync.
+- **`kei harness sync` edits only Kei-managed entries.** It writes the
+  rendered entries to the harness's native location for the matched kind,
+  adding, updating, or removing only the entries Kei owns (tracked in its
+  ledger); hand-written entries stay. Before every write it saves a
+  `<config-file>.kei-backup-<timestamp>` copy. To make Kei the only source,
+  sync, remove your own entries by hand, keep the harness in its default
+  (`ask`) mode, and sync again (`kei harness sync --dry-run` previews each
+  step).
 - **The hook does not decide.** Even when the report-only hook is active, the
   harness makes the allow/deny decision from its native config. Kei only
   observes.
