@@ -89,11 +89,13 @@ project skill directory (`.opencode/skills`) and again without it. The runner
 uses the selected model to generate responses, so responses can vary between
 runs. It grades them with deterministic, case-insensitive checks from each
 eval's `checks` array; there is no LLM grader. Each repeat is one run, and a
-skill's pass rate is passed runs / total runs. A model profile's `temperature`
-and `seed` are sent with every request. Both shipped profiles also set
-`thinking: false`: evals don't need the model's reasoning, so the runner sends
-`chat_template_kwargs` with `enable_thinking: false` (Qwen's template) and
-`thinking: false` (DeepSeek V4's) and the model answers directly. Results go to `evals-out/` (ignored by git), including
+skill's pass rate is passed runs / total runs. A model profile's `temperature`,
+`top_p`, `top_k` and `seed` are sent with every request when set. Both shipped
+profiles set `thinking: true`, which the runner sends as `chat_template_kwargs`
+with `enable_thinking` (Qwen's template) and `thinking` (DeepSeek V4's), so a
+run doesn't depend on the server's default. DeepSeek samples at temperature 0;
+Qwen uses its recommended thinking-mode sampling (temperature 0.6, top_p 0.95,
+top_k 20), since greedy sampling makes it loop with thinking on. Results go to `evals-out/` (ignored by git), including
 `benchmark.json` and `benchmark.md`, for your own tuning. Don't commit them
 under `evals/results/`: the agent-evals CI gate and its sticky pull request
 comment are the record. The default threshold is 0.9. The profiles
