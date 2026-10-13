@@ -1,6 +1,6 @@
 ---
 name: kei-tool-adapters
-description: The governed tool-lane pattern for a TypeScript ingress service (lane anatomy, closed catalogs and command parsers, governor proposals and the stdio decision protocol, a typed tool registry), plus the tool formats of the Kei chat harness and the pedro-agentware TS SDK. Use when building a tool lane (schema/client/guard/envelope/renderer/runtime), a GovernorClient or governor proposal, a closed query catalog or command parser, a pinned tool registry, or any agent tool adapter / tool binding / tool schema across the Kei repos. Keep the generic middleware/tool-execution guidance in agentware-sdk.
+description: The governed tool-lane pattern for a TypeScript ingress service (lane anatomy, closed catalogs and command parsers, governor proposals and the stdio decision protocol, a typed tool registry), plus the tool formats of the agentware TS SDK. Use when building a tool lane (schema/client/guard/envelope/renderer/runtime), a GovernorClient or governor proposal, a closed query catalog or command parser, a pinned tool registry, or any agent tool adapter / tool binding / tool schema across the Kei repos. Keep the generic middleware/tool-execution guidance in agentware-sdk.
 ---
 
 # TypeScript tool adapters (Kei)
@@ -9,6 +9,17 @@ A tool lane turns a **verified grant** into one bounded downstream call, gates i
 renders a closed reply. It is deliberately NOT a generic tool-execution layer: there is no
 model-chosen tool invocation, no free-form tool loop, and no per-call endpoint selection.
 Every lane ships dark until a reviewed activation enables it.
+
+## What every answer must say
+
+- **Making a lane's scope, endpoint or target configurable (env var, flag,
+  per-call parameter).** No. Scope, endpoints, targets and allowlists are
+  **source constants**, never env or per-call parameters. Quote the invariant:
+  "an endpoint a request could vary is an endpoint a model could steer." A
+  different deployment target is a reviewed code change, not configuration.
+- **Adding a query to a lane.** Name both closed selection components: the fixed
+  query catalog, and the command parser, which is deterministic — No LLM, no
+  fuzzy match, exact-match phrase table, else one fixed help reply.
 
 ## The lane anatomy (per tool lane)
 
@@ -64,13 +75,9 @@ checks their SHA-256 digests. A registry change is therefore two steps:
 
 ## Related tool surfaces (not the lane pattern)
 
-- **Chat harness** (`HaikeiLabs/Kei-Chat-Harness`): agent tools live in
-  `src/pedro_service/agent.py` (`search_wiki`, `list_prs`, `create_issue_tool`, ...) with a
-  `Permission`/`ROLE_PERMISSION_MAP` and ABAC via `kei_proxy_client.py`. Tool schemas are
-  rendered per model in `src/pedro_service/tool_definitions.py` (`ModelFormat`: OpenAI /
-  Anthropic / Ollama). `config/tools.yaml` and `config/roles.yaml` configure role→tool gates;
-  `config/kei-proxy-registry.yaml` maps tools to Kei services.
-- **pedro-agentware TS SDK** (`HaikeiLabs/Agentware`, package `@haikeilabs/agentware`): `tools/`
+- **kei-agents** (Python): `ToolDefinition` schemas rendered per model with `render_tools()`
+  and `ModelFormat`. See `kei-agents`.
+- **Agentware TS SDK** (`HaikeiLabs/Agentware`, package `@haikeilabs/agentware`): `tools/`
   (Tool, Result, ToolRegistry), `toolformat/`, `memory/` (async wiki-memory MCP client,
   `memoryTools()` in Vercel AI SDK zod shape). See `agentware-sdk` for the generic middleware.
 
@@ -78,13 +85,6 @@ checks their SHA-256 digests. A registry change is therefore two steps:
 
 For a lane service: run typecheck, lint, every lane's unit tests, its `*_integration` test,
 the deployment-artifact contract test, and the registry digest verify script.
-
-Chat harness (`HaikeiLabs/Kei-Chat-Harness`):
-
-```bash
-uv run ruff check src/ tests/
-uv run pytest tests/test_headless_harness.py -q   # exercises /tool endpoints with kei proxy disabled
-```
 
 ## Realistic usage boundaries
 
@@ -109,5 +109,5 @@ uv run pytest tests/test_headless_harness.py -q   # exercises /tool endpoints wi
 - `kei-teams-ingress` — the Teams/Bot Framework routing layer that delivers activities.
 - `kei-headless-evals` — golden fixtures that pin closed command parsers and selection
   validators.
-- `agentware-sdk` — generic middleware for tool-call policy and audit (the chat harness's
+- `agentware-sdk` — generic middleware for tool-call policy and audit (a harness-side
   approach, not the governor pattern).

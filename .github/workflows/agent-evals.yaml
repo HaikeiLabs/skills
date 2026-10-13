@@ -5,14 +5,24 @@
 # EDIT-BEGIN/EDIT-END blocks. A repository with both agent and skill suites
 # keeps two copies with different `name:` values and file names.
 #
-# On a same-repository pull request it runs, once per model profile, the eval
-# suites the pull request changes (all of them when this workflow or an
-# EVAL_GLOBAL_PATHS file changes; none, and a green "no eval-relevant changes"
-# comment, when no changed file maps to a suite). It runs them on the self-hosted kei-agent-evals runners, which reach the model
+# On a same-repository pull request it runs, once per model profile and once
+# per case (EVAL_REPEATS 1), the eval suites the pull request changes (all of
+# them when this workflow or an EVAL_GLOBAL_PATHS file changes; none, and a
+# green "no eval-relevant changes" comment, when no changed file maps to a
+# suite). It runs them on the self-hosted kei-agent-evals runners, which reach the model
 # servers through Tailscale egress Services. It posts one sticky
 # <!-- agent-evals --> comment (suite x model table) and fails when any suite
 # is below EVAL_THRESHOLD or a model server does not answer ("models
 # unreachable", never scored).
+#
+# Nightly (09:00 UTC) and on demand (workflow_dispatch) it runs every suite
+# three times per case on the default branch; that averaged sweep is the
+# record. A failing sweep opens or updates one "Nightly agent evals below 95%"
+# issue with the report, and a passing one closes it.
+#
+# While a pull request carries the evals:tuning label, nothing runs and
+# agent-evals-report fails ("evals:tuning is set: remove the label to run the
+# gate before merge"). Removing the label runs the gate.
 #
 # Every pull request gets the agent-evals-report check, so it can be a
 # required status check. The trigger has no path filter: a pull request that
@@ -20,14 +30,16 @@
 # paths EDIT block empty in a repository that requires the check.
 #
 # Security (these runners are self-hosted and callers include public repos):
-#   - pull_request only. Never pull_request_target: it would run the
-#     pull request's code with a write token.
+#   - pull_request, schedule and workflow_dispatch only. Never
+#     pull_request_target: it would run the pull request's code with a write
+#     token. schedule and workflow_dispatch run this repository's own code.
 #   - scope and eval are skipped unless the pull request comes from this
 #     repository, so fork pull requests never reach the self-hosted runners.
 #     On a fork pull request the report job runs on a GitHub-hosted runner,
 #     runs no pull request code, posts no comment and passes as "not evaluated".
 #   - least privilege: contents: read; pull-requests: write only on the job that
-#     comments.
+#     comments; issues: write only on the nightly job, which never runs on a
+#     pull request.
 #   - the grader is pinned by commit SHA, so a pull request can change its
 #     suites but not the code that grades them.
 # Also required: the organization's "require approval for fork pull request
@@ -43,15 +55,20 @@ on:
     #   paths: ["evals/**", ".github/workflows/agent-evals.yaml"]
     # EDIT-BEGIN paths
     # EDIT-END paths
-    # The default types, spelled out.
-    types: [opened, synchronize, reopened]
+    # The default types, plus label changes for evals:tuning.
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  # The nightly sweep of every suite on the default branch.
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-# A new push cancels the older run, which frees the shared model servers.
+# A new push (or label change) cancels the older run, which frees the shared
+# model servers. The nightly sweep and a dispatch share the branch's group.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -64,19 +81,22 @@ env:
   # Model profiles and the runner come from the pinned grader commit below, not
   # from this pull request's evals/ or scripts/, so nothing here is global.
   EVAL_GLOBAL_PATHS: ""
-  # HaikeiLabs/skills main after #96, #97 and #102: temperature 0, seed 42 and
-  # thinking off sent with every request; a skill score of passed runs / total
-  # runs; a clean exit with no answer graded as a failed run, not an error; and
-  # the profiles' concurrency the gate runs each model at (deepseek 4, qwen 1).
-  EVAL_RUNNER_REF: "50ed25939bae725f690e5012e41f4c21d8fedcbe"
+  # HaikeiLabs/skills main after #104: thinking on for both models, DeepSeek at
+  # temperature 0 and Qwen at its thinking-mode sampling (temperature 0.6,
+  # top_p 0.95, top_k 20), seed 42, all sent with every request; a skill score
+  # of passed runs / total runs; a clean exit with no answer graded as a failed
+  # run, not an error; and the profiles' concurrency the gate runs each model at
+  # (deepseek 4, qwen 1).
+  EVAL_RUNNER_REF: "502f873e7627c726444855567cdc25b0e14b60af"
   # EDIT-END settings
   EVAL_THRESHOLD: "0.95"
   # EV-C1 §3 profile names; each needs its base_url_env set on the runner.
   EVAL_PROFILES: '["deepseek-v4-flash", "qwen3.8-27b"]'
-  # Runs per case (EV-C1, owner decision 2026-10-10). A suite scores passed
-  # runs / total runs, the average over repeats, and EVAL_THRESHOLD applies to
-  # that. The model profiles set temperature 0 and a fixed seed.
-  EVAL_REPEATS: "3"
+  # Runs per case (HAI-521, owner decision 2026-10-13): 1 on a pull request,
+  # so the gate stays fast; 3 on the nightly sweep, the averaged record. A
+  # suite scores passed runs / total runs, the average over repeats, and
+  # EVAL_THRESHOLD applies to that. The model profiles fix sampling and seed.
+  EVAL_REPEATS: ${{ github.event_name == 'pull_request' && '1' || '3' }}
   # Runs (cases x repeats) per eval job. scope splits the selected suites into
   # shards of about this many runs, one eval job per profile per shard, so each
   # job fits the timeout on model hosts shared with other runs (measured ~0.3
@@ -87,10 +107,14 @@ env:
 
 jobs:
   # Picks the suites to run from the pull request's diff: mode=changed runs the
-  # suites that hold a changed file, mode=all runs EVAL_SUITES, mode=none runs
-  # nothing and the report passes with "no eval-relevant changes".
+  # suites that hold a changed file, mode=all runs EVAL_SUITES (and is the
+  # nightly sweep), mode=none runs nothing and the report passes with "no
+  # eval-relevant changes", mode=tuning runs nothing and the report fails
+  # until the evals:tuning label is removed.
   scope:
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
+        github.event.pull_request.head.repo.full_name == github.repository)
     # scope and report run GitHub-hosted, public or private: they need no AWS,
     # tailnet or secrets, and must not queue behind eval sweeps on
     # kei-agent-evals. Never a privileged self-hosted runner: report parses
@@ -118,6 +142,8 @@ jobs:
           REPO_DIR: _eval/repo
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          TUNING: ${{ contains(github.event.pull_request.labels.*.name, 'evals:tuning') }}
         with:
           script: |
             // BEGIN agent-evals scope (tested by HaikeiLabs/kei scripts/agent-evals/test-report.mjs)
@@ -137,11 +163,26 @@ jobs:
             // owner/repo/.github/workflows/<file>@<ref>: this workflow grades every suite.
             const workflowFile = String(process.env.GITHUB_WORKFLOW_REF ?? '')
               .replace(/^[^/]+\/[^/]+\//, '').replace(/@.*$/, '');
+            const event = process.env.EVENT_NAME;
+            const nightly = event === 'schedule' || event === 'workflow_dispatch';
+
+            // evals:tuning: nothing runs, and the report fails until the label
+            // is removed, which re-runs this workflow (unlabeled).
+            if (!nightly && process.env.TUNING === 'true') {
+              core.setOutput('mode', 'tuning');
+              core.setOutput('suites', '');
+              core.setOutput('reason', 'evals:tuning is set');
+              core.setOutput('shards', '0');
+              core.setOutput('matrix', JSON.stringify({ include: [] }));
+              core.info('mode=tuning: the evals:tuning label is set, so no suite runs');
+              return;
+            }
 
             // Three-dot: what the pull request changed since its merge base.
             // --no-renames lists a rename as its old and its new path, so moving
-            // a file out of a suite selects that suite too.
-            const changed = execFileSync('git', ['diff', '--name-only', '--no-renames', '-z',
+            // a file out of a suite selects that suite too. A nightly sweep has
+            // no pull request and runs every suite.
+            const changed = nightly ? [] : execFileSync('git', ['diff', '--name-only', '--no-renames', '-z',
               `${process.env.BASE_SHA}...${process.env.HEAD_SHA}`], { cwd: repo, encoding: 'utf8' })
               .split('\0').filter(Boolean);
 
@@ -173,9 +214,9 @@ jobs:
             let selected;
             let reason;
             const global = changed.find((f) => f === workflowFile || globalGlobs.some((re) => re.test(f)));
-            if (global) {
+            if (nightly || global) {
               mode = 'all';
-              reason = `${global} changed`;
+              reason = nightly ? `nightly sweep (${event})` : `${global} changed`;
               selected = [...new Set(allPaths().map(suiteOf).filter(Boolean))].filter(isSuite).sort();
             } else {
               selected = [...new Set(changed.map(suiteOf).filter(Boolean))].filter(isSuite).sort();
@@ -259,8 +300,9 @@ jobs:
     name: eval (${{ matrix.profile }} ${{ matrix.shard }}/${{ matrix.shards }})
     needs: scope
     if: >-
-      needs.scope.outputs.mode != 'none' &&
-      github.event.pull_request.head.repo.full_name == github.repository
+      (needs.scope.outputs.mode == 'changed' || needs.scope.outputs.mode == 'all') &&
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
+        github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: kei-agent-evals
     # Below the runner pod's activeDeadlineSeconds (2h).
     timeout-minutes: 110
@@ -517,6 +559,10 @@ jobs:
     name: agent-evals-report
     needs: [scope, eval]
     if: ${{ !cancelled() }}
+    outputs:
+      # For the nightly job: the verdict and the report it files.
+      passed: ${{ steps.report.outputs.passed }}
+      body: ${{ steps.report.outputs.body }}
     # GitHub-hosted, like scope, so a fork pull request never reaches a
     # self-hosted runner either: there it evaluates nothing and passes.
     runs-on: ubuntu-latest
@@ -535,6 +581,7 @@ jobs:
           path: results
 
       - name: Summarize and comment
+        id: report
         uses: actions/github-script@v7
         env:
           RESULTS_DIR: results
@@ -543,7 +590,8 @@ jobs:
           SCOPE_SUITES: ${{ needs.scope.outputs.suites }}
           SCOPE_REASON: ${{ needs.scope.outputs.reason }}
           SCOPE_SHARDS: ${{ needs.scope.outputs.shards }}
-          SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+          # A nightly sweep runs this repository's own code, like a same-repository pull request.
+          SAME_REPO: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
           PROFILES: ${{ env.EVAL_PROFILES }}
         with:
           script: |
@@ -572,8 +620,11 @@ jobs:
             }
 
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            // Create or update the one sticky comment for this kind.
-            async function upsert(body) {
+            // Create or update the one sticky comment for this kind, and hand the
+            // report to the nightly job.
+            async function upsert(body, passed) {
+              core.setOutput('passed', String(passed));
+              core.setOutput('body', body);
               await core.summary.addRaw(body).write();
               const issue_number = context.payload.pull_request?.number;
               if (!issue_number) return;
@@ -612,6 +663,8 @@ jobs:
               const scopeMode = process.env.SCOPE_MODE;
               const scopeSuites = String(process.env.SCOPE_SUITES ?? '').split(/\s+/).filter(Boolean);
               const skipped = scopeResult === 'success' && scopeMode === 'none';
+              // evals:tuning: nothing ran, and the check fails until the label is removed.
+              const tuning = scopeResult === 'success' && scopeMode === 'tuning';
 
               function walk(dir) {
                 if (!fs.existsSync(dir)) return [];
@@ -630,7 +683,9 @@ jobs:
               const shardStatus = Object.fromEntries(profiles.map((p) => [p, Object.fromEntries(shardIds.map((k) => [k, 'missing']))]));
               const shardMessage = Object.fromEntries(profiles.map((p) => [p, {}]));
               if (scopeResult !== 'success') problems.push(`suite selection did not complete (${safe(scopeResult)}), so nothing was scored`);
-              for (const profile of scopeResult === 'success' && !skipped ? profiles : []) {
+              if (tuning) problems.push('evals:tuning is set: remove the label to run the gate before merge');
+              const scored = scopeResult === 'success' && !skipped && !tuning;
+              for (const profile of scored ? profiles : []) {
                 const files = [];
                 for (const k of shardIds) {
                   const dir = path.join(process.env.RESULTS_DIR, `agent-evals-${kind}-${profile}-shard-${k}`);
@@ -670,7 +725,7 @@ jobs:
                 }
               }
 
-              for (const profile of scopeResult === 'success' && !skipped ? profiles : []) {
+              for (const profile of scored ? profiles : []) {
                 for (const k of shardIds) {
                   const st = shardStatus[profile][k];
                   const who = shardCount > 1 ? `\`${safe(profile)}\` shard ${k}/${shardCount}` : `\`${safe(profile)}\``;
@@ -694,7 +749,7 @@ jobs:
                   }
                 }
               }
-              if (!suites.length && !problems.length && !skipped) problems.push('no suite results were produced');
+              if (!suites.length && !problems.length && scored) problems.push('no suite results were produced');
               const scopeLine = skipped
                 ? 'No eval-relevant changes: no changed file is in an eval suite, and neither this workflow nor an `EVAL_GLOBAL_PATHS` file changed. Nothing was run.'
                 : scopeMode === 'changed'
@@ -723,7 +778,7 @@ jobs:
               const body = [
                 marker,
                 kindMarker,
-                `### ${passed ? '✅' : '❌'} Agent evals (${kind}): ${skipped ? 'no eval-relevant changes' : passed ? 'passed' : 'failed'}`,
+                `### ${passed ? '✅' : '❌'} Agent evals (${kind}): ${tuning ? 'evals:tuning is set' : skipped ? 'no eval-relevant changes' : passed ? 'passed' : 'failed'}`,
                 '',
                 ...(scopeLine ? [scopeLine, ''] : []),
                 `Threshold ${pct(threshold)} of passed runs / total runs per suite per model · ${repeats} run(s) per case · commit \`${String(sha).slice(0, 7)}\` · [run](${runUrl})`,
@@ -733,12 +788,65 @@ jobs:
                 '<sub>Deterministic table tests (EV-C1); no LLM grader. Δ vs main is not yet available: no baseline store.</sub>',
               ].join('\n');
 
-              await upsert(body);
+              await upsert(body, passed);
               if (!passed) core.setFailed(problems.join('; '));
             } catch (err) {
               const why = clean(err?.message) || 'unknown error';
               await upsert([marker, kindMarker, `### ❌ Agent evals (${kind}): report error`, '',
-                `The report could not be built (\`${why}\`), so nothing is shown as passing. See the [run](${runUrl}).`].join('\n'));
+                `The report could not be built (\`${why}\`), so nothing is shown as passing. See the [run](${runUrl}).`].join('\n'), false);
               core.setFailed(`agent-evals report error: ${why}`);
             }
             // END agent-evals report
+
+  # Nightly and dispatched sweeps only: keeps one "Nightly agent evals below
+  # 95%" issue open while the sweep fails, with the latest report, and closes
+  # it once every suite passes. The report it files is the sticky comment's
+  # text: suite names, scores and sanitized reasons, never a model URL.
+  nightly:
+    needs: report
+    if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Open, update or close the issue
+        uses: actions/github-script@v7
+        env:
+          NIGHTLY_PASSED: ${{ needs.report.outputs.passed }}
+          NIGHTLY_BODY: ${{ needs.report.outputs.body }}
+        with:
+          script: |
+            // BEGIN agent-evals nightly (tested by HaikeiLabs/kei scripts/agent-evals/test-report.mjs)
+            const title = 'Nightly agent evals below 95%';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            // No verdict (the report job crashed or was skipped) counts as failing.
+            const passed = process.env.NIGHTLY_PASSED === 'true';
+            const report = process.env.NIGHTLY_BODY
+              || `The report produced no result. See the [run](${runUrl}).`;
+            const open = (await github.paginate(github.rest.issues.listForRepo, {
+              ...context.repo, state: 'open', per_page: 100,
+            })).filter((i) => i.title === title && !i.pull_request);
+            const existing = open.sort((a, b) => a.number - b.number)[0];
+            const body = [
+              `The nightly agent-evals sweep of \`${context.ref}\` failed: at least one suite is below 95% on a model, or a model server did not answer.`,
+              `This issue is updated by each failing sweep and closed by the first passing one. Latest: [run](${runUrl}), commit \`${String(context.sha).slice(0, 7)}\`.`,
+              '',
+              report,
+            ].join('\n');
+            if (!passed) {
+              if (existing) {
+                await github.rest.issues.update({ ...context.repo, issue_number: existing.number, body });
+                core.info(`updated #${existing.number}`);
+              } else {
+                const { data } = await github.rest.issues.create({ ...context.repo, title, body });
+                core.info(`opened #${data.number}`);
+              }
+            } else if (existing) {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: existing.number,
+                body: `The nightly sweep passed: every suite is at or above 95% on every model. [Run](${runUrl}), commit \`${String(context.sha).slice(0, 7)}\`.` });
+              await github.rest.issues.update({ ...context.repo, issue_number: existing.number, state: 'closed' });
+              core.info(`closed #${existing.number}`);
+            }
+            // END agent-evals nightly
