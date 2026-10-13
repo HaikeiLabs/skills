@@ -1,6 +1,6 @@
 ---
 name: kei-setup-doctor
-description: Diagnose and guide Kei runtime installations across local, AWS, Azure, or other customer environments. Use for Kei installation, configuration, verification, troubleshooting, legacy (v1) policy rows with a bare dst_pattern, or handoff.
+description: Diagnose and guide Kei runtime installations across local, AWS, Azure, or other customer environments. Use for Kei installation, configuration, verification, troubleshooting, legacy (v1) policy rows with a bare dst_pattern, or handoff. Also use for symptoms such as a 401 from `kei bot status` after a successful `kei login`, an installation stuck in `pending`, an empty `agent_id` after `kei-proxy runtime bootstrap`, every governed tool call denied, a 404 from a newly deployed runtime, an identity-mode connector call denied with `credential_unavailable` or `credential_backend_mismatch`, or a stale policy bundle or proxy cache after a credential switch.
 ---
 
 # Kei setup doctor

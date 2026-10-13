@@ -63,6 +63,10 @@ All snapshots are plain JSON; hostile or cyclic values are replaced with `null` 
 step message records the rejection reason. This ensures a golden fixture can assert any
 step's snapshot verbatim.
 
+When you list the trace step kinds, give both facts: which kinds carry a snapshot
+(all but `error` and `aborted`), and that the trace and report schema versions are
+pinned constants (`<prefix>.eval-trace.v1`, `<prefix>.eval-report.v1`).
+
 ## TypeScript ingress harness (`src/eval/`, `eval/`, `test/eval.harness.test.ts`)
 
 The reference layout for a headless harness in a TypeScript ingress service (a customer

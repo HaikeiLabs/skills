@@ -46,6 +46,15 @@ A lane that answers several questions keeps two closed selection components:
   hard cap on input length. When you describe the parser, say plainly that it is
   deterministic and uses no LLM.
 
+Answer checklist for selection questions:
+
+- Asked to make an endpoint or scope configurable (env var, per-call parameter)? Say no, keep
+  it a source constant, and give the reason: "an endpoint a request could vary is an endpoint
+  a model could steer."
+- Asked to add fuzzy matching for near-miss phrasings? Say no: keep exact match against the
+  phrase table, add the observed phrasings to the table, and note that unmatched input still
+  gets the one fixed help reply.
+
 ## Governor proposals and the stdio protocol
 
 - Proposal builders mint **branded** proposals. The closed proposal union admits only
