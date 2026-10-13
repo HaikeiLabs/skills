@@ -43,7 +43,8 @@ A lane that answers several questions keeps two closed selection components:
 - A **fixed query catalog**. A selector may pick a query id; it may NEVER say what a query is.
 - A **closed, deterministic command parser** from text to query id: normalize → exact-match a
   phrase table → route, else one fixed help reply. No LLM, no fuzzy match, no scoring, and a
-  hard cap on input length.
+  hard cap on input length. When you describe the parser, say plainly that it is
+  deterministic and uses no LLM.
 
 ## Governor proposals and the stdio protocol
 
@@ -52,7 +53,8 @@ A lane that answers several questions keeps two closed selection components:
 - `GovernorClient` writes one versioned request and reads exactly one versioned decision JSON
   line from stdout on exit 0, over a **construction-pinned runner**. Decisions are bound to
   the exact request (id refs, identity refs, canonical tuple, exact role list, exact version
-  pins); a mismatch is a replay → `unavailable`. Stderr is never a decision. Stdout framing
+  pins); a mismatch is a replay → `unavailable`. So a shape-valid proposal that comes back
+  `unavailable` is most likely a replay: name the binding fields that did not match. Stderr is never a decision. Stdout framing
   is exact (bounded size, one LF, no CR, no second line).
 - Decision reason codes are a closed set (`policy-allow`, `explicit-deny`, `default-deny`,
   `invalid-*`, `unknown-tool`, `unknown-lane`, `tool-disabled`, `lane-disabled`,

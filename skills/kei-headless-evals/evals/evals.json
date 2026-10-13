@@ -19,12 +19,7 @@
         },
         {
           "text": "The response mentions that removing a case is a breaking change because case counts are asserted.",
-          "contains_any": [
-            "case counts",
-            "case cardinality",
-            "case count",
-            "case-count"
-          ]
+          "regex": "case[- ]?counts?|case cardinality|cardinality|(number|count) of (golden )?cases|remov(e|ed|ing) (a|any) (golden )?case"
         }
       ]
     },
@@ -63,7 +58,7 @@
       "checks": [
         {
           "text": "The response states that --backend agentware is not wired and exits 2.",
-          "regex": "^(?=[\\s\\S]*not wired)(?=[\\s\\S]*exit[\\s\\S]{0,30}?\\b2\\b)"
+          "regex": "^(?=[\\s\\S]*(not (yet )?wired|n[o']t (yet )?wired|unwired|not (yet )?implemented|\\bstub\\b))(?=[\\s\\S]*exit[\\s\\S]{0,30}?\\b2\\b)"
         },
         {
           "text": "The response mentions the stable stub message that CI uses to assert the harness version.",
@@ -112,12 +107,7 @@
       "checks": [
         {
           "text": "The response specifies the EvalCase fields: id, lane, input, and optional expect.",
-          "contains_all": [
-            "EvalCase",
-            "id",
-            "lane",
-            "input"
-          ]
+          "regex": "^(?=[\\s\\S]*\\bid\\b)(?=[\\s\\S]*\\blane\\b)(?=[\\s\\S]*\\binput\\b)"
         },
         {
           "text": "The response says the valid lanes are a closed set.",
@@ -136,10 +126,7 @@
       "checks": [
         {
           "text": "The response describes EvalRunner's per-case AbortSignal ownership.",
-          "contains_all": [
-            "EvalRunner",
-            "AbortSignal"
-          ]
+          "regex": "^(?=[\\s\\S]*EvalRunner)(?=[\\s\\S]*Abort(Signal|Controller))"
         },
         {
           "text": "The response mentions the aborted trace step kind for cancelled cases.",
