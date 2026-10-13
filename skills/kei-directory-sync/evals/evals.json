@@ -1,0 +1,451 @@
+{
+  "skill_name": "kei-directory-sync",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're Contoso. Our users are in Entra groups and I want those groups and users to show up in our Kei org automatically. What do I set up in Azure and in Kei?",
+      "expected_output": "Explains app roles on the customer's app assigned to groups (not Default Access), a sync app registration with the three Graph application permissions and admin consent, a federated credential with no client secret, then kei directory-sync set with the three ids, enable in dry run, and read the report.",
+      "expectations": [
+        "The response tells the admin to create app roles and assign the Entra groups to them.",
+        "The response names the three Microsoft Graph permissions.",
+        "The response uses a federated credential rather than a client secret.",
+        "The response configures Kei with kei directory-sync set and the three id flags.",
+        "The response enables the sync and reads the dry-run report before going live."
+      ],
+      "checks": [
+        {
+          "text": "The response tells the admin to create app roles and assign the Entra groups to them.",
+          "contains_all": [
+            "app role"
+          ]
+        },
+        {
+          "text": "The response names the three Microsoft Graph permissions.",
+          "contains_all": [
+            "Application.Read.All",
+            "GroupMember.Read.All",
+            "User.Read.All"
+          ]
+        },
+        {
+          "text": "The response uses a federated credential rather than a client secret.",
+          "contains_any": [
+            "federated credential",
+            "federated identity credential"
+          ]
+        },
+        {
+          "text": "The response configures Kei with kei directory-sync set and the three id flags.",
+          "contains_all": [
+            "kei directory-sync set",
+            "--tenant-id",
+            "--client-id",
+            "--app-id"
+          ]
+        },
+        {
+          "text": "The response enables the sync and reads the dry-run report before going live.",
+          "contains_all": [
+            "kei directory-sync enable",
+            "kei directory-sync report"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I'm on the Federated credentials page of our new 'Kei Entra sync' app registration in Azure. Exactly what goes in the subject and audience fields? Also do I need to make a client secret too?",
+      "expected_output": "Subject system:serviceaccount:kei:oidc-bridge, audience api://AzureADTokenExchange, Haikei's issuer, and no client secret.",
+      "expectations": [
+        "The response gives the subject system:serviceaccount:kei:oidc-bridge.",
+        "The response gives the audience api://AzureADTokenExchange.",
+        "The response says not to create a client secret."
+      ],
+      "checks": [
+        {
+          "text": "The response gives the subject system:serviceaccount:kei:oidc-bridge.",
+          "contains_all": [
+            "system:serviceaccount:kei:oidc-bridge"
+          ]
+        },
+        {
+          "text": "The response gives the audience api://AzureADTokenExchange.",
+          "contains_all": [
+            "api://AzureADTokenExchange"
+          ]
+        },
+        {
+          "text": "The response says not to create a client secret.",
+          "contains_any": [
+            "no client secret",
+            "don't create a client secret",
+            "do not create a client secret",
+            "not create a client secret",
+            "no secret",
+            "not need a client secret",
+            "don't need a client secret",
+            "do not need a client secret",
+            "never create a client secret"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "For the Kei directory sync, can I just send Haikei a client secret for our sync app instead of doing the federated credential thing? It's quicker for us.",
+      "expected_output": "No: Kei's directory sync has no client-secret option; it only authenticates with the federated credential, and a secret should never be sent to Haikei.",
+      "expectations": [
+        "The response says a client secret is not supported or must not be sent.",
+        "The response points back to the federated credential.",
+        "The response does not invent a client-secret flag."
+      ],
+      "checks": [
+        {
+          "text": "The response says a client secret is not supported or must not be sent.",
+          "contains_any": [
+            "no client-secret",
+            "no client secret option",
+            "not supported",
+            "doesn't support",
+            "does not support",
+            "no option",
+            "never send",
+            "don't send",
+            "do not send",
+            "only authenticates",
+            "only the federated",
+            "only supports",
+            "only uses"
+          ]
+        },
+        {
+          "text": "The response points back to the federated credential.",
+          "contains_any": [
+            "federated credential"
+          ]
+        },
+        {
+          "text": "The response does not invent a client-secret flag.",
+          "not_contains": [
+            "--client-secret",
+            "--secret "
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I ran kei directory-sync set with our tenant, sync app and chat app ids and then kei directory-sync enable for acme. Is it creating users now? What should I do next?",
+      "expected_output": "No: it starts in dry run and writes nothing; wait one interval, read kei directory-sync report (result, assignments, would_create, default_access_skipped), then go live with kei directory-sync set --dry-run=false.",
+      "expectations": [
+        "The response says the sync starts in dry run and writes nothing yet.",
+        "The response reads the report with kei directory-sync report.",
+        "The response names report fields to check, such as would_create or assignments.",
+        "The response goes live with kei directory-sync set --dry-run=false."
+      ],
+      "checks": [
+        {
+          "text": "The response says the sync starts in dry run and writes nothing yet.",
+          "contains_any": [
+            "dry run",
+            "dry-run"
+          ]
+        },
+        {
+          "text": "The response reads the report with kei directory-sync report.",
+          "contains_all": [
+            "kei directory-sync report"
+          ]
+        },
+        {
+          "text": "The response names report fields to check, such as would_create or assignments.",
+          "contains_any": [
+            "would_create",
+            "assignments",
+            "default_access_skipped"
+          ]
+        },
+        {
+          "text": "The response goes live with kei directory-sync set --dry-run=false.",
+          "contains_all": [
+            "--dry-run=false"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Our Kei directory sync report says result succeeded but assignments: 0, groups_created: 0 and default_access_skipped: 4. We assigned our four Entra groups to the chat app in Enterprise applications. Why no groups?",
+      "expected_output": "The groups are assigned to Default Access, which the sync ignores; create app roles and assign each group to a role (the role value becomes the Kei group name).",
+      "expectations": [
+        "The response identifies Default Access as the cause.",
+        "The response says to assign the groups to defined app roles.",
+        "The response explains the Kei group name comes from the role's value."
+      ],
+      "checks": [
+        {
+          "text": "The response identifies Default Access as the cause.",
+          "contains_all": [
+            "default access"
+          ]
+        },
+        {
+          "text": "The response says to assign the groups to defined app roles.",
+          "contains_any": [
+            "app role"
+          ]
+        },
+        {
+          "text": "The response explains the Kei group name comes from the role's value.",
+          "contains_any": [
+            "value"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "kei directory-sync report shows would_create: 40 but users_skipped_guest: 3 and users_skipped_disabled: 2. Why are those 5 people skipped and is something broken?",
+      "expected_output": "Nothing is broken: guests (userType=Guest) and disabled accounts are skipped by design; enable the account in Entra or ask Haikei about guests.",
+      "expectations": [
+        "The response explains guest users are skipped by design.",
+        "The response explains disabled accounts are skipped.",
+        "The response says this is expected rather than an error."
+      ],
+      "checks": [
+        {
+          "text": "The response explains guest users are skipped by design.",
+          "contains_any": [
+            "guest"
+          ]
+        },
+        {
+          "text": "The response explains disabled accounts are skipped.",
+          "contains_any": [
+            "disabled"
+          ]
+        },
+        {
+          "text": "The response says this is expected rather than an error.",
+          "contains_any": [
+            "expected",
+            "by design",
+            "not broken",
+            "nothing is broken",
+            "intended",
+            "normal"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Kei directory sync run failed with error: token: entra returned 401 invalid_client. In Entra's sign-in logs I see AADSTS70021 no matching federated identity record found. How do I fix it?",
+      "expected_output": "The federated credential doesn't match: check issuer, subject system:serviceaccount:kei:oidc-bridge and audience api://AzureADTokenExchange exactly, and that --client-id is the sync app and --tenant-id the tenant.",
+      "expectations": [
+        "The response tells the admin to check the federated credential's subject.",
+        "The response tells the admin to check the audience.",
+        "The response mentions checking the issuer.",
+        "The response checks that --client-id is the sync app's client id."
+      ],
+      "checks": [
+        {
+          "text": "The response tells the admin to check the federated credential's subject.",
+          "contains_all": [
+            "system:serviceaccount:kei:oidc-bridge"
+          ]
+        },
+        {
+          "text": "The response tells the admin to check the audience.",
+          "contains_all": [
+            "api://AzureADTokenExchange"
+          ]
+        },
+        {
+          "text": "The response mentions checking the issuer.",
+          "contains_any": [
+            "issuer"
+          ]
+        },
+        {
+          "text": "The response checks that --client-id is the sync app's client id.",
+          "contains_any": [
+            "--client-id",
+            "client id",
+            "client_id"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "kei directory-sync set --tenant-id ... for our acme org fails with ALREADY_EXISTS (HTTP 409). What does that mean?",
+      "expected_output": "Another Kei org already syncs this Entra tenant; one Kei org per tenant. Use that org, or disable it there and ask Haikei to release the tenant.",
+      "expectations": [
+        "The response explains another Kei org already uses this tenant.",
+        "The response states the one-org-per-tenant rule."
+      ],
+      "checks": [
+        {
+          "text": "The response explains another Kei org already uses this tenant.",
+          "contains_any": [
+            "another org",
+            "another kei org",
+            "other org",
+            "another organization",
+            "different org",
+            "already connected",
+            "already synced",
+            "already used"
+          ]
+        },
+        {
+          "text": "The response states the one-org-per-tenant rule.",
+          "contains_any": [
+            "one kei org per",
+            "one org per",
+            "only one kei org",
+            "only one org",
+            "single org",
+            "one organization per"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "I ran kei directory-sync set --dry-run=false yesterday but every report since still shows dry_run: true and nothing gets created. Why?",
+      "expected_output": "Haikei's platform dry-run setting is a global ceiling that forces every org into dry run; the org can't override it, ask Haikei.",
+      "expectations": [
+        "The response explains Haikei's platform setting forces dry run.",
+        "The response tells the admin to ask Haikei."
+      ],
+      "checks": [
+        {
+          "text": "The response explains Haikei's platform setting forces dry run.",
+          "contains_any": [
+            "ceiling",
+            "haikei",
+            "platform"
+          ]
+        },
+        {
+          "text": "The response tells the admin to ask Haikei.",
+          "contains_any": [
+            "ask haikei",
+            "contact haikei",
+            "haikei to",
+            "with haikei",
+            "haikei support"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Running kei directory-sync set --tenant-id ... --client-id ... --app-id ... returns an error with HTTP 404, and kei directory-sync get says No directory sync configured. What's wrong?",
+      "expected_output": "The first set creates the config, so a 404 on set means Kei's console proxy doesn't allow the directory-sync routes yet (allowlist not deployed); nothing to fix locally, ask Haikei.",
+      "expectations": [
+        "The response attributes the 404 to the console proxy or allowlist not being deployed.",
+        "The response explains set creates the config, so the 404 is not a missing configuration.",
+        "The response tells the admin to ask Haikei."
+      ],
+      "checks": [
+        {
+          "text": "The response attributes the 404 to the console proxy or allowlist not being deployed.",
+          "contains_any": [
+            "allowlist",
+            "proxy",
+            "not deployed",
+            "isn't deployed",
+            "not yet deployed",
+            "console"
+          ]
+        },
+        {
+          "text": "The response explains set creates the config, so the 404 is not a missing configuration.",
+          "contains_any": [
+            "creates the config",
+            "creates the configuration",
+            "first set creates",
+            "set creates",
+            "creates it"
+          ]
+        },
+        {
+          "text": "The response tells the admin to ask Haikei.",
+          "contains_any": [
+            "ask haikei",
+            "contact haikei",
+            "haikei to",
+            "with haikei",
+            "haikei support"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "The Entra sync is live for contoso and created a Kei group called pilot from our app role. How do I write a Kei policy that applies to everyone in that group?",
+      "expected_output": "Reference the group as group:pilot in the policy source pattern (e.g. kei policies create --src-pattern group:pilot ...), and use the kei-harness-policy skill.",
+      "expectations": [
+        "The response references the synced group as group:pilot.",
+        "The response points to the kei-harness-policy skill or kei policies."
+      ],
+      "checks": [
+        {
+          "text": "The response references the synced group as group:pilot.",
+          "contains_all": [
+            "group:pilot"
+          ]
+        },
+        {
+          "text": "The response points to the kei-harness-policy skill or kei policies.",
+          "contains_any": [
+            "kei-harness-policy",
+            "kei policies"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "Our directory sync run failed: graph: get service principal: graph GET /v1.0/servicePrincipals: status 403. And separately, if we later turn the sync off, will Kei delete the users it created?",
+      "expected_output": "403 from Graph means a Graph application permission is missing or not admin-consented; add the three application permissions and grant admin consent. Disabling never deletes users.",
+      "expectations": [
+        "The response says to grant admin consent.",
+        "The response says the permissions must be application permissions.",
+        "The response says disabling never deletes users."
+      ],
+      "checks": [
+        {
+          "text": "The response says to grant admin consent.",
+          "contains_all": [
+            "admin consent"
+          ]
+        },
+        {
+          "text": "The response says the permissions must be application permissions.",
+          "contains_any": [
+            "application permission"
+          ]
+        },
+        {
+          "text": "The response says disabling never deletes users.",
+          "contains_any": [
+            "never deletes",
+            "never delete",
+            "not delete",
+            "doesn't delete",
+            "won't delete",
+            "does not delete",
+            "nothing is removed",
+            "are not deleted",
+            "aren't deleted",
+            "stay"
+          ]
+        }
+      ]
+    }
+  ]
+}
