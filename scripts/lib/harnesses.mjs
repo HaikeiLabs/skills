@@ -59,17 +59,21 @@ export function opencodePermission(skill) {
 // `options` in the body of every chat completions request, and otherwise sends
 // no temperature at all, so the server would sample at its own default.
 //
-// `thinking: false` turns the model's reasoning off through the chat template.
-// The servers spell the switch differently: Qwen's template reads
-// `enable_thinking`, DeepSeek V4's reads `thinking`, and each ignores the
-// other's key, so both are sent.
-export const NO_THINKING_TEMPLATE_KWARGS = Object.freeze({ enable_thinking: false, thinking: false });
+// `thinking` turns the model's reasoning on or off through the chat template,
+// so the run doesn't depend on the server's default. The servers spell the
+// switch differently: Qwen's template reads `enable_thinking`, DeepSeek V4's
+// reads `thinking`, and each ignores the other's key, so both are sent.
+export function thinkingTemplateKwargs(thinking) {
+  return { enable_thinking: thinking, thinking };
+}
 
 export function samplingOptions(opts) {
   const options = {};
   if (opts.temperature !== undefined) options.temperature = opts.temperature;
+  if (opts.topP !== undefined) options.top_p = opts.topP;
+  if (opts.topK !== undefined) options.top_k = opts.topK;
   if (opts.seed !== undefined) options.seed = opts.seed;
-  if (opts.thinking === false) options.chat_template_kwargs = { ...NO_THINKING_TEMPLATE_KWARGS };
+  if (opts.thinking !== undefined) options.chat_template_kwargs = thinkingTemplateKwargs(opts.thinking);
   return options;
 }
 
