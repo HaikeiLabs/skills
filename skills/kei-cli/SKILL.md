@@ -309,6 +309,7 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 | Credential store | `kei credential-store get` / `put` (creates it) / `update` (PATCH) | yes |
 | Users (v0.1.16+) | `kei users list\|get\|create\|update\|resolve` / `kei users identities list USER` | yes |
 | Group membership (v0.1.16+) | `kei groups members list\|add\|remove GROUP [USER] [--workspace WS]` | yes |
+| Entra directory sync (after v0.1.29; workflow in `kei-directory-sync`) | `kei directory-sync get [--json]` / `set [--tenant-id G] [--client-id G] [--app-id G] [--dry-run=true\|false] [--create-users=true\|false] [--revoke=true\|false] [--yes]` / `enable\|disable [--yes]` / `report [--limit N] [--json]` | yes |
 | Write local runtime config | `kei setup [--config PATH] [--control-plane-url URL]` | no (runtime token) |
 | Verify + heartbeat via local kei-proxy | `kei runtime bootstrap [--config PATH] [--proxy-path PATH]` | no (runtime token) |
 | Upgrade via Go | `kei upgrade [--version VERSION]` | no |
