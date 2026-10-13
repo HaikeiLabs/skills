@@ -1,6 +1,6 @@
 ---
 name: kei-headless-evals
-description: Headless, deterministic evaluation harnesses across the Kei repos. Use when running or extending a TypeScript ingress service's src/eval harness (EvalSuite/EvalCase/EvalTrace/EvalReport, ScriptedBackend, EvalRunner, --backend scripted|agentware, eval/fixtures/*.golden.json), the kei-chat-harness eval harness (eval_harness.py, testing/evals, ModelBackend openai/anthropic/ollama/llamafile/vllm/ollama_direct, eval_results JSONL), or the pedro-agentware evals (python/src/evals, go/evals, typescript/src/evals). Use whenever the task mentions headless evals, golden fixtures, eval suites, eval traces, scripted backends, or agentware runner seams. The agentware backend is intentionally NOT wired yet — do not invent it.
+description: Headless, deterministic evaluation harnesses across the Kei repos. Use when running or extending a TypeScript ingress service's src/eval harness (EvalSuite/EvalCase/EvalTrace/EvalReport, ScriptedBackend, EvalRunner, --backend scripted|agentware, eval/fixtures/*.golden.json) or the agentware evals (python/src/evals, go/evals, typescript/src/evals). Use whenever the task mentions headless evals, golden fixtures, eval suites, eval traces, scripted backends, or agentware runner seams. The agentware backend is intentionally NOT wired yet — do not invent it.
 ---
 
 # Headless evals
@@ -9,6 +9,25 @@ The eval harnesses here are deliberately **headless, deterministic, and offline*
 a JSON `EvalSuite` through a backend and emit a JSON report, with no LLM, no network, and no
 product behavior invented. Their job is to pin existing pure helpers and give CI a stable
 signal until a real shared agent/tool runner lands.
+
+## What every answer must say
+
+- **Golden-fixture / case fields.** Name the type: "`EvalCase` requires `id`,
+  `lane`, `input`" (plus `label` and an optional `expect`), and say the valid
+  lanes are a closed set.
+- **Trace step kinds and snapshots.** Say which kinds carry a snapshot, and
+  YOU MUST include this sentence: "The trace and report schema versions are
+  pinned version constants (`<prefix>.eval-trace.v1`,
+  `<prefix>.eval-report.v1`)."
+- **Per-case cancellation.** Name `EvalRunner`: it owns a per-case
+  `AbortSignal`. A cancelled case records an `aborted` trace step (say the
+  word "aborted") and the runner moves on to the next case, so the suite is
+  not torn down.
+- **Adding a golden fixture case.** Point to `eval/fixtures/<lane>.golden.json`
+  and the `EvalCase` fields, and say removing a case is a breaking change because
+  `test/eval.harness.test.ts` asserts the case counts.
+
+## Eval reports
 
 ### Eval report and trace schema
 
@@ -74,19 +93,6 @@ node --experimental-strip-types src/eval/cli.ts --backend scripted \
 node --test test/eval.harness.test.ts
 ```
 
-## Chat harness evals (HaikeiLabs/Kei-Chat-Harness)
-
-- `src/pedro_service/eval_harness.py` — `EvalHarness` with `ModelBackend`
-  (`openai`, `anthropic`, `ollama`, `llamafile`, `vllm`, `ollama_direct`), `TestCase`,
-  `ModelConfig`; writes JSONL under `./eval_results` (default). `create_test_cases()` ships 13
-  cases. This one DOES call a model backend — it is the harness side, not the ingress side.
-- `testing/evals/` — standalone runner (`runner.py`, `models.py` hitting
-  `{base_url}/chat/completions`), `cases/github.py` (GitHub tool-calling cases), `main.py`
-  CLI: `python -m testing.evals.main [--github|--all] [--models ...] [--base-url ...]`.
-  Existing artifacts in `testing/evals/output/*.json` and `eval_results/*.jsonl`.
-- Validation: `uv run pytest tests/test_eval_harness.py tests/test_headless_harness.py -q`
-  (headless is the offline path; the model-backed suites are marked `integration`).
-
 ### The `--backend agentware` stub
 
 The CLI recognizes `--backend agentware` but exits 2 immediately with the stable message
@@ -103,7 +109,7 @@ requiring a real agent backend. When the real backend is implemented, it must:
 Until that day, any attempt to use `--backend agentware` must fail with the same stub to
 preserve the CI contract.
 
-## pedro-agentware evals (HaikeiLabs/Agentware)
+## Agentware evals (HaikeiLabs/Agentware)
 
 - Python: `python/src/evals/` (`main.py`, `models.py`, `runner.py`, `cases/{calendar,file_search,general,github}.py`),
   run with `PYTHONPATH=python/src python3 -m evals.main`. The root `testing/evals/` contains
@@ -119,10 +125,6 @@ preserve the CI contract.
 # TypeScript ingress harness
 node --test test/eval.harness.test.ts
 node --experimental-strip-types src/eval/cli.ts --backend scripted --suite eval/fixtures/<lane>.golden.json
-
-# chat harness
-uv run ruff check src/ tests/
-uv run pytest tests/test_eval_harness.py tests/test_headless_harness.py -q -m "not integration"
 
 # agentware python evals
 # Run from the HaikeiLabs/Agentware repo: cd python && pytest
@@ -151,7 +153,6 @@ uv run pytest tests/test_eval_harness.py tests/test_headless_harness.py -q -m "n
 
 - `kei-tool-adapters` — the tool lanes and closed command parsers that the golden fixtures
   pin.
-- `kei-openai-backends` — the model backends that the chat harness and agentware evals
-  drive.
+- `kei-openai-backends` — the model backends that the agentware evals drive.
 - `agentware-sdk` — the middleware that the future `agentware` eval backend would integrate
   with.

@@ -69,8 +69,17 @@ These run in CI as well (Node 22, Python yamllint), on pull requests and pushes 
 
 7. Run the evals for any skill you add or change, on both required model
    profiles, to tune it to at least 90% locally. Don't commit the results: the
-   agent-evals CI gate runs the same evals on the pull request and posts the pass
-   rates as a sticky comment, which is the record (see the Evals section of [AGENTS.md](AGENTS.md)):
+   agent-evals CI gate runs the changed skills' evals once per case on the pull
+   request and posts the pass rates as a sticky comment, and its nightly sweep
+   of `main` (every skill, 3 runs per case, averaged) is the record (see the
+   Evals section of [AGENTS.md](AGENTS.md)).
+
+   If you are still iterating on a skill until it passes, add the
+   `evals:tuning` label to the pull request. Nothing runs while it is set, and
+   the gate fails with "evals:tuning is set: remove the label to run the gate
+   before merge", so the pull request can't merge. Remove the label once the
+   skill reaches at least 95% locally on both profiles with `--repeats 3`;
+   removing it runs the gate:
 
 ```bash
 node scripts/run-evals.mjs --skill <name> --model-profile deepseek-v4-flash --jobs 1 --repeats 3
