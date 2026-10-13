@@ -72,7 +72,9 @@ These run in CI as well (Node 22, Python yamllint), on pull requests and pushes 
    agent-evals CI gate runs the changed skills' evals once per case on the pull
    request and posts the pass rates as a sticky comment, and its nightly sweep
    of `main` (every skill, 3 runs per case, averaged) is the record (see the
-   Evals section of [AGENTS.md](AGENTS.md)).
+   Evals section of [AGENTS.md](AGENTS.md)). On a pull request each eval job
+   stops after 30 minutes, and a job that times out fails the gate. Closing or
+   merging the pull request cancels its eval run.
 
    If you are still iterating on a skill until it passes, add the
    `evals:tuning` label to the pull request. Nothing runs while it is set, and
