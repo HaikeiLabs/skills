@@ -10,21 +10,21 @@ import { DEFAULT_RUN_TIMEOUT_SECONDS, noAnswer, parseModelProfile, resolveRunTim
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const profiles = readFileSync(path.join(ROOT, 'evals/model-profiles.yaml'), 'utf8');
 
-test('both shipped profiles set an 1800 s run timeout, temperature 0, a fixed seed and no thinking', () => {
+test('both shipped profiles set an 1800 s run timeout, a fixed seed and thinking on; Qwen samples as its docs recommend', () => {
   assert.deepEqual(parseModelProfile(profiles, 'qwen3.8-27b'),
-    { model: 'eval/qwen3.8-27b', baseUrlEnv: 'EVAL_QWEN_BASE_URL', runTimeoutSeconds: 1800, temperature: 0, seed: 42,
-      thinking: false });
+    { model: 'eval/qwen3.8-27b', baseUrlEnv: 'EVAL_QWEN_BASE_URL', runTimeoutSeconds: 1800, temperature: 0.6,
+      topP: 0.95, topK: 20, seed: 42, thinking: true });
   assert.deepEqual(parseModelProfile(profiles, 'deepseek-v4-flash'),
     { model: 'eval/deepseek-ai/DeepSeek-V4-Flash', baseUrlEnv: 'EVAL_DEEPSEEK_BASE_URL', runTimeoutSeconds: 1800,
-      temperature: 0, seed: 42, thinking: false });
+      temperature: 0, topP: undefined, topK: undefined, seed: 42, thinking: true });
   assert.equal(parseModelProfile(profiles, 'no-such-profile'), null);
 });
 
 test('parses profile fields in any order and stops at the next profile', () => {
   const yaml = 'profiles:\n  a:\n    run_timeout_seconds: 90\n    # note\n\n    opencode_model: eval/a\n  b:\n    opencode_model: eval/b\n';
   assert.deepEqual(parseModelProfile(yaml, 'a'),
-    { model: 'eval/a', baseUrlEnv: undefined, runTimeoutSeconds: 90, temperature: undefined, seed: undefined,
-      thinking: undefined });
+    { model: 'eval/a', baseUrlEnv: undefined, runTimeoutSeconds: 90, temperature: undefined, topP: undefined,
+      topK: undefined, seed: undefined, thinking: undefined });
   const b = parseModelProfile(yaml, 'b');
   assert.equal(b.runTimeoutSeconds, undefined);
   assert.equal(resolveRunTimeoutSeconds({ profile: b.runTimeoutSeconds }), DEFAULT_RUN_TIMEOUT_SECONDS);
@@ -32,7 +32,7 @@ test('parses profile fields in any order and stops at the next profile', () => {
     /c\.run_timeout_seconds must be a positive number/);
 });
 
-test('validates temperature, seed and thinking', () => {
+test('validates temperature, top_p, top_k, seed and thinking', () => {
   const p = (field) => parseModelProfile(`profiles:\n  c:\n    opencode_model: m\n    ${field}\n`, 'c');
   assert.equal(p('temperature: 0.2').temperature, 0.2);
   assert.equal(p('seed: 7').seed, 7);
@@ -40,6 +40,15 @@ test('validates temperature, seed and thinking', () => {
   assert.throws(() => p('temperature: hot'), /c\.temperature must be a number >= 0/);
   for (const bad of ['seed: 1.5', 'seed: -3', 'seed: abc']) {
     assert.throws(() => p(bad), /c\.seed must be a non-negative integer/, bad);
+  }
+  assert.equal(p('top_p: 0.95').topP, 0.95);
+  assert.equal(p('top_p: 1').topP, 1);
+  for (const bad of ['top_p: 0', 'top_p: 1.5', 'top_p: -0.1', 'top_p: most']) {
+    assert.throws(() => p(bad), /c\.top_p must be a number in \(0, 1\]/, bad);
+  }
+  assert.equal(p('top_k: 20').topK, 20);
+  for (const bad of ['top_k: 0', 'top_k: 2.5', 'top_k: -1', 'top_k: many']) {
+    assert.throws(() => p(bad), /c\.top_k must be a positive integer/, bad);
   }
   assert.equal(p('thinking: false').thinking, false);
   assert.equal(p('thinking: true').thinking, true);

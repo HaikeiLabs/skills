@@ -23,6 +23,8 @@ export function parseModelProfile(yamlText, name) {
     baseUrlEnv: fields.base_url_env,
     runTimeoutSeconds: timeout === undefined ? undefined : positiveSeconds(timeout, `${name}.run_timeout_seconds`),
     temperature: fields.temperature === undefined ? undefined : temperature(fields.temperature, `${name}.temperature`),
+    topP: fields.top_p === undefined ? undefined : topP(fields.top_p, `${name}.top_p`),
+    topK: fields.top_k === undefined ? undefined : topK(fields.top_k, `${name}.top_k`),
     seed: fields.seed === undefined ? undefined : seed(fields.seed, `${name}.seed`),
     thinking: fields.thinking === undefined ? undefined : bool(fields.thinking, `${name}.thinking`),
   };
@@ -38,6 +40,18 @@ function temperature(value, label) {
   const t = Number(value);
   if (!Number.isFinite(t) || t < 0) throw new Error(`${label} must be a number >= 0`);
   return t;
+}
+
+function topP(value, label) {
+  const p = Number(value);
+  if (!Number.isFinite(p) || p <= 0 || p > 1) throw new Error(`${label} must be a number in (0, 1]`);
+  return p;
+}
+
+function topK(value, label) {
+  const k = Number(value);
+  if (!/^\d+$/.test(value) || !Number.isSafeInteger(k) || k < 1) throw new Error(`${label} must be a positive integer`);
+  return k;
 }
 
 function seed(value, label) {

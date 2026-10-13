@@ -10,9 +10,9 @@ profiles:
     # skill asks the model the same question the same way.
     temperature: 0
     seed: 42
-    # No thinking on evals (owner decision 2026-10-12): the score measures the
-    # answer, and reasoning tokens only make runs slower and longer.
-    thinking: false
+    # Thinking on (owner decision 2026-10-13): with it off, DeepSeek fell to
+    # 44-72% on several skills.
+    thinking: true
   qwen3.8-27b:
     opencode_model: eval/qwen3.8-27b
     base_url_env: EVAL_QWEN_BASE_URL
@@ -22,6 +22,11 @@ profiles:
     concurrency: 1
     # opencode runs on the shared 5090 can exceed the 600 s default.
     run_timeout_seconds: 1800
-    temperature: 0
+    # Qwen's recommended thinking-mode sampling (owner decision 2026-10-13):
+    # with thinking on, greedy sampling makes it loop. The seed still fixes
+    # the sample.
+    temperature: 0.6
+    top_p: 0.95
+    top_k: 20
     seed: 42
-    thinking: false
+    thinking: true
