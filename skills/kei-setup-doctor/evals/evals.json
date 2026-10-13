@@ -384,6 +384,38 @@
           ]
         }
       ]
+    },
+    {
+      "id": 13,
+      "prompt": "In our Kei org I see policies like member:workspace:wiki with dst_pattern search_wiki and no agent, in two workspaces. They're enabled, but users still get denied search_wiki. Are they broken? Should I change them to tool:search_wiki?",
+      "expected_output": "They are legacy (v1) rows: a bare dst_pattern with no tool: prefix. The catalog skips them with skip_reason bare_target, so they grant nothing today. Converting one to tool:search_wiki would newly grant access to everyone the src_pattern matches, so that is a policy decision, not a cleanup. Find them read-only with kei workspaces list and kei policies list --workspace W --json for every workspace, list exactly which rows, and with the admin's approval delete them via the console's Delete this legacy row action or kei policies delete POLICY_ID --workspace W --yes.",
+      "expectations": [
+        "The response identifies the rows as legacy bare-target rows that the catalog skips (bare_target).",
+        "The response says converting to tool:search_wiki would newly grant access, so it is a policy decision.",
+        "The response recommends deleting them via the console action or kei policies delete, only after approval."
+      ],
+      "checks": [
+        {
+          "text": "The response identifies the rows as legacy bare-target rows that the catalog skips (bare_target).",
+          "contains_all": [
+            "bare_target"
+          ]
+        },
+        {
+          "text": "The response says converting to tool:search_wiki would newly grant access, so it is a policy decision.",
+          "contains_any": [
+            "newly grant",
+            "policy decision"
+          ]
+        },
+        {
+          "text": "The response recommends deleting them via the console action or kei policies delete, only after approval.",
+          "contains_all": [
+            "kei policies delete",
+            "approval"
+          ]
+        }
+      ]
     }
   ]
 }
