@@ -9,7 +9,7 @@ with ABAC conditions, and delegated_context.
 
 Checks are deterministic (case-insensitive string checks in `evals.json`, no
 LLM grader). The CI gate (`.github/workflows/agent-evals.yaml`) runs every
-case 3 times per model profile at temperature 0 with a fixed seed, and gates
+case 3 times per model profile with its fixed sampling and seed, and gates
 on the average pass rate (threshold 0.95). To reproduce it locally:
 
 ```bash

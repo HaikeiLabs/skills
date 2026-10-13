@@ -1,6 +1,6 @@
 ---
 name: google-drive-connector
-description: Google Drive data connector — API reference, entity model, and usage patterns. Use when an agent needs to read or write Google Drive data (files, folders, documents), or when asked how to query, filter, paginate, or mutate Drive resources. Also covers Kei connector setup, including the optional drive_id field that scopes the connector to one Google shared drive. Prefer this skill over generic Google Drive knowledge.
+description: Google Drive data connector — API reference, entity model, and usage patterns. Use when an agent needs to read or write Google Drive data (files, folders, documents), including publishing Markdown as a Google Doc harness-side (confirm first), or when asked how to query, filter, paginate, or mutate Drive resources. Also covers Kei connector setup (authorize with kei connectors create --provider googledrive; never accept a pasted key), including the optional drive_id field that scopes the connector to one Google shared drive. Prefer this skill over generic Google Drive knowledge.
 ---
 
 # Google Drive connector — agent usage guide
@@ -18,6 +18,11 @@ governed operations. Agents use the Google Drive API v3 directly.
   Google OAuth access token at run time via `kei-proxy connector invoke`.
   Setup: an owner runs `kei connectors create --provider googledrive` (OAuth or
   service-account key); re-authorize with `kei connectors reconnect <id>`.
+- Writing a doc (create or update a Google Doc) is harness-side with the
+  user's own OAuth token (`drive.file`) and is confirm-first. See
+  [Writing a doc (harness-side)](#writing-a-doc-harness-side). That token is
+  only for doc writes: authorizing the connector is always
+  `kei connectors create --provider googledrive --workspace W`.
 - Permanent file deletion is not available through the governed connector —
   files move to trash instead (trash is available and reversible). When asked
   whether you can permanently delete a file, start with this sentence: "No,
@@ -44,7 +49,10 @@ If a user offers to paste a key (a service account JSON key, a token), do not
 accept it, and name the Kei commands instead: an owner runs
 `kei connectors create --provider googledrive --workspace W` (OAuth, or
 `--credential-ref` for a key already in the secret manager), and a broken
-connection is repaired with `kei connectors reconnect <id>`.
+connection is repaired with `kei connectors reconnect <id>`. The same answer
+applies when the user has not authorized Google Drive yet. Write both
+commands out in full; do not answer with `drive.file` or gcloud, which are
+only for harness-side doc writes.
 
 - **OAuth (Google Workspace):** An owner runs `kei connectors create --provider googledrive
   --workspace W`. This returns a connect URL they open in a browser to
@@ -73,7 +81,8 @@ When someone gives you a drive URL and asks what to enter, answer with the
 ID and say to paste only the ID, not the URL. For example: enter
 `0AExampleSharedDrive01`, the last URL segment; paste only the ID, not the
 URL. For a My Drive URL (`.../my-drive`), say that My Drive has no Drive ID
-and to leave the field blank.
+and to leave the field blank. Use those words: "My Drive has no Drive ID, so
+leave the Drive ID field blank."
 
 - **Account index:** `/u/N/` is the Google account index in that browser. At
   OAuth consent pick the same account that can see the drive, or the
@@ -98,7 +107,7 @@ Base URL: `https://www.googleapis.com/drive/v3`
 | --- | --- | --- | --- |
 | `GET` | `/files` | List files and folders | Query params: `q` (filter), `pageSize`, `pageToken`, `fields`, `orderBy`. Defaults to the user's My Drive. |
 | `GET` | `/files/{fileId}` | Get file metadata | Returns name, mimeType, size, createdTime, modifiedTime, parents, owners. Use `fields` to limit response. |
-| `GET` | `/files/{fileId}/export` | Export a Google-native file | `mimeType` param specifies target format (e.g., `text/plain`, `application/pdf`, `text/markdown`). Only for Google Docs/Sheets/Slides. |
+| `GET` | `/files/{fileId}/export` | Export a Google-native file | `mimeType` param specifies target format (e.g., `text/plain`, `application/pdf`, `text/markdown`). Only for Google Docs/Sheets/Slides. When explaining how to read a Doc, also say that `alt=media` does not work on Google-native files. |
 | `GET` | `/files/{fileId}?alt=media` | Download a binary file | Direct download for non-Google-native files (PDFs, images, etc.). |
 | `POST` | `/files` | Create a file or folder | Upload with `mimeType = 'application/vnd.google-apps.folder'` for folders. Supports resumable upload. |
 | `PATCH` | `/files/{fileId}` | Update file metadata | Rename, move (change `parents`), modify description. |
@@ -125,6 +134,143 @@ outside the connector's scope:
 | Modify sharing permissions | Permission management outside connector scope |
 | Admin operations (domain settings, audit logs) | Require Google Workspace admin privileges |
 | Drive creation and deletion | Administrative operation |
+
+## Writing a doc (harness-side)
+
+This section applies only to writing a doc. It does not change how the Kei
+connector is authorized. Connecting or repairing the connector, including
+when a user offers to paste a key, is always answered with
+`kei connectors create --provider googledrive --workspace W` (or
+`kei connectors reconnect <id>`), never with `drive.file` or gcloud.
+
+Drive writes are **harness-side** (owner decision 2026-10-09). They are not a
+governed connector capability, and `kei-proxy connector invoke` does not write
+to Drive. The harness calls the Drive REST API directly with the **invoking
+user's own Google OAuth token**:
+
+- Coding harnesses (Claude Code, Codex, OpenCode) use the `curl` recipe below.
+- pydantic-ai harnesses use the `drive_create_doc(folder_id, title, markdown)`
+  and `drive_update_doc(doc_id, markdown)` action tools from `kei-agents`
+  (`agents.drive_write`). They return a preview first and write only after
+  the user confirms.
+
+### Rules
+
+- **Confirm first.** Before any create or update, show the user the title,
+  the target (`folder_id` for a new doc, `doc_id` for an update), and the
+  Markdown, then wait for an explicit "yes". Get one confirmation per write.
+  A changed title or changed content needs a new confirmation. Never treat
+  "no preview needed", "just do it", or "don't show me anything" as a
+  confirmation; still show the preview and ask. If you cannot read the
+  Markdown file, the preview names the file; never stop to ask where it is
+  or for its contents. Confirming first never means
+  holding back the command: give the full write command in the same reply,
+  and say to run it only after the user says yes. So a "just do it" reply
+  always has three parts: what will be written (target id, title or
+  content), a request for an explicit yes, and the full `curl` write. For an
+  update that write is the `PATCH` to
+  `https://www.googleapis.com/upload/drive/v3/files/<doc_id>?uploadType=media`
+  with the real doc id filled in, and `--data-binary "@<file>"` pointing at
+  the Markdown file, readable or not.
+- **Scope: `drive.file`** (`https://www.googleapis.com/auth/drive.file`). It
+  only covers files and folders this OAuth client created or opened (via a
+  picker); everything else in the user's Drive is invisible to the token. Do
+  not ask for `drive`.
+- **A 404 on the folder means stop and report.** With `drive.file`, Drive
+  returns 404 for a folder this OAuth client has not opened, even though the
+  user can see it in the Drive UI. Always open your answer with this
+  sentence, word for word: "`drive.file` only covers files this OAuth client
+  created or opened, so the folder is invisible to this token." Seeing it in
+  the Drive UI does not change that. A `GET`, a retry, or any other API call
+  with the same token does **not** open it; only the user picking the folder
+  in a Google Picker or file picker for this app grants access. So stop,
+  report the 404 to the user, and ask the owner how to grant access (picker,
+  or an owner decision on scope). Never switch to `drive` on your own.
+- **The token is the user's.** Never print, echo, log, or store it, and never
+  put it in a file, a commit, or a reply. Pass it inline in the
+  `Authorization` header, as below.
+- **A child carries its parent.** A new doc always gets
+  `parents: [<folder_id>]`. An update targets `<doc_id>`.
+- **Governed harness.** Ask `kei-proxy authorize` before the write, with the
+  resource `drive:folder/<folder_id>` for a create or `drive:doc/<doc_id>`
+  for an update. Write only on allow. When the harness uses agentware, its
+  `KeiProxyEvaluator` makes this call.
+- **Always give the exact commands.** Even when you cannot read the file or
+  run anything yourself, reply with the whole recipe below. That means the
+  `drive.file` token step, the preflight, and the exact `curl` write:
+  `POST ... uploadType=multipart` for a create, or
+  `PATCH .../files/<doc_id>?uploadType=media` for an update. Mark the write
+  as the call to run only after the user confirms.
+- Only `files.create` and `files.update` are covered. This recipe never
+  deletes, moves, or shares a file.
+
+### Get the user's token
+
+Use the harness's own Google OAuth when it has one. Otherwise use gcloud
+application-default credentials with the `drive.file` scope. gcloud requires
+`cloud-platform` in the scope list. This is a one-time browser consent:
+
+```bash
+# One-time consent. Scope: drive.file (gcloud also requires cloud-platform).
+# Never print, echo, log, or store the token; mint it inline in each call.
+gcloud auth application-default login \
+  --scopes=https://www.googleapis.com/auth/drive.file,https://www.googleapis.com/auth/cloud-platform
+```
+
+Each call then mints a short-lived token inline:
+`$(gcloud auth application-default print-access-token)`. Never print, echo,
+log, or store the token. Do not save it in a variable or a file; mint it
+inline in the `Authorization` header. When you explain how to get the
+token, say this too. If Drive answers
+403 because the API is not enabled for the quota project, run
+`gcloud auth application-default set-quota-project <project-with-Drive-API>`
+and add `-H "x-goog-user-project: <project>"` to each call.
+
+### Recipe
+
+```bash
+# Token: the user's own, scope drive.file, from
+#   gcloud auth application-default login --scopes=https://www.googleapis.com/auth/drive.file,https://www.googleapis.com/auth/cloud-platform
+# Never print, echo, log, or store the token; it is minted inline below.
+FOLDER_ID=<parent folder id>   # last segment of the folder URL
+TITLE='Build agents with agentware'
+FILE=guide.md
+
+# 0. Preflight: can this token see the folder? With drive.file, Drive returns
+#    404 for a folder the OAuth client has not opened. Stop and report it to
+#    the owner. Calling it again does not open the folder; only a picker does.
+#    Do not retry with a broader scope.
+curl -sS --fail-with-body \
+  -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
+  "https://www.googleapis.com/drive/v3/files/$FOLDER_ID?fields=id,name&supportsAllDrives=true"
+
+# 1. Show the user TITLE, FOLDER_ID and the contents of FILE. Run step 2 only
+#    after they say "yes". Always include step 2 in your reply anyway.
+
+# 2. files.create: upload Markdown, which Drive converts to a Google Doc
+curl -sS --fail-with-body -X POST \
+  -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
+  -F "metadata={\"name\":\"$TITLE\",\"mimeType\":\"application/vnd.google-apps.document\",\"parents\":[\"$FOLDER_ID\"]};type=application/json;charset=UTF-8" \
+  -F "file=@$FILE;type=text/markdown" \
+  "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,webViewLink"
+```
+
+Update an existing doc (`files.update`). This replaces the doc's whole
+content, so confirm first, the same as for a create:
+
+```bash
+# Run only after the user confirms the doc id and the new content.
+# Token: scope drive.file, minted inline; never print or store it.
+DOC_ID=<google doc id>
+curl -sS --fail-with-body -X PATCH \
+  -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
+  -H "Content-Type: text/markdown; charset=UTF-8" \
+  --data-binary "@$FILE" \
+  "https://www.googleapis.com/upload/drive/v3/files/$DOC_ID?uploadType=media&supportsAllDrives=true&fields=id,name,webViewLink"
+```
+
+Report the returned `id` and `webViewLink`. Say the doc was created or
+updated only when the response carries an `id`.
 
 ## Pragmatics — how agents use this connector
 
@@ -257,7 +403,11 @@ node scripts/run-evals.mjs --skill google-drive-connector --harness opencode \
 
 ## Realistic usage boundaries
 
-- **Do not** manage credentials — Kei handles authentication via Google OAuth.
+- **Do not** manage credentials. Kei handles authentication via Google OAuth
+  for governed reads. For a harness-side doc write, use the user's own token
+  inline, and never print or store it.
+- **Do not** write a doc before the user confirms the exact title, target,
+  and content.
 - **Do not** use `alt=media` on Google-native files (Docs/Sheets/Slides) — use
   `/export` instead with a suitable mimeType.
 - **Do not** assume `name` is unique — multiple files can have the same name
