@@ -604,7 +604,7 @@ aliases.
 **Fix:** Re-run the installer and ensure `~/.local/bin` is on `PATH`:
 
 ```sh
-curl -fsSL https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh | bash -s -- -d ~/.local/bin
+curl -fsSL https://haikeilabs.com/install.sh | bash -s -- -d ~/.local/bin
 ```
 
 ### 3. Not logged in

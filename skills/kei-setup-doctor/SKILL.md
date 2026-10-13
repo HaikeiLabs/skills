@@ -156,6 +156,12 @@ is explicitly wanted:
 
 ```sh
 export PATH="$HOME/.local/bin:$PATH"
+curl -fsSL "https://haikeilabs.com/install.sh" \
+  | sh -s -- -d "$HOME/.local/bin"
+```
+
+If `haikeilabs.com` is unreachable, use the S3 fallback:
+```sh
 curl -fsSL "https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh" \
   | sh -s -- -d "$HOME/.local/bin"
 ```
@@ -164,7 +170,7 @@ The installer is POSIX `sh`; pipe to `sh`, not `bash`. Install a pinned release
 with `-v VERSION`; the version does not include a leading `v`:
 
 ```sh
-curl -fsSL "https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh" \
+curl -fsSL "https://haikeilabs.com/install.sh" \
   | sh -s -- -v 0.2.0 -d "$HOME/.local/bin"
 ```
 

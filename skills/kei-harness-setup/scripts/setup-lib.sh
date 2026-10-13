@@ -34,7 +34,7 @@ if [ -z "$KEI_PATH" ] || [ -z "$KEI_PROXY_PATH" ]; then
 ERROR: kei or kei-proxy not found on PATH.
 
 Install both with:
-  curl -fsSL https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh | bash -s -- -d ~/.local/bin
+  curl -fsSL https://haikeilabs.com/install.sh | bash -s -- -d ~/.local/bin
 
 Then add ~/.local/bin to your PATH and re-run this script.
 INSTALL_EOF
