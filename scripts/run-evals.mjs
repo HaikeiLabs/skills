@@ -9,11 +9,16 @@
  *      teaching content is installed: never evals/ (the answer key), results,
  *      benchmarks or dotfiles;
  *   2. runs the eval prompt headlessly in each with the chosen harness;
- *   3. applies the fixture's deterministic check for each expectation and
- *      requires every repeat to pass a case;
+ *   3. applies the fixture's deterministic check for each expectation; each
+ *      repeat is one run, and a skill's pass rate is passed runs / total runs
+ *      (the average over repeats, as for tool-call evals);
  *   4. writes response.md + grading.json per run and benchmark.{json,md}, in
  *      the skill-creator layout (eval-N/<config>/run-N/) so its eval viewer
  *      can open the results directly.
+ *
+ * With --model-profile, the profile's temperature and seed (EV-C1 §3) are
+ * sent with every model request, and `thinking: false` turns the model's
+ * reasoning off.
  *
  * Unlike the verify-* scripts this calls models, so it is not run in CI.
  * It needs the harness CLI on PATH and logged in.
@@ -43,7 +48,7 @@ import { makeBenchmark, belowThreshold } from './lib/benchmark.mjs';
 import { resolveSkillsDir } from './lib/paths.mjs';
 import { HARNESSES } from './lib/harnesses.mjs';
 import { stageSkill } from './lib/stage.mjs';
-import { parseModelProfile, resolveRunTimeoutSeconds, runCommand, runError, timeoutSummary, timingRecord } from './lib/run.mjs';
+import { noAnswer, parseModelProfile, resolveRunTimeoutSeconds, runCommand, runError, timeoutSummary, timingRecord } from './lib/run.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -80,6 +85,9 @@ function parseArgs(argv) {
     if (!profile) throw new Error(`unknown model profile ${opts.modelProfile}`);
     opts.model = profile.model;
     opts.baseUrlEnv = profile.baseUrlEnv;
+    opts.temperature = profile.temperature;
+    opts.seed = profile.seed;
+    opts.thinking = profile.thinking;
   }
   opts.runTimeoutSeconds = resolveRunTimeoutSeconds({ flag: opts.runTimeout, profile: profile?.runTimeoutSeconds });
   return opts;
@@ -108,11 +116,12 @@ async function answer(skill, prompt, withSkill, opts, runDir) {
   fs.mkdirSync(path.join(runDir, 'outputs'), { recursive: true });
   fs.writeFileSync(path.join(runDir, 'outputs', 'response.md'), response);
   fs.writeFileSync(path.join(runDir, 'timing.json'), JSON.stringify(timingRecord(res, opts.runTimeoutSeconds), null, 2));
-  if (res.code !== 0) fs.writeFileSync(path.join(runDir, 'stderr.txt'), res.stderr);
+  const empty = noAnswer(res, response);
+  if (res.code !== 0 || empty) fs.writeFileSync(path.join(runDir, 'stderr.txt'), res.stderr);
   fs.rmSync(cwd, { recursive: true, force: true });
   // A harness failure (auth, usage limit, crash, timeout) is not a skill
   // failure: report it instead of grading an empty or partial answer.
-  const error = runError(res, response);
+  const error = runError(res);
   if (error) {
     // Permission rejection means the model tried to act but was blocked.
     // Treat as a completed run with whatever we got — grade it normally
@@ -122,7 +131,18 @@ async function answer(skill, prompt, withSkill, opts, runDir) {
     }
     return { error, timedOut: res.timedOut };
   }
+  // A clean exit with no answer is a failed run, not an incomplete one.
+  if (empty) return { response: '', noAnswer: empty };
   return { response };
+}
+
+// Every check fails on a run with no answer (a not_contains check would
+// otherwise pass on empty text).
+function noAnswerResult(row, checks, reason, runDir) {
+  const expectations = checks.map((check) => ({ text: check.text, passed: false, evidence: reason, check }));
+  const summary = { passed: 0, failed: checks.length, total: checks.length, pass_rate: 0 };
+  fs.writeFileSync(path.join(runDir, 'grading.json'), JSON.stringify({ expectations, summary }, null, 2));
+  return { ...row, ...summary, casePassed: false, reason };
 }
 
 function grade(expectations, checks, response, runDir) {
@@ -186,6 +206,7 @@ function report(results, out, opts) {
 
   const lines = [`# Skill eval benchmark (${opts.modelProfile ?? opts.model ?? opts.harness})`, '',
     `Model: ${opts.model ?? 'unspecified'} · Repeats: ${benchmark.repeats} · Threshold: ${opts.threshold}`, '',
+    'Counts are runs (cases × repeats); the pass rate is passed runs / total runs.', '',
     '| Skill | Pass rate | Passed | Failed | Errors | Total |', '| --- | ---: | ---: | ---: | ---: | ---: |'];
   for (const result of benchmark.results) {
     lines.push(`| ${result.suite} | ${Math.round(result.pass_rate * 100)}% | ${result.passed} | ${result.failed} | ${result.errors} | ${result.total} |`);
@@ -252,9 +273,10 @@ async function main() {
             if (!hasChecks(ev.checks)) return { skill, id: ev.id, config, repeat, passed: 0, failed: 0, total: 1, error: MISSING_CHECKS };
             const runDir = path.join(evalDir, config, `run-${repeat}`);
             process.stderr.write(`running ${skill} #${ev.id} ${config} repeat ${repeat}\n`);
-            const { response, error, timedOut } = await answer(skill, ev.prompt, config === 'with_skill', opts, runDir);
+            const { response, error, timedOut, noAnswer: empty } = await answer(skill, ev.prompt, config === 'with_skill', opts, runDir);
             if (error) return { skill, id: ev.id, config, repeat, passed: 0, failed: 0, total: 1, error, timedOut };
             if (!ev.checks) throw new Error(`${skill} eval #${ev.id} has no checks`);
+            if (empty) return noAnswerResult({ skill, id: ev.id, config, repeat }, ev.checks, empty, runDir);
             const grading = grade(ev.expectations, ev.checks, response, runDir);
             const reason = grading.expectations.filter((item) => !item.passed)
               .map((item) => `${item.text}: ${item.evidence}`).join('; ');

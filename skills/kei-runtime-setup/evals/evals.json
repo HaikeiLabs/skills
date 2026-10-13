@@ -188,6 +188,44 @@
         }
       ],
       "id": 6
+    },
+    {
+      "id": 7,
+      "prompt": "We're adding an http_api connector named crm with an API key, and our runtime runs kei-proxy serve in identity mode (KEI_CREDENTIAL_RELEASE=identity). What has to happen on the runtime before the daemon can use that key?",
+      "expected_output": "kei-proxy credential sync must have delivered the opaque_ref secret first. The runtime needs a credential-sync key (KEI_CREDENTIAL_SYNC_KEY_ID, KEI_CREDENTIAL_SYNC_PRIVATE_KEY). Setting the secret queues a delivery; run kei-proxy credential sync until it reports claimed false, with the same KEI_RUNTIME_STATE_DIR as kei-proxy serve so the connector reference index is where the daemon looks. Otherwise the call denies credential_unavailable. This is not live yet: it ships with the next kei-proxy release after proxy-v0.2.4 and needs POLICY_BUNDLE_V2_CONNECTORS enabled in the control plane.",
+      "expectations": [
+        "The response says kei-proxy credential sync must deliver the secret before identity mode can use it.",
+        "The response says to run credential sync with the same KEI_RUNTIME_STATE_DIR as kei-proxy serve.",
+        "The response names the credential-sync key variables.",
+        "The response says this is not live yet and needs POLICY_BUNDLE_V2_CONNECTORS enabled."
+      ],
+      "checks": [
+        {
+          "text": "The response says kei-proxy credential sync must deliver the secret before identity mode can use it.",
+          "contains_all": [
+            "kei-proxy credential sync"
+          ]
+        },
+        {
+          "text": "The response says to run credential sync with the same KEI_RUNTIME_STATE_DIR as kei-proxy serve.",
+          "contains_all": [
+            "KEI_RUNTIME_STATE_DIR"
+          ]
+        },
+        {
+          "text": "The response names the credential-sync key variables.",
+          "contains_any": [
+            "KEI_CREDENTIAL_SYNC_KEY_ID",
+            "KEI_CREDENTIAL_SYNC_PRIVATE_KEY"
+          ]
+        },
+        {
+          "text": "The response says this is not live yet and needs POLICY_BUNDLE_V2_CONNECTORS enabled.",
+          "contains_all": [
+            "POLICY_BUNDLE_V2_CONNECTORS"
+          ]
+        }
+      ]
     }
   ]
 }

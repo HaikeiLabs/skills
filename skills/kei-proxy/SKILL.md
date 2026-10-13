@@ -1,6 +1,6 @@
 ---
 name: kei-proxy
-description: "The `kei-proxy` runtime executable (kei-connector-runtime) — what an agent harness calls at run time to get a governed decision: `kei-proxy authorize` before a tool call (one-shot CLI), `kei-proxy serve` to run as a long-lived daemon exposing HTTP over a Unix socket (readiness, model routes; governed authorize route tracked by HAI-272), `connector invoke` for governed data, `runtime bootstrap|heartbeat`, `collector` for audit shipping, `model`, and `credential sync`. Load whenever code or config in a harness, adapter, container, or agent calls kei-proxy, sets KEI_RUNTIME_* or KEI_PROXY_* variables, reads its exit codes or JSON, or someone asks how an agent's tool call gets allowed or denied by Kei. Not for platform administration (logins, installations, credentials) — that is the `kei` CLI (kei-cli skill)."
+description: "The `kei-proxy` runtime executable (kei-connector-runtime) — what an agent harness calls at run time to get a governed decision: `kei-proxy authorize` before a tool call (one-shot CLI), `kei-proxy serve` to run as a long-lived daemon exposing HTTP over a Unix socket (readiness, model routes; governed authorize route tracked by HAI-272), `connector invoke` for governed data, `runtime bootstrap|heartbeat`, `collector` for audit shipping, `hook` for report-only harness audit events, `model`, and `credential sync`. Load whenever code or config in a harness, adapter, container, or agent calls kei-proxy, sets KEI_RUNTIME_* or KEI_PROXY_* variables, reads its exit codes or JSON, or someone asks how an agent's tool call gets allowed or denied by Kei. Not for platform administration (logins, installations, credentials) — that is the `kei` CLI (kei-cli skill)."
 ---
 
 # kei-proxy (runtime for agent interaction)
@@ -46,6 +46,10 @@ through `kei-proxy authorize`. A tool is not governed just because the adapter
 exposes it, and a local call is not safe just because it never reaches Kei.
 
 Your knowledge of `kei-proxy` subcommands may be outdated. **Prefer retrieval.**
+If you cannot run the binary or open the sources below (no shell or network),
+answer from this skill and don't retry. Its tables match kei-proxy 0.1.11 and
+later. For example, `authorize` takes `--user`, `--tool`, `--action` and
+`--resource`, and never `--agent-id`, because the agent ID is auto-discovered.
 
 ## Retrieval sources
 
@@ -120,7 +124,9 @@ all runtime operations.
 | Verify installation + first heartbeat | `kei-proxy runtime bootstrap` |
 | Keep liveness current | `kei-proxy runtime heartbeat --interval 1m` |
 | Ship local audit JSONL | `kei-proxy collector [--poll --poll-interval 1m]` |
-| Sync credential-store metadata | `kei-proxy credential sync` |
+| Sync credential-store metadata; deliver connector secrets to this runtime | `kei-proxy credential sync` (claims one pending delivery per run) |
+| Run a connector call inside the daemon (identity mode) | `POST /v1/connectors:invoke` on the socket, or `kei-proxy connector invoke` as its client (`KEI_CREDENTIAL_RELEASE=identity`) |
+| Record a harness tool event for audit (report-only; installed by `kei harness sync`, not run by hand) | `kei-proxy hook claude` (event JSON on stdin from Claude Code) |
 | Model profile / invocation | `kei-proxy model profile …`, `kei-proxy model  # uses runtime identity (no key flag needed)` (request JSON on stdin) |
 | Show bundle state | `kei-proxy policy show` (reads persisted state; never contacts control plane) |
 | Force bundle refresh | `kei-proxy policy sync` (bypasses normal poll schedule) |
@@ -175,7 +181,13 @@ call** (fail-closed, HAI-249). It never permits a tool call. Tests that need an
 allow inject a fake evaluator instead of relying on a disabled proxy (see the
 `agentware-sdk` skill for the evaluator and its test fixtures). A production
 harness should not run with kei-proxy disabled — every governed tool would be
-denied.
+denied. Non-governed calls are unaffected: they are local, never reach Kei,
+and need no bypass. Only governed calls need the fake evaluator in tests.
+
+This applies only to **governed** calls. **Non-governed** local calls never
+reach Kei, with or without kei-proxy: they run in the harness with no policy
+check and no audit event, so disabling kei-proxy neither blocks nor permits
+them (see [Governed vs non-governed tool calls](#governed-vs-non-governed-tool-calls)).
 
 ### Enrollment in the authorize response
 
@@ -235,6 +247,108 @@ For governed data connectors. Per ADR-027, per-call approval is removed;
 approvals now grant workspace access, not per-call permission. The
 `--approval-id` flag is no longer available. Pass `--idempotency-key`
 for retried writes.
+
+## Identity mode: connectors run inside the daemon
+
+Short answer for an `opaque_ref` connector (for example the `http_api`
+connector named `crm`): it is not live in proxy-v0.2.4. It needs kei-proxy
+0.2.5 or newer and the catalog's `POLICY_BUNDLE_V2_CONNECTORS` gate enabled
+in the control plane (off by default). Once live, such a
+call can deny with `credential_unavailable`, `credential_backend_mismatch` or
+`descriptor_invalid`, among the codes below.
+
+With `KEI_CREDENTIAL_RELEASE=identity` (default `legacy`), `kei-proxy serve`
+runs each governed connector call itself through `POST /v1/connectors:invoke`
+on the owner-only socket, and `kei-proxy connector invoke` is a thin client of
+that route. The daemon returns only the result. No socket route ever returns a
+credential.
+
+Which connectors run depends on the policy bundle:
+
+- **Today (proxy-v0.2.4, and any bundle without connector descriptors).**
+  Only connectors whose credential is the user's own OAuth connection
+  (`oauth` / `per_user`: github, gmail, google_drive, linear) run. Connectors
+  that need config or an `opaque_ref` secret deny
+  `credential_source_not_supported`.
+- **With connector descriptors (HAI-378, ADR-034 amendment).** The v2 bundle
+  carries a non-secret descriptor per active connector in
+  `policy_set.connectors`, and each descriptor decides. Identity mode then
+  runs `opaque_ref` connectors, including `http_api` connectors such as the
+  one named `crm`. The daemon looks up the descriptor's
+  `kei://connectors/<id>/<field>` reference in the connector reference index
+  that `kei-proxy credential sync` wrote, checks that the index's backend
+  equals the descriptor's `credential_backend`, and reads the secret from the
+  tenant secret store (AWS Secrets Manager or Azure Key Vault) with the
+  runtime's own cloud identity. The value goes only on the provider request
+  (for `http_api`, the `credential_injection` header). `kei://connectors`
+  references on `POST /v1/commands:run` resolve the same way.
+
+**Release status: not live yet.** Descriptor support (kei-connector-runtime
+719866b) ships in kei-proxy 0.2.5 or newer; proxy-v0.2.4 and older don't
+have it. The control plane emits descriptors only once the catalog's
+`POLICY_BUNDLE_V2_CONNECTORS` gate is enabled, and it is off by default. Until
+both are in place, identity mode behaves as described under "Today".
+
+Deny codes for a connector call in identity mode (all fail closed, no retry,
+no fallback to the catalog):
+
+| `reason_code` | Meaning |
+| --- | --- |
+| `credential_source_not_supported` | The bundle has no descriptors and the connector is not a session OAuth provider, or the descriptor is `oauth` with a shared account |
+| `descriptor_invalid` | The routed connector has no descriptor, or its descriptor fails the contract (including a capability this runtime's contracts version does not know) |
+| `account_model_not_supported` | `account_model: domain_delegation`, not executed yet |
+| `credential_unavailable` | The secret was never delivered to this runtime, `credential sync` has not run, or the secret store read failed or timed out |
+| `credential_backend_mismatch` | The index entry's backend differs from the descriptor's `credential_backend`, or the reference names another connector or field |
+| `provider_error` | The provider response contained the credential, so the result is withheld |
+
+A harness treats every one of these as a deny for that call. To diagnose
+them, use `kei-setup-doctor`. To deliver the secrets first, see
+`kei-runtime-setup`.
+
+## hook: report-only audit of desktop harness calls
+
+**Minimum versions: Claude Code 2.1.119 or newer and kei-proxy 0.2.5 or
+newer.** What the Claude Code hook records depends on both. Below either
+minimum there are no `decision` and no `permission_reply` events: every call
+is recorded only as `pre` (`native_decision: unknown`) and, if it ran, `post`.
+The event sequences below hold only at these versions or newer.
+
+Desktop harnesses (Claude Code, Codex, OpenCode) decide shell commands
+natively from the config `kei harness sync` renders. Sync also installs
+`kei-proxy hook <harness>` as a hook in the harness. The hook only reports:
+it always exits 0, never blocks, and never allows or denies. Do not wire it
+into an agent yourself, and never make it answer a permission prompt.
+
+For Claude Code the native decision is **observed, not computed**:
+`PreToolUse` runs before Claude Code's permission check, so the hook records
+what Claude Code then did instead of re-evaluating its rules.
+
+| Event phase | `native_decision` |
+| --- | --- |
+| `pre` | `unknown` (the pairing anchor, not the decision) |
+| `decision` (one per call) | `allow` (ran without asking), `deny` (neither asked nor ran), or `ask` (Claude Code asked) |
+| `post` | `executed`, with an optional `failed: true` when the command failed (the error text is never recorded) |
+| `permission_reply` (asked calls only) | `approved` if it then ran, `denied` if the session ended without running it |
+
+Audit readers take the decision from the `decision` event, not from `pre`.
+Every call starts with `pre` (`unknown`); what follows depends on the outcome:
+
+| Outcome | Events after `pre` |
+| --- | --- |
+| Allowed, ran and succeeded | `decision: allow`, then `post: executed` |
+| Allowed, ran and failed | `decision: allow`, then `post: executed` with `failed: true` |
+| Denied (neither asked nor ran) | `decision: deny`, written when the session stops |
+| Asked, then approved and ran | `decision: ask`, `permission_reply: approved`, then `post: executed` |
+| Asked, never ran (rejected, or auto-rejected in a headless run) | `decision: ask`, then `permission_reply: denied` when the session ends |
+
+On Claude Code 2.1.119 or newer, sync renders seven hook events
+(`PreToolUse`, `PermissionRequest`, `PermissionDenied`, `PostToolUse`,
+`PostToolUseFailure`, `Stop`, `SessionEnd`), but an older kei-proxy still
+writes no `decision` events for them. On an older or undetectable
+Claude Code sync keeps the previous two (`PreToolUse`, `PostToolUse`) and
+prints a warning; those calls are recorded with `native_decision: unknown`
+and no `decision` event. Upgrade Claude Code and re-run `kei harness sync`.
+Rendering is covered in the `kei-harness-policy` skill.
 
 ## Runtime modes: one-shot CLI vs daemon
 
@@ -317,6 +431,29 @@ kei-proxy authorize --user U --tool T --action A --resource R; echo "exit=$?"   
   stay in the runtime. Only decisions and redacted audit metadata go to Kei.
 - Unsupported harnesses, missing bindings, invalid installation scope, stale
   policy, and no matching policy are all DENY.
+- Identity-mode `opaque_ref` and `http_api` connectors are not live in
+  proxy-v0.2.4 or older, or while `POLICY_BUNDLE_V2_CONNECTORS` is off. Do not tell a
+  user they run until both the release and the flag are in place.
 - Creating installations, credentials, or agents is not a `kei-proxy`
   job. Installations and credentials are `kei` (`kei-cli`); agents
   are the console.
+
+## Response requirements
+
+- Whenever an answer covers calling `kei-proxy` (an adapter, a harness, a
+  container, or `authorize`), YOU MUST say that the runtime token comes from
+  the **`KEI_RUNTIME_TOKEN`** environment variable, never a command-line
+  argument, and that the agent ID is **auto-discovered** (it resolves
+  automatically from the runtime installation), so nobody sets an agent-ID
+  variable or passes `--agent-id`.
+- Whenever an answer contrasts `kei` with `kei-proxy`, or says an agent should
+  not run `kei login`, YOU MUST call `kei` **"the platform admin CLI
+  (kei-cli)"** and `kei-proxy` **"the runtime used by agents"**, using those
+  exact phrases.
+- Whenever an answer covers identity-mode connectors, connector
+  descriptors, or the deny codes for `opaque_ref`/`http_api` connectors, YOU
+  MUST say it is not live yet: it needs the catalog's
+  **`POLICY_BUNDLE_V2_CONNECTORS`** gate enabled (off by default) and
+  kei-proxy **0.2.5 or newer** (it is not in proxy-v0.2.4). Name the deny
+  codes **`credential_unavailable`**, **`credential_backend_mismatch`** and
+  **`descriptor_invalid`** explicitly.

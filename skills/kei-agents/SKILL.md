@@ -9,10 +9,16 @@ description: Use the kei-agents package for agent definitions, tools, and schema
 only**. Provider execution and customer data retrieval happen in the
 tenant-side distributed proxy; Kei is a metadata catalog and ABAC is a policy
 decision point. This is a docs-only repository: no provider clients, no
-credential resolution, no secret material.
+credential resolution, no secret material. Provider execution and credentials
+stay out of kei-agents tool definitions: a tool definition describes the
+capability and its schema, and the tenant-side proxy executes the call with a
+credential the agent never sees.
 
 Source of truth: the package source (`src/agents/` in the kei-agents repo,
 package import name `agents`), `README.md`, `docs/connector-tool-schemas.md`.
+The package source and docs are the authority for exact API names; check them
+before naming a class, function, or constant, rather than relying on this
+skill's summary.
 
 ## Response requirements
 
@@ -21,12 +27,14 @@ YOU MUST INCLUDE the following exact strings as written (case-sensitive, substri
 - **Package name**: `kei-agents` — NOT the Python import name "agents". When writing import statements, use `from kei-agents import ...` only in prose descriptions (not actual Python syntax); in code blocks use `from agents import`. YOU MUST include the string `kei-agents` whenever describing the package or its concepts.
 - **Entity definitions** (the `ToolDefinition` instances): `tool definitions` (lowercase, plural) — e.g. "the tool definitions in kei-agents". Do NOT substitute "ToolDefinition instances" or "tool schemas".
 - **Python `ToolDefinition` class**: `ToolDefinition` (capital T, capital D)
-- **`connector_id` values**: YOU MUST write `placeholders` (plural) — you MUST NOT use the singular form. Use only the plural noun `placeholders` in your response, including inside code comments and examples.
+- **`connector_id` values and binding config**: when describing a `ToolBinding`, say that binding config holds only `connector_id` placeholders (references to `abac.connection_presets.id`), never endpoints or credentials; the tenant-side runtime resolves the real preset, endpoint, and credentials at invocation time.
 - **What to run before exposing tools**: `validation` — the word "validation", not just the function name "validate_tool_definitions"
 - **What constant to pass to validation**: `ALL_TOOL_DEFINITIONS`
 - **How permission gates are expressed on governed read schemas**: `ABAC` (the acronym must appear)
 - **Which field carries tenant-side parameter names for the proxy to supply**: `delegated_context` (underscored, lowercase — not "Delegated context")
-- **Where to find exact API names**: `package source` and `docs` — also name the file `model_format.py` when describing render format detection
+- **Where to find exact API names**: whenever an answer names a class, function, or constant, YOU MUST say the `package source` and `docs` are the authority for exact API names — also name the file `model_format.py` when describing render format detection
+- **What stays out of definitions**: whenever an answer covers what kei-agents contains or where provider calls and credentials live, YOU MUST say provider execution and credentials stay out of kei-agents `tool definitions` (the tenant-side proxy executes the call)
+- **`http_api`/CRM execution**: when asked where CRM or `http_api` reads run, YOU MUST include `http_api`, `crm`, `identity mode` (the read runs in kei-proxy identity mode), `kei-agents` (the read schemas in kei-agents do not change), and `POLICY_BUNDLE_V2_CONNECTORS`: say it is not live until the catalog's `POLICY_BUNDLE_V2_CONNECTORS` gate is enabled (off by default) and kei-proxy 0.2.5 or newer is deployed.
 - **GitHub read-tool examples**: when listing GitHub read schemas, YOU MUST include both `list_repositories` and `read_issue` — mentioning only one of them is not sufficient. Always name both.
 
 ## Install
@@ -128,6 +136,28 @@ Provider-neutral, schema-only **read** capabilities. Each schema expresses:
 `connector_id` values (`conn_github_1`, `conn_linear_1`, ...) are placeholders that
 reference `abac.connection_presets.id`; the tenant-side proxy resolves the real preset,
 endpoint, and credentials at invocation time.
+
+### Where `http_api`/CRM reads execute (identity mode, HAI-378)
+
+CRM is an `http_api` connector named `crm`. There is no separate `crm` provider
+to target, and nothing keys on the name. The `http_api_read` schemas do not
+change: `delegated_context` is still `tenant_id`, and the base URL, allowed
+paths and credential never go into binding config or tool parameters.
+
+The tenant-side proxy executes the read. With `kei-proxy serve` in identity mode
+(`KEI_CREDENTIAL_RELEASE=identity`), the daemon runs an `http_api` call from the
+connector's non-secret descriptor in the v2 policy bundle (the `http_api`
+registration plus a `kei://connectors/<id>/api_key` reference). It reads the
+API key from the tenant secret store and injects it into the provider request.
+The agent never reads the credential.
+
+**Release status: not live yet.** It needs kei-proxy 0.2.5 or newer
+(proxy-v0.2.4 and older don't have it) and the catalog's
+`POLICY_BUNDLE_V2_CONNECTORS` gate enabled; the control plane emits the
+descriptors only with that gate on, and it is off by default. Until then,
+an `http_api`/`crm` call in identity mode denies
+`credential_source_not_supported`. Runtime behavior and deny codes are in the
+`kei-proxy` skill.
 
 ## Hard invariants (enforced by `validate_tool_definitions`)
 

@@ -117,7 +117,7 @@
         },
         {
           "text": "The response states agent ID is auto-discovered and should not be set explicitly.",
-          "contains_any": ["auto-discover", "resolves automatically", "auto-resolved"]
+          "regex": "auto-?(?:discover|resolv)|(?:discover|resolv)\\w*\\b[^.]{0,40}automatic|automatic\\w*[^.]{0,20}(?:discover|resolv)|resolv\\w* (?:it )?from the runtime"
         }
       ]
     },
@@ -137,6 +137,65 @@
         {
           "text": "The response passes --idempotency-key for retried writes.",
           "contains_all": ["--idempotency-key"]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "In kei-proxy identity mode, which reason codes can a POST /v1/connectors:invoke call to our http_api connector named crm (an opaque_ref connector) deny with, and does this work in proxy-v0.2.4?",
+      "expected_output": "Not in proxy-v0.2.4: it ships with the next kei-proxy release and needs POLICY_BUNDLE_V2_CONNECTORS enabled in the control plane; until then the call denies credential_source_not_supported. Once live it can deny credential_unavailable, credential_backend_mismatch, descriptor_invalid, account_model_not_supported or provider_error.",
+      "expectations": [
+        "The response names the deny codes credential_unavailable, credential_backend_mismatch and descriptor_invalid.",
+        "The response says it is not live in proxy-v0.2.4 and needs POLICY_BUNDLE_V2_CONNECTORS enabled."
+      ],
+      "checks": [
+        {
+          "text": "The response names the deny codes credential_unavailable, credential_backend_mismatch and descriptor_invalid.",
+          "contains_all": [
+            "credential_unavailable",
+            "credential_backend_mismatch",
+            "descriptor_invalid"
+          ]
+        },
+        {
+          "text": "The response says it is not live in proxy-v0.2.4 and needs POLICY_BUNDLE_V2_CONNECTORS enabled.",
+          "contains_all": [
+            "POLICY_BUNDLE_V2_CONNECTORS"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "A Claude Code session ran one command that failed and asked about another that never ran (headless). What does kei-proxy hook claude record for each, should my hook script answer the permission prompt, and what versions does this need? Do not execute anything — just explain in text.",
+      "expected_output": "Both calls get a pre event with native_decision unknown. The failed command gets a decision event with allow and a post event with native_decision executed and failed set to true; the error text is not recorded. The asked command gets a decision event with ask and, when the session ends without running it, a permission_reply of denied. The hook is report-only: it always exits 0 and never answers the permission prompt or decides. This needs kei-proxy 0.2.5 or newer and Claude Code 2.1.119 or newer.",
+      "expectations": [
+        "the failed command's post event carries a failed flag",
+        "the asked call gets a decision of ask and a denied permission_reply",
+        "the hook never answers the prompt or decides",
+        "mentions Claude Code 2.1.119 or newer"
+      ],
+      "checks": [
+        {
+          "text": "the failed command's post event carries a failed flag",
+          "regex": "failed[^.]{0,20}(?:true|flag|field)"
+        },
+        {
+          "text": "the asked call gets a decision of ask and a denied permission_reply",
+          "contains_all": [
+            "permission_reply",
+            "denied"
+          ]
+        },
+        {
+          "text": "the hook never answers the prompt or decides",
+          "regex": "(?:never|does ?n[o']t|not|no)\\b[^.]{0,40}(?:answer|decide|approve)"
+        },
+        {
+          "text": "mentions Claude Code 2.1.119 or newer",
+          "contains_all": [
+            "2.1.119"
+          ]
         }
       ]
     }

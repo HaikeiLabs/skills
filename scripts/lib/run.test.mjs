@@ -4,28 +4,48 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeBenchmark } from './benchmark.mjs';
-import { DEFAULT_RUN_TIMEOUT_SECONDS, parseModelProfile, resolveRunTimeoutSeconds, runCommand, runError,
+import { DEFAULT_RUN_TIMEOUT_SECONDS, noAnswer, parseModelProfile, resolveRunTimeoutSeconds, runCommand, runError, stripAnsi,
   timeoutSummary, timingRecord } from './run.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const profiles = readFileSync(path.join(ROOT, 'evals/model-profiles.yaml'), 'utf8');
 
-test('both model profiles set an 1800 s run timeout', () => {
+test('both shipped profiles set an 1800 s run timeout, temperature 0, a fixed seed and no thinking', () => {
   assert.deepEqual(parseModelProfile(profiles, 'qwen3.8-27b'),
-    { model: 'eval/qwen3.8-27b', baseUrlEnv: 'EVAL_QWEN_BASE_URL', runTimeoutSeconds: 1800 });
-  const deepseek = parseModelProfile(profiles, 'deepseek-v4-flash');
-  assert.equal(deepseek.runTimeoutSeconds, 1800);
-  assert.equal(resolveRunTimeoutSeconds({ profile: deepseek.runTimeoutSeconds }), 1800);
-  assert.equal(resolveRunTimeoutSeconds({}), DEFAULT_RUN_TIMEOUT_SECONDS);
+    { model: 'eval/qwen3.8-27b', baseUrlEnv: 'EVAL_QWEN_BASE_URL', runTimeoutSeconds: 1800, temperature: 0, seed: 42,
+      thinking: false });
+  assert.deepEqual(parseModelProfile(profiles, 'deepseek-v4-flash'),
+    { model: 'eval/deepseek-ai/DeepSeek-V4-Flash', baseUrlEnv: 'EVAL_DEEPSEEK_BASE_URL', runTimeoutSeconds: 1800,
+      temperature: 0, seed: 42, thinking: false });
   assert.equal(parseModelProfile(profiles, 'no-such-profile'), null);
 });
 
 test('parses profile fields in any order and stops at the next profile', () => {
   const yaml = 'profiles:\n  a:\n    run_timeout_seconds: 90\n    # note\n\n    opencode_model: eval/a\n  b:\n    opencode_model: eval/b\n';
-  assert.deepEqual(parseModelProfile(yaml, 'a'), { model: 'eval/a', baseUrlEnv: undefined, runTimeoutSeconds: 90 });
-  assert.equal(parseModelProfile(yaml, 'b').runTimeoutSeconds, undefined);
+  assert.deepEqual(parseModelProfile(yaml, 'a'),
+    { model: 'eval/a', baseUrlEnv: undefined, runTimeoutSeconds: 90, temperature: undefined, seed: undefined,
+      thinking: undefined });
+  const b = parseModelProfile(yaml, 'b');
+  assert.equal(b.runTimeoutSeconds, undefined);
+  assert.equal(resolveRunTimeoutSeconds({ profile: b.runTimeoutSeconds }), DEFAULT_RUN_TIMEOUT_SECONDS);
   assert.throws(() => parseModelProfile('profiles:\n  c:\n    opencode_model: m\n    run_timeout_seconds: soon\n', 'c'),
     /c\.run_timeout_seconds must be a positive number/);
+});
+
+test('validates temperature, seed and thinking', () => {
+  const p = (field) => parseModelProfile(`profiles:\n  c:\n    opencode_model: m\n    ${field}\n`, 'c');
+  assert.equal(p('temperature: 0.2').temperature, 0.2);
+  assert.equal(p('seed: 7').seed, 7);
+  assert.throws(() => p('temperature: -1'), /c\.temperature must be a number >= 0/);
+  assert.throws(() => p('temperature: hot'), /c\.temperature must be a number >= 0/);
+  for (const bad of ['seed: 1.5', 'seed: -3', 'seed: abc']) {
+    assert.throws(() => p(bad), /c\.seed must be a non-negative integer/, bad);
+  }
+  assert.equal(p('thinking: false').thinking, false);
+  assert.equal(p('thinking: true').thinking, true);
+  for (const bad of ['thinking: no', 'thinking: 0', 'thinking: False']) {
+    assert.throws(() => p(bad), /c\.thinking must be true or false/, bad);
+  }
 });
 
 test('--run-timeout overrides the profile, which overrides the default', () => {
@@ -58,8 +78,25 @@ test('a run that finishes in time is not marked timed out', async () => {
   assert.equal(res.timedOut, false);
   assert.equal(res.code, 0);
   assert.equal(timingRecord(res, 10).timed_out, false);
-  assert.equal(runError(res, res.stdout), null);
-  assert.equal(runError({ code: 1, stderr: 'boom\nlast line\n', timedOut: false }, ''), 'last line');
+  assert.equal(runError(res), null);
+  assert.equal(runError({ code: 1, stderr: 'boom\nlast line\n', timedOut: false }), 'exit 1: last line');
+  assert.equal(runError({ code: 3, stderr: '', timedOut: false }), 'exit 3');
+});
+
+test('a clean exit with no answer is a failed run, not an error', () => {
+  const stderr = '\u001b[0m→ \u001b[0mSkill "kei-proxy"\n';
+  const res = { code: 0, stderr, timedOut: false };
+  assert.equal(runError(res), null);
+  assert.equal(noAnswer(res, '  \n'), 'no answer (the run ended after: → Skill "kei-proxy")');
+  assert.equal(noAnswer({ code: 0, stderr: '', timedOut: false }, ''), 'no answer');
+  assert.equal(noAnswer(res, 'an answer'), null);
+  assert.equal(noAnswer({ code: 1, stderr, timedOut: false }, ''), null);
+  assert.equal(noAnswer({ code: null, stderr, timedOut: true }, ''), null);
+  assert.equal(runError({ code: 2, stderr, timedOut: false }), 'exit 2: → Skill "kei-proxy"');
+});
+
+test('stripAnsi removes colour codes', () => {
+  assert.equal(stripAnsi('\u001b[0m→ \u001b[1;32mok\u001b[0m'), '→ ok');
 });
 
 test('timeouts count as benchmark errors with reason "timeout" and get a summary line', () => {

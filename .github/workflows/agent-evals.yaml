@@ -64,12 +64,11 @@ env:
   # Model profiles and the runner come from the pinned grader commit below, not
   # from this pull request's evals/ or scripts/, so nothing here is global.
   EVAL_GLOBAL_PATHS: ""
-  # HaikeiLabs/skills at the HAI-470 runner (skills#83, on top of #73's per-run
-  # opencode data home): the profiles' temperature 0 and seed sent with every
-  # request, and a skill score of passed runs / total runs. Its profiles carry
-  # the concurrency the gate runs each model at (deepseek 4, qwen 2). Move to
-  # its merge commit once it lands.
-  EVAL_RUNNER_REF: "0d980d91e3b7009cc79532c696979d1277b04118"
+  # HaikeiLabs/skills main after #96, #97 and #102: temperature 0, seed 42 and
+  # thinking off sent with every request; a skill score of passed runs / total
+  # runs; a clean exit with no answer graded as a failed run, not an error; and
+  # the profiles' concurrency the gate runs each model at (deepseek 4, qwen 1).
+  EVAL_RUNNER_REF: "50ed25939bae725f690e5012e41f4c21d8fedcbe"
   # EDIT-END settings
   EVAL_THRESHOLD: "0.95"
   # EV-C1 §3 profile names; each needs its base_url_env set on the runner.

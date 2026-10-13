@@ -18,4 +18,6 @@ node scripts/run-evals.mjs --skill CONNECTOR_NAME --harness opencode \
 
 ## Results
 
-See `results/` for committed benchmark outputs.
+Don't commit local runs. The agent-evals CI gate and its sticky pull request
+comment are the record of a skill's pass rates; local runs (under `evals-out/`,
+ignored by git) are for tuning.

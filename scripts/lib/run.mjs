@@ -22,7 +22,28 @@ export function parseModelProfile(yamlText, name) {
     model: fields.opencode_model,
     baseUrlEnv: fields.base_url_env,
     runTimeoutSeconds: timeout === undefined ? undefined : positiveSeconds(timeout, `${name}.run_timeout_seconds`),
+    temperature: fields.temperature === undefined ? undefined : temperature(fields.temperature, `${name}.temperature`),
+    seed: fields.seed === undefined ? undefined : seed(fields.seed, `${name}.seed`),
+    thinking: fields.thinking === undefined ? undefined : bool(fields.thinking, `${name}.thinking`),
   };
+}
+
+function bool(value, label) {
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  throw new Error(`${label} must be true or false`);
+}
+
+function temperature(value, label) {
+  const t = Number(value);
+  if (!Number.isFinite(t) || t < 0) throw new Error(`${label} must be a number >= 0`);
+  return t;
+}
+
+function seed(value, label) {
+  const s = Number(value);
+  if (!/^\d+$/.test(value) || !Number.isSafeInteger(s)) throw new Error(`${label} must be a non-negative integer`);
+  return s;
 }
 
 // --run-timeout wins over the profile's run_timeout_seconds, which wins over
@@ -72,14 +93,37 @@ export function timingRecord(res, timeoutSeconds) {
     timed_out: Boolean(res.timedOut), timeout_seconds: timeoutSeconds };
 }
 
-// The error to report for a run that did not produce a gradable answer, or
-// null when it did. A timeout is reported as exactly "timeout".
-export function runError(res, response) {
+// Terminal escape sequences (opencode colours its step lines).
+const ANSI = /\u001b\[[0-9;?]*[ -\/]*[@-~]/g;
+
+export function stripAnsi(text) {
+  return String(text ?? '').replace(ANSI, '');
+}
+
+function lastLine(text) {
+  return stripAnsi(text).split('\n').map((line) => line.trim()).filter(Boolean).pop() ?? null;
+}
+
+// The error to report for a run that did not finish: killed at the timeout
+// (exactly "timeout") or a non-zero exit (the exit code and stderr's last
+// line). null when the harness exited cleanly, even with an empty answer:
+// that is the model's outcome, which noAnswer() grades as a failed run.
+export function runError(res) {
   if (res.timedOut) return 'timeout';
-  if (res.code !== 0 || !response.trim()) {
-    return res.stderr.trim().split('\n').filter(Boolean).pop() ?? `exit ${res.code}`;
+  if (res.code !== 0) {
+    const line = lastLine(res.stderr);
+    return line ? `exit ${res.code}: ${line}` : `exit ${res.code}`;
   }
   return null;
+}
+
+// The failure reason for a clean exit with no answer text, or null when there
+// is an answer. stderr's last line is opencode's last step, e.g. the skill it
+// loaded before the model stopped.
+export function noAnswer(res, response) {
+  if (res.timedOut || res.code !== 0 || response.trim()) return null;
+  const line = lastLine(res.stderr);
+  return line ? `no answer (the run ended after: ${line})` : 'no answer';
 }
 
 export function timeoutSummary(results, timeoutSeconds) {

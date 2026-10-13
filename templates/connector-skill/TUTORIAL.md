@@ -391,8 +391,8 @@ node scripts/run-evals.mjs --skill pagerduty-connector \
 This runs each eval case with the model, once with the skill installed in a
 scratch project and once without (baseline). Model responses can vary between
 runs. Deterministic checks grade each expectation; there is no LLM grader. Use
-`--repeats N` to repeat model runs (default 1); a case passes only if every
-repeat passes. The runner writes `benchmark.json` (`haikei.eval-benchmark.v1`)
+`--repeats N` to repeat model runs (default 1); the pass rate is passed runs /
+total runs. The runner writes `benchmark.json` (`haikei.eval-benchmark.v1`)
 and `benchmark.md`. The default threshold is 0.9 for each skill's with-skill
 case pass rate.
 
