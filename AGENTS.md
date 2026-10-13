@@ -12,9 +12,12 @@ whichever harness you work in (Claude Code, Codex, opencode).
    (`evals/results/<date>-<model>/benchmark.{json,md}`). The agent-evals CI
    gate and its sticky pull request comment are the record. Local runs are for
    tuning, and their output stays in `evals-out/`, which git ignores.
-2. **Temperature 0, no thinking, repeats averaged.** The model profiles in
-   `evals/model-profiles.yaml` set `temperature: 0`, a fixed `seed` and
-   `thinking: false`, and both runners send them with every request. Run each case 2-3 times
+2. **Thinking on, fixed sampling, repeats averaged.** The model profiles in
+   `evals/model-profiles.yaml` set `thinking: true` and a fixed `seed` for
+   every model. DeepSeek samples at `temperature: 0`; Qwen uses its
+   recommended thinking-mode sampling (`temperature: 0.6`, `top_p: 0.95`,
+   `top_k: 20`), because greedy sampling makes it loop with thinking on (owner
+   decision 2026-10-13). Both runners send these with every request. Run each case 2-3 times
    (`--repeats 3`). A suite scores passed runs / total runs, averaged the same
    way as tool-call evals, so one miss isn't a regression. Check whether the
    same case fails across runs.

@@ -1,6 +1,6 @@
 ---
 name: kei-runtime-setup
-description: Stand up a customer-hosted Kei runtime end to end — create the runtime installation, deliver its credential (shown once) to a secret manager, configure `kei-proxy` beside the harness, bootstrap, keep heartbeats running, and bind. Use whenever someone is installing, configuring, containerizing, bootstrapping, or first-activating a Kei runtime, kei-proxy, or kei-connector-runtime, or asks what KEI_RUNTIME_* variables to set, even if they only say "get the bot talking to Kei" or "set up the proxy". For diagnosing an installation that already exists and is misbehaving, use kei-setup-doctor instead.
+description: Stand up a customer-hosted Kei runtime end to end — create the runtime installation, deliver its credential (shown once) to a secret manager, configure `kei-proxy` beside the harness, bootstrap, keep heartbeats running, and bind. Use whenever someone is installing, configuring, containerizing, bootstrapping, or first-activating a Kei runtime, kei-proxy, or kei-connector-runtime, or asks what KEI_RUNTIME_* variables to set, or about credential sync, KEI_CREDENTIAL_SYNC_KEY_ID, Azure Key Vault or managed identity for the runtime, even if they only say "get the bot talking to Kei" or "set up the proxy". For diagnosing an installation that already exists and is misbehaving, use kei-setup-doctor instead.
 ---
 
 # Set up a Kei runtime
@@ -202,8 +202,11 @@ The web reveal shows `KEI_RUNTIME_CONTROL_PLANE_URL`, `KEI_RUNTIME_TOKEN`,
 and the bootstrap command. `KEI_CREDENTIAL_STORE_INSTALLATION_ID` (the
 **credential-store installation ID** (an installation used for secret-sync routing)
 is **not** in the reveal — find it on the **Credential store** page or via
-`kei credential-store get`. It is only needed for credential-store sync;
-most deployments do not need it at all.
+`kei credential-store get`. A runtime that receives model-profile API keys or
+connector secrets through credential sync needs it: bootstrap registers the
+runtime's sync key only when it is set (see
+[Credential store and credential sync](#credential-store-and-credential-sync)).
+A runtime that never receives synced secrets doesn't.
 
 ## 4–6. Configure and bootstrap — pick your path
 
@@ -318,6 +321,99 @@ the governed authorize and session routes are **socket-only** (the TCP
 listener returns 404 for them). See `docs/unix-socket.md` in the
 kei-connector-runtime repo for the full socket contract.
 
+#### Credential store and credential sync
+
+Model-profile API keys and connector secrets reach a customer runtime through
+credential sync. Everything stays in your environment:
+1. When an admin sets or rotates a key, the control plane seals it to the
+   runtime's public sync key and queues a delivery.
+2. `kei-proxy credential sync` claims the delivery, opens it with the private
+   sync key, writes it to **your** secret store, and acknowledges it.
+3. kei-proxy reads it from that store when it calls the model or connector.
+
+Kei never holds the private sync key, and plaintext stays in the container
+and the vault. Delivering **model-profile keys** this way is live. Only
+identity-mode `opaque_ref` connectors are gated (see below).
+
+**1. Create the credential store** (org owner/admin, once):
+
+```sh
+# Azure Key Vault
+kei credential-store put --secret-backend azure-key-vault \
+  --backend-config '{"key_vault_uri":"https://<vault>.vault.azure.net"}'
+kei credential-store get    # shows the store and its installation ID
+```
+
+The runtime only accepts Azure secret references of the form
+`https://<vault>.vault.azure.net/secrets/<name>[/<version>]`. Other backends
+are `aws-secrets-manager` and `gcp-secret-manager`; check `kei credential-store
+put --help` for flags.
+
+**2. Generate the sync key pair.** kei-proxy has no keygen command.
+- `KEI_CREDENTIAL_SYNC_PRIVATE_KEY` is a **raw 32-byte X25519 private key,
+  base64-encoded** (padded or unpadded).
+- `KEI_CREDENTIAL_SYNC_KEY_ID` is a free-form identifier. Keep it stable and
+  unique per installation (for example `chat-sync-1`), and use a new ID when you
+  rotate the key.
+
+Generate the key straight into your secret manager so it's never printed.
+This needs OpenSSL 3 (macOS LibreSSL may not support X25519). The last 32 bytes
+of the DER output are the raw key:
+
+```sh
+openssl genpkey -algorithm X25519 -outform DER | tail -c 32 | base64 \
+  | <your secret manager's write-from-stdin command>
+```
+
+Inject it into the runtime as a secret-referenced environment variable, the
+same way as `KEI_RUNTIME_TOKEN`.
+
+**3. Registration is automatic.** `kei-proxy runtime bootstrap` derives the
+public key and registers it with the control plane itself (`PUT
+/api/v1/runtime/credential-sync-keys`), and `kei-proxy runtime heartbeat`
+repeats the same idempotent registration. There's no separate registration
+step. It happens **only when all three** are set:
+- `KEI_CREDENTIAL_STORE_INSTALLATION_ID`
+- `KEI_CREDENTIAL_SYNC_KEY_ID`
+- `KEI_CREDENTIAL_SYNC_PRIVATE_KEY`
+
+If one is missing, registration is skipped without an error and nothing is
+ever sealed to this runtime.
+
+**4. Cloud identity and permissions.**
+- **Azure:** kei-proxy uses `DefaultAzureCredential`. With a
+  **user-assigned managed identity**, set `AZURE_CLIENT_ID` to that identity's
+  client ID; without it the credential can't pick the identity.
+- **What to grant:** sync writes secrets and serve reads them, so grant
+  **get and set** on secrets in that vault only. "Key Vault Secrets User" is
+  read-only, which isn't enough. Use a custom role with get + set.
+- **Deleting:** sync does not delete secrets. Remove an old one by hand if you
+  ever need to; don't grant delete for it.
+- **AWS and GCP:** kei-proxy uses the AWS default credentials chain (for
+  example IRSA or an instance role) or GCP Application Default Credentials
+  (workload identity). Grant the same get + set, no delete.
+
+**5. Run sync after every key or secret change.** Supervisors don't run it for
+you. For example, the openwebui-kei image's entrypoint starts bootstrap,
+`serve` and heartbeat, but it does not run credential sync.
+- Each run claims **one** pending delivery. Repeat until the output shows
+  `"claimed": false`, e.g. after each profile or key change, or on a schedule
+  next to heartbeat.
+- Run it with the same `KEI_RUNTIME_STATE_DIR` as `kei-proxy serve`.
+- The output names what was delivered, never the value.
+
+```sh
+kei-proxy credential sync | jq '{claimed, success}'
+```
+
+**Keep it private.**
+- kei-proxy serves on a Unix socket; keep its TCP listener on loopback
+  (`KEI_PROXY_LISTEN_ADDR=127.0.0.1:...`), never on an ingress port.
+- Only the harness's own UI belongs behind your ingress.
+- Keep the model endpoints and the secret store on private networking.
+- Never put the sync private key, `KEI_RUNTIME_TOKEN` or provider keys in argv,
+  logs or an image.
+
 #### Identity mode: deliver each `opaque_ref` secret first
 
 Not live yet: this needs the catalog's `POLICY_BUNDLE_V2_CONNECTORS` gate
@@ -332,10 +428,13 @@ tenant secret store, and it can only find that secret if
 **`kei-proxy credential sync` has already delivered it to this runtime**.
 
 1. The runtime needs a credential-sync key (`KEI_CREDENTIAL_SYNC_KEY_ID`,
-   `KEI_CREDENTIAL_SYNC_PRIVATE_KEY`) next to `KEI_RUNTIME_TOKEN` and
-   `KEI_RUNTIME_CONTROL_PLANE_URL`. Without a runtime that can receive
-   secrets, `kei connectors create` refuses the secret ("set up a credential
-   store and a runtime with a credential-sync key first").
+   `KEI_CREDENTIAL_SYNC_PRIVATE_KEY`, registered at bootstrap with
+   `KEI_CREDENTIAL_STORE_INSTALLATION_ID`; see
+   [Credential store and credential sync](#credential-store-and-credential-sync))
+   next to `KEI_RUNTIME_TOKEN` and `KEI_RUNTIME_CONTROL_PLANE_URL`. Without a
+   runtime that can receive secrets, `kei connectors create` refuses the
+   secret ("set up a credential store and a runtime with a credential-sync key
+   first").
 2. Setting a connector secret (`kei connectors create`, or
    `kei connectors reconnect ID --workspace WS` for a replacement, with the
    value on stdin) seals it to the runtime and queues a delivery. The
@@ -528,7 +627,22 @@ kei connectors list --workspace WS           # the connector is active once its 
   `kei-proxy` binary for the bootstrap and heartbeat steps: bootstrap with
   `kei-proxy runtime bootstrap`, then keep kei-proxy runtime heartbeat
   running, then bind.
-- Whenever an answer covers identity-mode connector descriptors,
-  `opaque_ref` secrets, or `kei-proxy credential sync`, YOU MUST say it is
-  not live yet: it needs the catalog's **`POLICY_BUNDLE_V2_CONNECTORS`** gate
+- Delivering **model-profile API keys** with `kei-proxy credential sync` is
+  live: do not call it "not live". When an answer covers it, give the sync key
+  format (base64 32-byte X25519), say bootstrap registers the key only when
+  `KEI_CREDENTIAL_STORE_INSTALLATION_ID`, `KEI_CREDENTIAL_SYNC_KEY_ID` and
+  `KEI_CREDENTIAL_SYNC_PRIVATE_KEY` are all set, and say sync must be run (one
+  delivery per run) because supervisors don't run it.
+- Whenever someone asks whether a supervisor or entrypoint (such as the
+  openwebui-kei image) runs credential sync, YOU MUST start the answer with
+  "No: it does not run credential sync", say to run `kei-proxy credential
+  sync` yourself after each key change, and say each run claims one pending
+  delivery.
+- Whenever an answer covers Azure Key Vault or a managed identity for
+  credential sync, YOU MUST say to set `AZURE_CLIENT_ID` for a user-assigned
+  managed identity, to grant **get and set** on secrets, and to grant **no
+  delete** (admins remove old secrets by hand).
+- Whenever an answer covers identity-mode connector descriptors or
+  `opaque_ref` connector secrets, YOU MUST say that path is not live yet: it
+  needs the catalog's **`POLICY_BUNDLE_V2_CONNECTORS`** gate
   enabled (off by default) and kei-proxy **0.2.5 or newer** deployed.
