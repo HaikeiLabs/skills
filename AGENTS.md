@@ -29,7 +29,18 @@ whichever harness you work in (Claude Code, Codex, opencode).
    If AgentPedro can't push a change, for example a `.github/workflows/*` file
    while its token has no Workflows permission, stop that change and record a
    blocker instead of using another account.
-5. **Local Qwen runs take the Qwen lock.** Qwen is served by a single GPU that
+5. **One run on pull requests, three nightly; `evals:tuning` while tuning**
+   (owner decision 2026-10-13, HAI-521). The gate runs the changed suites once
+   per case on a pull request, and every suite 3 times per case nightly on
+   `main` (09:00 UTC, or by hand with workflow_dispatch). The nightly average
+   is the record: a failing sweep opens or updates the "Nightly agent evals
+   below 95%" issue, and a passing one closes it. While a pull request is
+   still tuning a skill, add the `evals:tuning` label: nothing runs, and the
+   gate fails with "evals:tuning is set: remove the label to run the gate
+   before merge". Remove the label only after the suite reaches at least 95%
+   locally on both model profiles at `--repeats 3`. Removing it runs the gate.
+   The runbook is HaikeiLabs/kei `docs/agent-evals-gate.md` (Cadence).
+6. **Local Qwen runs take the Qwen lock.** Qwen is served by a single GPU that
    the CI gate shares, and the gate runs it at concurrency 1. Run every local
    `qwen3.8-27b` eval through the worker host's turnlock, whose Qwen queue has
    1 slot, at `--jobs 1` and one suite per ticket:
