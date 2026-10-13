@@ -12,14 +12,15 @@ time; that is `kei-proxy`.
 
 | | `kei` — platform admin (this skill) | `kei-proxy` — runtime for agent interaction |
 | --- | --- | --- |
-| Who runs it | A person: org `owner`/`admin` | The harness — as a one-shot CLI subprocess per governed operation, or as a `kei-proxy serve` daemon over a Unix socket |
+| Who runs it | A person: org `owner`/`admin` | The harness — as a `kei-proxy serve` daemon over a Unix socket (primary, through the agentware socket client), or as a one-shot CLI subprocess per governed operation (fallback with no daemon) |
 | Auth | `kei login` → CLI token in the OS keychain | `KEI_RUNTIME_TOKEN` in the harness environment |
-| Jobs | Login, installations, runtime credentials, bind, agents-on-installation | Allow/deny each tool call (`kei-proxy authorize`), governed connector calls (`kei-proxy connector invoke`), heartbeat, audit shipping |
+| Jobs | Login, installations, runtime credentials, bind, agents-on-installation | Allow/deny each tool call (socket `POST /v1/authorize`, or `kei-proxy authorize`), governed connector calls (`kei-proxy connector invoke`), heartbeat, audit shipping |
 | Skill | `kei-cli` | `kei-proxy` |
 
 If the task is "make the agent's tool call go through Kei" or "check whether
-the agent may do X", the answer is `kei-proxy authorize` — load `kei-proxy`,
-not this skill. An agent never needs `kei login` to do its work. `kei setup`
+the agent may do X", the answer is kei-proxy (`kei-proxy serve` with the
+agentware socket client; `kei-proxy authorize` as the no-daemon fallback) —
+load `kei-proxy`, not this skill. An agent never needs `kei login` to do its work. `kei setup`
 and `kei runtime bootstrap` are the only bridge: admin conveniences that write
 local runtime config and invoke `kei-proxy` to verify it.
 

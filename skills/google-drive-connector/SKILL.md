@@ -191,10 +191,12 @@ user's own Google OAuth token**:
   `Authorization` header, as below.
 - **A child carries its parent.** A new doc always gets
   `parents: [<folder_id>]`. An update targets `<doc_id>`.
-- **Governed harness.** Ask `kei-proxy authorize` before the write, with the
-  resource `drive:folder/<folder_id>` for a create or `drive:doc/<doc_id>`
-  for an update. Write only on allow. When the harness uses agentware, its
-  `KeiProxyEvaluator` makes this call.
+- **Governed harness.** Ask kei-proxy before the write, with the resource
+  `drive:folder/<folder_id>` for a create or `drive:doc/<doc_id>` for an
+  update. Write only on allow. When the harness uses agentware, its
+  `KeiProxyEvaluator` makes this call over the `kei-proxy serve` socket
+  client (the `kei-proxy authorize` CLI is the fallback with no daemon); a
+  socket that is down is a deny, never a fall back.
 - **Always give the exact commands.** Even when you cannot read the file or
   run anything yourself, reply with the whole recipe below. That means the
   `drive.file` token step, the preflight, and the exact `curl` write:

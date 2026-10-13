@@ -1,6 +1,6 @@
 ---
 name: kei-harness-setup
-description: "Connect Claude Code, Codex, OpenCode, or Cursor to Kei governance. Install the Haikei skills, pair the harness with a runtime installation and kei-proxy, pass identity on governed calls, and prove unbound calls are denied. Use for these harnesses, custom/SDK harnesses, and product harness routing. For Pi package installation and its local-socket adapter, use `kei-pi-setup`."
+description: "Connect Claude Code, Codex, OpenCode, or Cursor to Kei governance. Install the Haikei skills, pair the harness with a runtime installation and kei-proxy, pass identity on governed calls, and prove unbound calls are denied. Use for these harnesses, custom/SDK harnesses (`kei-proxy serve` plus the agentware socket client, tool-manifest sync, the `kei-proxy authorize` CLI as the no-daemon fallback), and product harness routing. For Pi package installation and its local-socket adapter, use `kei-pi-setup`."
 ---
 
 # Set up a harness with Kei
@@ -206,8 +206,11 @@ kei runtime bootstrap     # runs the bundled kei-proxy to verify + heartbeat
 kei bot bind --installation ID
 ```
 
-For harnesses that spawn `kei-proxy` per call, the process needs
-`KEI_RUNTIME_TOKEN` and `KEI_RUNTIME_CONTROL_PLANE_URL` in its environment;
+A custom/SDK harness runs `kei-proxy serve` beside it and sets
+`KEI_RUNTIME_SOCKET_PATH` so the agentware socket client is used (section 3a).
+It also needs `KEI_RUNTIME_TOKEN` and `KEI_RUNTIME_CONTROL_PLANE_URL` in its
+environment, for the session and model routes and the tool-manifest sync (the
+one-shot `kei-proxy authorize` fallback needs the same two);
 load these from the secret manager and never put the token in a repository
 config. **Pi is the exception:** its `kei-lime-pi` extension uses the local
 owner-only Unix socket, and the daemon retains the runtime token. Do not pass
@@ -269,16 +272,18 @@ sync` overwrites the harness's native config file for the matched kind.
 ## 4. Pass identity on every governed call
 
 A tool call is **governed** when it touches tenant data, external systems, or
-credentials: it goes through `kei-proxy authorize` (or the agentware
-`KeiProxyEvaluator` — see the `agentware-sdk` skill), Kei policy decides, the
+credentials: it goes through kei-proxy (the agentware `KeiProxyEvaluator` over
+the `kei-proxy serve` socket client, or the `kei-proxy authorize` CLI as the
+fallback — see the `agentware-sdk` skill), Kei policy decides, the
 decision is audited, and enrollment or approval can apply. A call that is
 **non-governed** runs locally and never reaches Kei. When unsure, treat the
 tool as governed. The full distinction is in the `kei-proxy` skill.
 
-The adapter calls `kei-proxy authorize` before a governed tool runs and obeys
-the result: exit code `0` means allowed; any non-zero exit (a deny, or an
-error such as an unreachable control plane) means do not run the tool. The
-full flag and env reference is in the `kei-proxy` skill. Identity and
+The adapter asks kei-proxy before a governed tool runs and obeys the result.
+Over the socket, only an explicit `permit` allows; with the CLI fallback, exit
+code `0` means allowed and any non-zero exit (a deny, or an error such as an
+unreachable control plane) means do not run the tool. The full flag and env
+reference is in the `kei-proxy` skill. For the CLI fallback, identity and
 delegation come from flags or environment:
 
 ```text
@@ -301,14 +306,40 @@ To read the assigned agent ID at runtime, use the agentware SDK's
 `link.identity()` (see `agentware-sdk` skill). If identity is not available,
 deny governed calls — never guess a fallback agent ID.
 
-### 3a. Use KeiProxyEvaluator instead of hand-rolling authorize
+### 3a. Use KeiProxyEvaluator over the socket client
 
 If your harness imports the agentware SDK (any of the three ports), use
-`KeiProxyEvaluator` instead of calling `kei-proxy authorize` directly. It
-handles spawn, timeout, env filtering, decision parsing, enrollment
-extraction, and all fail-closed invariants. See the `agentware-sdk` skill for
-per-language construction, the decision table, and testing with shared
-fixtures.
+`KeiProxyEvaluator` instead of calling `kei-proxy authorize` directly. The
+primary path is **`kei-proxy serve` plus the SDK socket client**:
+
+1. **Before serving, sync the tool manifest**: `sync_tool_manifest`
+   (Python), `syncToolManifest` (TypeScript), `toolsync.Sync` (Go). It
+   registers the harness's governed tools with the runtime token and
+   **refuses an empty manifest**. A failed sync means the harness does not
+   serve.
+2. **Build the client with the selector**: `select_authorization_client`
+   (Python), `selectAuthorizationClient` (TypeScript),
+   `runtimesocket.SelectAuthorizationClient` (Go). With
+   `KEI_RUNTIME_SOCKET_PATH` set (or an explicit path) it returns the socket
+   client, which opens a `kei.session/v2` session per user
+   (`PUT /v1/session`) and authorizes in it (`POST /v1/authorize` with
+   `X-Kei-Session`). With no socket configured it returns the
+   `kei-proxy authorize` subprocess client: the **fallback** for one-shot
+   environments with no daemon.
+3. Wrap it in `KeiProxyEvaluator`.
+
+```python
+from haikeilabs.agentware.kei import (   # pedro_agentware.kei still works (deprecated shim)
+    KeiProxyEvaluator, ToolManifestSyncConfig, select_authorization_client, sync_tool_manifest,
+)
+sync_tool_manifest(manifest_json, ToolManifestSyncConfig.from_env(), expect_tools=True)
+evaluator = KeiProxyEvaluator(select_authorization_client("my-harness"))
+```
+
+Fail-closed rules: **a configured socket that is down is a refusal
+(`proxy_unavailable`), never a silent fall back** to the CLI, and the runtime
+token is never logged. See the `agentware-sdk` skill for the TypeScript and Go
+spellings, the decision table, and testing with shared fixtures.
 
 Do **not** keep a local allow list in the harness. The workspace policy bundle
 (`kei-proxy` + `kei-policy-catalog`) is the single source of truth for what
@@ -317,13 +348,17 @@ is allowed. A local allow list is stale on deploy and invisible to audit.
 > **Future (HAI-124):** Catalog-distributed policy bundles will let the
 > control plane push policy updates to runtimes without a deploy. Until then,
 > the runtime boots with the bundle it fetched at bootstrap. `KeiProxyEvaluator`
-> works the same way either way — it asks `kei-proxy` every time.
+> works the same way either way — it asks `kei-proxy` every time. The socket
+> client's `policy_bundle_status()` / `policyBundleStatus()` /
+> `PolicyBundleStatus` reports which bundle the daemon holds.
 
 ## 5. Register tools and bind connectors (console)
 
-Registering the harness's skills and tool IDs against the installation, and
-binding connectors and capabilities to an agent, happen in the web app today
-(**Agents → Bindings**). There is no `kei` command for them and no
+A custom/SDK harness registers its own governed tools at startup with the
+agentware tool sync (section 3a): a `PUT` of its tool manifest to the
+installation's tool catalog, authenticated with the runtime token. Binding
+connectors and capabilities to an agent happens in the web app today
+(**Agents → Bindings**). There is no `kei` command for it and no
 resource-oriented API yet. A tool is not allowed just because the adapter
 exposes it; baseline tools like `search_wiki` and `web_search` are
 policy-governed too.
@@ -343,6 +378,11 @@ kei-proxy authorize --user TEST_USER_ID --tool github.create_pr \
 kei-proxy authorize --user UNBOUND_USER --tool nonexistent.tool \
   --action unknown:action --resource unknown:resource; echo "exit=$?"
 ```
+
+With the daemon, prove the same through the socket client: the evaluator
+denies the unbound tool. Then stop `kei-proxy serve` with
+`KEI_RUNTIME_SOCKET_PATH` still set: every governed call must be denied with
+`proxy_unavailable`, never silently retried through the CLI.
 
 The unbound call must be denied without any provider call and produce only
 redacted audit metadata. Exit code `0` is ALLOW; any non-zero exit is DENY

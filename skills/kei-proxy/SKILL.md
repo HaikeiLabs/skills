@@ -1,12 +1,16 @@
 ---
 name: kei-proxy
-description: "The `kei-proxy` runtime executable (kei-connector-runtime) — what an agent harness calls at run time to get a governed decision: `kei-proxy authorize` before a tool call (one-shot CLI), `kei-proxy serve` to run as a long-lived daemon exposing HTTP over a Unix socket (readiness, model routes; governed authorize route tracked by HAI-272), `connector invoke` for governed data, `runtime bootstrap|heartbeat`, `collector` for audit shipping, `hook` for report-only harness audit events, `model`, and `credential sync`. Load whenever code or config in a harness, adapter, container, or agent calls kei-proxy, sets KEI_RUNTIME_* or KEI_PROXY_* variables, reads its exit codes or JSON, or someone asks how an agent's tool call gets allowed or denied by Kei. Not for platform administration (logins, installations, credentials) — that is the `kei` CLI (kei-cli skill)."
+description: "The `kei-proxy` runtime executable (kei-connector-runtime) — what an agent harness calls at run time to get a governed decision: `kei-proxy serve`, the long-lived daemon a harness talks to over an owner-only Unix socket (sessions, local-PDP `POST /v1/authorize`, models, chat, policy-bundle status) through the agentware socket client, `kei-proxy authorize` as the one-shot CLI fallback when no daemon runs, `connector invoke` for governed data, `runtime bootstrap|heartbeat`, `collector` for audit shipping, `hook` for report-only harness audit events, `model`, and `credential sync`. Load whenever code or config in a harness, adapter, container, or agent calls kei-proxy, sets KEI_RUNTIME_* or KEI_PROXY_* variables, reads its exit codes or JSON, or someone asks how an agent's tool call gets allowed or denied by Kei. Not for platform administration (logins, installations, credentials) — that is the `kei` CLI (kei-cli skill)."
 ---
 
 # kei-proxy (runtime for agent interaction)
 
-A tool adapter asks `kei-proxy authorize` before every tool call. Exit 0 means
-allow; treat any non-zero exit as deny. The runtime credential comes from the
+A harness asks kei-proxy before every governed tool call. The primary path is
+**`kei-proxy serve`**, the daemon beside the harness, reached over its
+owner-only Unix socket with the agentware **socket client**: open a session for
+the user, then `POST /v1/authorize` in it. The one-shot `kei-proxy authorize`
+CLI (exit 0 means allow; treat any non-zero exit as deny) is the **fallback**
+for environments with no daemon. The runtime credential comes from the
 environment (`KEI_RUNTIME_TOKEN`, never an argument), and the agent ID is
 auto-discovered from the runtime installation: never set an agent-ID variable
 or pass `--agent-id`.
@@ -19,7 +23,7 @@ settle which one a task needs before anything else:
 | Who runs it | A person: org `owner`/`admin`, on a workstation | The harness, as a one-shot CLI subprocess per operation OR as a long-running daemon (`kei-proxy serve`) over a Unix socket |
 | Authenticates with | `kei login` device flow → CLI token in the OS keychain | `KEI_RUNTIME_TOKEN` (runtime credential only) from the environment |
 | Talks to | The control plane's admin APIs | The control plane's runtime APIs, plus local secret stores and providers |
-| Jobs | Log in, create/inspect/bind/delete runtime installations, emit/rotate runtime credentials | Decide allow/deny for a tool call, run allowed connector work locally, bootstrap + heartbeat, ship audit, serve readiness + model endpoints over a Unix socket (daemon mode) |
+| Jobs | Log in, create/inspect/bind/delete runtime installations, emit/rotate runtime credentials | Decide allow/deny for a tool call (sessions + local PDP on the socket, or the one-shot CLI), run allowed connector work locally, bootstrap + heartbeat, ship audit, serve model endpoints |
 | Lives | Operator's laptop | Same host or container as the harness (same-host daemon on bare metal, same-container daemon in Docker); optional same-pod companion container on Kubernetes |
 | Skill | `kei-cli` | this one |
 
@@ -34,15 +38,16 @@ Not every tool call a harness makes is governed. The rule is simple: **anything
 that touches tenant data, external systems, or credentials is governed**;
 everything else is local.
 
-- **Governed** — the call goes through `kei-proxy authorize` (or the agentware
-  `KeiProxyEvaluator`, which wraps it — see the `agentware-sdk` skill). Kei
+- **Governed** — the call goes through kei-proxy: the agentware
+  `KeiProxyEvaluator` over the `kei-proxy serve` socket client (or, with no
+  daemon, the `kei-proxy authorize` CLI — see the `agentware-sdk` skill). Kei
   policy decides allow or deny, the decision is audited, and enrollment or
   approval can apply before the tool runs.
 - **Non-governed** — the call runs locally in the harness and never reaches
   Kei. No policy check, no audit event.
 
 When unsure whether a tool is governed, treat it as governed and route it
-through `kei-proxy authorize`. A tool is not governed just because the adapter
+through kei-proxy. A tool is not governed just because the adapter
 exposes it, and a local call is not safe just because it never reaches Kei.
 
 Your knowledge of `kei-proxy` subcommands may be outdated. **Prefer retrieval.**
@@ -60,7 +65,8 @@ later. For example, `authorize` takes `--user`, `--tool`, `--action` and
 | Console: Runtime installations | `https://app.haikeilabs.com/#/docs/add-a-workspace` | Runtime env, bootstrap output, container build |
 | Console: Audit logs | `https://app.haikeilabs.com/#/docs/groups-policies-users` | `collector` |
 | Source | `HaikeiLabs/kei-connector-runtime` (private): `main.go` usage | Ground truth |
-| Socket contract | [`docs/unix-socket.md`](https://github.com/HaikeiLabs/kei-connector-runtime/blob/main/docs/unix-socket.md) in the runtime repo | Socket path, lifecycle, auth, current vs future routes |
+| Socket contract | [`docs/unix-socket.md`](https://github.com/HaikeiLabs/kei-connector-runtime/blob/main/docs/unix-socket.md) in the runtime repo | Socket path, lifecycle, auth, sessions, routes |
+| SDK socket client | `docs/kei-runtime-socket-parity.md` in the agentware repo | Per-language client, session, authorize, models, chat, bundle-status, selector and tool-sync names |
 
 ## FIRST: confirm it is present and configured
 
@@ -94,7 +100,10 @@ the child environment) denies every subject-scoped call with
 `subject_resolution_unavailable` (`request_build`).
 
 When running in daemon mode (`kei-proxy serve`), the socket path defaults to
-`/run/kei-proxy/runtime.sock` and can be overridden with `KEI_RUNTIME_SOCKET_PATH`.
+`/run/kei-proxy/runtime.sock` on Linux (`$TMPDIR/kei-proxy/runtime.sock` on
+macOS) and can be overridden with `KEI_RUNTIME_SOCKET_PATH`. Set the same
+`KEI_RUNTIME_SOCKET_PATH` in the harness: the SDK selectors use the socket
+only when it is configured explicitly.
 The daemon also accepts `KEI_PROXY_LISTEN_ADDR` (TCP, default `:8085`) for
 existing same-container deployments. See `docs/unix-socket.md` in the runtime
 repo for the full socket contract.
@@ -119,7 +128,8 @@ all runtime operations.
 
 | Task | Command |
 | --- | --- |
-| Decide a tool call (and fetch its credential on allow) | `kei-proxy authorize --user U --tool T --action A --resource R` |
+| Decide a tool call (primary) | `PUT /v1/session`, then `POST /v1/authorize` with `X-Kei-Session` on the socket, through the agentware socket client |
+| Decide a tool call with no daemon (fallback; fetches its credential on allow) | `kei-proxy authorize --user U --tool T --action A --resource R` |
 | Invoke a governed data connector | `kei-proxy connector invoke --connector ID --capability C --action A --resource R [--idempotency-key KEY]` |
 | Verify installation + first heartbeat | `kei-proxy runtime bootstrap` |
 | Keep liveness current | `kei-proxy runtime heartbeat --interval 1m` |
@@ -130,7 +140,7 @@ all runtime operations.
 | Model profile / invocation | `kei-proxy model profile …`, `kei-proxy model  # uses runtime identity (no key flag needed)` (request JSON on stdin) |
 | Show bundle state | `kei-proxy policy show` (reads persisted state; never contacts control plane) |
 | Force bundle refresh | `kei-proxy policy sync` (bypasses normal poll schedule) |
-| Long-running daemon (Unix socket + optional TCP) | `kei-proxy serve` (`KEI_RUNTIME_SOCKET_PATH`, default `/run/kei-proxy/runtime.sock`; TCP on `KEI_PROXY_LISTEN_ADDR`, default `:8085`, for existing Docker same-container deployments). Current socket routes: `GET /healthz`, `GET /readyz`, `GET /v1/models`, `POST /v1/chat/completions`. Governed tool authorize route tracked by HAI-272. See `docs/unix-socket.md`. |
+| Long-running daemon (Unix socket + optional TCP) | `kei-proxy serve` (`KEI_RUNTIME_SOCKET_PATH`, default `/run/kei-proxy/runtime.sock`; TCP on `KEI_PROXY_LISTEN_ADDR`, default `:8085`, for existing Docker same-container deployments). Socket routes: `GET /healthz`, `GET /readyz`, `PUT/GET/DELETE /v1/session`, `POST /v1/authorize`, `GET /v1/models`, `POST /v1/chat/completions`, `GET /v1/policy-bundle/status`, `POST /v1/connectors:invoke`. See `docs/unix-socket.md`. |
 
 `kei-proxy org` and `kei-proxy init` also exist. They call the Kei API
 directly with a service secret and are Haikei-internal provisioning tools, not
@@ -140,13 +150,58 @@ For the full lifecycle of bundle identity, polling, state machine, and
 troubleshooting, see [`bundle-versioning.md`](../kei-harness-policy/references/bundle-versioning.md)
 in the kei-harness-policy skill.
 
-## authorize: the per-call decision
+## The socket client: the primary integration
 
-> **If your harness uses the agentware SDK**, prefer `KeiProxyEvaluator`
+Run `kei-proxy serve` beside the harness (same host or container, same UID:
+the socket is mode `0600`) and use the agentware SDK's socket client. The full
+per-language API is in the `agentware-sdk` skill and in
+`docs/kei-runtime-socket-parity.md` in the agentware repo.
+
+1. **Sync the tool manifest before serving.** `sync_tool_manifest` (Python),
+   `syncToolManifest` (TypeScript) or `toolsync.Sync` (Go) `PUT`s the
+   harness's governed tools to `$KEI_RUNTIME_CONTROL_PLANE_URL/api/v1/runtime/tools`
+   with the runtime token. It **refuses an empty manifest** (the PUT replaces
+   the installation's tools). A failed sync means the harness does not serve.
+2. **Select the client.** `select_authorization_client` /
+   `selectAuthorizationClient` / `runtimesocket.SelectAuthorizationClient`
+   returns the socket client when a socket path is configured explicitly (the
+   argument or `KEI_RUNTIME_SOCKET_PATH`), otherwise the `kei-proxy authorize`
+   subprocess client. Wrap it in `KeiProxyEvaluator`.
+3. **Sessions.** The socket client opens one `kei.session/v2` session per
+   `(source, external_id)` with `PUT /v1/session`; requests carry
+   `X-Kei-Session` and never name the user. A `session_not_found` reopens the
+   session once; a second miss fails closed. Models (`GET /v1/models`),
+   chat (`POST /v1/chat/completions`, streamed as SSE) and
+   `GET /v1/policy-bundle/status` are on the same client.
+
+```python
+from haikeilabs.agentware.kei import (   # pedro_agentware.kei still works (deprecated shim)
+    KeiProxyEvaluator, ToolManifestSyncConfig, select_authorization_client, sync_tool_manifest,
+)
+sync_tool_manifest(manifest_json, ToolManifestSyncConfig.from_env(), expect_tools=True)
+evaluator = KeiProxyEvaluator(select_authorization_client("discord"))
+```
+
+**Fail-closed rules for the socket:**
+
+- **A configured socket that is down is a refusal, never a silent fall back**
+  to the CLI. The selector chooses once.
+- An unreachable daemon is `proxy_unavailable`, a timeout `proxy_timeout`, a
+  non-2xx answer `proxy_error` (with the daemon's `code`), a bad body
+  `malformed_response`, no `KEI_RUNTIME_TOKEN` `missing_token`. Each one is a
+  DENY. Only an explicit `permit`/`allow` allows.
+- **The runtime token is never logged.** The client reads `KEI_RUNTIME_TOKEN`
+  per request and sends it only as `Authorization: Bearer`; it is never in a
+  log line, an error message or a repr.
+
+## authorize: the one-shot CLI fallback
+
+> **Use this only where no daemon runs** (a one-shot job, a CI step, a bash
+> script). With the agentware SDK, the selector returns this client
+> automatically when no socket is configured; prefer `KeiProxyEvaluator`
 > (see `agentware-sdk` skill) over calling `kei-proxy authorize` directly.
-> The evaluator handles spawn, timeout, env filtering, decision parsing,
-> enrollment extraction, and all fail-closed invariants. This reference is
-> for direct calls when you cannot use the SDK.
+> The runtime treats the CLI as deprecated, and it does not decide v2 policy
+> bundles; the socket route does.
 >
 **When describing `kei-proxy authorize`, always state that credentials
 come from the `KEI_RUNTIME_TOKEN` environment variable, never from a
@@ -154,8 +209,8 @@ command-line argument.** The token is the sole runtime credential.
 Agent identity is **auto-discovered** from the runtime installation
 credential — do not tell the caller to set `--agent-id`.
 
-The adapter calls this before every governed tool runs and obeys the
-result:
+In the fallback, the adapter calls this before every governed tool runs and
+obeys the result:
 
 ```sh
 kei-proxy authorize --user "$SUBJECT" --tool github.create_pr \
@@ -350,34 +405,30 @@ prints a warning; those calls are recorded with `native_decision: unknown`
 and no `decision` event. Upgrade Claude Code and re-run `kei harness sync`.
 Rendering is covered in the `kei-harness-policy` skill.
 
-## Runtime modes: one-shot CLI vs daemon
+## Runtime modes: daemon (primary) vs one-shot CLI (fallback)
 
 `kei-proxy` supports two modes. Understand which one a task needs before
 writing config or code:
 
 | Mode | Invocation | Listener | Governed authorize | Harness integration |
 | --- | --- | --- | --- | --- |
-| **One-shot CLI** (default) | `kei-proxy authorize ...` per call | None; spawned per call, reads decision from stdout+exit code | Yes — current production path. Agentware `KeiProxyEvaluator` / `KeiProxyAuthorizeClient` spawn the CLI subprocess. | Simplest: harness execs the binary and parses JSON. No listener management needed. |
-| **Daemon** (opt-in) | `kei-proxy serve` (long-lived) | Unix socket (`KEI_RUNTIME_SOCKET_PATH`, default `/run/kei-proxy/runtime.sock`) + optional TCP (`KEI_PROXY_LISTEN_ADDR`) | **Not yet.** The daemon currently exposes readiness (`GET /healthz`, `GET /readyz`) and model routes (`GET /v1/models`, `POST /v1/chat/completions`). A governed tool `POST /v1/authorize` on the socket is tracked by [HAI-272](https://linear.app/haikeilabs/issue/HAI-272) (blocked on HAI-124 local-PDP contract). Agentware harnesses still spawn the CLI subprocess for tool authorize. | Same-host daemon (bare metal) or same-container daemon (Docker); optional same-pod companion container on Kubernetes. Shares a tmpfs volume for the socket file. No TLS — access control is socket file mode 0600 and UID matching. |
+| **Daemon** (primary) | `kei-proxy serve` (long-lived) | Unix socket (`KEI_RUNTIME_SOCKET_PATH`, default `/run/kei-proxy/runtime.sock`) + optional TCP (`KEI_PROXY_LISTEN_ADDR`) | **Yes.** `PUT /v1/session` (`kei.session/v2`), then `POST /v1/authorize` with `X-Kei-Session`, decided by the local PDP against the synced bundle (runtime PRs #78–#80). Also `GET /v1/models`, `POST /v1/chat/completions`, `GET /v1/policy-bundle/status`. | The agentware socket client (`KeiProxySocketAuthorizeClient`, Go `runtimesocket.Client`) through the selector, after a tool-manifest sync. Same-host daemon (bare metal) or same-container daemon (Docker); optional same-pod companion container on Kubernetes sharing the socket directory. No TLS — access control is socket file mode 0600 and UID matching. |
+| **One-shot CLI** (fallback) | `kei-proxy authorize ...` per call | None; spawned per call, reads decision from stdout+exit code | Yes, for v1 bundles; deprecated by the runtime and does not decide v2 bundles. Agentware's `KeiProxyAuthorizeClient` / Go `evaluator.CLIClient` spawn it, and the selector returns it when no socket is configured. | One-shot environments with no daemon: a batch job, a CI step, a bash script. |
 
-The current (HAI-201, PR #40) socket contract is documented in
+The socket contract is documented in
 [`docs/unix-socket.md`](https://github.com/HaikeiLabs/kei-connector-runtime/blob/main/docs/unix-socket.md).
-A draft daemon-socket authorize route (PR #65) was closed because it forwarded
-decisions to the catalog `/api/v1/authorize` and accepted an unauthenticated
-caller-subject — incompatible with ADR-011 (local PDP) and HAI-124 (caller
-identity contract). HAI-272 will supersede it with a local-PDP-backed socket
-authorize API and corresponding Agentware/harness migration.
+The SDK side (the client, sessions, the selector, tool sync and the
+fail-closed classes, identical in Python, TypeScript and Go) is
+`docs/kei-runtime-socket-parity.md` in the agentware repo.
 
-Until HAI-272 ships, treat `kei-proxy authorize` (the CLI subprocess) as the
-production path for governed tool decisions. Do not wire harnesses to call
-authorization over the socket, and do not describe the socket authorize route
-as available or describe the local-PDP migration as complete.
+Choose the mode once, at startup, through the selector: **a configured socket
+that is down is a refusal (`proxy_unavailable`), never a silent fall back** to
+the CLI.
 
-## ADR-011 target: local PDP (not yet implemented)
+## ADR-011 target: local PDP
 
-The one-shot CLI path above is the **present-day** production behavior.
-ADR-011's target is a tenant-side **local PDP** in the runtime. When it ships,
-the runtime will:
+ADR-011's target is a tenant-side **local PDP** in the runtime. The daemon's
+socket authorize route implements it; the target is that the runtime will:
 
 - Make the allow/deny decision **locally on each governed invocation** — with
   **no synchronous catalog approval call and no per-invocation
@@ -399,9 +450,12 @@ becomes trusted local subject attributes, and how pending, denied, revoked,
 unlinked, and cross-workspace identities resolve), and freshness/revocation
 bounds.
 
-**Present-day truth:** the CLI `authorize` path remains the current production
-path until local-PDP runtime support ships. It evaluates the locally persisted
-policy bundle and still bootstraps (whoami and heartbeat) on every call.
+**Present-day truth:** the socket route is the local PDP: `kei-proxy serve`
+decides `POST /v1/authorize` from the locally synced bundle with no per-call
+catalog round trip, and refreshes the bundle in the background. Bundle trust
+(signature verification) is still pending: the bundle is unsigned canonical
+JSON. The CLI `authorize` fallback evaluates the locally persisted policy
+bundle and still bootstraps (whoami and heartbeat) on every call.
 Identity is only for credentials: since kei-proxy 0.1.34, it resolves the
 caller's subject online
 (`subject-attributes:resolve`) only when the tool releases a credential, is
@@ -409,17 +463,15 @@ bound to a connector capability, or a policy reached for the call matches on
 subject attributes (`group:`, `org:`, `user:`, `email:`). A tool such as
 `web_search` under a `*` or `agent:` policy is decided with no subject lookup.
 kei-proxy 0.1.33 and earlier resolve the subject for every call that names a
-user. HAI-272 (Backlog) tracks the socket
-tool-authorize migration; the socket authorize route is **not available**. Do
-not describe the local PDP, bundle verification, or bundle refresh as
-implemented.
+user. Do not describe bundle signature verification as implemented.
 
 ## Validation commands
 
 ```sh
 kei-proxy help
 kei-proxy runtime bootstrap | jq '{installation_id, status, binding_status, workspace_id}'   # workspace_id must be present
-kei-proxy authorize --user U --tool T --action A --resource R; echo "exit=$?"               # expect a deny for an unbound tool
+curl --unix-socket "$KEI_RUNTIME_SOCKET_PATH" http://localhost/readyz                      # daemon up (kei-proxy serve)
+kei-proxy authorize --user U --tool T --action A --resource R; echo "exit=$?"               # CLI fallback: expect a deny for an unbound tool
 ```
 
 ## Realistic usage boundaries
@@ -440,6 +492,12 @@ kei-proxy authorize --user U --tool T --action A --resource R; echo "exit=$?"   
 
 ## Response requirements
 
+- Whenever an answer covers how a harness gets a decision, present
+  **`kei-proxy serve` plus the agentware socket client** as the primary path
+  (tool-manifest sync before serving, then the selector with
+  `KEI_RUNTIME_SOCKET_PATH`), the `kei-proxy authorize` CLI as the
+  **fallback** for one-shot environments with no daemon, and say a configured
+  socket that is down is a refusal, **never a fall back**.
 - Whenever an answer covers calling `kei-proxy` (an adapter, a harness, a
   container, or `authorize`), YOU MUST say that the runtime token comes from
   the **`KEI_RUNTIME_TOKEN`** environment variable, never a command-line

@@ -65,7 +65,7 @@
     {
       "id": 3,
       "prompt": "My agentware harness uses a local Policy today. How do I switch it so Kei's workspace policy decides each tool call instead, and what happens if the kei-proxy binary is missing or KEI_RUNTIME_TOKEN is not set? Do not execute anything — just explain in text, with code where it helps.",
-      "expected_output": "Replace the evaluator with KeiProxyEvaluator(KeiProxyAuthorizeClient(...)) via with_policy; it fails closed — a missing binary (proxy_unavailable) or missing token (missing_token) is a DENY.",
+      "expected_output": "Replace the evaluator with KeiProxyEvaluator(select_authorization_client(...)) via with_policy — the kei-proxy serve socket client when KEI_RUNTIME_SOCKET_PATH is set, else the kei-proxy authorize CLI fallback; it fails closed — a missing binary or unreachable daemon (proxy_unavailable) or missing token (missing_token) is a DENY.",
       "expectations": [
         "uses KeiProxyEvaluator",
         "says a missing binary or token results in a deny",
@@ -177,7 +177,7 @@
     {
       "id": 7,
       "prompt": "Can I just run pip install pedro-agentware from PyPI to get the agentware Python SDK? Do not execute anything — just explain in text, with code where it helps.",
-      "expected_output": "No; the Python package is not on public PyPI. Install from a checkout: pip install -e ./python (TypeScript is on npm as @haikeilabs/agentware).",
+      "expected_output": "No; pedro-agentware is not on public PyPI. The SDK is published as haikeilabs-agentware (import haikeilabs.agentware; pedro_agentware is a deprecated shim); until that release is out, install from a checkout: pip install -e ./python (TypeScript is on npm as @haikeilabs/agentware).",
       "expectations": [
         "says to install from a checkout rather than PyPI"
       ],
@@ -193,6 +193,71 @@
             "is not on public pypi",
             "not available on pypi"
           ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "I'm deploying my Python agentware agent with `kei-proxy serve` running in the same container. Walk me through the code the harness runs at startup so Kei decides each tool call, and say when I would still use the `kei-proxy authorize` CLI. Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "At startup: sync_tool_manifest(registry.export_kei_tool_manifest(), ToolManifestSyncConfig.from_env()) before serving (an empty manifest is refused; a failed sync means do not serve); then client.with_policy(KeiProxyEvaluator(select_authorization_client(source))) with KEI_RUNTIME_SOCKET_PATH set so the socket client is used. The kei-proxy authorize CLI is the fallback for one-shot environments with no daemon.",
+      "expectations": [
+        "syncs the tool manifest with sync_tool_manifest before serving",
+        "builds the evaluator from select_authorization_client",
+        "sets KEI_RUNTIME_SOCKET_PATH so the socket client is used",
+        "keeps the kei-proxy authorize CLI as the fallback when no daemon runs"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "sync_tool_manifest"
+          ],
+          "text": "syncs the tool manifest with sync_tool_manifest before serving"
+        },
+        {
+          "contains_all": [
+            "select_authorization_client",
+            "KeiProxyEvaluator"
+          ],
+          "text": "builds the evaluator from select_authorization_client"
+        },
+        {
+          "contains_all": [
+            "KEI_RUNTIME_SOCKET_PATH"
+          ],
+          "text": "sets KEI_RUNTIME_SOCKET_PATH so the socket client is used"
+        },
+        {
+          "contains_any": [
+            "fallback",
+            "fall back"
+          ],
+          "text": "keeps the kei-proxy authorize CLI as the fallback when no daemon runs"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "In staging my harness has KEI_RUNTIME_SOCKET_PATH set but the kei-proxy daemon crashed. A teammate wants the evaluator to fall back to running `kei-proxy authorize` when the socket is unreachable, and to print KEI_RUNTIME_TOKEN when that happens. Is that OK? Do not execute anything — just explain in text.",
+      "expected_output": "No. A configured socket that is down is a refusal (proxy_unavailable), never a silent fall back to the CLI; KeiProxyEvaluator denies every governed call (fail-closed) until the daemon is back. The runtime token is never logged or printed.",
+      "expectations": [
+        "says an unreachable configured socket is a deny with proxy_unavailable",
+        "says the evaluator never falls back to the CLI",
+        "says the runtime token is never logged or printed"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "proxy_unavailable"
+          ],
+          "text": "says an unreachable configured socket is a deny with proxy_unavailable"
+        },
+        {
+          "regex": "(never|not|no|don't|do not|must not|won't|shouldn't|should not)\\W+(\\w+\\W+){0,4}fall(s|ing)?[ -]?back",
+          "text": "says the evaluator never falls back to the CLI"
+        },
+        {
+          "regex": "(never|not|don't|do not|must not)[^.\\n]{0,40}(log|print)",
+          "text": "says the runtime token is never logged or printed"
         }
       ]
     }

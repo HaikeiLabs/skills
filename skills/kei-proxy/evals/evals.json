@@ -3,8 +3,8 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "I'm writing a tool adapter that needs to check whether an agent is allowed to read a customer record. What executable do I call and how do I handle its exit codes?",
-      "expected_output": "Call kei-proxy authorize with the --tool, --action, --resource, and --user flags. The KEI_RUNTIME_TOKEN env var supplies credentials. Exit 0 is allow, any non-zero (including errors) is deny. Agent ID is auto-discovered from the environment; do not set it.",
+      "prompt": "I'm writing a one-shot batch job (no kei-proxy daemon runs there) that needs to check whether an agent is allowed to read a customer record. What executable do I call and how do I handle its exit codes?",
+      "expected_output": "With no daemon, use the one-shot fallback: call kei-proxy authorize with the --tool, --action, --resource, and --user flags. The KEI_RUNTIME_TOKEN env var supplies credentials. Exit 0 is allow, any non-zero (including errors) is deny. Agent ID is auto-discovered from the environment; do not set it. (Where kei-proxy serve runs, the socket client is the primary path.)",
       "expectations": [
         "The response uses kei-proxy authorize, not the kei admin CLI, for the per-call decision.",
         "The response treats any non-zero exit, including errors, as deny.",
@@ -196,6 +196,71 @@
           "contains_all": [
             "2.1.119"
           ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Our chat bot is a long-running service and kei-proxy can run as a daemon in the same container. How should the bot ask kei-proxy for a per-user tool decision, and what should it do at startup before taking traffic?",
+      "expected_output": "Run kei-proxy serve and set KEI_RUNTIME_SOCKET_PATH; at startup sync the tool manifest (sync_tool_manifest / syncToolManifest / toolsync.Sync; an empty manifest is refused) and pick the client with the selector; the socket client opens a kei.session/v2 session per user with PUT /v1/session and authorizes with POST /v1/authorize and X-Kei-Session. The kei-proxy authorize CLI is the fallback for one-shot environments with no daemon. Runtime token from KEI_RUNTIME_TOKEN, never argv, never logged.",
+      "expectations": [
+        "uses kei-proxy serve over the Unix socket",
+        "opens a session per user before authorizing",
+        "syncs the tool manifest before serving",
+        "keeps the kei-proxy authorize CLI only as the fallback"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "kei-proxy serve"
+          ],
+          "text": "uses kei-proxy serve over the Unix socket"
+        },
+        {
+          "contains_any": [
+            "/v1/session",
+            "open_session",
+            "openSession",
+            "OpenSession"
+          ],
+          "text": "opens a session per user before authorizing"
+        },
+        {
+          "regex": "tool[ -]?manifest|sync_tool_manifest|syncToolManifest|toolsync",
+          "text": "syncs the tool manifest before serving"
+        },
+        {
+          "contains_any": [
+            "fallback",
+            "fall back"
+          ],
+          "text": "keeps the kei-proxy authorize CLI only as the fallback"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "KEI_RUNTIME_SOCKET_PATH is set for our harness, but `kei-proxy serve` isn't running. Should the harness automatically switch to calling `kei-proxy authorize` per call so users aren't blocked? And may it log the runtime token when that happens?",
+      "expected_output": "No. A configured socket that is down is a refusal (proxy_unavailable), never a silent fall back to the CLI; every governed call is denied (fail-closed) until the daemon is back. The runtime token comes from KEI_RUNTIME_TOKEN and is never logged.",
+      "expectations": [
+        "says the call is denied with proxy_unavailable",
+        "says there is no fall back to the CLI",
+        "says the runtime token is never logged"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "proxy_unavailable"
+          ],
+          "text": "says the call is denied with proxy_unavailable"
+        },
+        {
+          "regex": "(never|not|no|don't|do not|must not|won't|shouldn't|should not)\\W+(\\w+\\W+){0,4}(fall(s|ing)?[ -]?back|switch)",
+          "text": "says there is no fall back to the CLI"
+        },
+        {
+          "regex": "(never|not|don't|do not|must not)[^.\\n]{0,40}(log|print)",
+          "text": "says the runtime token is never logged"
         }
       ]
     }

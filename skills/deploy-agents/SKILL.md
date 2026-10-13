@@ -1,6 +1,6 @@
 ---
 name: deploy-agents
-description: Deploy and distribute a governed AI agent with Kei — create a runtime installation and deliver its credential (KEI_RUNTIME_TOKEN) to a secret manager, run kei-proxy as an in-container daemon beside the harness (runtime bootstrap, heartbeat, `kei-proxy serve` on an owner-only Unix socket, per-user sessions, local POST /v1/authorize), bind it, connect the harness (Claude Code, Codex, OpenCode via skills + `kei harness sync`; a Discord or other chat bot via its own installation and per-user sessions), control what the agent may do with policies (tool-call policies by group, harness command policies with `kei policies`), and add connectors whose OAuth is per user (`kei connectors create --account-model per_user`, connect links). Use when someone asks how to ship, deploy, containerize, host, distribute, or roll out an agent built with agentware/kei-agents, how to give it permissions, or how users connect their own accounts. Building the agent is build-agents-agentware; testing it is test-agents.
+description: Deploy and distribute a governed AI agent with Kei — create a runtime installation and deliver its credential (KEI_RUNTIME_TOKEN) to a secret manager, run kei-proxy as an in-container daemon beside the harness (runtime bootstrap, heartbeat, `kei-proxy serve` on an owner-only Unix socket, per-user sessions, local POST /v1/authorize, the agentware socket client with tool-manifest sync), bind it, connect the harness (Claude Code, Codex, OpenCode via skills + `kei harness sync`; a Discord or other chat bot via its own installation and per-user sessions), control what the agent may do with policies (tool-call policies by group, harness command policies with `kei policies`), and add connectors whose OAuth is per user (`kei connectors create --account-model per_user`, connect links). Use when someone asks how to ship, deploy, containerize, host, distribute, or roll out an agent built with agentware/kei-agents, how to give it permissions, or how users connect their own accounts. Building the agent is build-agents-agentware; testing it is test-agents.
 ---
 
 # Deploy and distribute governed agents
@@ -14,8 +14,8 @@ results, and credentials stay in your environment; Kei keeps metadata only.
 ```
  your container ───────────────────────────────────────────────┐
  │  harness (your agent + agentware)                           │
- │      │  KeiProxyEvaluator → kei-proxy authorize  (subprocess)│
- │      │  or POST /v1/authorize over the Unix socket           │
+ │      │  KeiProxyEvaluator → socket client: session, then     │
+ │      │  POST /v1/authorize  (CLI subprocess only as fallback)│
  │      ▼                                                       │
  │  kei-proxy serve  (same UID, socket mode 0600)               │──► Kei control plane
  │      policy bundle · sessions · per-user connector creds     │    (policy, metadata, audit)
@@ -62,8 +62,8 @@ Entrypoint, in order:
 ```sh
 kei-proxy runtime bootstrap                    # verify the installation; prints installation_id, org_id, workspace_id
 kei-proxy runtime heartbeat --interval 1m &    # liveness, under the same supervisor as the harness
-kei-proxy serve &                              # optional daemon: owner-only Unix socket
-exec my-harness
+kei-proxy serve &                              # the daemon: owner-only Unix socket
+exec my-harness                                # syncs its tool manifest, then serves over the socket
 ```
 
 If bootstrap output has no `workspace_id`, stop and re-mint the credential.
@@ -87,11 +87,33 @@ model routes, and the governed routes:
   sessions end after `KEI_SESSION_IDLE_TTL` (default `30m`). An unknown or
   expired id denies `session_not_found`.
 
-The agentware `KeiProxyEvaluator` spawns `kei-proxy authorize` per call. That
-CLI takes `--session` (default `$KEI_SESSION_ID`); the evaluator passes only
-allowlisted `KEI_*` variables to the child, so supply the session id (and a
-non-default socket path) through `extra_env`. Without the daemon, the CLI
-path still works and still fails closed.
+**The harness side: the agentware socket client.** Set
+`KEI_RUNTIME_SOCKET_PATH` in the harness's environment and, at startup:
+
+1. **Sync the tool manifest before serving**: `sync_tool_manifest`
+   (Python), `syncToolManifest` (TypeScript) or `toolsync.Sync` (Go). It
+   `PUT`s the governed tools to the control plane with the runtime token and
+   **refuses an empty manifest** (that PUT would unregister every tool). A
+   failed sync means the harness does not serve.
+2. **Pick the client with the selector**: `select_authorization_client` /
+   `selectAuthorizationClient` / `runtimesocket.SelectAuthorizationClient`.
+   With a socket configured it returns the socket client, which opens a
+   session per user and authorizes in it; otherwise the `kei-proxy authorize`
+   subprocess client. Wrap it in `KeiProxyEvaluator`.
+
+```python
+from haikeilabs.agentware.kei import (   # pedro_agentware.kei still works (deprecated shim)
+    KeiProxyEvaluator, ToolManifestSyncConfig, select_authorization_client, sync_tool_manifest,
+)
+sync_tool_manifest(manifest_json, ToolManifestSyncConfig.from_env(), expect_tools=True)
+evaluator = KeiProxyEvaluator(select_authorization_client("discord"))
+```
+
+Fail closed: **a configured socket that is down is a refusal
+(`proxy_unavailable`), never a silent fall back** to the CLI, and the runtime
+token is never logged. The per-call `kei-proxy authorize` CLI is the
+**fallback** for one-shot environments with no daemon (a batch job, a CI
+step). The `agentware-sdk` skill has the TypeScript and Go spellings.
 
 ## 3. Bind and attach the agent
 

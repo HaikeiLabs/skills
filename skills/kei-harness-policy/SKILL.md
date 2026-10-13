@@ -8,8 +8,10 @@ description: "Govern harness command execution through Kei policies — import n
 Kei governs a coding-agent harness in two layers:
 
 1. **Tool-call policy** — the standard Kei ABAC path: agent tool calls go
-   through `kei-proxy authorize`, the runtime PDP decides from the bundle
-   (ADR-026, ADR-028).
+   through kei-proxy — the `kei-proxy serve` socket (`POST /v1/authorize` in a
+   session, through the agentware socket client), or the one-shot
+   `kei-proxy authorize` CLI as the fallback with no daemon — and the runtime
+   PDP decides from the bundle (ADR-026, ADR-028).
 2. **Harness command policy** — the harness's native terminal/command execution
    layer (e.g. Claude Code's bash tool, Codex's shell, OpenCode's permission
    system). The harness decides natively from a config file rendered by
@@ -184,7 +186,8 @@ Tool-call policies use `tool:<name>` (one exact name, no wildcards) or
 (`selector_v2` with `connector_id` and nothing else; the console's **All tools
 on this connector**). It covers every tool bound to that connector, including
 tools added later, and a higher-priority deny on one tool still carves it out.
-These are decided by `kei-proxy authorize`, not rendered.
+These are decided by kei-proxy at run time (the `kei-proxy serve` socket
+authorize route, or the `kei-proxy authorize` CLI fallback), not rendered.
 
 ### Examples
 

@@ -426,6 +426,76 @@
           "regex": "preview[\\s\\S]*(confirm|\\[y/N\\])|(confirm|\\[y/N\\])[\\s\\S]*preview"
         }
       ]
+    },
+    {
+      "id": 12,
+      "prompt": "I built a custom Go agent harness on the agentware SDK and want Kei to govern its tool calls. kei-proxy can run as a daemon next to it. How should the harness connect to Kei, and what must it do before it starts serving? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Run kei-proxy serve beside the harness, set KEI_RUNTIME_SOCKET_PATH, sync the tool manifest with toolsync.Sync before serving (an empty manifest is refused; a failed sync means do not serve), build the client with runtimesocket.SelectAuthorizationClient and wrap it in KeiProxyEvaluator. The kei-proxy authorize CLI is only the fallback for one-shot environments with no daemon.",
+      "expectations": [
+        "runs kei-proxy serve beside the harness",
+        "syncs the tool manifest with toolsync before serving",
+        "builds the client with SelectAuthorizationClient",
+        "keeps the kei-proxy authorize CLI only as the fallback"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "kei-proxy serve"
+          ],
+          "text": "runs kei-proxy serve beside the harness"
+        },
+        {
+          "contains_any": [
+            "toolsync.Sync",
+            "toolsync"
+          ],
+          "text": "syncs the tool manifest with toolsync before serving"
+        },
+        {
+          "contains_all": [
+            "SelectAuthorizationClient"
+          ],
+          "text": "builds the client with SelectAuthorizationClient"
+        },
+        {
+          "contains_any": [
+            "fallback",
+            "fall back"
+          ],
+          "text": "keeps the kei-proxy authorize CLI only as the fallback"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "How do I prove my custom harness fails closed when it talks to kei-proxy over the Unix socket? Specifically, what should happen if KEI_RUNTIME_SOCKET_PATH is set but the daemon is stopped? Do not execute anything — just explain in text.",
+      "expected_output": "Stop kei-proxy serve with KEI_RUNTIME_SOCKET_PATH still set: every governed call must be denied with proxy_unavailable, never silently retried through the kei-proxy authorize CLI. Also show an unbound tool is denied. The runtime token is never logged.",
+      "expectations": [
+        "says governed calls are denied with proxy_unavailable",
+        "says there is no fall back to the CLI",
+        "says an unbound call must also be denied"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "proxy_unavailable"
+          ],
+          "text": "says governed calls are denied with proxy_unavailable"
+        },
+        {
+          "regex": "(never|not|no|don't|do not|must not|won't|shouldn't|should not)\\W+(\\w+\\W+){0,4}(fall(s|ing)?[ -]?back|retr(y|ied|ies))",
+          "text": "says there is no fall back to the CLI"
+        },
+        {
+          "contains_any": [
+            "unbound",
+            "not registered",
+            "unregistered",
+            "no matching policy"
+          ],
+          "text": "says an unbound call must also be denied"
+        }
+      ]
     }
   ]
 }

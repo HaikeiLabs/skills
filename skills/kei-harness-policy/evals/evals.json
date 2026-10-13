@@ -536,6 +536,25 @@
           ]
         }
       ]
+    },
+    {
+      "id": 13,
+      "prompt": "For a custom SDK harness that runs `kei-proxy serve` beside it, who decides tool-call policies such as a connector-wide grant at run time, and are they rendered into the harness's native config like command policies? Do not execute anything — just explain in text.",
+      "expected_output": "Tool-call policies are not rendered: kei-proxy decides them at run time — the kei-proxy serve socket (POST /v1/authorize in a session, through the agentware socket client), with the kei-proxy authorize CLI as the fallback when no daemon runs; the runtime PDP decides from the bundle. Only harness command policies are rendered by kei harness sync.",
+      "expectations": [
+        "says kei-proxy decides tool-call policies at run time over the socket",
+        "says tool-call policies are not rendered into native config"
+      ],
+      "checks": [
+        {
+          "regex": "kei-proxy serve|/v1/authorize|socket",
+          "text": "says kei-proxy decides tool-call policies at run time over the socket"
+        },
+        {
+          "regex": "not (be )?rendered|aren't rendered|are never rendered|never rendered|not render",
+          "text": "says tool-call policies are not rendered into native config"
+        }
+      ]
     }
   ]
 }
