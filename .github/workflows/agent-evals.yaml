@@ -64,11 +64,13 @@ env:
   # Model profiles and the runner come from the pinned grader commit below, not
   # from this pull request's evals/ or scripts/, so nothing here is global.
   EVAL_GLOBAL_PATHS: ""
-  # HaikeiLabs/skills main after #96, #97 and #102: temperature 0, seed 42 and
-  # thinking off sent with every request; a skill score of passed runs / total
-  # runs; a clean exit with no answer graded as a failed run, not an error; and
-  # the profiles' concurrency the gate runs each model at (deepseek 4, qwen 1).
-  EVAL_RUNNER_REF: "50ed25939bae725f690e5012e41f4c21d8fedcbe"
+  # HaikeiLabs/skills main after #104: thinking on for both models, DeepSeek at
+  # temperature 0 and Qwen at its thinking-mode sampling (temperature 0.6,
+  # top_p 0.95, top_k 20), seed 42, all sent with every request; a skill score
+  # of passed runs / total runs; a clean exit with no answer graded as a failed
+  # run, not an error; and the profiles' concurrency the gate runs each model at
+  # (deepseek 4, qwen 1).
+  EVAL_RUNNER_REF: "502f873e7627c726444855567cdc25b0e14b60af"
   # EDIT-END settings
   EVAL_THRESHOLD: "0.95"
   # EV-C1 §3 profile names; each needs its base_url_env set on the runner.
