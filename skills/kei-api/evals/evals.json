@@ -172,6 +172,30 @@
           "text": "notes the API is a fallback when the CLI audit subcommands are unavailable"
         }
       ]
+    },
+    {
+      "id": 7,
+      "prompt": "Should my agent harness call POST /api/v1/authorize on the Kei API directly before every tool call? If not, what should it use?",
+      "expected_output": "No: the control-plane endpoint is transitional reference material. The harness asks the runtime: kei-proxy serve decides POST /v1/authorize on its Unix socket locally (local PDP) through the agentware socket client; the one-shot kei-proxy authorize CLI is the fallback with no daemon.",
+      "expectations": [
+        "points the harness at kei-proxy serve",
+        "keeps kei-proxy authorize as the fallback"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "kei-proxy serve"
+          ],
+          "text": "points the harness at kei-proxy serve"
+        },
+        {
+          "contains_any": [
+            "fallback",
+            "fall back"
+          ],
+          "text": "keeps kei-proxy authorize as the fallback"
+        }
+      ]
     }
   ]
 }

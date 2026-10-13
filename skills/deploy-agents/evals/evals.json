@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "I want to run my agentware-based agent in a Docker container with kei-proxy beside it. What environment variables does the container need and what should the entrypoint run before starting the agent? Do not execute anything — just explain in text, with code where it helps.",
-      "expected_output": "KEI_RUNTIME_CONTROL_PLANE_URL, KEI_RUNTIME_TOKEN (from a secret manager, env only), KEI_RUNTIME_VERSION; entrypoint runs kei-proxy runtime bootstrap, keeps kei-proxy runtime heartbeat running, optionally kei-proxy serve, then the harness.",
+      "expected_output": "KEI_RUNTIME_CONTROL_PLANE_URL, KEI_RUNTIME_TOKEN (from a secret manager, env only), KEI_RUNTIME_VERSION; entrypoint runs kei-proxy runtime bootstrap, keeps kei-proxy runtime heartbeat running, kei-proxy serve, then the harness (which syncs its tool manifest and connects with the socket client).",
       "expectations": [
         "names the runtime token and control-plane URL variables",
         "runs kei-proxy runtime bootstrap",
@@ -228,6 +228,70 @@
           "contains_any": [
             "kei bot agents add"
           ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Our TypeScript chat bot runs in the same container as `kei-proxy serve`. What does the bot's own startup code need to do with the agentware SDK so every tool call is decided by the daemon, and when would we still use the `kei-proxy authorize` CLI? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Set KEI_RUNTIME_SOCKET_PATH; at startup run syncToolManifest(manifest, ToolManifestSyncConfig.fromEnv()) before serving (an empty manifest is refused); build the client with selectAuthorizationClient(source) and wrap it in KeiProxyEvaluator; the socket client opens a session per user and authorizes in it. The kei-proxy authorize CLI is only the fallback for one-shot environments with no daemon.",
+      "expectations": [
+        "syncs the tool manifest with syncToolManifest before serving",
+        "builds the client with selectAuthorizationClient",
+        "sets KEI_RUNTIME_SOCKET_PATH",
+        "keeps the kei-proxy authorize CLI only as the fallback"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "syncToolManifest"
+          ],
+          "text": "syncs the tool manifest with syncToolManifest before serving"
+        },
+        {
+          "contains_all": [
+            "selectAuthorizationClient"
+          ],
+          "text": "builds the client with selectAuthorizationClient"
+        },
+        {
+          "contains_all": [
+            "KEI_RUNTIME_SOCKET_PATH"
+          ],
+          "text": "sets KEI_RUNTIME_SOCKET_PATH"
+        },
+        {
+          "contains_any": [
+            "fallback",
+            "fall back"
+          ],
+          "text": "keeps the kei-proxy authorize CLI only as the fallback"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "After a deploy, the kei-proxy daemon in our container failed to start, but KEI_RUNTIME_SOCKET_PATH is still set for the harness. Will governed tool calls keep working by falling back to the CLI? And is it fine for the harness to log its KEI_RUNTIME_TOKEN at startup so we can check it was injected? Do not execute anything — just explain in text.",
+      "expected_output": "No: a configured socket that is down is a refusal (proxy_unavailable), never a silent fall back to the kei-proxy authorize CLI, so every governed call is denied until the daemon is back (fail-closed). Never log the runtime token; check its presence without printing it.",
+      "expectations": [
+        "says governed calls are denied with proxy_unavailable",
+        "says there is no fall back to the CLI",
+        "says the runtime token is never logged"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "proxy_unavailable"
+          ],
+          "text": "says governed calls are denied with proxy_unavailable"
+        },
+        {
+          "regex": "(never|not|no|don't|do not|must not|won't|shouldn't|should not)\\W+(\\w+\\W+){0,4}fall(s|ing)?[ -]?back",
+          "text": "says there is no fall back to the CLI"
+        },
+        {
+          "regex": "(never|not|don't|do not|must not)[^.\\n]{0,40}(log|print)",
+          "text": "says the runtime token is never logged"
         }
       ]
     }

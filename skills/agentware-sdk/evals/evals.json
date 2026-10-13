@@ -85,9 +85,9 @@
     {
       "id": 4,
       "prompt": "I'm writing a custom harness in Python and need to govern my agents' tool calls through Kei. Show me how to construct a KeiProxyEvaluator and what happens when kei-proxy is unreachable.",
-      "expected_output": "Constructs KeiProxyEvaluator with KeiProxyAuthorizeClient, sets executable and timeout, explains that an unreachable proxy yields DENY with proxy_unavailable reason (fail-closed), and uses evaluator.evaluate() before every tool call.",
+      "expected_output": "Builds the client with select_authorization_client (the kei-proxy serve socket client when KEI_RUNTIME_SOCKET_PATH is set, else the KeiProxyAuthorizeClient CLI fallback), wraps it in KeiProxyEvaluator, explains that an unreachable proxy yields DENY with proxy_unavailable reason (fail-closed), and uses evaluator.evaluate() before every tool call.",
       "expectations": [
-        "constructs KeiProxyEvaluator with KeiProxyAuthorizeClient and sets executable and timeout",
+        "constructs KeiProxyEvaluator over the client from select_authorization_client",
         "explains that an unreachable proxy denies with proxy_unavailable (fail-closed)",
         "calls evaluator.evaluate() before each tool call with tool name, args, and caller context"
       ],
@@ -95,9 +95,9 @@
         {
           "contains_all": [
             "KeiProxyEvaluator",
-            "KeiProxyAuthorizeClient"
+            "select_authorization_client"
           ],
-          "text": "constructs KeiProxyEvaluator with KeiProxyAuthorizeClient and sets executable and timeout"
+          "text": "constructs KeiProxyEvaluator over the client from select_authorization_client"
         },
         {
           "contains_all": [
@@ -179,6 +179,76 @@
             "validate_contract"
           ],
           "text": "mentions HarnessContract assembly and validate_contract"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "My Python agent harness will run in a container next to `kei-proxy serve`. How should it connect to kei-proxy for tool authorization, and what does it have to do before it starts serving requests?",
+      "expected_output": "Uses the agentware socket client: sync the tool manifest first with sync_tool_manifest (ToolManifestSyncConfig.from_env), which refuses an empty manifest and must stop the harness from serving on failure; then select_authorization_client with KEI_RUNTIME_SOCKET_PATH set so the socket client (KeiProxySocketAuthorizeClient, sessions via open_session) is used; wrap it in KeiProxyEvaluator. Imports from haikeilabs.agentware.kei (pedro_agentware.kei is a deprecated shim). The kei-proxy authorize CLI is only the fallback when no daemon runs.",
+      "expectations": [
+        "syncs the tool manifest with sync_tool_manifest before serving",
+        "selects the socket client with select_authorization_client and KEI_RUNTIME_SOCKET_PATH",
+        "says an empty manifest is refused",
+        "keeps the kei-proxy authorize CLI only as the fallback when no daemon runs"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "sync_tool_manifest"
+          ],
+          "text": "syncs the tool manifest with sync_tool_manifest before serving"
+        },
+        {
+          "contains_all": [
+            "select_authorization_client",
+            "KEI_RUNTIME_SOCKET_PATH"
+          ],
+          "text": "selects the socket client with select_authorization_client and KEI_RUNTIME_SOCKET_PATH"
+        },
+        {
+          "regex": "empty[^.\\n]{0,80}manifest|manifest[^.\\n]{0,80}empty",
+          "text": "says an empty manifest is refused"
+        },
+        {
+          "contains_any": [
+            "fallback",
+            "fall back"
+          ],
+          "text": "keeps the kei-proxy authorize CLI only as the fallback when no daemon runs"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Our Go harness sets KEI_RUNTIME_SOCKET_PATH, but the kei-proxy daemon is down. Should the harness quietly fall back to spawning `kei-proxy authorize` so tools keep working? Also, can we log the KEI_RUNTIME_TOKEN at debug level to troubleshoot?",
+      "expected_output": "No. runtimesocket.SelectAuthorizationClient chooses once: a configured socket that is down is a refusal (proxy_unavailable), never a silent fall back to the CLI; KeiProxyEvaluator denies (fail-closed). The runtime token is never logged: it is sent only as Authorization: Bearer and never appears in a log line, an error or String().",
+      "expectations": [
+        "says a configured socket that is down is a refusal with proxy_unavailable",
+        "says there is no fall back to the CLI",
+        "says the runtime token is never logged",
+        "names the Go selector runtimesocket.SelectAuthorizationClient"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "proxy_unavailable"
+          ],
+          "text": "says a configured socket that is down is a refusal with proxy_unavailable"
+        },
+        {
+          "regex": "(never|not|no|don't|do not|must not|won't)\\W+(\\w+\\W+){0,4}fall(s|ing)?[ -]?back",
+          "text": "says there is no fall back to the CLI"
+        },
+        {
+          "regex": "never[^.\\n]{0,30}log|not[^.\\n]{0,30}\\blog",
+          "text": "says the runtime token is never logged"
+        },
+        {
+          "contains_all": [
+            "SelectAuthorizationClient"
+          ],
+          "text": "names the Go selector runtimesocket.SelectAuthorizationClient"
         }
       ]
     }

@@ -96,16 +96,15 @@ package for it.
 
 ## How authorization is decided
 
-> **Legacy / transition.** This control-plane decision endpoint is the current
-> production path — the `kei-proxy authorize` CLI calls it per governed tool
-> call — but it is the transitional design. ADR-011's target is a local PDP in
-> the runtime that makes each decision locally (no per-invocation approval or
-> subject-resolution call), evaluating a signed policy bundle that syncs in the
-> background, with identity/grants resolved through a separate session flow
-> outside the daemon. Bundle trust, the identity/grant representation, and
-> freshness/revocation are pending G0. The socket-based tool authorize and the
-> Agentware migration are tracked by HAI-272 (Backlog). The endpoint below
-> remains valid reference material until that cutover.
+> **Legacy / transition.** This control-plane decision endpoint is the
+> transitional design. A harness does not call it: it asks the runtime. The
+> primary path is the `kei-proxy serve` daemon, whose socket
+> `POST /v1/authorize` decides locally (the local PDP, ADR-011) from the
+> synced policy bundle, reached through the agentware socket client (see
+> `kei-proxy` and `agentware-sdk`). The one-shot `kei-proxy authorize` CLI is
+> the fallback for environments with no daemon. Bundle trust (signature
+> verification), the identity/grant representation, and freshness/revocation
+> are pending G0. The endpoint below remains valid reference material.
 
 `POST /api/v1/authorize` is the ABAC decision endpoint. The request carries the
 harness token (or user identity) plus `action`, `resource`, `service`, `agent_id`,

@@ -11,20 +11,23 @@ separate; each has one owner:
 | Layer | What it is | Package |
 | --- | --- | --- |
 | **Definition** | System prompt + tool schemas + the permissions the agent may hold | `kei-agents` (`agents` import) |
-| **Governance** | Every tool call is decided (allow/deny/filter), audited, and attributed to a human | agentware SDK (`pedro_agentware`, Go, TypeScript) |
-| **Runtime decision** | The live allow/deny comes from the workspace policy, made tenant-side | `kei-proxy`, reached through `KeiProxyEvaluator` |
+| **Governance** | Every tool call is decided (allow/deny/filter), audited, and attributed to a human | agentware SDK (`haikeilabs.agentware`, Go, TypeScript) |
+| **Runtime decision** | The live allow/deny comes from the workspace policy, made tenant-side | `kei-proxy serve`, reached through `KeiProxyEvaluator` and the socket client |
 
 The model never decides what it is allowed to do. A refusal in the prompt is
 not a control; the policy check in front of the tool is.
 
 ## Install
 
-Both Python packages install from a checkout (neither is on public PyPI yet):
+The agentware SDK is published to PyPI as `haikeilabs-agentware` (import
+`haikeilabs.agentware`; the old `pedro_agentware` import still works as a
+deprecated shim). Until that release is on PyPI, install it from a checkout.
+`kei-agents` installs from a checkout:
 
 ```bash
 git clone https://github.com/HaikeiLabs/agentware && git clone https://github.com/HaikeiLabs/kei-agents
 python -m venv .venv && . .venv/bin/activate
-pip install -e ./agentware/python -e ./kei-agents        # Python >= 3.10
+pip install haikeilabs-agentware -e ./kei-agents         # or: pip install -e ./agentware/python; Python >= 3.10
 ```
 
 TypeScript: `npm install @haikeilabs/agentware` (>= 0.7.0). Go:
@@ -84,7 +87,7 @@ raises `PermissionError`; it is still audited.
 
 ```python
 import asyncio
-from pedro_agentware.middleware import (
+from haikeilabs.agentware.middleware import (
     Action, AuditedToolClient, CallerContext, Policy, Rule, SimplePolicyEvaluator,
 )
 
@@ -128,18 +131,32 @@ The local policy is for tests and offline use. In a deployed harness, swap the
 evaluator; the client, the tools, and the audit stay the same:
 
 ```python
-from pedro_agentware.kei import KeiProxyAuthorizeClient, KeiProxyEvaluator
+from haikeilabs.agentware.kei import (   # pedro_agentware.kei still works (deprecated shim)
+    KeiProxyEvaluator, ToolManifestSyncConfig, select_authorization_client, sync_tool_manifest,
+)
 
-client.with_policy(KeiProxyEvaluator(KeiProxyAuthorizeClient(executable="kei-proxy", timeout=10.0)))
+# Before serving: register the governed tools. An empty manifest is refused,
+# and a failed sync raises ToolManifestSyncError: the harness must not serve.
+sync_tool_manifest(registry.export_kei_tool_manifest(), ToolManifestSyncConfig.from_env(),
+                   expect_tools=True)
+# The kei-proxy serve socket client when KEI_RUNTIME_SOCKET_PATH is set,
+# otherwise the one-shot `kei-proxy authorize` CLI client.
+client.with_policy(KeiProxyEvaluator(select_authorization_client("discord")))
 ```
 
-It runs `kei-proxy authorize` per call and **fails closed**: only an explicit
-`allow`/`permit` with exit 0 allows. A missing binary (`proxy_unavailable`),
-an unset `KEI_RUNTIME_TOKEN` (`missing_token`), a timeout, or unparseable
-output is a DENY. Pin the binary with `expected_sha256=` (absolute path
-required). The token reaches the child through the environment only, never
-argv. The harness sends the tool name and never an authorize resource; the
-catalog resolves resources from the tool's registered scope.
+The primary path is the **`kei-proxy serve` daemon plus the socket client**.
+Run the daemon beside the harness and set `KEI_RUNTIME_SOCKET_PATH`; the
+adapter opens a `kei.session/v2` session for the caller's user and authorizes
+in it over the owner-only Unix socket. The `kei-proxy authorize` subprocess
+(`KeiProxyAuthorizeClient`) is the **fallback** for one-shot environments with
+no daemon (pin it with `expected_sha256=`, absolute path required). Both
+**fail closed**: only an explicit `allow`/`permit` allows. An unreachable
+daemon or missing binary (`proxy_unavailable`), an unset `KEI_RUNTIME_TOKEN`
+(`missing_token`), a timeout, or an unparseable answer is a DENY. **A
+configured socket that is down is a refusal, never a silent fall back** to the
+CLI. The runtime token is never logged and never put in argv. The harness
+sends the tool name and never an authorize resource; the catalog resolves
+resources from the tool's registered scope.
 
 On a deny, `decision.enrollment` (an unlinked chat user) or `decision.connect`
 (the user's own OAuth connection is missing or expired) may carry a one-time
@@ -147,8 +164,9 @@ link. `AuditedToolClient` turns a deny into `PermissionError`, so when you
 need those links call `evaluator.evaluate(tool, args, caller)` yourself first
 and send the `url` privately to that user. Never log it or post it in a shared
 channel. The `agentware-sdk` skill has the full decision table and the Go
-(`evaluator.NewKeiProxyEvaluator`) and TypeScript (async-only
-`await evaluator.evaluate(...)`) spellings.
+(`runtimesocket.SelectAuthorizationClient` + `evaluator.NewKeiProxyEvaluator`,
+`toolsync.Sync`) and TypeScript (`selectAuthorizationClient`,
+`syncToolManifest`, async-only `await evaluator.evaluate(...)`) spellings.
 
 ### Keep the human as the invoking subject
 
@@ -231,6 +249,8 @@ cd python && pytest tests/action_tool_boundary_test.py -v
 
 # Prove fail-closed locally: with no kei-proxy on PATH every call is denied
 PATH=/usr/bin:/bin python your_harness.py         # expect "kei-proxy missing_token" or "proxy_unavailable"
+# ...and with a configured socket and no daemon: a refusal, never a CLI fall back
+KEI_RUNTIME_SOCKET_PATH=/tmp/no-daemon.sock python your_harness.py   # expect "proxy_unavailable"
 ```
 
 ## Realistic usage boundaries
