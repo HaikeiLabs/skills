@@ -329,6 +329,15 @@ addressed by the agent. There is no `--display-name`/`--name` flag. The console
 labels these harnesses "agents". For the full harness-command-policy workflow,
 load **`kei-harness-policy`**.
 
+`kei harness sync` backs up each native config it changes to
+`<file>.kei-backup-<timestamp>` and each skill it replaces under
+`skill-backups/` in the sync ledger dir. From kei 0.1.31 it keeps **one**
+backup per file and per skill: the state from before the most recent
+successful sync. The next successful sync removes the older one, a failed sync
+rolls back and leaves it untouched, and `--dry-run` prints
+`Would remove earlier Kei backup <path>`. To roll back by hand, copy the
+`.kei-backup-<timestamp>` file over the native config.
+
 ## Model profiles and the credential store
 
 Model profiles and the credential store are organization resources

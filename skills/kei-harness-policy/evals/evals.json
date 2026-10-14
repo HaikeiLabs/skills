@@ -421,7 +421,7 @@
     {
       "id": 11,
       "prompt": "I want Kei to be the only source of permissions for my Claude Code harness. How do I remove my own allow/deny entries without breaking things, and what does sync change on disk? Do not execute anything — just explain in text. If you don't know something, just say so.",
-      "expected_output": "First preview with `kei harness sync --harness claude_code --dry-run` to see what Kei will write. Then run the real sync to establish Kei's entries. Remove your own allow/deny entries from `~/.claude/settings.json` by hand (Kei only edits entries it owns, which it records in its sync ledger). Keep the harness in its default permission mode (usually `ask`), not `allow-all`. Run sync again to confirm only Kei-managed entries remain. Kei keeps a backup at `settings.json.kei-backup-<timestamp>` before each write — restore from it if something goes wrong.",
+      "expected_output": "First preview with `kei harness sync --harness claude_code --dry-run` to see what Kei will write. Then run the real sync to establish Kei's entries. Remove your own allow/deny entries from `~/.claude/settings.json` by hand (Kei only edits entries it owns, which it records in its sync ledger). Keep the harness in its default permission mode (usually `ask`), not `allow-all`. Run sync again to confirm only Kei-managed entries remain. Kei saves `settings.json.kei-backup-<timestamp>` before each write and keeps only that one backup, from before the latest successful sync — copy it over settings.json if something goes wrong.",
       "expectations": [
         "mentions `kei harness sync --dry-run` to preview",
         "explains Kei only edits entries it owns (hand-written entries must be removed manually)",
@@ -535,6 +535,35 @@
           "regex": "(?:never|does ?n[o']t|not) (?:decide|block|allow or deny|answer)|report-only|only (?:observes|records|reports)"
         }
       ]
+    },
+    {
+      "prompt": "I've run `kei harness sync --harness claude_code` a dozen times over the past month. How many kei-backup files should I expect next to ~/.claude/settings.json, what happens to them on the next sync (including if that sync fails), and how do I roll back to the config I had before the last sync? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "With kei 0.1.31 or later, kei harness sync keeps one backup per managed file: `~/.claude/settings.json.kei-backup-<timestamp>`, holding the config from before the most recent successful sync. The next successful sync makes a new backup and removes the older one (leftover backups from older kei versions are pruned to the newest; `--dry-run` prints `Would remove earlier Kei backup <path>`). A failed sync restores the original file and leaves the previous backup untouched. To roll back by hand, copy the backup over the native config: `cp ~/.claude/settings.json.kei-backup-<timestamp> ~/.claude/settings.json`. Copy it elsewhere first if you want to keep it past the next sync.",
+      "expectations": [
+        "says only one backup is kept per file",
+        "says the next successful sync replaces or removes the older backup",
+        "says a failed sync restores the file and leaves the previous backup alone",
+        "says to roll back by copying the kei-backup file over settings.json"
+      ],
+      "checks": [
+        {
+          "text": "says only one backup is kept per file",
+          "regex": "(?:only|just|exactly|at most) (?:one|a single|1)\\b[^.\\n]{0,40}backup|(?:one|a single|1) (?:kei[- ])?backup (?:per|for each|for every)|keeps? (?:only )?(?:the )?(?:latest|newest|most recent)[^.\\n]{0,30}backup|single backup"
+        },
+        {
+          "text": "says the next successful sync replaces or removes the older backup",
+          "regex": "(?:next|later|subsequent|following)[^.\\n]{0,60}sync[^.\\n]{0,80}(?:remov|delet|prune|replac|overwrit)|(?:remov|delet|prune|replac|overwrit)\\w*[^.\\n]{0,80}(?:next|later|subsequent|following)[^.\\n]{0,30}sync|(?:older|earlier|previous) (?:kei )?backups?[^.\\n]{0,60}(?:remov|delet|prun)"
+        },
+        {
+          "text": "says a failed sync restores the file and leaves the previous backup alone",
+          "regex": "fail\\w*[\\s\\S]{0,250}(?:restor|roll\\w* back|untouched|left alone|leaves? (?:the )?(?:previous|earlier|existing))"
+        },
+        {
+          "text": "says to roll back by copying the kei-backup file over settings.json",
+          "regex": "(?:cp|copy|copies|copying)\\b[^\\n]{0,120}kei-backup|kei-backup[^\\n]{0,120}(?:over|onto|back to|to replace)[^\\n]{0,40}(?:settings\\.json|native config|config)"
+        }
+      ],
+      "id": 14
     }
   ]
 }

@@ -38,7 +38,10 @@ OpenCode `permission.bash`).
 - **Sync edits only Kei-managed entries and backs up first.** A local sync
   ledger records the entries the last sync wrote; the next sync replaces only
   those and leaves your own entries and key order as they are. Before it
-  changes a file it writes `<file>.kei-backup-<timestamp>`.
+  changes a file it writes `<file>.kei-backup-<timestamp>`. Kei keeps **one**
+  backup per file (kei 0.1.31 or later): the config from before the most
+  recent successful sync. To roll back by hand, copy that file over the native
+  config.
 - **Kei does not deny unmatched commands on desktop harnesses.** A command no
   policy matches falls through to the harness's own entries and default
   permission mode (usually `ask`). Custom harnesses and governed connectors
@@ -76,7 +79,9 @@ first. If something is not here, say so. In every answer:
   import answer): always say that desktop harnesses are auto-discovered from
   the runtime installation, so no `kei harness add` is needed (that is only
   for custom/SDK harnesses). Sync edits only Kei-managed entries
-  and saves `<config-file>.kei-backup-<timestamp>` before every write.
+  and saves `<config-file>.kei-backup-<timestamp>` before every write; only
+  that one backup is kept (the next successful sync replaces it). Roll back by
+  copying the backup over the native config.
 - **Report-only / audit-without-blocking:** answer in three parts, even when
   short: (1) the report-only hook (HP-C6) exists: `kei harness sync` installs
   `kei-proxy hook <harness>`, which only records each call and the harness's
@@ -414,6 +419,22 @@ limits the sync to one kind.
 would write (`--- <file>` / `+++ <file> (Kei render)`), without modifying the
 config file. Before it writes, sync saves the old file as
 `<file>.kei-backup-<timestamp>`; a file with no changes is not rewritten.
+Writes are atomic (temp file, then rename). The dry run also prints
+`Would remove earlier Kei backup <path>` for each backup a real sync would
+prune.
+
+**One backup per file and per skill (kei 0.1.31 or later).** Each managed
+native config keeps one `<file>.kei-backup-<timestamp>`, and each managed
+skill keeps one copy under `skill-backups/<kind>/` in the sync ledger dir
+(`~/.config/kei/harness-sync/`). The backup holds the state from before the
+most recent successful sync. The next successful sync makes a new backup and
+deletes the older one (`Removed earlier Kei backup <path>`); leftover backups
+from older kei versions are pruned to the newest. A failed sync restores the
+files it already wrote, deletes its own fresh backups, and leaves the previous
+backup untouched. Only Kei's exact names are pruned; other files are kept. To
+roll back by hand, copy the backup over the native config, for example
+`cp ~/.claude/settings.json.kei-backup-<timestamp> ~/.claude/settings.json`.
+Copy it somewhere else first if you want to keep it past the next sync.
 Sync removes the entries its previous run wrote (recorded in a local sync
 ledger), merges in the current ones, and keeps your own entries and key order,
 so the diff shows only Kei-managed changes. Run sync after installing new Haikei skills or
@@ -527,7 +548,9 @@ What the key facts above leave out:
   `<file>.kei-backup-<timestamp>`. Run the real sync, then remove your own allow/deny entries
   by hand: sync never touches entries it did not write. Keep the harness in its
   default permission mode (usually `ask`), not allow-all, and run sync again.
-  If something goes wrong, restore `<file>.kei-backup-<timestamp>`.
+  If something goes wrong, copy `<file>.kei-backup-<timestamp>` over the
+  native config. Only one backup is kept, from before the latest successful
+  sync, so restore before you sync again.
 - **Bundle reuse.** The runtime reuses the current bundle while policies and
   harnesses are unchanged (up to 6 hours).
 
@@ -599,6 +622,7 @@ command. Scope denies to the prefix you mean.
 - **`kei harness sync` rewrites the native config file in place.** It writes
   to the harness's native location for the matched kind, replacing only the
   entries its last run wrote and saving `<file>.kei-backup-<timestamp>` first.
+  It keeps only that one backup per file; the next successful sync replaces it.
 - **The hook does not decide.** Even when the report-only hook is active, the
   harness makes the allow/deny decision from its native config. Kei only
   observes. For Claude Code it records the outcome Claude Code reports (ran,

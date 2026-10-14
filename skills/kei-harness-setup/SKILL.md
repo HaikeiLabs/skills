@@ -314,7 +314,9 @@ bundle refresh in `kei-proxy serve`.
 
 `kei harness sync` edits only the Kei-managed entries in the harness's native
 config file and leaves your own entries alone; it saves
-`<config-file>.kei-backup-<timestamp>` before every write. The setup scripts
+`<config-file>.kei-backup-<timestamp>` before every write and keeps only that
+one backup, from before the latest successful sync (kei 0.1.31 or later). Roll
+back by copying it over the native config. The setup scripts
 also keep a one-time `<config-file>.kei.bak` copy from before the first sync.
 See `kei-harness-policy` for removing your own entries so Kei is the only
 source of permissions.

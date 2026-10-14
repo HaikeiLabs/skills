@@ -270,9 +270,14 @@ entries you added by hand remain in the config. To make Kei the only source:
 4. Run `kei harness sync --harness <kind>` again to confirm the file only
    contains Kei-managed entries.
 
-**Kei keeps a backup** of the native config file before every write at
-`<config-file>.kei-backup-<timestamp>`. If something goes wrong, restore from
-the backup.
+**Kei keeps one backup** of the native config file at
+`<config-file>.kei-backup-<timestamp>`, written before each change (kei 0.1.31
+or later). It holds the file from before the most recent successful sync; the
+next successful sync replaces it and removes older ones (`--dry-run` lists what
+it would remove). A failed sync restores the file and leaves the previous
+backup untouched. If something goes wrong, copy the backup over the native
+config, for example
+`cp ~/.claude/settings.json.kei-backup-<timestamp> ~/.claude/settings.json`.
 
 ### Which entries does Kei own?
 
