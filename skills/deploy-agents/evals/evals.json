@@ -230,6 +230,57 @@
           ]
         }
       ]
+    },
+    {
+      "id": 9,
+      "prompt": "For our Kubernetes deployment I'd like to just pull the official public kei-proxy container image and run it as a sidecar. What's the image name? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "There is no public kei-proxy image or registry. Put the kei-proxy binary in your harness image (it ships with the kei installer; container builds use the Kei runtime Dockerfile).",
+      "expectations": ["says there is no public kei-proxy image", "puts the kei-proxy binary in the harness image"],
+      "checks": [
+        {"text": "says there is no public kei-proxy image", "contains_any": ["no public", "not a public", "isn't a public", "is no official", "no official", "doesn't exist", "does not exist", "not published", "isn't published", "no published", "isn’t a public", "doesn’t exist", "isn’t published"]},
+        {"text": "puts the kei-proxy binary in the harness image", "contains_any": ["binary", "Dockerfile", "installer"]}
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Which kei CLI command creates the agent that I then attach to my runtime installation? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "None: agents are created in the web console (Agents); there is no CLI command for it. Once it exists, attach it with kei bot agents add --installation INSTALLATION_ID --agent AGENT_ID --default.",
+      "expectations": ["says agents are created in the web console", "says there is no CLI command to create agents"],
+      "checks": [
+        {"text": "says agents are created in the web console", "contains_any": ["console"]},
+        {"text": "says there is no CLI command to create agents", "contains_any": ["no CLI", "no kei", "no `kei", "there is no", "isn't a", "is not a", "doesn't exist", "does not exist", "no command", "not a CLI", "cannot create", "can't create", "isn't one", "there isn't", "not via the", "not via `kei`", "not with the", "no such command", "isn’t a", "doesn’t exist", "can’t create", "isn’t one", "there isn’t"]}
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "On Kubernetes, kei-proxy serve runs in one container and our harness in another in the same pod. Where does the daemon listen, with what permissions, and how do the two containers share it? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "It listens on the Unix socket /run/kei-proxy/runtime.sock (KEI_RUNTIME_SOCKET_PATH overrides) with mode 0600, so the harness must run as the same UID; on Kubernetes share the directory through an emptyDir.",
+      "expectations": ["names the socket mode 0600", "says the harness must run as the same UID", "shares the socket directory with an emptyDir"],
+      "checks": [
+        {"text": "names the socket mode 0600", "contains_all": ["0600"]},
+        {"text": "says the harness must run as the same UID", "regex": "same (UID|user)|same runAsUser|matching (UID|user)"},
+        {"text": "shares the socket directory with an emptyDir", "contains_all": ["emptyDir"]}
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "kei-proxy runtime bootstrap succeeded and printed installation_id and org_id, but there is no workspace_id in the output. Can we carry on and start the harness? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "No. If bootstrap output has no workspace_id, stop and re-mint the credential (kei bot credential for the installation and workspace) before starting the harness.",
+      "expectations": ["says to stop rather than start the harness", "says to re-mint the credential"],
+      "checks": [
+        {"text": "says to stop rather than start the harness", "contains_any": ["stop", "do not start", "don't start", "don't carry on", "do not carry on", "not continue", "don't continue", "do not proceed", "don't proceed", "don’t start", "don’t carry on", "don’t continue", "don’t proceed"]},
+        {"text": "says to re-mint the credential", "contains_any": ["re-mint", "remint", "mint a new", "new credential", "kei bot credential", "rotate"]}
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "Can I pass KEI_RUNTIME_TOKEN to kei-proxy as a command-line argument, and should I also set a workspace ID variable so the runtime knows which workspace to use? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "No to both: the token goes in the environment only (from the secret manager), never argv, never a repo file. Never pass an org, tenant, or workspace ID as scope; the token determines it.",
+      "expectations": ["keeps the token in the environment, not argv", "says the token determines the workspace, so no workspace ID is passed"],
+      "checks": [
+        {"text": "keeps the token in the environment, not argv", "contains_any": ["environment", "env var", "env only", "env-only"]},
+        {"text": "says the token determines the workspace, so no workspace ID is passed", "regex": "token (itself )?(determines|decides|identifies|carries|scopes|implies|resolves|encodes|is bound|binds)|determined by the token|(from|by|via) the token|derived from the (runtime )?token|token.{0,40}(determines|decides|scopes)"}
+      ]
     }
   ]
 }
