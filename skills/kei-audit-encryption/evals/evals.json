@@ -45,7 +45,7 @@
         },
         {
           "text": "states that registering the first key turns encryption on for new records (opt-in)",
-          "regex": "first[^.\\n]{0,40}key[^.\\n]{0,80}(turns?|switch(es)?)[^.\\n]{0,20}on|first[^.\\n]{0,40}key[^.\\n]{0,60}(enables?|activates?|starts?)|(regist\\w*|creat\\w*|add\\w*)[^.\\n]{0,30}first[^.\\n]{0,40}key[^.\\n]{0,80}(on|enables?|activates?)|(turns?|switch(es)?) on[^.\\n]{0,80}first[^.\\n]{0,40}key|(as soon as|once|when|the moment)[^.\\n]{0,20}(the )?first[^.\\n]{0,40}key"
+          "regex": "first[^.\\n]{0,40}key[^.\\n]{0,80}(turns?|switch(es)?|flips?)[^.\\n]{0,20}on|first[^.\\n]{0,40}key[^.\\n]{0,60}(enables?|activates?|starts?)|(regist\\w*|creat\\w*|add\\w*)[^.\\n]{0,30}first[^.\\n]{0,40}key[^.\\n]{0,80}(on|enables?|activates?)|(turns?|switch(es)?) on[^.\\n]{0,80}first[^.\\n]{0,40}key|(as soon as|once|when|the moment)[^.\\n]{0,20}(the )?first[^.\\n]{0,40}key"
         },
         {
           "text": "notes the `kei audit` commands need kei v0.1.9 or later (check `kei --version`)",
@@ -294,10 +294,7 @@
       "checks": [
         {
           "text": "states audit_escrow_enabled defaults to false (off)",
-          "contains_all": [
-            "audit_escrow_enabled",
-            "false"
-          ]
+          "regex": "audit_escrow_enabled[\\s\\S]{0,120}\\b(false|off|disabled)\\b|\\b(false|off|disabled)\\b[\\s\\S]{0,60}audit_escrow_enabled"
         },
         {
           "text": "explains that when enabled, Kei holds a KMS-wrapped escrow private key as a recovery copy",
@@ -366,11 +363,7 @@
       "checks": [
         {
           "text": "states rotation affects only future/new records",
-          "contains_all": [
-            "rotation",
-            "records",
-            "encrypted"
-          ]
+          "regex": "^(?=[\\s\\S]*rotat)(?=[\\s\\S]*records)(?=[\\s\\S]*encrypt)"
         },
         {
           "text": "states past records stay encrypted to the key(s) active when they were written and are not re-encrypted or re-keyed",

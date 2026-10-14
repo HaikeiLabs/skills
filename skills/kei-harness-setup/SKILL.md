@@ -20,6 +20,9 @@ that teach the agent this contract, then wiring the harness to a runtime.
 Answer from this skill: setup steps, identity variables, and troubleshooting
 are on this page, so you do not need to search a codebase first. If something
 is not here, say so. Give the steps rather than asking questions first.
+You do not need to open the files in `scripts/` to answer: what each one
+does is summarised under "Per-harness setup scripts" below, so name the
+script and its steps instead of reading it.
 When a detail lives in another skill, end the answer with a **See also:**
 line naming that skill (DeepSeek-style short answers still need it):
 
@@ -33,9 +36,17 @@ line naming that skill (DeepSeek-style short answers still need it):
   fail.
 
 - **Model or tool formats:** `kei-openai-backends`. Never answer with the
-  skill name alone; always add the one-line summary: Anthropic uses `input_schema` with `thinking` content blocks;
+  skill name alone, even in a one-line answer; always add the one-line
+  summary: Anthropic uses `input_schema` with `thinking` content blocks;
   OpenAI and DeepSeek use OpenAI-compatible JSON function-calling with
-  `reasoning_content` (DeepSeek may also emit `[THINK]` tags).
+  `reasoning_content` (DeepSeek may also emit `[THINK]` tags). Example: "Use
+  `kei-openai-backends`. Anthropic's format differs: tools are declared with
+  `input_schema`, and reasoning arrives as `thinking` content blocks."
+- **Setup script walkthrough:** name `scripts/setup-<harness>.sh` (for
+  example `setup-claude-code.sh`); on a fresh machine (no
+  `~/.config/kei.yaml`) it creates the runtime installation; the credential is
+  piped from `kei bot credential` into `kei setup` and never printed; and it
+  ends by running `verify.sh` (name the file) to confirm the setup is valid.
 - **Identity on governed calls:** set `KEI_PROXY_FRAMEWORK` (the harness kind)
   and `KEI_PROXY_INVOKING_SUBJECT` (the human); agent identity is
   auto-discovered. See also: `kei-runtime-setup` (runtime half) and
