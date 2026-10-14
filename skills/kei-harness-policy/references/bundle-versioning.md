@@ -10,8 +10,7 @@ Every policy bundle has three version fields:
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `bundle_id` | UUIDv7 | Unique per issuance — every time a bundle is minted it gets a new id. Enables
-  change detection on the proxy: a new `bundle_id` always means fresh content. |
+| `bundle_id` | UUID (random) | Unique per issuance — every time a bundle is minted it gets a new random id, even when a re-issue carries the same policies. A new `bundle_id` means a new issuance, not necessarily new content; compare `policy_revision` for that. |
 | `bundle_version` | uint64 | Strictly increasing counter **per runtime installation**. Never reused.
   Bumped on every issuance of a bundle for that installation, even if the policy
   content hasn't changed (re-issue at half-life). The proxy persists the highest

@@ -53,7 +53,7 @@ source that does not render is a **skipped** policy; see
 
 Policies targeting a runtime installation are compiled into a **policy bundle**
 (the same bundle that governs tool-call ABAC). The bundle is identified by a
-`bundle_id` (UUIDv7), a strictly increasing `bundle_version` (per installation),
+`bundle_id` (a random UUID, unique per issuance), a strictly increasing `bundle_version` (per installation),
 and a `policy_revision` (workspace-wide counter).
 
 See [`references/bundle-versioning.md`](bundle-versioning.md) for the full
@@ -153,19 +153,49 @@ are made locally by the harness from the rendered config.
 ### 4. The Kei audit-only hook
 
 In addition to the native config, `kei harness sync` installs a lightweight
-**Kei hook** into the harness — a PreToolUse/PostToolUse callback that runs
-alongside every tool call the harness executes.
+**Kei hook** (`kei-proxy hook <harness>`) into the harness. It runs alongside
+every tool call the harness executes.
 
 The hook's contract is strict:
 
-- **Reports only** — it records the tool name, phase (PreToolUse /
-  PostToolUse), the harness's native decision (allowed/denied), and an HMAC
-  digest of the tool arguments. Arguments are encrypted to the customer's
-  audit-encryption keys (see ADR-030) and are never logged raw.
+- **Reports only** — it records the tool name, the event phase, the harness's
+  native decision, and an HMAC digest of the tool arguments. Arguments are
+  encrypted to the customer's audit-encryption keys and are never logged raw.
 - **Always exits 0** — it never blocks, delays, or changes the outcome of a
   tool call.
 - **Never allows or denies** — the allow/deny decision comes exclusively from
   the harness's native config (which Kei rendered in step 3).
+
+**Claude Code: the native decision is observed, not computed.** Claude Code's
+`PreToolUse` event runs before its permission check, so it carries no
+decision. The hook does not re-implement Claude Code's rule matching or
+settings precedence either. Instead it records what Claude Code did, one event
+per phase:
+
+| Phase | When | `native_decision` |
+| --- | --- | --- |
+| `pre` | `PreToolUse` | `unknown` (pairing anchor only) |
+| `decision` | once per call, when the outcome is observed | `allow` (ran without asking), `deny` (neither asked nor ran: a deny entry, or a mode that turns asks into denials), or `ask` (Claude Code asked) |
+| `post` | `PostToolUse` / `PostToolUseFailure` | `executed`, plus an optional `failed: true` when the command failed. The error text is never recorded |
+| `permission_reply` | only for an asked call | `approved` when it then ran, `denied` when the session ended without running it (headless runs auto-reject) |
+
+Read the decision from the `decision` event, not from `pre`. Every event of one
+call shares its `tool_use_id`, `tool`, `argv0` and `args_digest`.
+
+This needs **kei-proxy 0.2.5 or newer**, **Claude Code 2.1.119 or newer**,
+and **kei v0.1.24 or newer** (the first release with the seven-hook renderer). An
+older kei-proxy writes no `decision` events, so upgrade it first (rerun the
+installer). On Claude Code 2.1.119 or newer, sync renders
+seven hook events, all running the same `kei-proxy hook claude` command:
+`PreToolUse`, `PermissionRequest`, `PermissionDenied`, `PostToolUse`,
+`PostToolUseFailure`, `Stop` and `SessionEnd`. On an older Claude Code, or when
+`claude --version` cannot be read, sync renders only the previous two
+(`PreToolUse`, `PostToolUse`) and prints a warning to upgrade. Those installs
+keep `native_decision: unknown` and get no `decision` events. Older versions
+are held back because a Claude Code that does not recognize a hook event name
+can ignore the whole `settings.json`, rendered permissions included. Sync
+leaves your own hooks in the same events untouched. Codex and OpenCode hooks
+are unchanged.
 
 The hook exists for observability: workspace admins can see which tools were
 called, what the native config decided, and which policy bundle was active —
@@ -224,10 +254,9 @@ kei harness sync --harness <kind> --dry-run
 ```
 
 This prints a unified diff to stdout (`--- <file>` / `+++ <file> (Kei render)`)
-without overwriting the native config file. Note: because the renderer
-reformats the entire file, the diff may be large even when only one entry
-changes. Review the output carefully — especially note any entries that would
-be removed.
+without overwriting the native config file. Sync keeps your own entries and
+key order, so the diff shows only Kei-managed changes. Review it carefully,
+especially any entries that would be removed.
 
 ### Remove your own allow/deny entries
 
@@ -247,10 +276,11 @@ the backup.
 
 ### Which entries does Kei own?
 
-Kei marks its entries with a comment or structural convention unique to each
-harness (e.g. a `# kei-managed` comment in Claude Code's `settings.json`). It
-only adds, updates, or removes entries it owns — it never touches entries it did
-not create. This means:
+Each sync records the entries it wrote in a local sync ledger
+(`~/.config/kei/harness-sync/<kind>.json`). The next sync removes only those
+entries before it renders the current ones, so Kei only adds, updates, or
+removes entries it owns and never touches entries it did not create. This
+means:
 
 - Your hand-written entries are safe across syncs.
 - But they also persist — if you want Kei to be the only source, you must remove
