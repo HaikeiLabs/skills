@@ -23,7 +23,8 @@ settle which one a task needs before anything else:
 | Lives | Operator's laptop | Same host or container as the harness (same-host daemon on bare metal, same-container daemon in Docker); optional same-pod companion container on Kubernetes |
 | Skill | `kei-cli` | this one |
 
-An agent never runs `kei login` or `kei bot …` to do its work, and a person
+`kei login` belongs to the `kei` platform admin CLI, never to the `kei-proxy`
+runtime, so an agent never runs `kei login` or `kei bot …` to do its work, and a person
 never needs `kei-proxy authorize` to administer the platform. `kei setup` and
 `kei runtime bootstrap` are the one bridge: admin-CLI conveniences that write
 local runtime config and shell out to `kei-proxy` to check it.
