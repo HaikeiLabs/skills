@@ -24,6 +24,11 @@
 # agent-evals-report fails ("evals:tuning is set: remove the label to run the
 # gate before merge"). Removing the label runs the gate.
 #
+# Closing or merging a pull request cancels its eval run, so a stale branch
+# never holds the kei-agent-evals runners. A pull request eval job stops after
+# 30 minutes and the nightly one after 110; an eval job that times out fails
+# agent-evals-report, never a silent pass.
+#
 # Every pull request gets the agent-evals-report check, so it can be a
 # required status check. The trigger has no path filter: a pull request that
 # changes no suite gets a green "no eval-relevant changes" report. Keep the
@@ -55,8 +60,10 @@ on:
     #   paths: ["evals/**", ".github/workflows/agent-evals.yaml"]
     # EDIT-BEGIN paths
     # EDIT-END paths
-    # The default types, plus label changes for evals:tuning.
-    types: [opened, synchronize, reopened, labeled, unlabeled]
+    # The default types, plus label changes for evals:tuning, plus closed:
+    # closing or merging the pull request starts a run that skips every job
+    # and, through the concurrency group, cancels the eval run in flight.
+    types: [opened, synchronize, reopened, labeled, unlabeled, closed]
   # The nightly sweep of every suite on the default branch.
   schedule:
     - cron: "0 9 * * *"
@@ -65,8 +72,9 @@ on:
 permissions:
   contents: read
 
-# A new push (or label change) cancels the older run, which frees the shared
-# model servers. The nightly sweep and a dispatch share the branch's group.
+# A new push, label change, close or merge cancels the older run, which frees
+# the kei-agent-evals runners and the shared model servers. The nightly sweep
+# and a dispatch share the branch's group.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -113,6 +121,7 @@ jobs:
   # until the evals:tuning label is removed.
   scope:
     if: >-
+      github.event.action != 'closed' &&
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
         github.event.pull_request.head.repo.full_name == github.repository)
     # scope and report run GitHub-hosted, public or private: they need no AWS,
@@ -300,12 +309,18 @@ jobs:
     name: eval (${{ matrix.profile }} ${{ matrix.shard }}/${{ matrix.shards }})
     needs: scope
     if: >-
+      github.event.action != 'closed' &&
       (needs.scope.outputs.mode == 'changed' || needs.scope.outputs.mode == 'all') &&
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
         github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: kei-agent-evals
-    # Below the runner pod's activeDeadlineSeconds (2h).
-    timeout-minutes: 110
+    # A pull request runs one repeat of the suites it changes, split into
+    # shards of about EVAL_SHARD_RUNS runs, so 30 minutes is enough and a stuck
+    # job frees its runner soon. The nightly sweep (three repeats of every
+    # suite) gets 110, below the runner pod's activeDeadlineSeconds (2h). A
+    # job that times out uploads status.json "incomplete", which fails the
+    # report.
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 30 || 110 }}
     strategy:
       fail-fast: false
       # One job per profile (EVAL_PROFILES) per shard of the scope job's
@@ -328,6 +343,11 @@ jobs:
           [[ "$PROFILE" =~ ^[a-z0-9][a-z0-9._-]{0,63}$ ]] || fail "invalid model profile name: $PROFILE"
           [[ "$REPEATS" =~ ^[1-9][0-9]?$ ]] || fail "repeats must be 1-99, got $REPEATS"
           mkdir -p "$OUT"
+          # Until a step records the outcome, this shard is incomplete: a job
+          # that times out, is cancelled or fails first uploads this (Upload
+          # results runs always), and the report fails it.
+          jq -n --arg p "$PROFILE" --arg k "$EVAL_KIND" \
+            '{profile:$p, kind:$k, status:"incomplete", message:"the eval job ended before recording a result"}' > "$OUT/status.json"
 
       - uses: actions/checkout@v4
         with:
@@ -558,7 +578,8 @@ jobs:
     # The required status check: it runs on every pull request.
     name: agent-evals-report
     needs: [scope, eval]
-    if: ${{ !cancelled() }}
+    # Skipped on closed: that run only cancels the one in flight.
+    if: ${{ !cancelled() && github.event.action != 'closed' }}
     outputs:
       # For the nightly job: the verdict and the report it files.
       passed: ${{ steps.report.outputs.passed }}
@@ -673,7 +694,9 @@ jobs:
               }
 
               // cells[suite][profile] = {passed, total} in runs, summed over the profile's
-              // shards; shardStatus[profile][k] = ok|below|unreachable|error|missing;
+              // shards; shardStatus[profile][k] = ok|below|unreachable|error|missing|
+              // incomplete (the job timed out, was cancelled or failed early), or any other
+              // status.json value, which fails as well;
               // status[profile] = unreachable when every shard was, else ok.
               const shardCount = Math.max(1, Number(process.env.SCOPE_SHARDS) || 1);
               const shardIds = Array.from({ length: shardCount }, (_, i) => i + 1);
@@ -732,7 +755,8 @@ jobs:
                   const msg = shardMessage[profile][k];
                   if (st === 'unreachable') problems.push(`models unreachable: ${who} did not answer, so nothing was scored${msg ? ` (\`${msg}\`)` : ''}`);
                   else if (st === 'missing') problems.push(`${who}: the eval job did not produce results (missing)`);
-                  else if (st === 'error') problems.push(`${who}: the eval runner failed (\`${msg || 'error'}\`)`);
+                  else if (st === 'incomplete') problems.push(`${who}: the eval job did not finish (timed out, cancelled, or a step failed before recording a result), so its suites are not fully scored`);
+                  else if (st !== 'ok' && st !== 'below') problems.push(`${who}: the eval runner failed (\`${msg || safe(st)}\`)`);
                 }
               }
               const suites = Object.keys(cells).sort();
