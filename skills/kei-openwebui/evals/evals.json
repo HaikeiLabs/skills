@@ -1,0 +1,461 @@
+{
+  "skill_name": "kei-openwebui",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're Acme. I want our Open WebUI governed by Kei using your published openwebui-kei image. What do I set up on the Kei side before I deploy the container?",
+      "expected_output": "Creates the openwebui installation with kei bot init --platform openwebui, pipes kei bot credential into a secret manager, creates and assigns a model profile, and writes model:invoke and tool:<name> permits with kei policies create.",
+      "expectations": [
+        "The response creates the installation with platform openwebui.",
+        "The response delivers the runtime credential with kei bot credential.",
+        "The response gives the agent a model profile.",
+        "The response writes a model:invoke permit.",
+        "The response writes tool:<name> permits with kei policies create."
+      ],
+      "checks": [
+        {
+          "text": "The response creates the installation with platform openwebui.",
+          "contains_all": [
+            "kei bot init",
+            "--platform openwebui"
+          ]
+        },
+        {
+          "text": "The response delivers the runtime credential with kei bot credential.",
+          "contains_all": [
+            "kei bot credential"
+          ]
+        },
+        {
+          "text": "The response gives the agent a model profile.",
+          "contains_any": [
+            "kei model-profiles create",
+            "kei model-profiles assign"
+          ]
+        },
+        {
+          "text": "The response writes a model:invoke permit.",
+          "contains_all": [
+            "model:invoke"
+          ]
+        },
+        {
+          "text": "The response writes tool:<name> permits with kei policies create.",
+          "contains_all": [
+            "kei policies create",
+            "tool:"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "How do I get the openwebui-kei image into our Azure Container Registry, and what exactly should the deployment reference?",
+      "expected_output": "Imports by digest with az acr import from public.ecr.aws/o1a1k4g0/openwebui-kei@sha256:<digest> (from IMAGE_DIGEST.txt) and deploys <acr>.azurecr.io/openwebui-kei@sha256:<digest>, not a tag.",
+      "expectations": [
+        "The response uses az acr import.",
+        "The response names the ECR Public repository.",
+        "The response pins by digest.",
+        "The response says where the digest comes from."
+      ],
+      "checks": [
+        {
+          "text": "The response uses az acr import.",
+          "contains_all": [
+            "az acr import"
+          ]
+        },
+        {
+          "text": "The response names the ECR Public repository.",
+          "contains_all": [
+            "public.ecr.aws/o1a1k4g0/openwebui-kei"
+          ]
+        },
+        {
+          "text": "The response pins by digest.",
+          "contains_all": [
+            "@sha256:"
+          ]
+        },
+        {
+          "text": "The response says where the digest comes from.",
+          "contains_any": [
+            "IMAGE_DIGEST.txt",
+            "IMAGE_DIGEST"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Our openwebui-kei container exits right away and the log says KEI_RUNTIME_STATE_DIR (/var/lib/kei-proxy) is not a writable directory; refusing to start. Our platform template runs containers as 1000:1000. What's wrong?",
+      "expected_output": "The image runs as UID/GID 10001; set the container user, runAsUser/runAsGroup/fsGroup and volume owners to 10001.",
+      "expectations": [
+        "The response says the image runs as UID/GID 10001.",
+        "The response tells them to change the container user or security context."
+      ],
+      "checks": [
+        {
+          "text": "The response says the image runs as UID/GID 10001.",
+          "contains_all": [
+            "10001"
+          ]
+        },
+        {
+          "text": "The response tells them to change the container user or security context.",
+          "contains_any": [
+            "runAsUser",
+            "fsGroup",
+            "container user",
+            "run as",
+            "UID/GID"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I wrote a Python package acme_orders with an Open WebUI Tools class. How do I add it to openwebui-kei so Kei governs its tools?",
+      "expected_output": "Layer it at build time FROM the image by digest, pip install it, set KEI_OPENWEBUI_TOOL_PACKS, and declare TOOLKITS as plain data with a tools list of name and access, named after the method.",
+      "expectations": [
+        "The response layers the pack FROM the image pinned by digest.",
+        "The response sets KEI_OPENWEBUI_TOOL_PACKS.",
+        "The response declares TOOLKITS with a tools list.",
+        "The response gives each tool a name and access read or write.",
+        "The response says the tool name is the action Kei is asked about."
+      ],
+      "checks": [
+        {
+          "text": "The response layers the pack FROM the image pinned by digest.",
+          "contains_all": [
+            "FROM",
+            "@sha256:"
+          ]
+        },
+        {
+          "text": "The response sets KEI_OPENWEBUI_TOOL_PACKS.",
+          "contains_all": [
+            "KEI_OPENWEBUI_TOOL_PACKS"
+          ]
+        },
+        {
+          "text": "The response declares TOOLKITS with a tools list.",
+          "contains_all": [
+            "TOOLKITS",
+            "\"tools\""
+          ]
+        },
+        {
+          "text": "The response gives each tool a name and access read or write.",
+          "contains_all": [
+            "\"access\"",
+            "\"read\""
+          ]
+        },
+        {
+          "text": "The response says the tool name is the action Kei is asked about.",
+          "contains_any": [
+            "tool:<name>",
+            "tool:acme"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Users get 'tool is not registered in the policy bundle' when the model calls acme.orders.list_orders, even though I created a permit for it. How do I debug this?",
+      "expected_output": "tool_not_registered means Kei hasn't registered the tool; a permit can't help. Check the boot log for tool sync: registered N tool(s), compare --export-manifest names with the refused name, check the image version (v0.1.1+), wait one bundle poll and check kei-proxy policy show tool_count.",
+      "expectations": [
+        "The response checks the boot log for the tool sync line.",
+        "The response compares names with --export-manifest.",
+        "The response checks the bundle with policy show.",
+        "The response explains a permit only applies to a registered tool."
+      ],
+      "checks": [
+        {
+          "text": "The response checks the boot log for the tool sync line.",
+          "contains_any": [
+            "tool sync: registered",
+            "registered N tool"
+          ]
+        },
+        {
+          "text": "The response compares names with --export-manifest.",
+          "contains_all": [
+            "--export-manifest"
+          ]
+        },
+        {
+          "text": "The response checks the bundle with policy show.",
+          "contains_all": [
+            "policy show"
+          ]
+        },
+        {
+          "text": "The response explains a permit only applies to a registered tool.",
+          "regex": "regist"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "After adding our tool pack, the openwebui-kei v0.1.2 container won't start. The log says: tool sync refused: KEI_OPENWEBUI_TOOL_PACKS=acme_orders is set but its manifest has no tools. Why, and how do I fix it?",
+      "expected_output": "The pack exports no governed tools; the container refuses rather than PUT an empty manifest that would unregister every tool. Add a tools list with name and access to each TOOLKITS entry (v0.1.2+).",
+      "expectations": [
+        "The response says the pack declares no governed tools.",
+        "The response explains an empty manifest would unregister every tool.",
+        "The response adds a tools list to the TOOLKITS entry.",
+        "The response gives name and access fields."
+      ],
+      "checks": [
+        {
+          "text": "The response says the pack declares no governed tools.",
+          "contains_any": [
+            "no tools",
+            "no governed tools",
+            "doesn't declare",
+            "does not declare",
+            "declares no"
+          ]
+        },
+        {
+          "text": "The response explains an empty manifest would unregister every tool.",
+          "contains_any": [
+            "unregister"
+          ]
+        },
+        {
+          "text": "The response adds a tools list to the TOOLKITS entry.",
+          "contains_all": [
+            "TOOLKITS",
+            "tools"
+          ]
+        },
+        {
+          "text": "The response gives name and access fields.",
+          "contains_all": [
+            "name",
+            "access"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "A new user in our Open WebUI asked the assistant to list orders and got 'Refused (identity.unlinked)'. What happened and what should they do?",
+      "expected_output": "Their Open WebUI user isn't linked to a Kei user; the tool body never ran. They open the one-time claim link shown to them as an Open WebUI notification, sign in to Kei, and ask again. The link is never in the chat or logs.",
+      "expectations": [
+        "The response says the Open WebUI user isn't linked to a Kei user.",
+        "The response tells them to use the claim link.",
+        "The response says the link is shown as an Open WebUI notification to that user only.",
+        "The response says they sign in to Kei and try again."
+      ],
+      "checks": [
+        {
+          "text": "The response says the Open WebUI user isn't linked to a Kei user.",
+          "contains_any": [
+            "not linked",
+            "unlinked"
+          ]
+        },
+        {
+          "text": "The response tells them to use the claim link.",
+          "contains_any": [
+            "claim link"
+          ]
+        },
+        {
+          "text": "The response says the link is shown as an Open WebUI notification to that user only.",
+          "contains_any": [
+            "notification"
+          ]
+        },
+        {
+          "text": "The response says they sign in to Kei and try again.",
+          "contains_any": [
+            "sign in",
+            "log in",
+            "signs in"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "In the Kei console audit view, some Open WebUI calls show our admin's name with a small 'via installation' label, and they're all denied. Is someone using the admin's account?",
+      "expected_output": "No: via installation means the row had no session user and is attributed to the installation subject (who set up the runtime). The Open WebUI user is unlinked; link them with the claim link and their calls show under their own Kei user.",
+      "expectations": [
+        "The response explains the row is attributed to the installation subject.",
+        "The response says the Open WebUI user is unlinked.",
+        "The response says to link the user with the claim link."
+      ],
+      "checks": [
+        {
+          "text": "The response explains the row is attributed to the installation subject.",
+          "contains_any": [
+            "installation subject",
+            "set up the runtime",
+            "created the runtime",
+            "installation's owner",
+            "owner of the installation",
+            "who set up"
+          ]
+        },
+        {
+          "text": "The response says the Open WebUI user is unlinked.",
+          "contains_any": [
+            "unlinked",
+            "not linked"
+          ]
+        },
+        {
+          "text": "The response says to link the user with the claim link.",
+          "contains_any": [
+            "claim link"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Open WebUI with openwebui-kei shows no models in the model picker. What do I check?",
+      "expected_output": "The Kei Pipe is the only provider and lists the agent's model profile; check kei-proxy is ready, kei model-profiles assignment for the agent, a model:invoke permit, and /v1/models on the socket.",
+      "expectations": [
+        "The response checks the agent's model profile assignment.",
+        "The response checks a model:invoke permit.",
+        "The response checks the /v1/models endpoint."
+      ],
+      "checks": [
+        {
+          "text": "The response checks the agent's model profile assignment.",
+          "contains_any": [
+            "kei model-profiles assignment",
+            "kei model-profiles assign"
+          ]
+        },
+        {
+          "text": "The response checks a model:invoke permit.",
+          "contains_all": [
+            "model:invoke"
+          ]
+        },
+        {
+          "text": "The response checks the /v1/models endpoint.",
+          "contains_all": [
+            "/v1/models"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "At boot our openwebui-kei log has warnings like 'tool sync: acme_orders.cancel is left out of the manifest'. The tools still seem to work. Should I worry?",
+      "expected_output": "Boot matches Tools methods to declarations by name (<method> or <prefix>.<method>); if registered N is right and each method sends its declared name the warning is diagnostic only, otherwise rename or declare the tool. HAI-529 tracks false warnings.",
+      "expectations": [
+        "The response explains methods are matched to tool names <prefix>.<method>.",
+        "The response says the warning can be diagnostic only.",
+        "The response checks the registered tool count."
+      ],
+      "checks": [
+        {
+          "text": "The response explains methods are matched to tool names <prefix>.<method>.",
+          "contains_any": [
+            "<prefix>.<method>",
+            "prefix",
+            "named after"
+          ]
+        },
+        {
+          "text": "The response says the warning can be diagnostic only.",
+          "contains_any": [
+            "diagnostic",
+            "harmless",
+            "informational",
+            "only a warning"
+          ]
+        },
+        {
+          "text": "The response checks the registered tool count.",
+          "contains_any": [
+            "registered N",
+            "registered"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "We want the chat-users group to be able to cancel orders with acme.orders.cancel_order through Open WebUI. Do users need to confirm writes, and what policy do I create?",
+      "expected_output": "Kei policy alone decides; there is no confirmation step. kei policies create --src-pattern group:chat-users --dst-pattern tool:acme.orders.cancel_order --effect permit, bound to the agent, after the tool is registered.",
+      "expectations": [
+        "The response creates a permit with kei policies create.",
+        "The response uses the tool:<name> destination.",
+        "The response uses a group source pattern.",
+        "The response says there is no confirmation step."
+      ],
+      "checks": [
+        {
+          "text": "The response creates a permit with kei policies create.",
+          "contains_all": [
+            "kei policies create",
+            "--effect permit"
+          ]
+        },
+        {
+          "text": "The response uses the tool:<name> destination.",
+          "contains_all": [
+            "tool:acme.orders.cancel_order"
+          ]
+        },
+        {
+          "text": "The response uses a group source pattern.",
+          "contains_all": [
+            "group:chat-users"
+          ]
+        },
+        {
+          "text": "The response says there is no confirmation step.",
+          "contains_any": [
+            "no confirmation",
+            "no approval",
+            "not need to confirm",
+            "don't need to confirm",
+            "no need to confirm",
+            "without confirmation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "We sign in to Open WebUI with Microsoft Entra. Can Kei pick up our Entra users and groups so policies work for them in Open WebUI?",
+      "expected_output": "Yes: kei directory-sync creates Kei users and groups from the Entra app role assignments (dry run first, report, then go live); permits use group:<role value>; each user still links their Open WebUI identity once with the claim link.",
+      "expectations": [
+        "The response uses kei directory-sync.",
+        "The response uses group:<role value> in policies.",
+        "The response says users still link Open WebUI with the claim link."
+      ],
+      "checks": [
+        {
+          "text": "The response uses kei directory-sync.",
+          "contains_all": [
+            "kei directory-sync"
+          ]
+        },
+        {
+          "text": "The response uses group:<role value> in policies.",
+          "contains_any": [
+            "group:<role",
+            "group:"
+          ]
+        },
+        {
+          "text": "The response says users still link Open WebUI with the claim link.",
+          "contains_any": [
+            "claim link"
+          ]
+        }
+      ]
+    }
+  ]
+}
