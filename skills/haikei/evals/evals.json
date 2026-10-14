@@ -195,6 +195,67 @@
         {"text":"The response names kei-lime-pi as the Pi adapter package.","contains_all":["kei-lime-pi"]},
         {"text":"The response keeps the runtime token out of Pi and uses the local socket.","contains_all":["token","socket"]}
       ]
+    },
+    {
+      "id": 8,
+      "prompt": "I want to add a remote MCP server to our Kei workspace. Which Haikei skill and command should I use? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "expected_output": "Load kei-cli. kei connectors create --template TEMPLATE_ID (custom_mcp for a custom server) --label LABEL [--mcp-url URL] --workspace W. Its tools stay blocked until an admin approves its tool manifest.",
+      "expectations": [
+        "The response routes to the kei-cli skill.",
+        "The response names kei connectors create with --template.",
+        "The response says the tools need an approved tool manifest."
+      ],
+      "checks": [
+        {
+          "text": "The response routes to the kei-cli skill.",
+          "contains_all": [
+            "kei-cli"
+          ]
+        },
+        {
+          "text": "The response names kei connectors create with --template.",
+          "contains_all": [
+            "kei connectors create",
+            "--template"
+          ]
+        },
+        {
+          "text": "The response says the tools need an approved tool manifest.",
+          "contains_any": [
+            "manifest",
+            "approve"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "How do I approve the tools of an MCP connector in Kei? Which skill covers it? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "expected_output": "Load kei-cli. Review with kei connectors manifests show CONNECTOR_ID, then an org owner or admin runs kei connectors manifests approve CONNECTOR_ID MANIFEST_ID and confirms. tools is an alias for manifests.",
+      "expectations": [
+        "The response routes to the kei-cli skill.",
+        "The response names kei connectors manifests approve (or the tools alias).",
+        "The response says an org owner or admin approves."
+      ],
+      "checks": [
+        {
+          "text": "The response routes to the kei-cli skill.",
+          "contains_all": [
+            "kei-cli"
+          ]
+        },
+        {
+          "text": "The response names kei connectors manifests approve (or the tools alias).",
+          "regex": "kei connectors (manifests|tools) approve"
+        },
+        {
+          "text": "The response says an org owner or admin approves.",
+          "contains_any": [
+            "admin",
+            "owner"
+          ]
+        }
+      ]
     }
   ]
 }

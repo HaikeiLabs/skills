@@ -529,6 +529,173 @@
         }
       ],
       "id": 15
+    },
+    {
+      "id": 16,
+      "prompt": "I want to add our team's remote MCP server at https://mcp.example.com/mcp to the Main workspace in Kei, labelled \"Metrics (prod)\". What kei command do I run? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "expected_output": "kei connectors create --workspace Main --template custom_mcp --label \"Metrics (prod)\" --mcp-url https://mcp.example.com/mcp (optionally --kind mcp and --slug). The template comes from the catalog; --mcp-url is needed because custom_mcp has no URL. The command prints the slug. Users connect their own accounts with OAuth; nothing is read from stdin. Needs kei v0.1.32 or later (check kei help).",
+      "expectations": [
+        "The response uses kei connectors create with --template.",
+        "The response passes the label with --label.",
+        "The response passes the server URL with --mcp-url.",
+        "The response does not use a --provider flag for the MCP server.",
+        "The response says users connect their own accounts with OAuth (per user)."
+      ],
+      "checks": [
+        {
+          "text": "The response uses kei connectors create with --template.",
+          "contains_all": [
+            "kei connectors create",
+            "--template"
+          ]
+        },
+        {
+          "text": "The response passes the label with --label.",
+          "contains_all": [
+            "--label"
+          ]
+        },
+        {
+          "text": "The response passes the server URL with --mcp-url.",
+          "contains_all": [
+            "--mcp-url"
+          ]
+        },
+        {
+          "text": "The response does not use a --provider flag for the MCP server.",
+          "not_contains": [
+            "--provider mcp",
+            "--provider custom_mcp"
+          ]
+        },
+        {
+          "text": "The response says users connect their own accounts with OAuth (per user).",
+          "contains_any": [
+            "oauth",
+            "per user",
+            "per-user",
+            "own account"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "Our MCP connector's runtime submitted a new tool manifest. As the org admin, how do I see what changed and approve it from the kei CLI? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "expected_output": "kei connectors manifests show CONNECTOR_ID --workspace W shows the newest candidate and the tools added (+), removed (-) and changed (~) since the approved manifest. Then kei connectors manifests approve CONNECTOR_ID MANIFEST_ID --workspace W; it needs the manifest ID, shows the changes and asks to confirm (--yes in scripts). Only an org owner or admin can approve. tools is an alias for manifests.",
+      "expectations": [
+        "The response reviews the candidate with kei connectors manifests show (or the tools alias).",
+        "The response approves with kei connectors manifests approve (or the tools alias).",
+        "The response says approve needs the manifest ID.",
+        "The response says the command asks for confirmation or takes --yes.",
+        "The response says only an org owner or admin can approve."
+      ],
+      "checks": [
+        {
+          "text": "The response reviews the candidate with kei connectors manifests show (or the tools alias).",
+          "regex": "kei connectors (manifests|tools) show"
+        },
+        {
+          "text": "The response approves with kei connectors manifests approve (or the tools alias).",
+          "regex": "kei connectors (manifests|tools) approve"
+        },
+        {
+          "text": "The response says approve needs the manifest ID.",
+          "contains_any": [
+            "manifest_id",
+            "manifest id",
+            "manifest-id",
+            "MANIFEST_ID"
+          ]
+        },
+        {
+          "text": "The response says the command asks for confirmation or takes --yes.",
+          "contains_any": [
+            "--yes",
+            "confirm",
+            "[y/n]",
+            "prompt",
+            "asks"
+          ]
+        },
+        {
+          "text": "The response says only an org owner or admin can approve.",
+          "contains_any": [
+            "admin",
+            "owner"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "I created an MCP connector with kei connectors create --template custom_mcp --label X --mcp-url https://mcp.example.com/mcp --expected-issuer https://login.example.com/tenant/v2.0, and the CLI said the catalog does not support expected_issuer and that it deleted the connector. What happened and what should I do? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "expected_output": "The catalog predates expected_issuer, so it created the connector without the issuer pin. The CLI fails closed: it deleted the connector rather than leave one that trusts any authorization server. Upgrade the catalog (the platform side), or create the connector without --expected-issuer if you accept that. Check kei connectors list to confirm nothing was left behind.",
+      "expectations": [
+        "The response explains the catalog is too old to store expected_issuer.",
+        "The response says the CLI deleted the connector so none is left without the issuer pin (fails closed).",
+        "The response offers retrying without --expected-issuer or upgrading the catalog."
+      ],
+      "checks": [
+        {
+          "text": "The response explains the catalog is too old to store expected_issuer.",
+          "contains_any": [
+            "older catalog",
+            "too old",
+            "does not support",
+            "doesn't support",
+            "predates",
+            "not support"
+          ]
+        },
+        {
+          "text": "The response says the CLI deleted the connector so none is left without the issuer pin (fails closed).",
+          "regex": "delet(e|es|ed|ing)|fail(s|ed)?[ -]closed|trusts? (\\*\\*)?any"
+        },
+        {
+          "text": "The response offers retrying without --expected-issuer or upgrading the catalog.",
+          "contains_any": [
+            "without --expected-issuer",
+            "upgrade"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "Is there a kei command to list the tool manifests of an MCP connector, and does kei connectors tools exist? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "expected_output": "Yes: kei connectors manifests list CONNECTOR_ID --workspace W lists the manifests (id, status, tool count, hash); tools is an alias, so kei connectors tools list is the same. It needs kei v0.1.32 or later; check kei help. The runtime submits manifests; the CLI only reviews and approves.",
+      "expectations": [
+        "The response names kei connectors manifests list.",
+        "The response says tools is an alias for manifests.",
+        "The response says to check kei help or the installed version."
+      ],
+      "checks": [
+        {
+          "text": "The response names kei connectors manifests list.",
+          "contains_all": [
+            "kei connectors manifests list"
+          ]
+        },
+        {
+          "text": "The response says tools is an alias for manifests.",
+          "contains_any": [
+            "alias",
+            "same command",
+            "equivalent"
+          ]
+        },
+        {
+          "text": "The response says to check kei help or the installed version.",
+          "contains_any": [
+            "kei help",
+            "--version",
+            "v0.1.32",
+            "0.1.32",
+            "newer"
+          ]
+        }
+      ]
     }
   ]
 }
