@@ -38,9 +38,12 @@ The code wins over this file. Never invent a flag or an environment variable.
 - Name the real commands: `kei bot init --platform openwebui`,
   `kei bot credential ... | <secret manager>`, `kei model-profiles`,
   `kei policies create`, `kei directory-sync`.
-- Policies are `--dst-pattern model:invoke` for model calls and
-  `--dst-pattern tool:<name>` for each governed tool, `<name>` being the tool's
-  declared name exactly.
+- Write each permit with `kei policies create`: `--dst-pattern model:invoke`
+  for model calls and `--dst-pattern tool:<name>` for each governed tool,
+  `<name>` being the tool's declared name exactly. Show the command.
+- A tool's name matches its `Tools` method as `<method>` or `<prefix>.<method>`
+  (or, from v0.1.3, the declaration's `method`). Say so whenever a tool name or
+  a "left out of the manifest" warning comes up.
 - Deploy the image **by digest** (`@sha256:<digest>`), never by tag.
 - The image runs as **UID/GID 10001**.
 - Never print, echo or paste `KEI_RUNTIME_TOKEN`.
@@ -151,8 +154,16 @@ WebUI serves, the image PUTs the packs' manifest to
 **replaces** the installation's tools. It fails closed:
 
 - With no pack configured, it is skipped.
-- With a pack that exports no tools, the container refuses to start.
+- With a pack that exports no tools, the container refuses to start: it never
+  sends an empty manifest, which would unregister every tool.
 - When Kei refuses, it retries 5 times, then the container exits.
+
+**"Left out of the manifest" warnings.** Lead with the matching rule: boot
+matches a `Tools` method to the declaration named `<method>` or
+`<prefix>.<method>` (`acme.orders.cancel` matches `cancel`), or from v0.1.3 the
+one whose `method` names it. The warning means no declaration matched. Then:
+diagnostic only if `registered N` is right and the method sends a declared
+name; otherwise Kei refuses it (`tool_not_registered`).
 
 Tools reach kei-proxy on the next bundle poll, about a minute later. Details:
 [references/tool-packs.md](references/tool-packs.md).
@@ -197,7 +208,7 @@ installed. It is read-only and exits 1 on drift.
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | Tool call refused **`tool is not registered in the policy bundle`** (`tool_not_registered`) | Kei hasn't registered the tool: image older than v0.1.1, `KEI_OPENWEBUI_TOOL_PACKS` unset, the name differs from what the method sends, or the bundle hasn't refreshed | Boot log `tool sync: registered N tool(s)`; compare `--export-manifest` names with the refused name; wait a poll, check `policy show` `tool_count`. A permit can't help until the tool is registered |
-| Container won't start: **`tool sync refused: ... manifest has no tools`** | The pack declares no governed tools, or the image is older than v0.1.2 and ignores plain-data `tools` | Add a `tools` list (`name`, `access`) to each toolkit; use v0.1.2 or later |
+| Container won't start: **`tool sync refused: ... manifest has no tools`** | The pack declares no governed tools, or the image is older than v0.1.2 and ignores plain-data `tools`. Boot won't PUT an empty manifest: it would unregister every tool | Add a `tools` list (`name`, `access`) to each toolkit; use v0.1.2 or later |
 | Container won't start: `tool sync with Kei failed: ... HTTP 401` | Wrong or rotated runtime token | Put the current credential in the secret manager, restart |
 | Same, `HTTP 404` | `KEI_RUNTIME_CONTROL_PLANE_URL` has a path (e.g. `/api/v1`) or is the wrong host | Use the base URL |
 | Same, `HTTP 409` | The tool name is registered by an admin or another installation | Rename, or remove the other registration |
@@ -207,7 +218,7 @@ installed. It is read-only and exits 1 on drift.
 | Audit rows show the installation's owner **"via installation"**, denied | No session user: the Open WebUI user is unlinked, so the console attributes the row to the installation subject | Link the user; later rows show their own Kei user |
 | **No models** in Open WebUI | kei-proxy not ready, no model profile assigned to the agent, or no `model:invoke` permit | `kei model-profiles assignment --workspace <ws> --agent <id>`; add a `model:invoke` permit; check `/v1/models` |
 | Denied although a permit exists | User not in the group, permit not bound to the chat agent, or stale bundle | Check groups, `--agent-id`, `policy_revision` |
-| Boot warns **`tool sync: <toolkit>.<method> is left out of the manifest: ...`** | No declaration is matched to that method: really ungoverned, or a name that isn't `<prefix>.<method>` and no `method` field | From v0.1.3, set the declaration's `method` to the method that runs it. Before that, it's diagnostic only if `registered N` is right and each method sends its declared name; otherwise rename the tool after its method |
+| Boot warns **`tool sync: <toolkit>.<method> is left out of the manifest: ...`** | Boot matches each `Tools` method to the declaration named `<method>` or `<prefix>.<method>` (`acme.orders.cancel_order` → `cancel_order`), or from v0.1.3 the one whose `method` names it. This method matched none: really ungoverned, or its tool's name isn't `<prefix>.<method>`. Kei governs by the name the method sends, never the method name | Name the tool `<prefix>.<method>` after the method (`acme.orders.cancel` for `cancel`), or from v0.1.3 set the declaration's `method`. Until then the warning is diagnostic only if `registered N` is right and each method sends its declared name |
 | Turn fails `Kei governance is unavailable, so this request was not sent` | `kei_guard`: kei-proxy not ready | Check kei-proxy in the container log |
 
 ## Validation commands

@@ -215,7 +215,10 @@
             "no governed tools",
             "doesn't declare",
             "does not declare",
-            "declares no"
+            "declares no",
+            "no `tools`",
+            "has no `tools`",
+            "missing the `tools`"
           ]
         },
         {
@@ -255,7 +258,10 @@
           "text": "The response says the Open WebUI user isn't linked to a Kei user.",
           "contains_any": [
             "not linked",
-            "unlinked"
+            "unlinked",
+            "isn't linked",
+            "is not linked",
+            "hasn't linked"
           ]
         },
         {
@@ -298,7 +304,8 @@
             "created the runtime",
             "installation's owner",
             "owner of the installation",
-            "who set up"
+            "who set up",
+            "installation's subject"
           ]
         },
         {
@@ -350,7 +357,7 @@
     {
       "id": 10,
       "prompt": "At boot our openwebui-kei log has warnings like 'tool sync: acme_orders.cancel is left out of the manifest'. The tools still seem to work. Should I worry?",
-      "expected_output": "Boot matches Tools methods to declarations by name (<method> or <prefix>.<method>); if registered N is right and each method sends its declared name the warning is diagnostic only, otherwise rename or declare the tool. HAI-529 tracks false warnings.",
+      "expected_output": "Boot matches each Tools method to the declaration named <method> or <prefix>.<method> (or, from v0.1.3, the one whose method field names it). A method with no match is left out of the manifest, so Kei doesn't know a tool by that name. If registered N is right and each method sends its declared name, the warning is diagnostic only; otherwise set method (v0.1.3+) or rename the tool.",
       "expectations": [
         "The response explains methods are matched to tool names <prefix>.<method>.",
         "The response says the warning can be diagnostic only.",
@@ -371,7 +378,8 @@
             "diagnostic",
             "harmless",
             "informational",
-            "only a warning"
+            "only a warning",
+            "not urgent"
           ]
         },
         {
