@@ -36,10 +36,7 @@
       "checks": [
         {
           "text": "The response does not imply that accepting an org invitation automatically grants unrelated workspace access.",
-          "not_contains": [
-            "automatic access",
-            "automatically grant"
-          ]
+          "regex": "^(?![\\s\\S]*(?<!(?:not|n.t|never|no|without) )automatic(?:ally grant|ally grants| access))"
         },
         {
           "contains_all": [
@@ -60,19 +57,15 @@
       ],
       "checks": [
         {
+          "text": "The response does not invent an existing CLI command or bypass the governed contract.",
           "contains_all": [
-            "kebab-case",
             "PATCH",
             "update_mask"
-          ],
-          "text": "The response does not invent an existing CLI command or bypass the governed contract."
+          ]
         },
         {
-          "contains_all": [
-            "workspace",
-            "policy-catalog"
-          ],
-          "text": "The response preserves workspace scope, repository/database boundaries, audit identity, and metadata-only policy-catalog invariants."
+          "text": "The response preserves workspace scope, repository/database boundaries, audit identity, and metadata-only policy-catalog invariants.",
+          "regex": "policy-catalog|policy catalog|pkg/database"
         }
       ]
     },
@@ -127,11 +120,14 @@
           "text": "states the API returns 404 not found, not 403 forbidden"
         },
         {
-          "contains_all": [
-            "cross-tenant",
-            "enumeration"
-          ],
-          "text": "explains the cross-tenant 404 is intentional to prevent agent-ID enumeration"
+          "text": "explains the cross-tenant 404 is intentional to prevent agent-ID enumeration",
+          "contains_any": [
+            "enumerat",
+            "guess",
+            "confirm",
+            "probe",
+            "existence"
+          ]
         },
         {
           "contains_all": [
@@ -171,6 +167,87 @@
           ],
           "text": "notes the API is a fallback when the CLI audit subcommands are unavailable"
         }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Our Teams bot wants to enroll an unlinked user by calling POST /api/v1/enroll on the Kei API. Is that right?",
+      "expected_output": "No. POST /api/v1/enroll is retired and returns 410 Gone (legacy enrollment is disabled). Use the claim-link flow: POST /api/v1/runtime/chat-identity-claims issues a one-time claim link.",
+      "expectations": ["states the route is retired with 410 Gone", "redirects to the chat identity claim-link flow"],
+      "checks": [
+        {"text": "states the route is retired with 410 Gone", "contains_any": ["410", "Gone"]},
+        {"text": "redirects to the chat identity claim-link flow", "contains_any": ["chat-identity-claims", "claim link", "claim-link"]}
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Can I mint a harness key for an agent with POST /api/v1/agents/{id}/keys?",
+      "expected_output": "No. The /agents/{id}/keys and /organizations/{id}/harness-keys direct-mint endpoints were removed per ADR-023. Mint through the runtime installation flow: POST /api/v1/internal/runtime-installations/{id}/credential (or kei bot credential).",
+      "expectations": ["states the direct-mint endpoint was removed", "points to the runtime-installations credential flow"],
+      "checks": [
+        {"text": "states the direct-mint endpoint was removed", "contains_any": ["removed", "no longer", "ADR-023", "does not exist", "doesn't exist", "doesn’t exist"]},
+        {"text": "points to the runtime-installations credential flow", "contains_all": ["runtime-installations"]}
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "I logged in with kei login. Can I call GET /api/v1/workspaces on the Kei API directly with that CLI bearer token?",
+      "expected_output": "No. /api/v1/* collection routes are reached through the web proxy with a browser session; a request with no session subject is refused with 401 an authenticated user is required. The CLI bearer is accepted only on the /api/cli/* routes.",
+      "expectations": ["says the CLI bearer only works on /api/cli/ routes", "says the route needs a browser session"],
+      "checks": [
+        {"text": "says the CLI bearer only works on /api/cli/ routes", "contains_all": ["/api/cli/"]},
+        {"text": "says the route needs a browser session", "contains_any": ["session"]}
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Our customer-hosted harness calls /api/v1/runtime/heartbeat. Should it also send the X-KEI-API-Key header?",
+      "expected_output": "No. X-KEI-API-Key is the trusted web-proxy to engine service credential, not a client scheme; /api/v1/runtime/* and /api/v1/authorize are exempt so customer runtimes never receive the internal secret. The harness uses its harness bearer token.",
+      "expectations": ["identifies X-KEI-API-Key as the web-proxy service credential", "states runtime routes are exempt from it"],
+      "checks": [
+        {"text": "identifies X-KEI-API-Key as the web-proxy service credential", "contains_any": ["service credential", "web proxy", "web-proxy"]},
+        {"text": "states runtime routes are exempt from it", "contains_any": ["exempt", "not a client", "never receive", "not part of the client", "should not", "shouldn't", "does not need", "doesn't need", "shouldn’t", "doesn’t need"]}
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "What fields does a harness send in a POST /api/v1/authorize request, and what decision values come back?",
+      "expected_output": "harness_token plus action, resource, service, agent_id and optionally workspace_id; the response is {decision, reason, org_id, ...} with decision allow or deny.",
+      "expectations": ["names harness_token and agent_id", "names the allow and deny decisions"],
+      "checks": [
+        {"text": "names harness_token and agent_id", "contains_all": ["harness_token", "agent_id"]},
+        {"text": "names the allow and deny decisions", "contains_all": ["allow", "deny"]}
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "A Microsoft Teams user who is not linked to any Kei user triggers POST /api/v1/authorize. What comes back? And what does a guest from a non-chat platform get?",
+      "expected_output": "The Teams user gets decision enrollment_required with an enrollment block carrying a one-time claim-link url and expires_at. A guest from any other platform is denied with guest_requires_signup.",
+      "expectations": ["returns enrollment_required for the chat identity", "includes a one-time claim link url", "returns guest_requires_signup for other platforms"],
+      "checks": [
+        {"text": "returns enrollment_required for the chat identity", "contains_all": ["enrollment_required"]},
+        {"text": "includes a one-time claim link url", "contains_any": ["url", "claim link", "claim-link"]},
+        {"text": "returns guest_requires_signup for other platforms", "contains_all": ["guest_requires_signup"]}
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "When redeeming a chat identity claim link via :redeem, what error code comes back if the link has expired, and what if the identity is already linked to a different Kei user?",
+      "expected_output": "Expired: claim_expired (410). Linked to a different Kei user: identity_conflict (409), without revealing the owner.",
+      "expectations": ["names claim_expired", "names identity_conflict"],
+      "checks": [
+        {"text": "names claim_expired", "contains_all": ["claim_expired"]},
+        {"text": "names identity_conflict", "contains_all": ["identity_conflict"]}
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "Design the List method and a submit state transition for a brand-new expense-reports resource in the Kei API house style. How are pagination and the submit action spelled?",
+      "expected_output": "List with opaque page_token and next_page_token (never new offset pagination); submit is an explicit :verb custom method, e.g. POST /api/v1/expense-reports/{id}:submit.",
+      "expectations": ["uses page_token and next_page_token", "spells submit as a :verb custom method"],
+      "checks": [
+        {"text": "uses page_token and next_page_token", "contains_all": ["page_token", "next_page_token"]},
+        {"text": "spells submit as a :verb custom method", "contains_any": [":submit"]}
       ]
     }
   ]

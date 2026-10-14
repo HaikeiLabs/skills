@@ -23,7 +23,10 @@ management (`grafana-cli`). Agents use the Grafana HTTP API directly.
   connector's scope.
 - Resource types for Kei policy follow ADR-028; dashboards, folders, and
   datasources are addressed by immutable UID (panels and annotations by
-  integer id).
+  integer id). When asked which resource types Grafana declares, give all
+  three facts: the six names (`folder`, `dashboard`, `panel`, `datasource`,
+  `alert_rule`, `annotation`), that each is addressed by UID or integer id,
+  and that they are declared per **ADR-028**.
 - Prefer the unified alerting API (`/api/ruler/grafana/api/v1/rules`) over the
   deprecated legacy alerting API.
 

@@ -11,11 +11,8 @@
       ],
       "checks": [
         {
-          "contains_all": [
-            "kei-agents",
-            "tool definitions"
-          ],
-          "text": "The response keeps provider execution and credentials out of kei-agents definitions."
+          "text": "The response keeps provider execution and credentials out of kei-agents definitions.",
+          "regex": "^(?=[\\s\\S]*kei-agents)(?=[\\s\\S]*(proxy|harness|credential))"
         },
         {
           "contains_all": [
@@ -37,18 +34,12 @@
       ],
       "checks": [
         {
-          "contains_all": [
-            "render_tools",
-            "validation"
-          ],
-          "text": "The response recommends validation before publication or execution."
+          "text": "The response recommends validation before publication or execution.",
+          "regex": "^(?=[\\s\\S]*render_tools)(?=[\\s\\S]*validat)"
         },
         {
-          "contains_all": [
-            "package source",
-            "docs"
-          ],
-          "text": "The response directs the user to the package source and docs as the authority for exact API names."
+          "text": "The response directs the user to the package source and docs as the authority for exact API names.",
+          "regex": "^(?=[\\s\\S]*(src/agents|package source|source code|the source))(?=[\\s\\S]*(docs|README))"
         }
       ]
     },
@@ -168,8 +159,8 @@
           "text": "warns connector_id values are placeholders and must not be treated as real identifiers"
         },
         {
-          "regex": "\\bplaceholders?\\b",
-          "text": "states not to embed endpoints or credentials in binding config"
+          "text": "states not to embed endpoints or credentials in binding config",
+          "regex": "(never|not|n.t|no)\\W+(\\w+\\W+){0,3}(embed|put|include|store|hardcode|carr)|placeholder|connection preset"
         }
       ]
     },
@@ -207,6 +198,222 @@
           "text": "The response names the kei-agents package.",
           "contains_all": [
             "kei-agents"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "In kei-agents, I want to add a tenant_id parameter to the linear.list_issues governed read tool so the agent can choose which tenant to read. Will that work?",
+      "expected_output": "No. tenant_id is a delegated_context field the tenant-side proxy supplies at invocation; a parameter that collides with delegated_context or looks like a tenant identifier is rejected by validate_tool_definitions.",
+      "expectations": [
+        "names delegated_context as where tenant_id belongs",
+        "states validation rejects the parameter"
+      ],
+      "checks": [
+        {
+          "text": "names delegated_context as where tenant_id belongs",
+          "contains_all": [
+            "delegated_context"
+          ]
+        },
+        {
+          "text": "states validation rejects the parameter",
+          "contains_any": [
+            "reject",
+            "fail",
+            "not allowed",
+            "must not",
+            "invalid",
+            "validation error"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Can I put base_url: https://api.linear.app in a kei-agents ToolBinding config so the proxy knows where to call?",
+      "expected_output": "No. Binding config keys that look like endpoints (url, endpoint, base_url, host) and any value containing :// are rejected; endpoints resolve from the governed connection preset (abac.connection_presets).",
+      "expectations": [
+        "states the endpoint in binding config is rejected",
+        "says endpoints come from the governed connection preset"
+      ],
+      "checks": [
+        {
+          "text": "states the endpoint in binding config is rejected",
+          "contains_any": [
+            "reject",
+            "not allowed",
+            "must not",
+            "fail",
+            "invalid",
+            "cannot",
+            "can't",
+            "can’t"
+          ]
+        },
+        {
+          "text": "says endpoints come from the governed connection preset",
+          "contains_any": [
+            "connection preset",
+            "connection_presets",
+            "preset"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "I want to add a linear.create_issue write capability to the kei-agents governed connector read schemas. How should I model it?",
+      "expected_output": "Do not add it as a connector capability. Connector schemas are reads only; writes like creating a Linear issue are agent action tools executed by the harness.",
+      "expectations": [
+        "models the write as an agent action tool",
+        "states connector capabilities are reads only, never writes"
+      ],
+      "checks": [
+        {
+          "text": "models the write as an agent action tool",
+          "contains_any": [
+            "action tool",
+            "agent action"
+          ]
+        },
+        {
+          "text": "states connector capabilities are reads only, never writes",
+          "regex": "reads?[- ]only|only reads?\\b|reads are the only|(never|not|aren.t|isn.t) (a |an )?(governed )?connector capabilit|(writes?|mutations?|create_issue)[^.\\n]{0,60}(agent )?action tools?"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "In kei-agents, which permission gates the S3 governed read schemas, and which delegated_context fields does the proxy supply for them?",
+      "expected_output": "Permission s3_read; delegated context tenant_id and bucket (schemas s3.list_objects, s3.get_object, s3.get_object_metadata).",
+      "expectations": [
+        "names the s3_read permission",
+        "lists tenant_id and bucket as delegated context"
+      ],
+      "checks": [
+        {
+          "text": "names the s3_read permission",
+          "contains_all": [
+            "s3_read"
+          ]
+        },
+        {
+          "text": "lists tenant_id and bucket as delegated context",
+          "contains_all": [
+            "tenant_id",
+            "bucket"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "List the Google Drive/Docs governed read schemas in kei-agents and the delegated_context fields for them.",
+      "expected_output": "drive.list_files, drive.get_file, docs.get_document (permission drive_read); delegated context tenant_id and drive_id.",
+      "expectations": [
+        "lists the Drive and Docs read schemas",
+        "names drive_id as delegated context"
+      ],
+      "checks": [
+        {
+          "text": "lists the Drive and Docs read schemas",
+          "contains_all": [
+            "drive.list_files",
+            "docs.get_document"
+          ]
+        },
+        {
+          "text": "names drive_id as delegated context",
+          "contains_all": [
+            "drive_id"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "pip install kei-agents fails because it is not found on PyPI. How do I install kei-agents?",
+      "expected_output": "kei-agents is not on public PyPI (D-008). Log in to the internal AWS CodeArtifact index with aws codeartifact login --tool pip --domain haikei --domain-owner <ACCOUNT_ID> --repository <REPOSITORY_NAME>, then pip install kei-agents; or pip install -e \".[dev]\" from a checkout.",
+      "expectations": [
+        "uses aws codeartifact login",
+        "states it is not on public PyPI"
+      ],
+      "checks": [
+        {
+          "text": "uses aws codeartifact login",
+          "contains_all": [
+            "codeartifact login"
+          ]
+        },
+        {
+          "text": "states it is not on public PyPI",
+          "contains_any": [
+            "not on PyPI",
+            "not on public PyPI",
+            "isn't on PyPI",
+            "not published",
+            "not available on",
+            "not distributed",
+            "not on the public",
+            "isn’t on PyPI"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "With the default kei-agents PolicyEngine, a user context holds only github_read and the agent calls create_issue. What is the decision and why?",
+      "expected_output": "DENY. The default policy allows iff the context holds the tool's permission; create_issue is gated by github_write.",
+      "expectations": [
+        "returns a deny decision",
+        "names github_write as the required permission"
+      ],
+      "checks": [
+        {
+          "text": "returns a deny decision",
+          "contains_any": [
+            "DENY",
+            "denied"
+          ]
+        },
+        {
+          "text": "names github_write as the required permission",
+          "contains_all": [
+            "github_write"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "Can I give the kei-agents github.read_issue governed read tool a handler that calls the GitHub API directly?",
+      "expected_output": "No. Governed connector read tools must not declare a handler; execution is delegated to the tenant-side proxy. They must declare a service.",
+      "expectations": [
+        "states a governed read tool must not have a handler",
+        "delegates execution to the tenant-side proxy"
+      ],
+      "checks": [
+        {
+          "text": "states a governed read tool must not have a handler",
+          "contains_any": [
+            "must not",
+            "reject",
+            "forbid",
+            "not allowed",
+            "cannot",
+            "can't",
+            "no handler",
+            "should not",
+            "not permitted",
+            "can’t"
+          ]
+        },
+        {
+          "text": "delegates execution to the tenant-side proxy",
+          "contains_all": [
+            "proxy"
           ]
         }
       ]

@@ -38,12 +38,45 @@
       "id": 4,
       "prompt": "What resource types does Grafana declare for Kei policy?",
       "expected_output": "Per ADR-028: folder (no parent), dashboard (parent: folder), panel (parent: dashboard), datasource (no parent), alert_rule (no parent), and annotation (no parent). Identifiers are UIDs (folders, dashboards, datasources, alert rules) or integers (panels, annotations).",
-      "expectations": ["lists folder, dashboard, panel", "mentions datasource and/or alert_rule", "references ADR-028", "mentions UID and integer identifiers"],
+      "expectations": [
+        "lists folder, dashboard, panel",
+        "mentions datasource and/or alert_rule",
+        "references ADR-028",
+        "mentions UID and integer identifiers"
+      ],
       "checks": [
-        {"text": "lists folder, dashboard, panel", "contains_all": ["folder", "dashboard", "panel"]},
-        {"text": "mentions datasource and/or alert_rule", "contains_any": ["datasource", "alert_rule"]},
-        {"text": "references ADR-028", "contains_all": ["ADR-028"]},
-        {"text": "mentions UID and integer identifiers", "contains_any": ["UID", "uid", "folder", "dashboard", "panel", "datasource", "alert_rule", "annotation"]}
+        {
+          "text": "lists folder, dashboard, panel",
+          "contains_all": [
+            "folder",
+            "dashboard",
+            "panel"
+          ]
+        },
+        {
+          "text": "mentions datasource and/or alert_rule",
+          "contains_any": [
+            "datasource",
+            "alert_rule"
+          ]
+        },
+        {
+          "text": "references ADR-028",
+          "regex": "ADR[- ]?0?28"
+        },
+        {
+          "text": "mentions UID and integer identifiers",
+          "contains_any": [
+            "UID",
+            "uid",
+            "folder",
+            "dashboard",
+            "panel",
+            "datasource",
+            "alert_rule",
+            "annotation"
+          ]
+        }
       ]
     },
     {
@@ -67,6 +100,88 @@
         {"text": "identifies GET /api/ruler/grafana/api/v1/rules", "contains_all": ["/api/ruler/grafana/api/v1/rules"]},
         {"text": "prefers unified alerting over legacy API", "contains_all": ["unified alerting"]},
         {"text": "describes the response grouping", "contains_all": ["folder"]}
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "We just deployed. Write the Grafana API request that adds a deploy annotation to panel 4 of the dashboard with UID abc123, tagged deploy.",
+      "expected_output": "POST /api/annotations with body {\"dashboardUID\": \"abc123\", \"panelId\": 4, \"text\": \"...\", \"tags\": [\"deploy\"]}. The panel is a child of the dashboard, so the request carries the parent dashboardUID with the panelId.",
+      "expectations": ["uses the annotations endpoint", "carries the parent dashboardUID", "carries the panelId"],
+      "checks": [
+        {"text": "uses the annotations endpoint", "contains_all": ["/api/annotations"]},
+        {"text": "carries the parent dashboardUID", "contains_all": ["dashboardUID"]},
+        {"text": "carries the panelId", "contains_all": ["panelId"]}
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Create a Grafana folder named Payments nested inside the existing folder whose UID is team-root. Show the API request.",
+      "expected_output": "POST /api/folders with body {\"title\": \"Payments\", \"parentUid\": \"team-root\"}.",
+      "expectations": ["uses the folders endpoint", "nests with parentUid"],
+      "checks": [
+        {"text": "uses the folders endpoint", "contains_all": ["/api/folders"]},
+        {"text": "nests with parentUid", "contains_all": ["parentUid"]}
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Delete the Grafana folder Old Team through the governed connector.",
+      "expected_output": "Not available through the governed connector: folder deletion is irreversible and cascades to the contained dashboards.",
+      "expectations": ["states folder deletion is not available", "gives the denied-surface reason (irreversible, cascades to contained dashboards)"],
+      "checks": [
+        {"text": "states folder deletion is not available", "regex": "not (available|supported|possible|allowed|permitted|exposed)|n.t (available|supported|possible|allowed|do|delete|be)|cannot|unavailable|denied|outside|refus|blocked"},
+        {"text": "gives the denied-surface reason (irreversible, cascades to contained dashboards)", "contains_any": ["irreversible", "cascad", "contained dashboards", "its dashboards", "all dashboards"]}
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Create a new Grafana service account and API key for our CI through the governed Grafana connector.",
+      "expected_output": "Not available: managing API keys and service accounts is identity management outside the connector's scope.",
+      "expectations": ["states it is not available through the connector", "explains it is identity management outside connector scope"],
+      "checks": [
+        {"text": "states it is not available through the connector", "contains_any": ["not available", "isn't available", "not supported", "cannot", "can't", "outside", "isn’t available", "can’t"]},
+        {"text": "explains it is identity management outside connector scope", "contains_any": ["identity", "scope"]}
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "Can I use grafana-cli to list the dashboards in a folder?",
+      "expected_output": "No. grafana-cli only supports plugin management; use the Grafana HTTP API, e.g. GET /api/search with type=dash-db.",
+      "expectations": ["says grafana-cli only handles plugins", "redirects to the HTTP API"],
+      "checks": [
+        {"text": "says grafana-cli only handles plugins", "contains_all": ["plugin"]},
+        {"text": "redirects to the HTTP API", "contains_any": ["/api/search", "HTTP API", "REST API", "/api/"]}
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "I know a Grafana dashboard's title slug and its UID. Which should I use to fetch it, and why?",
+      "expected_output": "Use the UID with GET /api/dashboards/uid/{uid}. UIDs are immutable; slugs change when the dashboard title changes.",
+      "expectations": ["prefers the UID lookup endpoint", "explains UIDs are immutable", "explains slugs change on rename"],
+      "checks": [
+        {"text": "prefers the UID lookup endpoint", "regex": "/api/dashboards/uid|(use|prefer|go with|pick|choose)[^.\\n]{0,30}\\buid"},
+        {"text": "explains UIDs are immutable", "contains_any": ["immutable", "never change", "doesn't change", "does not change", "stable", "doesn’t change"]},
+        {"text": "explains slugs change on rename", "contains_any": ["renam", "title change", "title is change", "change if", "can change", "not stable", "unstable", "changes when", "change when"]}
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "Do I need to paginate GET /api/ruler/grafana/api/v1/rules in Grafana? How is the response organized?",
+      "expected_output": "No. The ruler endpoint groups rules by folder and does not paginate; all rules are returned at once.",
+      "expectations": ["states the ruler endpoint is not paginated", "says rules are grouped by folder"],
+      "checks": [
+        {"text": "states the ruler endpoint is not paginated", "contains_any": ["not paginate", "doesn't paginate", "does not paginate", "no pagination", "not paginated", "all at once", "all rules are returned", "doesn’t paginate"]},
+        {"text": "says rules are grouped by folder", "contains_all": ["folder"]}
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "My Grafana Cloud API calls started returning 429. Which response headers tell me my remaining budget, and how should the agent retry?",
+      "expected_output": "Read X-RateLimit-Limit, X-RateLimit-Remaining and X-RateLimit-Reset; on 429 Too Many Requests retry with exponential backoff.",
+      "expectations": ["names the X-RateLimit headers", "retries with exponential backoff"],
+      "checks": [
+        {"text": "names the X-RateLimit headers", "contains_all": ["X-RateLimit"]},
+        {"text": "retries with exponential backoff", "contains_any": ["backoff", "back off", "back-off"]}
       ]
     }
   ]
