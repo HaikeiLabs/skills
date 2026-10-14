@@ -101,28 +101,53 @@
       ]
     },
     {
+      "id": 15,
+      "prompt": "I ran gcloud auth application-default login --scopes=https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/cloud-platform so a local script can write Google Docs, and Google says access is blocked. How do I get a token with the drive scope?",
+      "expected_output": "gcloud's built-in OAuth client is blocked from the full drive scope. Create your own Desktop OAuth client (Credentials -> Create client -> Desktop app) in your GCP project, download client.json, keep it outside every repo and never commit it (it holds a client secret), then run gcloud auth application-default login --client-id-file=<client.json> --scopes=https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/cloud-platform.",
+      "expectations": ["says gcloud's built-in client is blocked from the drive scope", "creates a Desktop app OAuth client", "passes --client-id-file", "keeps the client JSON out of repositories"],
+      "checks": [
+        {"text": "says gcloud's built-in client is blocked from the drive scope", "regex": "(built-in|default|gcloud's)[^.\\n]{0,60}(client|oauth)|blocked"},
+        {"text": "creates a Desktop app OAuth client", "regex": "desktop"},
+        {"text": "passes --client-id-file", "contains_all": ["client-id-file"]},
+        {"text": "keeps the client JSON out of repositories", "regex": "(never|don't|do not|not)\\W+(\\w+\\W+){0,4}commit|outside[^.\\n]{0,30}repo"}
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "I'm setting up Google Drive and Docs access for my own account in my GCP project. What do I configure on the OAuth consent screen, and should the audience be Internal or External?",
+      "expected_output": "Enable the Drive API and Docs API. In Google Auth Platform -> Data Access add the https://www.googleapis.com/auth/drive and https://www.googleapis.com/auth/documents scopes. Internal works immediately for accounts in your Workspace domain; External with these restricted scopes needs Google app verification and a CASA security assessment.",
+      "expectations": ["adds the drive and documents scopes", "says Internal works immediately for the Workspace domain", "says External with restricted scopes needs app verification", "names the CASA security assessment"],
+      "checks": [
+        {"text": "adds the drive and documents scopes", "contains_all": ["auth/drive", "auth/documents"]},
+        {"text": "says Internal works immediately for the Workspace domain", "regex": "internal[^\\n]{0,120}(domain|workspace|organi[sz]ation|immediately)"},
+        {"text": "says External with restricted scopes needs app verification", "regex": "external[\\s\\S]{0,200}verif"},
+        {"text": "names the CASA security assessment", "contains_all": ["CASA"]}
+      ]
+    },
+    {
       "id": 10,
       "prompt": "I'm in Claude Code. Publish guide.md as a Google Doc titled 'Deploy agents' into Drive folder 1FolderAbCdEfGh0123 using my own Google account. Give me the exact commands.",
-      "expected_output": "Harness-side write with the user's own OAuth token (drive.file scope, e.g. gcloud auth application-default login --scopes=...drive.file,...cloud-platform and print-access-token inline). Confirm the title, folder and content with the user first. Then curl POST to upload/drive/v3/files?uploadType=multipart with metadata mimeType application/vnd.google-apps.document and parents [1FolderAbCdEfGh0123], and the markdown as text/markdown.",
-      "expectations": ["uses the Drive upload endpoint with multipart upload", "sets the Google Docs mimeType so Drive converts the markdown", "puts the folder id in parents", "uploads the content as text/markdown", "uses the drive.file scope", "confirms with the user before writing"],
+      "expected_output": "Harness-side write with the user's own OAuth token (drive scope from your own Desktop OAuth client, e.g. gcloud auth application-default login --client-id-file=<client.json> --scopes=...auth/drive,...cloud-platform and print-access-token inline). Confirm the title, folder and content with the user first. Then curl POST to upload/drive/v3/files?uploadType=multipart with metadata mimeType application/vnd.google-apps.document and parents [1FolderAbCdEfGh0123], and the markdown as text/markdown.",
+      "expectations": ["uses the Drive upload endpoint with multipart upload", "sets the Google Docs mimeType so Drive converts the markdown", "puts the folder id in parents", "uploads the content as text/markdown", "uses the drive scope", "confirms with the user before writing"],
       "checks": [
         {"text": "uses the Drive upload endpoint with multipart upload", "contains_all": ["uploadType=multipart"]},
         {"text": "sets the Google Docs mimeType so Drive converts the markdown", "contains_all": ["application/vnd.google-apps.document"]},
         {"text": "puts the folder id in parents", "regex": "parents[^\\n]{0,40}(1FolderAbCdEfGh0123|\\$\\{?FOLDER_ID)"},
         {"text": "uploads the content as text/markdown", "contains_all": ["text/markdown"]},
-        {"text": "uses the drive.file scope", "contains_all": ["drive.file"]},
+        {"text": "uses the drive scope", "regex": "auth/drive(?![.\\w])"},
         {"text": "confirms with the user before writing", "contains_any": ["confirm", "explicit yes", "approval", "\"yes\"", "only after"]}
       ]
     },
     {
       "id": 11,
       "prompt": "How do I get an OAuth access token for writing a Google Doc from the shell with gcloud? Which scope?",
-      "expected_output": "gcloud auth application-default login --scopes=https://www.googleapis.com/auth/drive.file,https://www.googleapis.com/auth/cloud-platform, then $(gcloud auth application-default print-access-token) inline in the Authorization header. Never print or store the token.",
-      "expectations": ["uses gcloud application-default credentials", "mints the token with print-access-token", "asks for the drive.file scope", "says not to print, log, or store the token"],
+      "expected_output": "gcloud auth application-default login --client-id-file=<your Desktop client.json> --scopes=https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/cloud-platform (gcloud's built-in client is blocked from the drive scope), then $(gcloud auth application-default print-access-token) inline in the Authorization header. Never print or store the token.",
+      "expectations": ["uses gcloud application-default credentials", "mints the token with print-access-token", "asks for the drive scope", "uses your own OAuth client via --client-id-file", "says not to print, log, or store the token"],
       "checks": [
         {"text": "uses gcloud application-default credentials", "contains_all": ["application-default"]},
         {"text": "mints the token with print-access-token", "contains_all": ["print-access-token"]},
-        {"text": "asks for the drive.file scope", "contains_all": ["auth/drive.file"]},
+        {"text": "asks for the drive scope", "regex": "auth/drive(?![.\\w])"},
+        {"text": "uses your own OAuth client via --client-id-file", "contains_all": ["client-id-file"]},
         {"text": "says not to print, log, or store the token", "regex": "(never|don't|do not)[^.\\n]{0,40}(print|echo|log|store)"}
       ]
     },
@@ -141,7 +166,7 @@
     {
       "id": 13,
       "prompt": "My curl files.create call into our GTM folder returns 404 File not found for the folder id, though I can see the folder in the Drive UI. I'm using a drive.file token. What's going on, and should I switch to the full drive scope?",
-      "expected_output": "With drive.file, Drive only sees files and folders this OAuth client created or opened, so the folder returns 404 to that token. Do not silently widen to the drive scope; stop and report it, and have the folder opened/shared with the client (e.g. through a picker) or get an owner decision on scope.",
+      "expected_output": "With drive.file, Drive only sees files and folders this OAuth client created or opened, so the folder returns 404 to that token, and a retry does not change that. Do not widen the scope inside the write; stop and report it, and ask the user to re-run the one-time consent with their own OAuth client and the owner-approved drive scope (--client-id-file).",
       "expectations": ["explains drive.file only covers files the client created or opened", "does not recommend silently switching to the full drive scope", "gives the right remedy: a picker, or stop and report to the owner"],
       "checks": [
         {"text": "explains drive.file only covers files the client created or opened", "regex": "created[^.\\n]{0,25}opened|opened with|created by|opens|it created|has opened"},
