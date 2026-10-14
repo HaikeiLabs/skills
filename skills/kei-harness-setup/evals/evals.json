@@ -183,7 +183,7 @@
         },
         {
           "text": "The response mentions that kei-proxy fails closed (denies everything) when the schema is invalid.",
-          "regex": "fails?[- ]closed|denies every"
+          "regex": "fail(s|ed|ing)?[- ]?clos(e|es|ed|ing)\\b|denies every"
         },
         {
           "text": "The response identifies the root cause as a policy bundle schema-validation failure.",
@@ -316,11 +316,7 @@
         },
         {
           "text": "explains both Codex and Claude Code on the same machine share one installation and are auto-discovered by sync",
-          "contains_all": [
-            "Codex",
-            "Claude Code",
-            "sync"
-          ]
+          "regex": "^(?=[\\s\\S]*codex)(?=[\\s\\S]*claude[ _-]?code)(?=[\\s\\S]*sync)"
         },
         {
           "text": "mentions that the setup script calls `kei harness add` with `|| true` for backward compatibility",

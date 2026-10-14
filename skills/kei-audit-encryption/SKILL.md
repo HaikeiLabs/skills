@@ -41,14 +41,21 @@ If something is not here, say so. In every answer:
   decision, ids, timestamps, and outcome stay plaintext and queryable.
   Always add a line on `args_digest`, even in a short answer: it is a keyed
   HMAC (`hmac-sha256:`) that groups repeated calls and is never reversible.
-- **No `args_ciphertext` on records:** normal, not a miss. Without an active
+- **No `args_ciphertext` on records:** say it is normal (opt-in), not a
+  miss, and name both fields such a record still carries: without an active
   customer key, records carry `args_digest` + `digest_key_id` only.
-- **Decrypt:** `kei audit decrypt --record ID --identity PATH --out FILE`
-  writes the file with mode 0600. Always also say that printing to stdout
-  needs the explicit `--stdout` flag (nothing is printed implicitly).
+- **Decrypt:** give the command with both output forms,
+  `kei audit decrypt --record ID --identity PATH (--out FILE | --stdout)`:
+  `--out` writes the file with mode 0600, and printing to stdout needs the
+  explicit `--stdout` flag (nothing is printed implicitly).
   Say that the CLI fetches the ciphertext through the audit records API and
   decrypts it locally with the identity, and that the wrong identity fails
   with `decryption failed (wrong identity?)`.
+- **Escrow setting:** name the org setting `audit_escrow_enabled` and say it
+  defaults to false (off); it can only be set to true once at least one
+  active customer key exists. When enabled, Kei adds a Kei-held, KMS-wrapped
+  escrow key to the recipients; escrow keypair generation and decrypt are not
+  implemented yet, so leave it off unless the customer needs a recovery copy.
 - **Rotation:** use the word "rotation" and say it affects only new
   records. Past records stay encrypted to the
   keys that were active when they were written (never re-encrypted), so keep

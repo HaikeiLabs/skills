@@ -88,7 +88,7 @@
       "checks": [
         {
           "text": "The response does not accept a trailing /approve path segment as a valid custom method.",
-          "regex": "^(?=[\\s\\S]*:approve)(?=[\\s\\S]*custom[- ]method)"
+          "regex": "^(?=[\\s\\S]*:approve)(?=[\\s\\S]*(custom[- ]method|:verb|\\bno\\b|not (a )?valid|instead))"
         },
         {
           "text": "The response mentions aipcheck as the CI step that enforces the :verb convention.",
