@@ -19,7 +19,8 @@ governed operations. Agents use the Google Drive API v3 directly.
   Setup: an owner runs `kei connectors create --provider googledrive` (OAuth or
   service-account key); re-authorize with `kei connectors reconnect <id>`.
 - Writing a doc (create or update a Google Doc) is harness-side with the
-  user's own OAuth token (`drive.file`) and is confirm-first. See
+  user's own OAuth token (scope `drive`, from your own OAuth client) and is
+  confirm-first. See
   [Writing a doc (harness-side)](#writing-a-doc-harness-side). That token is
   only for doc writes: authorizing the connector is always
   `kei connectors create --provider googledrive --workspace W`.
@@ -51,13 +52,16 @@ accept it, and name the Kei commands instead: an owner runs
 `--credential-ref` for a key already in the secret manager), and a broken
 connection is repaired with `kei connectors reconnect <id>`. The same answer
 applies when the user has not authorized Google Drive yet. Write both
-commands out in full; do not answer with `drive.file` or gcloud, which are
-only for harness-side doc writes.
+commands out in full; do not answer with a Drive OAuth scope or gcloud,
+which are only for harness-side doc writes.
 
 - **OAuth (Google Workspace):** An owner runs `kei connectors create --provider googledrive
   --workspace W`. This returns a connect URL they open in a browser to
-  authorize the Google OAuth scopes. Check status with `kei connectors get <id>` and
-  re-authorize with `kei connectors reconnect <id>`.
+  authorize the Google OAuth scopes (`https://www.googleapis.com/auth/drive`
+  and `https://www.googleapis.com/auth/documents`). Check status with
+  `kei connectors get <id>` and re-authorize with `kei connectors reconnect <id>`.
+  A connection made before the scope change still has the old read-only grant
+  and must reconnect.
 - **Service account key (shared secret):** The owner runs `kei connectors
   create --provider googledrive` (reads the JSON key without echo) or passes
   `--credential-ref <secret-manager-ref>` if the key already exists in the
@@ -141,11 +145,12 @@ This section applies only to writing a doc. It does not change how the Kei
 connector is authorized. Connecting or repairing the connector, including
 when a user offers to paste a key, is always answered with
 `kei connectors create --provider googledrive --workspace W` (or
-`kei connectors reconnect <id>`), never with `drive.file` or gcloud.
+`kei connectors reconnect <id>`), never with a Drive OAuth scope or gcloud.
 
-Drive writes are **harness-side** (owner decision 2026-10-09). They are not a
-governed connector capability, and `kei-proxy connector invoke` does not write
-to Drive. The harness calls the Drive REST API directly with the **invoking
+Drive writes are **harness-side** (owner decision 2026-10-09). Kei never
+writes: they are not a governed connector capability, and
+`kei-proxy connector invoke` does not write to Drive. The broad scopes do not
+decide what an agent may do; Kei policy does. The harness calls the Drive REST API directly with the **invoking
 user's own Google OAuth token**:
 
 - Coding harnesses (Claude Code, Codex, OpenCode) use the `curl` recipe below.
@@ -172,20 +177,25 @@ user's own Google OAuth token**:
   `https://www.googleapis.com/upload/drive/v3/files/<doc_id>?uploadType=media`
   with the real doc id filled in, and `--data-binary "@<file>"` pointing at
   the Markdown file, readable or not.
-- **Scope: `drive.file`** (`https://www.googleapis.com/auth/drive.file`). It
-  only covers files and folders this OAuth client created or opened (via a
-  picker); everything else in the user's Drive is invisible to the token. Do
-  not ask for `drive`.
-- **A 404 on the folder means stop and report.** With `drive.file`, Drive
-  returns 404 for a folder this OAuth client has not opened, even though the
-  user can see it in the Drive UI. Always open your answer with this
-  sentence, word for word: "`drive.file` only covers files this OAuth client
-  created or opened, so the folder is invisible to this token." Seeing it in
-  the Drive UI does not change that. A `GET`, a retry, or any other API call
-  with the same token does **not** open it; only the user picking the folder
-  in a Google Picker or file picker for this app grants access. So stop,
-  report the 404 to the user, and ask the owner how to grant access (picker,
-  or an owner decision on scope). Never switch to `drive` on your own.
+- **Scope: `drive`** (`https://www.googleapis.com/auth/drive`), the
+  owner-approved write scope (HAI-482). Its token step always uses your own
+  OAuth client (`--client-id-file`), never gcloud's built-in client, which
+  Google blocks from this scope. See
+  [Get the user's token](#get-the-users-token).
+- **A 404 on the folder means stop and report.** With `drive`, a 404 means
+  the signed-in Google account cannot see the folder: a wrong folder id, a
+  different account, or a folder not shared with that account. Report it and
+  ask the user to check the account and the id; never retry in a loop.
+- **An old `drive.file` token.** If the token was minted with `drive.file`,
+  always open your answer with this sentence, word for word: "`drive.file`
+  only covers files this OAuth client created or opened, so the folder is
+  invisible to this token." Seeing it in the Drive UI does not change that,
+  and a `GET` or a retry with the same token does **not** open it. Never
+  change scopes inside the write call on your own. Always end your answer
+  with this sentence, word for word: "Stop here and report the 404 to the
+  owner; the fix is to re-run the one-time consent with your own OAuth client
+  and the owner-approved `drive` scope." Then give the consent command from
+  [Get the user's token](#get-the-users-token).
 - **The token is the user's.** Never print, echo, log, or store it, and never
   put it in a file, a commit, or a reply. Pass it inline in the
   `Authorization` header, as below.
@@ -207,14 +217,47 @@ user's own Google OAuth token**:
 ### Get the user's token
 
 Use the harness's own Google OAuth when it has one. Otherwise use gcloud
-application-default credentials with the `drive.file` scope. gcloud requires
-`cloud-platform` in the scope list. This is a one-time browser consent:
+application-default credentials with the `drive` scope and **your own Desktop
+OAuth client**. gcloud's built-in client is blocked from the full `drive`
+scope (Google shows "access blocked" for that scope), so always pass
+`--client-id-file`. gcloud requires `cloud-platform` in the scope list.
+
+#### One-time setup: your own OAuth client
+
+Whenever you explain this setup or tell someone to use their own OAuth
+client, always do both:
+
+- Write the scopes as full URIs, `https://www.googleapis.com/auth/drive`
+  and `https://www.googleapis.com/auth/documents`, never as bare `drive` or
+  `documents`. The consent screen's Data Access page needs the full URI.
+- Include this sentence, word for word: "Keep client.json outside every
+  repository and never commit it; it holds a client secret."
+
+In a GCP project you own:
+
+1. Enable the Drive API and the Docs API (`gcloud services enable
+   drive.googleapis.com docs.googleapis.com --project <project-id>`).
+2. **Google Auth Platform → Data Access**: add the
+   `https://www.googleapis.com/auth/drive` and
+   `https://www.googleapis.com/auth/documents` scopes to the consent screen.
+3. **Audience**: **Internal** works immediately for accounts in your Google
+   Workspace domain. **External** with these restricted scopes needs Google
+   app verification and a CASA security assessment first.
+4. **Credentials → Create client → Desktop app**, then download its JSON file.
+   It holds a client secret: keep it outside every repository and never
+   commit it.
+5. Set the quota project (below) to this project.
+
+Then run the one-time browser consent:
 
 ```bash
-# One-time consent. Scope: drive.file (gcloud also requires cloud-platform).
+# One-time consent with YOUR Desktop client (gcloud's built-in client is
+# blocked from the drive scope). Keep client.json outside every repo; never
+# commit it. gcloud also requires cloud-platform.
 # Never print, echo, log, or store the token; mint it inline in each call.
 gcloud auth application-default login \
-  --scopes=https://www.googleapis.com/auth/drive.file,https://www.googleapis.com/auth/cloud-platform
+  --client-id-file=<path-outside-repo>/client.json \
+  --scopes=https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/cloud-platform
 ```
 
 Each call then mints a short-lived token inline:
@@ -224,22 +267,22 @@ inline in the `Authorization` header. When you explain how to get the
 token, say this too. If Drive answers
 403 because the API is not enabled for the quota project, run
 `gcloud auth application-default set-quota-project <project-with-Drive-API>`
-and add `-H "x-goog-user-project: <project>"` to each call.
+and add `-H "x-goog-user-project: <project>"` to each call (or set
+`GOOGLE_QUOTA_PROJECT` for the harness).
 
 ### Recipe
 
 ```bash
-# Token: the user's own, scope drive.file, from
-#   gcloud auth application-default login --scopes=https://www.googleapis.com/auth/drive.file,https://www.googleapis.com/auth/cloud-platform
+# Token: the user's own, scope drive, from (your own Desktop client)
+#   gcloud auth application-default login --client-id-file=<path-outside-repo>/client.json --scopes=https://www.googleapis.com/auth/drive,https://www.googleapis.com/auth/cloud-platform
 # Never print, echo, log, or store the token; it is minted inline below.
 FOLDER_ID=<parent folder id>   # last segment of the folder URL
 TITLE='Build agents with agentware'
 FILE=guide.md
 
-# 0. Preflight: can this token see the folder? With drive.file, Drive returns
-#    404 for a folder the OAuth client has not opened. Stop and report it to
-#    the owner. Calling it again does not open the folder; only a picker does.
-#    Do not retry with a broader scope.
+# 0. Preflight: can this token see the folder? A 404 means this Google
+#    account cannot see it (wrong id, wrong account, or not shared). Stop and
+#    report it; do not retry in a loop.
 curl -sS --fail-with-body \
   -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
   "https://www.googleapis.com/drive/v3/files/$FOLDER_ID?fields=id,name&supportsAllDrives=true"
@@ -260,7 +303,7 @@ content, so confirm first, the same as for a create:
 
 ```bash
 # Run only after the user confirms the doc id and the new content.
-# Token: scope drive.file, minted inline; never print or store it.
+# Token: scope drive (your own client), minted inline; never print or store it.
 DOC_ID=<google doc id>
 curl -sS --fail-with-body -X PATCH \
   -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
