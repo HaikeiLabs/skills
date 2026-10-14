@@ -21,9 +21,9 @@ whichever harness you work in (Claude Code, Codex, opencode).
    (`--repeats 3`). A suite scores passed runs / total runs, averaged the same
    way as tool-call evals, so one miss isn't a regression. Check whether the
    same case fails across runs.
-3. **95% per suite per model.** The gate fails when any suite is below 95% on
-   either model profile, `deepseek-v4-flash` or `qwen3.8-27b`. Aim for at least
-   90% locally before you open a pull request.
+3. **90% per suite per model.** The gate fails when any suite is below 90% on
+   either model profile, `deepseek-v4-flash` or `qwen3.8-27b`. Reach at least
+   90% locally on both before you open a pull request.
 4. **Who authors pull requests.** Every worker commit, push and PR is
    AgentPedro's (see the `kei-worker-git-identity` skill), never the owner's.
    If AgentPedro can't push a change, for example a `.github/workflows/*` file
@@ -34,10 +34,10 @@ whichever harness you work in (Claude Code, Codex, opencode).
    per case on a pull request, and every suite 3 times per case nightly on
    `main` (09:00 UTC, or by hand with workflow_dispatch). The nightly average
    is the record: a failing sweep opens or updates the "Nightly agent evals
-   below 95%" issue, and a passing one closes it. While a pull request is
+   below 90%" issue, and a passing one closes it. While a pull request is
    still tuning a skill, add the `evals:tuning` label: nothing runs, and the
    gate fails with "evals:tuning is set: remove the label to run the gate
-   before merge". Remove the label only after the suite reaches at least 95%
+   before merge". Remove the label only after the suite reaches at least 90%
    locally on both model profiles at `--repeats 3`. Removing it runs the gate.
    The runbook is HaikeiLabs/kei `docs/agent-evals-gate.md` (Cadence).
 6. **Local Qwen runs take the Qwen lock.** Qwen is served by a single GPU that

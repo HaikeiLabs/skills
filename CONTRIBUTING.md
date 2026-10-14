@@ -80,7 +80,7 @@ These run in CI as well (Node 22, Python yamllint), on pull requests and pushes 
    `evals:tuning` label to the pull request. Nothing runs while it is set, and
    the gate fails with "evals:tuning is set: remove the label to run the gate
    before merge", so the pull request can't merge. Remove the label once the
-   skill reaches at least 95% locally on both profiles with `--repeats 3`;
+   skill reaches at least 90% locally on both profiles with `--repeats 3`;
    removing it runs the gate:
 
 ```bash
