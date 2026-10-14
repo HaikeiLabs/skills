@@ -7,7 +7,7 @@ Eval cases for the setup doctor skill.
 Checks are deterministic (case-insensitive string checks in `evals.json`, no
 LLM grader). The CI gate (`.github/workflows/agent-evals.yaml`) runs every
 case 3 times per model profile at temperature 0 with a fixed seed, and gates
-on the average pass rate (threshold 0.95). To reproduce it locally:
+on the average pass rate (threshold 0.90). To reproduce it locally:
 
 ```bash
 node scripts/run-evals.mjs --skill kei-setup-doctor --harness opencode \
