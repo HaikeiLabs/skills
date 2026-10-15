@@ -55,9 +55,15 @@ If it is missing, install with the checksum-verifying release installer
 
 ```sh
 export PATH="$HOME/.local/bin:$PATH"
-curl -fsSL "https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh" \
+curl -fsSL "https://haikeilabs.com/install.sh" \
   | sh -s -- -d "$HOME/.local/bin"
 kei help && kei --version
+```
+
+If `haikeilabs.com` is unreachable, use the S3 fallback:
+```sh
+curl -fsSL "https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh" \
+  | sh -s -- -d "$HOME/.local/bin"
 ```
 
 The installer is POSIX `sh` (it runs under `sh`, `bash`, and `dash` alike);
@@ -74,11 +80,11 @@ Two more installer modes exist (POSIX `sh`, same checksum verification):
 ```sh
 # Install only kei-proxy (the runtime), pinned to KEI_PROXY_VERSION by default,
 # with its own -v to pick a different version:
-curl -fsSL "https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh" \
+curl -fsSL "https://haikeilabs.com/install.sh" \
   | sh -s -- --proxy-only -d "$HOME/.local/bin"
 
 # Remove exactly the files the installer recorded in .kei-install-manifest:
-curl -fsSL "https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/install.sh" \
+curl -fsSL "https://haikeilabs.com/install.sh" \
   | sh -s -- --uninstall -d "$HOME/.local/bin"
 ```
 
