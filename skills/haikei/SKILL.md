@@ -65,6 +65,7 @@ Need to operate Kei from a terminal?
 ├─ Existing installation misbehaving → kei-setup-doctor
 ├─ Operating Kei's own services (deploy/rollback oidc-bridge, migrations, signing keys, KeiIdentity* alerts) → kei-service-ops
 ├─ Connector (list, create, get, reconnect, delete) → `kei connectors` subcommand (released in kei; v0.1.13 is current; fallback to Kei API)
+├─ Add a remote MCP server, or review and approve its tools (`kei connectors create --template`, `kei connectors manifests` / `tools`) → kei-cli
 ├─ Manage harness policies (list, get, create, update, delete, import) or register a harness (add, sync, list, remove) → kei-harness-policy
 ├─ Encrypt audit args / manage audit encryption keys (kei audit keys create|list|disable, kei audit decrypt) → kei-audit-encryption
 └─ Org, workspace, agent, policy, user → web app (no CLI); HTTP API → kei-api
@@ -97,6 +98,7 @@ exist in the code today.
 | Set up Pi with Kei | `kei-lime-pi` extension + local `kei-proxy` socket | Install the Pi package, keep the runtime token out of Pi, and verify supported tool calls fail closed | `kei-pi-setup` |
 | Create an organization or workspace | Kei API | Set up an org, workspaces, seats, plans, members. Always inspect the actual API routes before calling an endpoint | `kei-api` |
 | Add or manage a data connector | Kei API | Register a governed data source (GitHub, Linear, Drive, S3, http_api/CRM) and its status | `kei-api` |
+| Add an MCP server, or approve an MCP connector's tools | kei CLI (`kei connectors create --template`, `kei connectors manifests`) | A remote MCP server from a catalog template; its tools are usable only after an org admin approves its tool manifest. Needs kei v0.1.32 or later; check `kei help` | `kei-cli` |
 | Manage groups, policies, users, roles, access levels | Kei API | Administer RBAC/ABAC state that decides agent and user access | `kei-api` |
 | Add, rename, or migrate an HTTP endpoint | API conventions | Define a route the AIP-style resource-oriented way, spell a custom method, or fix the Endpoint conventions CI check | `kei-api-conventions` |
 | Invite users to an org or harness | Kei API | Send or accept invitations; add members to an org | `kei-api` |
@@ -242,6 +244,17 @@ exist in the code today.
   The action (posting the message): `agentware-sdk` wraps the tool call with
   policy and audit, `kei-agents` defines the tool, and `kei-proxy` authorizes
   it at run time. Name all of these in the answer.
+- **"Add our Grafana MCP server to Kei."** → `kei-cli`. Create it from a
+  catalog template: `kei connectors create --workspace W --kind mcp --template
+  custom_mcp --label "Grafana (prod)" --mcp-url https://<host>/mcp` (use the
+  template the catalog lists for that server, if there is one). Users connect
+  their own accounts with OAuth. The connector's tools are blocked until an
+  admin approves its tool manifest.
+- **"Approve the tools for our MCP connector."** → `kei-cli`. Review the
+  candidate with `kei connectors manifests show CONNECTOR_ID` (tools added,
+  removed and changed), then an org owner or admin runs
+  `kei connectors manifests approve CONNECTOR_ID MANIFEST_ID` and confirms.
+  `tools` is an alias for `manifests`.
 - **"Build a new connector skill for our internal CRM."** → connector skill
   templates. Fork `templates/connector-skill/`, fill in the Lexicon/Pragmatics/
   Semantics placeholders, add eval cases, and register the resource types per

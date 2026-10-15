@@ -14,10 +14,11 @@ management (`grafana-cli`). Agents use the Grafana HTTP API directly.
 
 ## Key rules
 
-- The agent never sees the raw service-account token — Kei injects it via
-  `kei-proxy connector invoke` at run time. Setup: an admin runs
-  `kei connectors create --provider grafana`, which reads the token from stdin
-  without echo; rotate it with `kei connectors reconnect <id>`.
+- The agent never sees a Grafana credential. There is no `grafana` provider
+  for `kei connectors create --provider`. Grafana is added as a remote MCP
+  connector from a catalog template (`kei connectors create --template …`,
+  see *Connect and credentials*), and each user connects their own account
+  with OAuth.
 - Dashboard and folder deletion is not available through the governed
   connector — it is irreversible and requires admin permissions beyond the
   connector's scope.
@@ -66,24 +67,27 @@ Base URL: `https://{instance}/api`
 
 ### Connect and credentials
 
-1. **Initial setup**: A workspace admin runs:
+1. **Initial setup**: A workspace admin adds the Grafana MCP server from a
+   catalog template (`kei` v0.1.32 or later; check `kei help`):
    ```
-   kei connectors create --provider grafana
+   kei connectors create --workspace W --kind mcp --template custom_mcp \
+     --label "Grafana (prod)" --mcp-url https://<grafana-mcp-host>/mcp
    ```
-   This reads the service-account token from stdin (without echo). The token
-   is stored in the Kei secret manager.
-
-2. **Reconnect**: If the token needs rotation:
-   ```
-   kei connectors reconnect <connector-id>
-   ```
-
-3. **Runtime**: The governed connector injects the service-account token into
-   API calls via `kei-proxy connector invoke`. The agent never sees the raw
+   If the catalog lists a Grafana template (`GET /api/v1/connector-templates`),
+   use its ID instead of `custom_mcp` and omit `--mcp-url` when the template
+   has one. There is no `--provider grafana`. Nothing is read from stdin:
+   each user connects their own Grafana account with OAuth, and Kei holds the
    token.
 
-> **Note**: The real Grafana connector is being built (HAI-311).
-> `kei connectors create --provider grafana` works once it ships.
+2. **Approve its tools**: the connector's tools are usable only after an org
+   owner or admin approves the tool manifest the runtime submits:
+   ```
+   kei connectors manifests show <connector-id>
+   kei connectors manifests approve <connector-id> <manifest-id>
+   ```
+
+3. **Runtime**: the runtime calls the MCP server with the user's token. The
+   agent never sees it.
 
 ### Denied command surface
 

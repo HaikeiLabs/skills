@@ -82,13 +82,12 @@
     {
       "id": 5,
       "prompt": "How does credential management work for the Grafana connector?",
-      "expected_output": "A workspace admin runs `kei connectors create --provider grafana` which reads the service-account token from stdin without echoing it. For rotation, use `kei connectors reconnect <connector-id>`. At runtime, the token is injected via kei-proxy connector invoke. The agent never sees the raw token.",
-      "expectations": ["mentions kei connectors create --provider grafana", "states the token is read without echo", "mentions kei connectors reconnect for rotation", "confirms agent never stores or prints the token"],
+      "expected_output": "There is no --provider grafana. A workspace admin adds the Grafana MCP server from a catalog template: kei connectors create --workspace W --kind mcp --template custom_mcp --label \"Grafana (prod)\" --mcp-url https://<grafana-mcp-host>/mcp (or the catalog's Grafana template). Each user connects their own Grafana account with OAuth; Kei holds the token and the agent never sees it. Its tools are usable after an org admin approves the tool manifest (kei connectors manifests approve).",
+      "expectations": ["The response adds Grafana as an MCP connector with kei connectors create --template.", "The response says each user connects their own account with OAuth.", "The response says the agent never sees the credential."],
       "checks": [
-        {"text": "mentions kei connectors create --provider grafana", "contains_all": ["kei connectors create", "--provider grafana"]},
-        {"text": "states the token is read without echo", "contains_any": ["without echo", "stdin", "no echo"]},
-        {"text": "mentions kei connectors reconnect for rotation", "contains_all": ["kei connectors reconnect"]},
-        {"text": "confirms agent never stores or prints the token", "contains_all": ["never"]}
+        {"text": "The response adds Grafana as an MCP connector with kei connectors create --template.", "contains_all": ["kei connectors create", "--template"]},
+        {"text": "The response says each user connects their own account with OAuth.", "contains_any": ["oauth", "own account", "per user", "per-user"]},
+        {"text": "The response says the agent never sees the credential.", "contains_all": ["never"]}
       ]
     },
     {
