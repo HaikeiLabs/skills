@@ -6,6 +6,10 @@ profiles:
     concurrency: 4
     # Sandboxed harness runs can exceed 600 s on complex prompts.
     run_timeout_seconds: 1800
+    # Runs (cases x repeats) per CI eval job: 20 runs at ~0.6 to 1.5 runs/min
+    # fits the 30-minute pull request timeout. Optional; the agent-evals
+    # workflow's EVAL_SHARD_RUNS applies when a profile has none.
+    shard_runs: 20
     # Greedy sampling with a fixed seed (EV-C1 §3), so a rerun of an unchanged
     # skill asks the model the same question the same way.
     temperature: 0
@@ -22,6 +26,10 @@ profiles:
     concurrency: 1
     # opencode runs on the shared 5090 can exceed the 600 s default.
     run_timeout_seconds: 1800
+    # Runs per CI eval job: at ~0.3 to 1 run/min, 8 runs fit the 30-minute
+    # pull request timeout (owner decision 2026-10-14: smaller shards, same
+    # timeout).
+    shard_runs: 8
     # Qwen's recommended thinking-mode sampling (owner decision 2026-10-13):
     # with thinking on, greedy sampling makes it loop. The seed still fixes
     # the sample.

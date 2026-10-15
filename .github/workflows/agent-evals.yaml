@@ -105,13 +105,21 @@ env:
   # suite scores passed runs / total runs, the average over repeats, and
   # EVAL_THRESHOLD applies to that. The model profiles fix sampling and seed.
   EVAL_REPEATS: ${{ github.event_name == 'pull_request' && '1' || '3' }}
-  # Runs (cases x repeats) per eval job. scope splits the selected suites into
-  # shards of about this many runs, one eval job per profile per shard, so each
+  # Runs (cases x repeats) per eval job, for a profile without shard_runs in
+  # the repository's evals/model-profiles.yaml. scope packs the selected suites
+  # into shards separately for each profile, of about that profile's
+  # shard_runs (else this) runs, one eval job per profile per shard, so each
   # job fits the timeout on model hosts shared with other runs (measured ~0.3
-  # to 1 run/min on qwen3.8-27b at 2 slots, ~0.6 to 1.5/min on
-  # deepseek-v4-flash at 4). A suite with more runs than this is split by
-  # repeats across shards.
+  # to 1 run/min on qwen3.8-27b at 1 slot, so shard_runs 8; ~0.6 to 1.5/min on
+  # deepseek-v4-flash at 4, so 20). A suite with more runs than its shard size
+  # is split by repeats across shards; one with more cases than that stays
+  # whole (the runner has no case filter).
   EVAL_SHARD_RUNS: "30"
+  # shard_runs is sized for the 30-minute pull request job. The nightly job
+  # gets 110 minutes, so its shards are this many times larger; that keeps the
+  # nightly matrix (every suite x 3 repeats x profiles) well under GitHub's
+  # 256 jobs.
+  EVAL_SHARD_SCALE: ${{ github.event_name == 'pull_request' && '1' || '3' }}
 
 jobs:
   # Picks the suites to run from the pull request's diff: mode=changed runs the
@@ -181,7 +189,7 @@ jobs:
               core.setOutput('mode', 'tuning');
               core.setOutput('suites', '');
               core.setOutput('reason', 'evals:tuning is set');
-              core.setOutput('shards', '0');
+              core.setOutput('shards', '{}');
               core.setOutput('matrix', JSON.stringify({ include: [] }));
               core.info('mode=tuning: the evals:tuning label is set, so no suite runs');
               return;
@@ -242,12 +250,19 @@ jobs:
               return;
             }
 
-            // Shards. A unit is one suite at some number of repeats, weighed in
-            // runs (cases x repeats). A suite with more than EVAL_SHARD_RUNS runs
-            // is split by repeats into several units, so no job runs all of a
-            // big suite's repeats. Units with the same repeats are packed,
-            // largest first, into the lightest of N shards of about
-            // EVAL_SHARD_RUNS runs; a shard never holds the same suite twice.
+            // Shards, packed separately for each profile, because the models run
+            // at very different speeds. A profile's shard size is its shard_runs
+            // in the repository's evals/model-profiles.yaml, else
+            // EVAL_SHARD_RUNS. A unit is one suite at some number of repeats,
+            // weighed in runs (cases x repeats). A suite with more runs than the
+            // shard size is split by repeats into several units, so no job runs
+            // all of a big suite's repeats; a suite with more cases than the
+            // shard size stays one unit per repeat (the runner has no case
+            // filter). Units with the same repeats are packed, largest first,
+            // into the lightest of N shards of about the shard size, and a new
+            // shard opens when a unit would take the lightest past that size; a
+            // shard never holds the same suite twice. Nightly shards are
+            // EVAL_SHARD_SCALE times larger (a longer timeout).
             const cases = (file) => {
               try {
                 const doc = JSON.parse(fs.readFileSync(path.join(repo, file), 'utf8'));
@@ -263,46 +278,86 @@ jobs:
                 ? Math.max(1, allPaths(p).filter((f) => f.endsWith('.json')).reduce((n, f) => n + cases(f), 0))
                 : cases(p);
             const repeats = Math.max(1, Math.floor(Number(process.env.EVAL_REPEATS)) || 1);
-            const perShard = Math.max(1, Number(process.env.EVAL_SHARD_RUNS) || 30);
-            const groups = new Map();
-            for (const p of selected) {
-              const n = caseCount(p);
-              const chunk = Math.max(1, Math.min(repeats, Math.floor(perShard / n)));
-              for (let left = repeats; left > 0; left -= chunk) {
-                const r = Math.min(chunk, left);
-                if (!groups.has(r)) groups.set(r, []);
-                groups.get(r).push({ suite: p, repeats: r, runs: n * r });
+            const defaultShardRuns = Math.max(1, Math.floor(Number(process.env.EVAL_SHARD_RUNS)) || 30);
+            const shardScale = Math.max(1, Math.floor(Number(process.env.EVAL_SHARD_SCALE)) || 1);
+            // A profile's `    shard_runs: N` line, read like the runners read the
+            // flat two-level profiles file. Missing or invalid: the default.
+            let profilesYaml = '';
+            try {
+              profilesYaml = fs.readFileSync(path.join(repo, 'evals/model-profiles.yaml'), 'utf8');
+            } catch {}
+            const shardRunsOf = (profile) => {
+              const lines = profilesYaml.split('\n');
+              const start = lines.indexOf(`  ${profile}:`);
+              for (const line of start < 0 ? [] : lines.slice(start + 1)) {
+                if (/^\s*(#.*)?$/.test(line)) continue;
+                if (!/^ {4}\S/.test(line)) break;
+                const m = line.match(/^ {4}shard_runs:\s*([1-9][0-9]{0,3})\s*$/);
+                if (m) return Number(m[1]);
               }
-            }
-            const bins = [];
-            for (const [r, units] of [...groups].sort((a, b) => b[0] - a[0])) {
-              const runs = units.reduce((n, u) => n + u.runs, 0);
-              const group = Array.from({ length: Math.max(1, Math.min(units.length, Math.ceil(runs / perShard))) },
-                () => ({ repeats: r, load: 0, suites: [] }));
-              for (const u of units.sort((a, b) => b.runs - a.runs || a.suite.localeCompare(b.suite))) {
-                const open = group.filter((b) => !b.suites.includes(u.suite));
-                let bin = open.length ? open.reduce((min, b) => (b.load < min.load ? b : min)) : null;
-                if (!bin) group.push(bin = { repeats: r, load: 0, suites: [] });
-                bin.load += u.runs;
-                bin.suites.push(u.suite);
+              return defaultShardRuns;
+            };
+            const units = selected.map((p) => ({ suite: p, cases: caseCount(p) }));
+            const pack = (perShard) => {
+              const groups = new Map();
+              for (const { suite, cases: n } of units) {
+                const chunk = Math.max(1, Math.min(repeats, Math.floor(perShard / n)));
+                for (let left = repeats; left > 0; left -= chunk) {
+                  const r = Math.min(chunk, left);
+                  if (!groups.has(r)) groups.set(r, []);
+                  groups.get(r).push({ suite, repeats: r, runs: n * r });
+                }
               }
-              bins.push(...group);
-            }
-            const shards = bins.length;
-            const total = bins.reduce((n, b) => n + b.load, 0);
-            // Shard-major, so the runners alternate between the model hosts.
+              const bins = [];
+              for (const [r, group] of [...groups].sort((a, b) => b[0] - a[0])) {
+                const runs = group.reduce((n, u) => n + u.runs, 0);
+                const shardsOfR = Array.from({ length: Math.max(1, Math.min(group.length, Math.ceil(runs / perShard))) },
+                  () => ({ repeats: r, load: 0, suites: [] }));
+                for (const u of group.sort((a, b) => b.runs - a.runs || a.suite.localeCompare(b.suite))) {
+                  const open = shardsOfR.filter((b) => !b.suites.includes(u.suite));
+                  let bin = open.length ? open.reduce((min, b) => (b.load < min.load ? b : min)) : null;
+                  if (!bin || (bin.load > 0 && bin.load + u.runs > perShard)) {
+                    shardsOfR.push(bin = { repeats: r, load: 0, suites: [] });
+                  }
+                  bin.load += u.runs;
+                  bin.suites.push(u.suite);
+                }
+                bins.push(...shardsOfR);
+              }
+              return bins;
+            };
             const profiles = JSON.parse(process.env.EVAL_PROFILES);
-            const include = bins.flatMap((b, i) => profiles.map((profile) => ({
-              profile, shard: i + 1, shards, repeats: b.repeats, suites: b.suites.sort().join(' ') })));
+            const plan = Object.fromEntries(profiles.map((profile) => {
+              const perShard = shardRunsOf(profile) * shardScale;
+              return [profile, { perShard, bins: pack(perShard) }];
+            }));
+            // Each profile numbers its own shards. Shard-major, so the runners
+            // alternate between the model hosts.
+            const shards = Object.fromEntries(profiles.map((p) => [p, plan[p].bins.length]));
+            const include = [];
+            for (let i = 0; i < Math.max(0, ...Object.values(shards)); i++) {
+              for (const profile of profiles) {
+                const b = plan[profile].bins[i];
+                if (b) include.push({ profile, shard: i + 1, shards: shards[profile], repeats: b.repeats,
+                  suites: b.suites.sort().join(' ') });
+              }
+            }
 
             const suites = selected.join(' ');
             core.setOutput('mode', mode);
             core.setOutput('suites', suites);
             core.setOutput('reason', reason);
-            core.setOutput('shards', String(shards));
+            // {profile: shard count}; the report reads each profile's own count.
+            core.setOutput('shards', JSON.stringify(shards));
             core.setOutput('matrix', JSON.stringify({ include }));
-            core.info(`${changed.length} changed file(s); mode=${mode} (${reason}); ${total} run(s) at ${repeats} repeat(s) `
-              + `in ${shards} shard(s): ${bins.map((b, i) => `${i + 1}=${b.load}x${b.repeats}r`).join(' ')}; suites: ${suites || '(none)'}`);
+            const total = units.reduce((n, u) => n + u.cases * repeats, 0);
+            core.info(`${changed.length} changed file(s); mode=${mode} (${reason}); ${total} run(s) per profile at ${repeats} repeat(s); `
+              + `suites: ${suites || '(none)'}`);
+            for (const profile of profiles) {
+              const { perShard, bins } = plan[profile];
+              core.info(`${profile}: ${bins.length} shard(s) of about ${perShard} run(s): `
+                + bins.map((b, i) => `${i + 1}=${b.load}x${b.repeats}r`).join(' '));
+            }
             // END agent-evals scope
 
   eval:
@@ -315,7 +370,7 @@ jobs:
         github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: kei-agent-evals
     # A pull request runs one repeat of the suites it changes, split into
-    # shards of about EVAL_SHARD_RUNS runs, so 30 minutes is enough and a stuck
+    # shards sized per profile (shard_runs), so 30 minutes is enough and a stuck
     # job frees its runner soon. The nightly sweep (three repeats of every
     # suite) gets 110, below the runner pod's activeDeadlineSeconds (2h). A
     # job that times out uploads status.json "incomplete", which fails the
@@ -323,8 +378,9 @@ jobs:
     timeout-minutes: ${{ github.event_name == 'pull_request' && 30 || 110 }}
     strategy:
       fail-fast: false
-      # One job per profile (EVAL_PROFILES) per shard of the scope job's
-      # selection: {profile, shard, shards, repeats, suites}.
+      # One job per profile (EVAL_PROFILES) per shard of that profile's packing
+      # of the scope job's selection: {profile, shard, shards, repeats, suites},
+      # where shard/shards count that profile's shards only.
       matrix: ${{ fromJSON(needs.scope.outputs.matrix) }}
     env:
       PROFILE: ${{ matrix.profile }}
@@ -698,19 +754,26 @@ jobs:
               // incomplete (the job timed out, was cancelled or failed early), or any other
               // status.json value, which fails as well;
               // status[profile] = unreachable when every shard was, else ok.
-              const shardCount = Math.max(1, Number(process.env.SCOPE_SHARDS) || 1);
-              const shardIds = Array.from({ length: shardCount }, (_, i) => i + 1);
+              // Each profile has its own shard count: scope's {profile: count}
+              // (a bare number, from an older scope, applies to every profile).
+              let scopeShards = {};
+              try {
+                scopeShards = JSON.parse(process.env.SCOPE_SHARDS || '{}');
+              } catch {}
+              const shardCount = Object.fromEntries(profiles.map((p) => [p, Math.max(1,
+                Math.floor(Number(typeof scopeShards === 'object' && scopeShards ? scopeShards[p] : scopeShards)) || 1)]));
+              const shardIds = Object.fromEntries(profiles.map((p) => [p, Array.from({ length: shardCount[p] }, (_, i) => i + 1)]));
               const cells = {};
               const problems = [];
               const status = Object.fromEntries(profiles.map((p) => [p, 'missing']));
-              const shardStatus = Object.fromEntries(profiles.map((p) => [p, Object.fromEntries(shardIds.map((k) => [k, 'missing']))]));
+              const shardStatus = Object.fromEntries(profiles.map((p) => [p, Object.fromEntries(shardIds[p].map((k) => [k, 'missing']))]));
               const shardMessage = Object.fromEntries(profiles.map((p) => [p, {}]));
               if (scopeResult !== 'success') problems.push(`suite selection did not complete (${safe(scopeResult)}), so nothing was scored`);
               if (tuning) problems.push('evals:tuning is set: remove the label to run the gate before merge');
               const scored = scopeResult === 'success' && !skipped && !tuning;
               for (const profile of scored ? profiles : []) {
                 const files = [];
-                for (const k of shardIds) {
+                for (const k of shardIds[profile]) {
                   const dir = path.join(process.env.RESULTS_DIR, `agent-evals-${kind}-${profile}-shard-${k}`);
                   const shardFiles = walk(dir);
                   const statusFile = shardFiles.find((f) => path.basename(f) === 'status.json' && path.dirname(f) === dir);
@@ -721,7 +784,7 @@ jobs:
                   }
                   files.push(...shardFiles);
                 }
-                status[profile] = shardIds.every((k) => shardStatus[profile][k] === 'unreachable') ? 'unreachable' : 'ok';
+                status[profile] = shardIds[profile].every((k) => shardStatus[profile][k] === 'unreachable') ? 'unreachable' : 'ok';
                 for (const f of files.filter((f) => path.basename(f) === 'benchmark.json')) {
                   // EV-C1 §5 only.
                   const doc = readJson(f);
@@ -749,9 +812,9 @@ jobs:
               }
 
               for (const profile of scored ? profiles : []) {
-                for (const k of shardIds) {
+                for (const k of shardIds[profile]) {
                   const st = shardStatus[profile][k];
-                  const who = shardCount > 1 ? `\`${safe(profile)}\` shard ${k}/${shardCount}` : `\`${safe(profile)}\``;
+                  const who = shardCount[profile] > 1 ? `\`${safe(profile)}\` shard ${k}/${shardCount[profile]}` : `\`${safe(profile)}\``;
                   const msg = shardMessage[profile][k];
                   if (st === 'unreachable') problems.push(`models unreachable: ${who} did not answer, so nothing was scored${msg ? ` (\`${msg}\`)` : ''}`);
                   else if (st === 'missing') problems.push(`${who}: the eval job did not produce results (missing)`);
