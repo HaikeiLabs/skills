@@ -465,7 +465,7 @@
     },
     {
       "id": 14,
-      "prompt": "How do I send the Kei team a bug report from the CLI with a specific Codex session attached? I'm worried about API keys in the transcript. Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "prompt": "How do I send the Kei team a bug report from the CLI with a specific Codex session attached? I'm worried about API keys in the transcript. Do not execute anything — just explain in text. If you don't know something, just say so.",
       "expected_output": "kei feedback --description \"...\" --export codex --session <session-id> (kei 0.1.20+, after kei login, run from the project directory). The transcript is redacted locally before upload: token-shaped strings such as API keys, GitHub/Slack/AWS tokens, JWTs, bearer tokens, private keys and Kei runtime tokens become [REDACTED:<kind>]. The CLI prints a preview with redaction counts (not content) and asks Send? [y/N]; anything but y sends nothing. --file/--screenshot attachments are not redacted.",
       "expectations": [
         "The response gives the kei feedback command with --export and a harness value (claude, codex or opencode).",
@@ -503,6 +503,32 @@
           "regex": "preview[\\s\\S]*(confirm|\\[y/N\\])|(confirm|\\[y/N\\])[\\s\\S]*preview"
         }
       ]
+    },
+    {
+      "prompt": "From the kei CLI side: does `kei harness sync` keep backups of the native config it rewrites, how many does it keep, and how do I undo the last sync by hand? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "expected_output": "Yes. `kei harness sync` saves `<file>.kei-backup-<timestamp>` before it changes a native config (and backs up replaced skills under skill-backups/ in the sync ledger dir). From kei 0.1.31 it keeps one backup per file and per skill, holding the state from before the most recent successful sync; the next successful sync removes the older one, and `--dry-run` lists what it would remove. To undo the last sync, copy the .kei-backup file over the native config.",
+      "expectations": [
+        "names the <file>.kei-backup-<timestamp> backup",
+        "says only one backup is kept per file",
+        "says to roll back by copying the kei-backup file over the native config"
+      ],
+      "checks": [
+        {
+          "text": "names the <file>.kei-backup-<timestamp> backup",
+          "contains_all": [
+            "kei-backup"
+          ]
+        },
+        {
+          "text": "says only one backup is kept per file",
+          "regex": "(?:only|just|exactly|at most) (?:one|a single|1)\\b[^.\\n]{0,40}backup|(?:one|a single|1) (?:kei[- ])?backup (?:per|for each|for every)|keeps? (?:only )?(?:the )?(?:latest|newest|most recent)[^.\\n]{0,30}backup|single backup"
+        },
+        {
+          "text": "says to roll back by copying the kei-backup file over the native config",
+          "regex": "(?:cp|copy|copies|copying)\\b[^\\n]{0,120}kei-backup|kei-backup[^\\n]{0,120}(?:over|onto|back to|to replace)[^\\n]{0,40}(?:settings\\.json|native config|config)"
+        }
+      ],
+      "id": 15
     }
   ]
 }
