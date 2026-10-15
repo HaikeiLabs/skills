@@ -521,7 +521,7 @@
         },
         {
           "text": "says only one backup is kept per file",
-          "regex": "(?:only|just|exactly|at most) (?:one|a single|1)\\b[^.\\n]{0,40}backup|(?:one|a single|1) (?:kei[- ])?backup (?:per|for each|for every)|keeps? (?:only )?(?:the )?(?:latest|newest|most recent)[^.\\n]{0,30}backup|single backup"
+          "regex": "(?:only|just|exactly|at most) (?:\\*\\*)?(?:one|a single|1)\\b(?:\\*\\*)?[^.\\n]{0,40}backup|(?:\\*\\*)?(?:one|a single|1)(?:\\*\\*)? (?:kei[- ])?backup (?:per|for each|for every)|keeps? (?:only )?(?:the )?(?:latest|newest|most recent)[^.\\n]{0,30}backup|single backup"
         },
         {
           "text": "says to roll back by copying the kei-backup file over the native config",
