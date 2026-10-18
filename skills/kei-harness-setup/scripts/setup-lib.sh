@@ -23,6 +23,44 @@ _warn() { echo "WARN: $*" >&2; }
 
 NATIVE_BACKUP="${NATIVE_BACKUP:-${NATIVE_CONFIG}.kei.bak}"
 
+# --- Options ---
+# --workspace NAME  target this workspace (by name) instead of discovering one
+# --yes             skip the workspace and sync confirmations (for scripts/CI)
+YES=false
+WORKSPACE_NAME=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --yes|-y) YES=true; shift ;;
+    --workspace)
+      [ $# -ge 2 ] || _die "--workspace requires a workspace name."
+      WORKSPACE_NAME="$2"; shift 2 ;;
+    *) _die "Unknown option: $1 (supported: --workspace NAME, --yes)" ;;
+  esac
+done
+
+# Resolve the target workspace by NAME (never by grabbing the first UUID on the
+# machine) and confirm it, unless --yes was given.
+_resolve_workspace() {
+  if [ -z "$WORKSPACE_NAME" ]; then
+    WORKSPACE_NAME=$(kei workspaces list --json 2>/dev/null \
+      | grep -oE '"name"[[:space:]]*:[[:space:]]*"[^"]+"' | head -1 \
+      | cut -d'"' -f4 || true)
+  fi
+  [ -n "$WORKSPACE_NAME" ] || _die "No workspace found. Create one in the console, or pass --workspace NAME."
+  _info "Workspace: ${WORKSPACE_NAME}"
+  if [ "$YES" != true ]; then
+    printf 'Use workspace "%s"? [Y/n] ' "$WORKSPACE_NAME"
+    read -r _WS_ANSWER || true
+    case "$_WS_ANSWER" in
+      n|N|no|No|NO)
+        printf 'Workspace name: '
+        read -r WORKSPACE_NAME || true
+        [ -n "$WORKSPACE_NAME" ] || _die "No workspace name given."
+        ;;
+    esac
+  fi
+}
+
 # --- 1. Check kei and kei-proxy on PATH ---
 _info "Checking Kei CLI and proxy..."
 
@@ -72,147 +110,156 @@ if ! echo "$KEI_PROXY_VERSION" | awk -F. '{ if ($1 > 0 || $2 > 1 || ($2 == 1 && 
   _die "kei-proxy >= 0.1.26 required (found ${KEI_PROXY_VERSION}). Run the installer above to upgrade."
 fi
 
-# --- 2. Check login ---
+# --- 2. Login (inline; do not stop at a not-logged-in state) ---
 _info "Checking Kei login status..."
 if ! kei workspaces list >/dev/null 2>&1; then
-  _info "Not logged in. Starting device-code login..."
-  echo ""
-  echo "Run:  kei login"
-  echo ""
-  echo "Approve in the browser, then re-run this script."
-  exit 1
+  _info "Not logged in. Starting kei login (device-code flow)..."
+  _info "Approve the code in your browser; the account must be an org owner or admin."
+  if ! kei login; then
+    _die "kei login failed. Run 'kei login' and approve the code, then re-run this script."
+  fi
 fi
 _info "Logged in."
 
-# --- 3. Check runtime config and installation ---
-_info "Checking runtime config..."
-KEI_YAML="${HOME}/.config/kei.yaml"
-BOOTSTRAP_OK=false
+# --- 3. Workspace (by name, confirmed unless --yes) ---
+_resolve_workspace
 
-if [ -f "$KEI_YAML" ]; then
-  CONFIG_MODE=$(stat -f '%Lp' "$KEI_YAML" 2>/dev/null || stat -c '%a' "$KEI_YAML" 2>/dev/null || echo "unknown")
-  if [ "$CONFIG_MODE" != "600" ] && [ "$CONFIG_MODE" != "0600" ]; then
-    _warn "${KEI_YAML} should be mode 0600 (found ${CONFIG_MODE})"
-    chmod 600 "$KEI_YAML"
+if kei connect --help >/dev/null 2>&1; then
+  # --- 3a. Delegate to `kei connect` (preferred; kei-cli #157) ---
+  _CONNECT_HARNESS=$(printf '%s' "$KIND" | tr '_' '-')
+  _info "Connecting ${HARNESS_NAME} with 'kei connect' (workspace: ${WORKSPACE_NAME})..."
+  if [ "$YES" = true ]; then
+    kei connect "$_CONNECT_HARNESS" --workspace "$WORKSPACE_NAME" --yes
+  else
+    kei connect "$_CONNECT_HARNESS" --workspace "$WORKSPACE_NAME"
   fi
-  _info "Trying bootstrap with existing config..."
-  if BOOT_OUT=$(kei runtime bootstrap 2>&1); then
-    BOOTSTRAP_OK=true
+else
+  # --- Fallback: today's manual steps (no `kei connect` in this kei build) ---
+  _info "Checking runtime config..."
+  KEI_YAML="${HOME}/.config/kei.yaml"
+  BOOTSTRAP_OK=false
+
+  if [ -f "$KEI_YAML" ]; then
+    CONFIG_MODE=$(stat -f '%Lp' "$KEI_YAML" 2>/dev/null || stat -c '%a' "$KEI_YAML" 2>/dev/null || echo "unknown")
+    if [ "$CONFIG_MODE" != "600" ] && [ "$CONFIG_MODE" != "0600" ]; then
+      _warn "${KEI_YAML} should be mode 0600 (found ${CONFIG_MODE})"
+      chmod 600 "$KEI_YAML"
+    fi
+    _info "Trying bootstrap with existing config..."
+    if BOOT_OUT=$(kei runtime bootstrap 2>&1); then
+      BOOTSTRAP_OK=true
+      _info "Bootstrap succeeded."
+    else
+      case "$BOOT_OUT" in
+        *401*|*unauthorized*|*token*invalid*)
+          _warn "Existing token rejected (401). A new machine needs its own installation."
+          ;;
+        *)
+          _warn "Bootstrap failed: ${BOOT_OUT}"
+          ;;
+      esac
+    fi
+  fi
+
+  if [ "$BOOTSTRAP_OK" = false ]; then
+    _info "Setting up a new runtime installation for this machine..."
+
+    HOSTNAME=$(hostname -s 2>/dev/null || hostname 2>/dev/null || echo "unknown")
+    INSTALL_NAME="${KIND}@${HOSTNAME}"
+
+    _info "Creating runtime installation '${INSTALL_NAME}' (workspace: ${WORKSPACE_NAME})..."
+    INSTALL_OUT=$(kei bot init --platform cli --name "$INSTALL_NAME" --workspace "$WORKSPACE_NAME" 2>&1)
+    INSTALL_ID=$(echo "$INSTALL_OUT" | grep -oE '[a-f0-9-]{36}' | head -1 || true)
+    if [ -z "$INSTALL_ID" ]; then
+      _die "Failed to create installation. Output: ${INSTALL_OUT}"
+    fi
+    _info "Installation ID: ${INSTALL_ID}"
+
+    _info "Creating credential and piping into kei setup..."
+    kei bot credential --installation "$INSTALL_ID" --workspace "$WORKSPACE_NAME" | kei setup --control-plane-url https://app.haikeilabs.com
+    echo ""
+    _info "Credential created and config written (never printed to terminal)."
+
+    _info "Bootstrapping runtime..."
+    if ! kei runtime bootstrap; then
+      _die "Runtime bootstrap failed after fresh setup. Check the output above."
+    fi
     _info "Bootstrap succeeded."
+  fi
+
+  # --- 3a. Install background heartbeat service ---
+  _info "Checking heartbeat service..."
+  if kei runtime service install --help >/dev/null 2>&1; then
+    if kei runtime service status 2>/dev/null | grep -qE 'active|running'; then
+      _info "Heartbeat service already running."
+    else
+      _info "Installing background heartbeat service (HAI-406)..."
+      kei runtime service install 2>&1 || _warn "Service install failed; run manually later: kei runtime service install"
+    fi
   else
-    case "$BOOT_OUT" in
-      *401*|*unauthorized*|*token*invalid*)
-        _warn "Existing token rejected (401). A new machine needs its own installation."
-        ;;
-      *)
-        _warn "Bootstrap failed: ${BOOT_OUT}"
-        ;;
-    esac
+    _warn "'kei runtime service install' not available in this version. TODO: install heartbeat service manually when HAI-406 ships."
   fi
-fi
 
-if [ "$BOOTSTRAP_OK" = false ]; then
-  _info "Setting up a new runtime installation for this machine..."
-
-  HOSTNAME=$(hostname -s 2>/dev/null || hostname 2>/dev/null || echo "unknown")
-  INSTALL_NAME="${KIND}@${HOSTNAME}"
-
-  _info "Discovering workspace..."
-  WS_LIST=$(kei workspaces list 2>&1)
-  WS_ID=$(echo "$WS_LIST" | grep -oE '[a-f0-9-]{36}' | head -1 || true)
-  if [ -z "$WS_ID" ]; then
-    _die "No workspace found. Create one in the console first."
+  # --- 4. Discover installation ID (post-bootstrap) ---
+  INSTALLATION_ID=""
+  if kei harness list --json 2>/dev/null | grep -qE '"kind":"[^"]+"'; then
+    INSTALLATION_ID=$(kei harness list --json 2>/dev/null | grep -oE '"installation_id":"[^"]+"' | cut -d'"' -f4 | head -1 || true)
   fi
-  _info "Workspace: ${WS_ID}"
-
-  _info "Creating runtime installation '${INSTALL_NAME}'..."
-  INSTALL_OUT=$(kei bot init --platform cli --name "$INSTALL_NAME" --workspace "$WS_ID" 2>&1)
-  INSTALL_ID=$(echo "$INSTALL_OUT" | grep -oE '[a-f0-9-]{36}' | head -1 || true)
-  if [ -z "$INSTALL_ID" ]; then
-    _die "Failed to create installation. Output: ${INSTALL_OUT}"
+  if [ -z "$INSTALLATION_ID" ]; then
+    if kei bot status --json 2>/dev/null | grep -qE '"installation_id"'; then
+      INSTALLATION_ID=$(kei bot status --json 2>/dev/null | grep -oE '"installation_id":"[^"]+"' | cut -d'"' -f4 || true)
+    fi
   fi
-  _info "Installation ID: ${INSTALL_ID}"
+  if [ -z "$INSTALLATION_ID" ] && [ -f "$KEI_YAML" ]; then
+    INSTALLATION_ID=$(grep -oE 'installation_id:[[:space:]]*"?[a-f0-9-]+"?$' "$KEI_YAML" | grep -oE '[a-f0-9-]{36}' || true)
+  fi
 
-  _info "Creating credential and piping into kei setup..."
-  kei bot credential --installation "$INSTALL_ID" --workspace "$WS_ID" | kei setup --control-plane-url https://app.haikeilabs.com
+  if [ -z "$INSTALLATION_ID" ]; then
+    _die "Could not determine installation ID after bootstrap."
+  fi
+  _info "Installation ID: ${INSTALLATION_ID}"
+
+  # Check installation status
+  STATUS_OUTPUT=$(kei bot status --installation "$INSTALLATION_ID" 2>&1 || true)
+  if echo "$STATUS_OUTPUT" | grep -qE '"status":"pending"'; then
+    _warn "Installation status is 'pending' — no heartbeat received yet. This is normal"
+    _warn "for a fresh setup; the first heartbeat will move it to 'active'. Proceeding..."
+  fi
+
+  # --- 5. Register harness ---
+  _info "Registering ${HARNESS_NAME} harness (kind: ${KIND})..."
+
+  # Check if harness already registered for this installation
+  _HARNESS_LIST=$(kei harness list --installation "$INSTALLATION_ID" --json 2>/dev/null || true)
+  if echo "$_HARNESS_LIST" | grep -qE "\"kind\":\"${KIND}\""; then
+    _info "Harness '${KIND}' already registered; skipping."
+  else
+    kei harness add --installation "$INSTALLATION_ID" --kind "$KIND" >/dev/null 2>&1 || true
+    _info "Harness registered."
+  fi
+
+  # --- 6. Sync ---
+  _info "Previewing sync for ${KIND}..."
+  kei harness sync --dry-run --harness "$KIND" 2>&1 || true
+
   echo ""
-  _info "Credential created and config written (never printed to terminal)."
-
-  _info "Bootstrapping runtime..."
-  if ! kei runtime bootstrap; then
-    _die "Runtime bootstrap failed after fresh setup. Check the output above."
-  fi
-  _info "Bootstrap succeeded."
-fi
-
-# --- 3a. Install background heartbeat service ---
-_info "Checking heartbeat service..."
-if kei runtime service install --help >/dev/null 2>&1; then
-  if kei runtime service status 2>/dev/null | grep -qE 'active|running'; then
-    _info "Heartbeat service already running."
+  if [ "$YES" = true ]; then
+    _CONFIRM=y
   else
-    _info "Installing background heartbeat service (HAI-406)..."
-    kei runtime service install 2>&1 || _warn "Service install failed; run manually later: kei runtime service install"
+    echo "Proceed with sync? [y/N] "
+    read -r _CONFIRM || true
   fi
-else
-  _warn "'kei runtime service install' not available in this version. TODO: install heartbeat service manually when HAI-406 ships."
-fi
-
-# --- 4. Discover installation ID (post-bootstrap) ---
-INSTALLATION_ID=""
-if kei harness list --json 2>/dev/null | grep -qE '"kind":"[^"]+"'; then
-  INSTALLATION_ID=$(kei harness list --json 2>/dev/null | grep -oE '"installation_id":"[^"]+"' | cut -d'"' -f4 | head -1 || true)
-fi
-if [ -z "$INSTALLATION_ID" ]; then
-  if kei bot status --json 2>/dev/null | grep -qE '"installation_id"'; then
-    INSTALLATION_ID=$(kei bot status --json 2>/dev/null | grep -oE '"installation_id":"[^"]+"' | cut -d'"' -f4 || true)
+  if [ "$_CONFIRM" = "y" ] || [ "$_CONFIRM" = "Y" ]; then
+    _info "Syncing ${HARNESS_NAME}..."
+    if [ -f "$NATIVE_CONFIG" ] && [ ! -f "$NATIVE_BACKUP" ]; then
+      cp "$NATIVE_CONFIG" "$NATIVE_BACKUP"
+      _info "Backed up existing config to ${NATIVE_BACKUP}"
+    fi
+    kei harness sync --harness "$KIND"
+    _info "Sync complete."
+  else
+    _info "Sync skipped. Run 'kei harness sync --harness ${KIND}' later."
   fi
-fi
-if [ -z "$INSTALLATION_ID" ] && [ -f "$KEI_YAML" ]; then
-  INSTALLATION_ID=$(grep -oE 'installation_id:[[:space:]]*"?[a-f0-9-]+"?$' "$KEI_YAML" | grep -oE '[a-f0-9-]{36}' || true)
-fi
-
-if [ -z "$INSTALLATION_ID" ]; then
-  _die "Could not determine installation ID after bootstrap."
-fi
-_info "Installation ID: ${INSTALLATION_ID}"
-
-# Check installation status
-STATUS_OUTPUT=$(kei bot status --installation "$INSTALLATION_ID" 2>&1 || true)
-if echo "$STATUS_OUTPUT" | grep -qE '"status":"pending"'; then
-  _warn "Installation status is 'pending' — no heartbeat received yet. This is normal"
-  _warn "for a fresh setup; the first heartbeat will move it to 'active'. Proceeding..."
-fi
-
-# --- 5. Register harness ---
-_info "Registering ${HARNESS_NAME} harness (kind: ${KIND})..."
-
-# Check if harness already registered for this installation
-_HARNESS_LIST=$(kei harness list --installation "$INSTALLATION_ID" --json 2>/dev/null || true)
-if echo "$_HARNESS_LIST" | grep -qE "\"kind\":\"${KIND}\""; then
-  _info "Harness '${KIND}' already registered; skipping."
-else
-  kei harness add --installation "$INSTALLATION_ID" --kind "$KIND" >/dev/null 2>&1 || true
-  _info "Harness registered."
-fi
-
-# --- 6. Sync ---
-_info "Previewing sync for ${KIND}..."
-kei harness sync --dry-run --harness "$KIND" 2>&1 || true
-
-echo ""
-echo "Proceed with sync? [y/N] "
-read -r _CONFIRM
-if [ "$_CONFIRM" = "y" ] || [ "$_CONFIRM" = "Y" ]; then
-  _info "Syncing ${HARNESS_NAME}..."
-  if [ -f "$NATIVE_CONFIG" ] && [ ! -f "$NATIVE_BACKUP" ]; then
-    cp "$NATIVE_CONFIG" "$NATIVE_BACKUP"
-    _info "Backed up existing config to ${NATIVE_BACKUP}"
-  fi
-  kei harness sync --harness "$KIND"
-  _info "Sync complete."
-else
-  _info "Sync skipped. Run 'kei harness sync --harness ${KIND}' later."
 fi
 
 # --- 7. Verify ---
