@@ -58,8 +58,8 @@ line naming that skill (DeepSeek-style short answers still need it):
   End with: See also: `kei-harness-policy` `references/bundle-versioning.md`.
 - **Rejected bundle or disabled proxy:** `kei-proxy` fails closed and denies
   every governed call until it is fixed.
-- **Last setup step:** one governed call in the harness (for example, Claude
-  Code running `git status`), confirmed in the console: **Audit Logs** shows it
+- **Last setup step:** one governed call in the harness (for example, the agent
+  running `git status`), confirmed in the console: **Audit Logs** shows it
   with the harness kind, **the installation's card shows the recent
   activity** (say this one too), and `kei runtime service status` shows the runtime service running (the
   audit upload needs it).
@@ -162,6 +162,23 @@ credential` into `kei setup`.
 
 Any other harness is unsupported and is denied until an adapter is explicitly
 registered. Do not improvise one.
+
+## Entry point: console setup prompt
+
+The fastest path to a governed harness starts in the console. Open the
+**Agents** page, find your harness card, and click **Copy setup prompt**.
+The prompt tells the agent everything it needs:
+
+> Use the kei-harness-setup skill to connect this &lt;agent&gt; to Kei:
+> org … workspace … installation name …
+
+Paste the prompt into the harness. The agent loads this skill, reads its
+identity variables, and runs the setup steps below. If you do not have
+console access or are writing instructions for a different person, follow
+the numbered steps starting at section 1.
+
+The prompt output is the single source of truth for the org, workspace, and
+installation name this harness should target. Never guess or hard-code them.
 
 ## FIRST: find out which harness you are running in
 
@@ -356,7 +373,7 @@ To read the assigned agent ID at runtime, use the agentware SDK's
 `link.identity()` (see `agentware-sdk` skill). If identity is not available,
 deny governed calls — never guess a fallback agent ID.
 
-### 3a. Use KeiProxyEvaluator instead of hand-rolling authorize
+### 4a. Use KeiProxyEvaluator instead of hand-rolling authorize
 
 If your harness imports the agentware SDK (any of the three ports), use
 `KeiProxyEvaluator` instead of calling `kei-proxy authorize` directly. It
@@ -374,14 +391,13 @@ is allowed. A local allow list is stale on deploy and invisible to audit.
 > the runtime boots with the bundle it fetched at bootstrap. `KeiProxyEvaluator`
 > works the same way either way — it asks `kei-proxy` every time.
 
-## 5. Register tools and bind connectors (console)
+## 5. Grant access (console)
 
-Registering the harness's skills and tool IDs against the installation, and
-binding connectors and capabilities to an agent, happen in the web app today
-(**Agents → Bindings**). There is no `kei` command for them and no
-resource-oriented API yet. A tool is not allowed just because the adapter
-exposes it; baseline tools like `search_wiki` and `web_search` are
-policy-governed too.
+Access comes from a policy assigned to a group that the agent belongs to — agents
+are group members since HAI-614, so there is no per-agent binding step. A tool is
+not allowed just because the adapter exposes it; baseline tools like `search_wiki`
+and `web_search` are policy-governed too. Manage group membership and policies in
+the console under **Agents → Groups**.
 
 ## 6. Prove it fails closed
 
@@ -439,7 +455,7 @@ Shell-level checks (`kei-proxy authorize`, `verify.sh`) prove the plumbing, but
 they do not prove the harness itself makes a governed call. Setup is not
 complete until the harness does.
 
-In the harness, make **one** governed tool call — for example, have Claude Code
+In the harness, make **one** governed tool call — for example, have the agent
 run `git status` (a shell command your policies permit). For desktop harnesses
 the call is decided natively by the harness from the Kei-rendered policy; the
 `kei-proxy` hook records the decision for audit.
