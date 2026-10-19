@@ -34,11 +34,11 @@
     },
     {
       "id": 2,
-      "prompt": "I have a Python agent harness with a few tool functions. I want every tool call checked against a policy that only allows file_bug, search_wiki and web_search, with every other tool denied, and every call audited. How do I do that with the agentware SDK, and what happens when a call is denied? Do not execute anything — just explain in text, with code where it helps.",
-      "expected_output": "Wrap calls in AuditedToolClient with a SimplePolicyEvaluator(Policy(rules=[Rule(... action=Action.ALLOW)], default_deny=True)); a denied call raises PermissionError and is still audited.",
+      "prompt": "In Python, how do I wire every tool call through Kei policy and audit it, and what happens when a call is denied? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Use AuditedToolClient with a PolicyEvaluator implementation such as KeiProxyEvaluator(select_authorization_client(\"discord\")); a denied call raises PermissionError and is still audited. Python exposes the PolicyEvaluator interface but no local Policy, Rule or SimplePolicyEvaluator engine.",
       "expectations": [
         "uses AuditedToolClient",
-        "sets the policy to default deny",
+        "uses the PolicyEvaluator interface or KeiProxyEvaluator and says Python has no local policy engine",
         "says a denied call raises PermissionError"
       ],
       "checks": [
@@ -49,10 +49,8 @@
           ]
         },
         {
-          "text": "sets the policy to default deny",
-          "contains_any": [
-            "default_deny"
-          ]
+          "text": "uses the PolicyEvaluator interface or KeiProxyEvaluator and says Python has no local policy engine",
+          "regex": "(?=[\\s\\S]*(?:PolicyEvaluator|KeiProxyEvaluator))(?=[\\s\\S]*(?:Python[\\s\\S]{0,120}(?:no local|does not (?:ship|include|provide)|doesn.t (?:ship|include|provide))[\\s\\S]{0,80}(?:policy|engine|Policy|Rule)|(?:no local|does not (?:ship|include|provide)|doesn.t (?:ship|include|provide))[\\s\\S]{0,80}(?:policy|engine|Policy|Rule)[\\s\\S]{0,80}Python))"
         },
         {
           "text": "says a denied call raises PermissionError",
@@ -64,8 +62,8 @@
     },
     {
       "id": 3,
-      "prompt": "My agentware harness uses a local Policy today. How do I switch it so Kei's workspace policy decides each tool call instead, and what happens if the kei-proxy binary is missing or KEI_RUNTIME_TOKEN is not set? Do not execute anything — just explain in text, with code where it helps.",
-      "expected_output": "Replace the evaluator with KeiProxyEvaluator(KeiProxyAuthorizeClient(...)) via with_policy; it fails closed — a missing binary (proxy_unavailable) or missing token (missing_token) is a DENY.",
+      "prompt": "My Python harness currently uses a third-party policy evaluator, but I want Kei’s workspace policy to decide each call. How do I wire that in, and what happens if the kei-proxy binary is missing or KEI_RUNTIME_TOKEN is not set? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Replace the evaluator with KeiProxyEvaluator(select_authorization_client(...)) via with_policy — the kei-proxy serve socket client when KEI_RUNTIME_SOCKET_PATH is set, else the kei-proxy authorize CLI fallback; it fails closed — a missing binary or unreachable daemon (proxy_unavailable) or missing token (missing_token) is a DENY.",
       "expectations": [
         "uses KeiProxyEvaluator",
         "says a missing binary or token results in a deny",
@@ -176,84 +174,234 @@
     },
     {
       "id": 7,
-      "prompt": "Can I just run pip install pedro-agentware from PyPI to get the agentware Python SDK? Do not execute anything — just explain in text, with code where it helps.",
-      "expected_output": "No; the Python package is not on public PyPI. Install from a checkout: pip install -e ./python (TypeScript is on npm as @haikeilabs/agentware).",
+      "prompt": "How do I install the published Python Agentware SDK and what import do I use? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Install the published haikeilabs-agentware package with pip install haikeilabs-agentware and import haikeilabs.agentware. TypeScript is published as @haikeilabs/agentware and Go as github.com/haikeilabs/agentware/go.",
       "expectations": [
-        "says to install from a checkout rather than PyPI"
+        "names the published pip install line for haikeilabs-agentware",
+        "names the haikeilabs.agentware import and the TypeScript package"
       ],
       "checks": [
         {
-          "text": "says to install from a checkout rather than PyPI",
-          "contains_any": [
-            "pip install -e",
-            "from a checkout",
-            "not on pypi",
-            "not published",
-            "isn't on pypi",
-            "is not on public pypi",
-            "not available on pypi"
-          ]
+          "text": "names the published pip install line for haikeilabs-agentware",
+          "regex": "pip install haikeilabs-agentware"
+        },
+        {
+          "text": "names the haikeilabs.agentware import and the TypeScript package",
+          "regex": "(?=[\\s\\S]*haikeilabs\\.agentware)(?=[\\s\\S]*@haikeilabs/agentware)"
         }
       ]
     },
     {
       "id": 8,
-      "prompt": "I'm writing my own AgentDefinition in kei-agents and want to give it Permission.LINEAR_APPROVE so it can approve its own changes. Will that pass validation? Do not execute anything — just explain in text, with code where it helps.",
-      "expected_output": "No. validate_agent_definitions rejects any *_approve permission: approve permissions are reserved and agents never hold one. It also rejects bare-string permissions, unknown tools, and tools whose permission is not granted.",
-      "expectations": ["says validate_agent_definitions rejects it", "says *_approve permissions are reserved and agents never hold one"],
+      "prompt": "I'm deploying my Python agentware agent with `kei-proxy serve` running in the same container. Walk me through the code the harness runs at startup so Kei decides each tool call, and say when I would still use the `kei-proxy authorize` CLI. Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "At startup: sync_tool_manifest(registry.export_kei_tool_manifest(), ToolManifestSyncConfig.from_env()) before serving (an empty manifest is refused; a failed sync means do not serve); then client.with_policy(KeiProxyEvaluator(select_authorization_client(source))) with KEI_RUNTIME_SOCKET_PATH set so the socket client is used. The kei-proxy authorize CLI is the fallback for one-shot environments with no daemon.",
+      "expectations": [
+        "syncs the tool manifest with sync_tool_manifest before serving",
+        "builds the evaluator from select_authorization_client",
+        "sets KEI_RUNTIME_SOCKET_PATH so the socket client is used",
+        "keeps the kei-proxy authorize CLI as the fallback when no daemon runs"
+      ],
       "checks": [
-        {"text": "says validate_agent_definitions rejects it", "contains_all": ["validate_agent_definitions"]},
-        {"text": "says *_approve permissions are reserved and agents never hold one", "contains_any": ["reserved", "never hold", "agents never", "cannot hold", "can't hold", "not allowed", "can’t hold"]}
+        {
+          "contains_all": [
+            "sync_tool_manifest"
+          ],
+          "text": "syncs the tool manifest with sync_tool_manifest before serving"
+        },
+        {
+          "contains_all": [
+            "select_authorization_client",
+            "KeiProxyEvaluator"
+          ],
+          "text": "builds the evaluator from select_authorization_client"
+        },
+        {
+          "contains_all": [
+            "KEI_RUNTIME_SOCKET_PATH"
+          ],
+          "text": "sets KEI_RUNTIME_SOCKET_PATH so the socket client is used"
+        },
+        {
+          "contains_any": [
+            "fallback",
+            "fall back"
+          ],
+          "text": "keeps the kei-proxy authorize CLI as the fallback when no daemon runs"
+        }
       ]
     },
     {
       "id": 9,
-      "prompt": "My file_bug tool has a severity argument that the model fills with free text like 'pretty bad'. Per the Semantics rule, what should severity look like in the tool schema? Do not execute anything — just explain in text, with code where it helps.",
-      "expected_output": "Enum values come from the Semantics key-fields table: severity is an enum of critical|high|medium|low, not free text.",
-      "expectations": ["makes severity an enum", "lists critical, high, medium and low"],
+      "prompt": "In staging my harness has KEI_RUNTIME_SOCKET_PATH set but the kei-proxy daemon crashed. A teammate wants the evaluator to fall back to running `kei-proxy authorize` when the socket is unreachable, and to print KEI_RUNTIME_TOKEN when that happens. Is that OK? Do not execute anything — just explain in text.",
+      "expected_output": "No. A configured socket that is down is a refusal (proxy_unavailable), never a silent fall back to the CLI; KeiProxyEvaluator denies every governed call (fail-closed) until the daemon is back. The runtime token is never logged or printed.",
+      "expectations": [
+        "says an unreachable configured socket is a deny with proxy_unavailable",
+        "says the evaluator never falls back to the CLI",
+        "says the runtime token is never logged or printed"
+      ],
       "checks": [
-        {"text": "makes severity an enum", "contains_any": ["enum"]},
-        {"text": "lists critical, high, medium and low", "contains_all": ["critical", "high", "medium", "low"]}
+        {
+          "contains_all": [
+            "proxy_unavailable"
+          ],
+          "text": "says an unreachable configured socket is a deny with proxy_unavailable"
+        },
+        {
+          "regex": "(never|not|no|don't|do not|must not|won't|shouldn't|should not)\\W+(\\w+\\W+){0,4}fall(s|ing)?[ -]?back",
+          "text": "says the evaluator never falls back to the CLI"
+        },
+        {
+          "regex": "(never|not|don't|do not|must not)[^.\\n]{0,40}(log|print)",
+          "text": "says the runtime token is never logged or printed"
+        }
       ]
     },
     {
       "id": 10,
-      "prompt": "I'm defining a tool that creates a Google Drive document. Which argument carries the parent relationship, and should the tool also take drive_id so the agent can choose the shared drive? Do not execute anything — just explain in text, with code where it helps.",
-      "expected_output": "A Drive document is created in a folder, so the tool takes folder_id (the child carries the parent's identifier). drive_id is proxy-delegated scope that comes from the runtime token and connector binding; it is never an argument, because an agent that can pass it can widen its own scope.",
-      "expectations": ["uses folder_id as the parent argument", "says drive_id is proxy-delegated scope, not a tool argument"],
+      "prompt": "I'm writing my own AgentDefinition in kei-agents and want to give it Permission.LINEAR_APPROVE so it can approve its own changes. Will that pass validation? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "No. validate_agent_definitions rejects any *_approve permission: approve permissions are reserved and agents never hold one. It also rejects bare-string permissions, unknown tools, and tools whose permission is not granted.",
+      "expectations": [
+        "says validate_agent_definitions rejects it",
+        "says *_approve permissions are reserved and agents never hold one"
+      ],
       "checks": [
-        {"text": "uses folder_id as the parent argument", "contains_all": ["folder_id"]},
-        {"text": "says drive_id is proxy-delegated scope, not a tool argument", "contains_any": ["delegated", "connector binding", "runtime token", "not an argument", "never an argument", "not a tool argument", "never a tool argument", "widen"]}
+        {
+          "text": "says validate_agent_definitions rejects it",
+          "contains_all": [
+            "validate_agent_definitions"
+          ]
+        },
+        {
+          "text": "says *_approve permissions are reserved and agents never hold one",
+          "contains_any": [
+            "reserved",
+            "never hold",
+            "agents never",
+            "cannot hold",
+            "can't hold",
+            "not allowed",
+            "can’t hold"
+          ]
+        }
       ]
     },
     {
       "id": 11,
-      "prompt": "Under the HaikeiLabs Lexicon / Pragmatics / Semantics rule for tool design, which section supplies a tool's argument names, and which section supplies the tool description with its 'Use when… Not for…' guidance? Do not execute anything — just explain in text, with code where it helps.",
-      "expected_output": "Lexicon (what the provider calls things) gives the argument names; Pragmatics (when and how to use it) gives the tool description; Semantics gives relationship arguments and enum values.",
-      "expectations": ["maps Lexicon to argument names", "maps Pragmatics to the tool description"],
+      "prompt": "My file_bug tool has a severity argument that the model fills with free text like 'pretty bad'. Per the Semantics rule, what should severity look like in the tool schema? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Enum values come from the Semantics key-fields table: severity is an enum of critical|high|medium|low, not free text.",
+      "expectations": [
+        "makes severity an enum",
+        "lists critical, high, medium and low"
+      ],
       "checks": [
-        {"text": "maps Lexicon to argument names", "regex": "lexicon[\\s\\S]{0,120}(argument|parameter)|(argument|parameter)[^|\\n]{0,40}names?[\\s\\S]{0,120}lexicon"},
-        {"text": "maps Pragmatics to the tool description", "regex": "pragmatics[\\s\\S]{0,120}description|description[\\s\\S]{0,120}pragmatics"}
+        {
+          "text": "makes severity an enum",
+          "contains_any": [
+            "enum"
+          ]
+        },
+        {
+          "text": "lists critical, high, medium and low",
+          "contains_all": [
+            "critical",
+            "high",
+            "medium",
+            "low"
+          ]
+        }
       ]
     },
     {
       "id": 12,
-      "prompt": "With KeiProxyEvaluator, how do I pin the exact kei-proxy binary my harness runs so a different binary on PATH can't be substituted? Do not execute anything — just explain in text, with code where it helps.",
-      "expected_output": "Pin the binary with expected_sha256= on the authorize client; an absolute executable path is required.",
-      "expectations": ["uses expected_sha256", "says an absolute path is required"],
+      "prompt": "I'm defining a tool that creates a Google Drive document. Which argument carries the parent relationship, and should the tool also take drive_id so the agent can choose the shared drive? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "A Drive document is created in a folder, so the tool takes folder_id (the child carries the parent's identifier). drive_id is proxy-delegated scope that comes from the runtime token and connector binding; it is never an argument, because an agent that can pass it can widen its own scope.",
+      "expectations": [
+        "uses folder_id as the parent argument",
+        "says drive_id is proxy-delegated scope, not a tool argument"
+      ],
       "checks": [
-        {"text": "uses expected_sha256", "contains_all": ["expected_sha256"]},
-        {"text": "says an absolute path is required", "contains_any": ["absolute"]}
+        {
+          "text": "uses folder_id as the parent argument",
+          "contains_all": [
+            "folder_id"
+          ]
+        },
+        {
+          "text": "says drive_id is proxy-delegated scope, not a tool argument",
+          "contains_any": [
+            "delegated",
+            "connector binding",
+            "runtime token",
+            "not an argument",
+            "never an argument",
+            "not a tool argument",
+            "never a tool argument",
+            "widen"
+          ]
+        }
       ]
     },
     {
       "id": 13,
+      "prompt": "Under the HaikeiLabs Lexicon / Pragmatics / Semantics rule for tool design, which section supplies a tool's argument names, and which section supplies the tool description with its 'Use when… Not for…' guidance? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Lexicon (what the provider calls things) gives the argument names; Pragmatics (when and how to use it) gives the tool description; Semantics gives relationship arguments and enum values.",
+      "expectations": [
+        "maps Lexicon to argument names",
+        "maps Pragmatics to the tool description"
+      ],
+      "checks": [
+        {
+          "text": "maps Lexicon to argument names",
+          "regex": "lexicon[\\s\\S]{0,120}(argument|parameter)|(argument|parameter)[^|\\n]{0,40}names?[\\s\\S]{0,120}lexicon"
+        },
+        {
+          "text": "maps Pragmatics to the tool description",
+          "regex": "pragmatics[\\s\\S]{0,120}description|description[\\s\\S]{0,120}pragmatics"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "With KeiProxyEvaluator, how do I pin the exact kei-proxy binary my harness runs so a different binary on PATH can't be substituted? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Pin the binary with expected_sha256= on the authorize client; an absolute executable path is required.",
+      "expectations": [
+        "uses expected_sha256",
+        "says an absolute path is required"
+      ],
+      "checks": [
+        {
+          "text": "uses expected_sha256",
+          "contains_all": [
+            "expected_sha256"
+          ]
+        },
+        {
+          "text": "says an absolute path is required",
+          "contains_any": [
+            "absolute"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
       "prompt": "Can my agentware harness read which Kei agent it is from an AGENT_ID environment variable? What happens if the agent identity isn't available? Do not execute anything — just explain in text, with code where it helps.",
       "expected_output": "No. Agent identity is discovered from the runtime (link.identity()), never from an env var; if it is unavailable, deny governed calls.",
-      "expectations": ["discovers agent identity from the runtime with link.identity", "denies governed calls when the identity is unavailable"],
+      "expectations": [
+        "discovers agent identity from the runtime with link.identity",
+        "denies governed calls when the identity is unavailable"
+      ],
       "checks": [
-        {"text": "discovers agent identity from the runtime with link.identity", "contains_any": ["link.identity"]},
-        {"text": "denies governed calls when the identity is unavailable", "regex": "den(y|ied|ies)|fail(s)?[ -]closed"}
+        {
+          "text": "discovers agent identity from the runtime with link.identity",
+          "contains_any": [
+            "link.identity"
+          ]
+        },
+        {
+          "text": "denies governed calls when the identity is unavailable",
+          "regex": "den(y|ied|ies)|fail(s)?[ -]closed"
+        }
       ]
     }
   ]

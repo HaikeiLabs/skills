@@ -7,10 +7,11 @@ description: "Choose and set up Kei harnesses: SDK (Agentware), Claude Code, Cod
 
 Kei governs a harness through this chain:
 
-`harness adapter → kei-proxy (kei-connector-runtime) → kei-policy-catalog`
+`harness adapter → kei-proxy → kei-policy-catalog`
 
-The harness asks `kei-proxy` before each governed operation. `kei-proxy`
-decides locally against the workspace policy bundle and runs allowed work
+For long-lived SDK (Agentware) harnesses, the harness connects to
+`kei-proxy serve` over its local socket and asks it to decide each governed
+tool call. `kei-proxy` decides locally against the workspace policy bundle and runs allowed work
 inside the tenant runtime. The catalog holds policy, connector metadata, and
 redacted audit metadata only. Setting up a harness means installing the skills
 that teach the agent this contract, then wiring the harness to a runtime.
@@ -25,6 +26,9 @@ does is summarised under "Per-harness setup scripts" below, so name the
 script and its steps instead of reading it.
 When a detail lives in another skill, end the answer with a **See also:**
 line naming that skill (DeepSeek-style short answers still need it):
+
+Installing the skills does not grant permission; Kei policy decides whether
+governed tool calls are allowed.
 
 - **Installing into an existing config:** install from
   `https://github.com/HaikeiLabs/skills`; skip, or ask about, same-named
@@ -154,7 +158,9 @@ Append `.md` to any docs page URL for the raw page.
 
 ## Choose a harness type
 
-- **SDK (Agentware):** choose this for an application built with the Agentware SDK, including pydantic-ai, Gemini SDK, AWS AgentCore, or a bespoke loop; it uses `KeiProxyEvaluator` and `kei-proxy authorize`.
+The API/catalog kind `custom` maps only to SDK (Agentware), not Pi or Open WebUI.
+
+- **SDK (Agentware):** choose this for an application built with the Agentware SDK, including pydantic-ai, Gemini SDK, AWS AgentCore, or a bespoke loop. Agentware 0.11.0 uses `KeiProxyEvaluator` with the socket client from `kei-proxy serve`; the `kei-proxy authorize` CLI is the fallback for one-shot environments without a daemon.
 - **Claude Code:** choose this for interactive coding sessions in Claude Code; desktop sync discovers it automatically.
 - **Codex:** choose this for interactive coding sessions in Codex; desktop sync discovers it automatically.
 - **Pi:** choose this for the Pi coding agent; its `kei-lime-pi` adapter uses the local proxy socket. See `kei-pi-setup`.
@@ -166,6 +172,16 @@ does not describe Pi or Open WebUI. Register an SDK harness with
 `kei harness add --kind custom`. Its manifest sync command is
 `kei harness sync --harness custom --manifest tools.json` (requires kei >=
 0.1.33). The current kei-cli is 0.2.0 and kei-proxy is v0.3.0.
+
+For custom Agentware harnesses, install the published SDK package for your
+language: `pip install haikeilabs-agentware`, `npm i @haikeilabs/agentware`,
+or `go get github.com/haikeilabs/agentware/go`. Run `kei-proxy serve` beside
+the harness and set `KEI_RUNTIME_SOCKET_PATH`; sync the tool manifest before
+serving requests. Agentware 0.11.0 also registers typed `ToolSpec` declarations
+over the socket with `POST /v1/tools:register` (Python
+`register_tool_specs`, TypeScript `registerToolSpecs`, Go
+`toolsync.SocketRegistrar`). This is an alternative to the operator-managed
+`kei harness sync --harness custom --manifest tools.json` flow.
 
 Cursor has a skills plugin, but it is not one of these six harness types; check
 the current runtime adapter support before promising governed calls.
@@ -282,7 +298,8 @@ kei runtime bootstrap     # runs the bundled kei-proxy to verify + heartbeat
 kei bot bind --installation ID
 ```
 
-For harnesses that spawn `kei-proxy` per call, the process needs
+For a one-shot SDK harness with no daemon, the fallback `kei-proxy authorize`
+process needs
 `KEI_RUNTIME_TOKEN` and `KEI_RUNTIME_CONTROL_PLANE_URL` in its environment;
 load these from the secret manager and never put the token in a repository
 config. **Pi is the exception:** its `kei-lime-pi` extension uses the local
@@ -353,17 +370,18 @@ source of permissions.
 ## 4. Pass identity on every governed call
 
 A tool call is **governed** when it touches tenant data, external systems, or
-credentials: it goes through `kei-proxy authorize` (or the agentware
-`KeiProxyEvaluator` — see the `agentware-sdk` skill), Kei policy decides, the
-decision is audited, and enrollment or approval can apply. A call that is
+credentials: it goes through the Agentware socket client to `kei-proxy serve`
+(or the `kei-proxy authorize` CLI fallback for a one-shot environment), Kei
+policy decides, the decision is audited, and enrollment or approval can apply. A call that is
 **non-governed** runs locally and never reaches Kei. When unsure, treat the
 tool as governed. The full distinction is in the `kei-proxy` skill.
 
-The adapter calls `kei-proxy authorize` before a governed tool runs and obeys
-the result: exit code `0` means allowed; any non-zero exit (a deny, or an
-error such as an unreachable control plane) means do not run the tool. The
-full flag and env reference is in the `kei-proxy` skill. Identity and
-delegation come from flags or environment:
+Agentware applications use `KeiProxyEvaluator` with the selected socket client
+so each governed tool call is decided by the daemon. A configured socket that
+cannot be reached is a refusal; do not fall back to a subprocess. The CLI
+fallback returns exit code `0` for allow; any non-zero exit (deny or error)
+means do not run the tool. The full flag and env reference is in the
+`kei-proxy` skill. Identity and delegation come from flags or environment:
 
 ```text
 KEI_PROXY_FRAMEWORK=claude|codex|opencode|pi   # which harness
@@ -385,13 +403,21 @@ To read the assigned agent ID at runtime, use the agentware SDK's
 `link.identity()` (see `agentware-sdk` skill). If identity is not available,
 deny governed calls — never guess a fallback agent ID.
 
-### 4a. Use the daemon socket for an allow check
+### 4a. Use KeiProxyEvaluator with the socket client
 
-To check whether a tool call is allowed, use the daemon's Unix-socket
-`POST /v1/authorize` route. A one-shot `kei-proxy authorize` call is not an
-allow probe in v2: it returns `preflight_required`. If the harness imports the
-agentware SDK, use its evaluator for the governed tool execution path; see the
-`agentware-sdk` skill for per-language construction and testing.
+Long-running Agentware harnesses use the socket client with
+`KEI_RUNTIME_SOCKET_PATH`.
+
+If your harness imports Agentware 0.11.0 (any of the three ports), run
+`kei-proxy serve` beside it, sync a non-empty tool manifest before serving,
+and construct `KeiProxyEvaluator` with the SDK selector and
+`KEI_RUNTIME_SOCKET_PATH`. The selector chooses the socket client when the
+socket is configured. An unavailable configured daemon is a refusal and must
+not trigger a CLI fallback. The `kei-proxy authorize` CLI remains available
+for one-shot environments with no daemon. It is not a v2 allow probe and
+returns `preflight_required`; use the socket route for a v2 policy decision.
+See `agentware-sdk` for the exact Python, TypeScript, and Go APIs, session
+handling, ToolSpec registration, and the shared decision fixtures.
 
 Do **not** keep a local allow list in the harness. The workspace policy bundle
 (`kei-proxy` + `kei-policy-catalog`) is the single source of truth for what
@@ -452,8 +478,11 @@ harness should not run with kei-proxy disabled.
 
 ## 7. Make one governed call in the harness (first use)
 
-The daemon socket's `POST /v1/authorize` route can preflight a policy decision,
-but it does not prove the harness itself makes a governed call. Setup is not
+For SDK (Agentware), a successful socket-client authorization and `verify.sh`
+prove the socket plumbing is configured; the daemon socket route can preflight
+a policy decision. These checks do not prove the harness itself makes a
+governed call. Setup is not complete until a real governed tool call has been
+verified in the harness.
 complete until the harness does.
 
 In the harness, make **one** governed tool call — for example, have the agent

@@ -24,7 +24,9 @@ gate's report is the record.
 
 ## Cases
 
-Case 7 covers identity mode running `opaque_ref`/`http_api` connectors from v2 bundle descriptors (HAI-378): the new deny codes and the release status (not live in proxy-v0.2.4; needs `POLICY_BUNDLE_V2_CONNECTORS`). It asks one bounded question so a run stays short.
+Case 7 checks connector availability against the installed runtime and bundle, and teaches fail-closed denial reasons without relying on stale release claims.
+
+Case 9 covers the daemon socket client as primary, tool registration through `POST /v1/tools:register`, the `kei harness sync --manifest` alternative, and the CLI fallback.
 
 Case 8 covers what `kei-proxy hook claude` records for a failed call and an asked call (the `failed` flag, `decision` and `permission_reply` events), that the hook never answers a permission prompt, and which versions it needs.
 

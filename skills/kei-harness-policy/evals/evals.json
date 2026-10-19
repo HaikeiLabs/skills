@@ -236,19 +236,15 @@
       "checks": [
         {
           "text": "explains credentials are resolved through kei-proxy, not embedded in policies",
-          "regex": "kei-proxy[^.\\n]{0,80}resolv|resolv\\w*[^.\\n]{0,80}kei-proxy"
+          "regex": "credentials?[\\s\\S]{0,120}resolv[\\s\\S]{0,100}kei[\\s`-]*proxy|kei[\\s`-]*proxy[\\s\\S]{0,100}resolv[\\s\\S]{0,100}credentials?"
         },
         {
           "text": "mentions kei:// reference syntax for credential references",
-          "contains_all": [
-            "kei://",
-            "reference",
-            "credential"
-          ]
+          "regex": "kei://[\\s\\S]{0,100}(?:credential|reference)|(?:credential|reference)[\\s\\S]{0,100}kei://"
         },
         {
           "text": "states the agent never reads or stores raw credentials",
-          "regex": "(?=[\\s\\S]*\\bagent)(?=[\\s\\S]*(?:store|persist|\\bsave))"
+          "regex": "(?:agent|harness)[\\s\\S]{0,120}(?:never|does not|doesn.t|do not|don.t|cannot|can.t)[\\s\\S]{0,100}(?:read|access|see|store|retain|hold)[\\s\\S]{0,100}(?:raw|actual|plain[ -]?text)?[\\s-]*credentials?"
         },
         {
           "text": "notes this follows the same pattern as governed connector calls",
@@ -610,6 +606,30 @@
         {
           "text": "The response offers a workaround (higher-priority deny).",
           "regex": "(?:higher.priority|override|workaround|deny.*permit|permit.*deny)"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "For a custom SDK harness that runs `kei-proxy serve` beside it, who decides tool-call policies such as a connector-wide grant at run time, and are they rendered into the harness's native config like command policies? Do not execute anything — just explain in text.",
+      "expected_output": "Tool-call policies are not rendered: kei-proxy decides them at run time — the kei-proxy serve socket (POST /v1/authorize in a session, through the agentware socket client), with the kei-proxy authorize CLI as the fallback when no daemon runs; the runtime PDP decides from the bundle. Only harness command policies are rendered by kei harness sync. Choose either Agentware ToolSpec registration over POST /v1/tools:register or the operator command kei harness sync --harness custom --manifest tools.json with kei >= 0.1.33.",
+      "expectations": [
+        "says kei-proxy decides tool-call policies at run time over the socket",
+        "says tool-call policies are not rendered into native config",
+        "mentions a current tool registration option for custom harnesses"
+      ],
+      "checks": [
+        {
+          "regex": "kei-proxy serve|/v1/authorize|socket",
+          "text": "says kei-proxy decides tool-call policies at run time over the socket"
+        },
+        {
+          "regex": "not (be )?rendered|aren't rendered|are never rendered|never rendered|not render",
+          "text": "says tool-call policies are not rendered into native config"
+        },
+        {
+          "text": "mentions a current tool registration option for custom harnesses",
+          "regex": "Tool[\\s-]*Spec|/v1/tools\\s*:\\s*register|--manifest[\\s`]*tools\\.json|custom[\\s\\S]{0,100}(?:manifest|register tools|tools? registration)|(?:manifest|register tools)[\\s\\S]{0,100}custom"
         }
       ]
     }

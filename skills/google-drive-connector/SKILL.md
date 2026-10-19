@@ -71,8 +71,7 @@ which are only for harness-side doc writes.
 - **At runtime:** The governed connector injects the credential via
   `kei-proxy connector invoke` (preferred) or through a `kei-proxy run`
   wrapper that sets `GOOGLE_APPLICATION_CREDENTIALS=kei://connectors/<id>/token` and
-  masks the value in output. The `kei-proxy run` wrapper is pending
-  [HAI-305](https://linear.app/haikei/issue/HAI-305).
+  masks the value in output. The `kei-proxy run` wrapper is not part of the current connector workflow.
 
 ## Connector setup: Drive ID
 
@@ -201,10 +200,12 @@ user's own Google OAuth token**:
   `Authorization` header, as below.
 - **A child carries its parent.** A new doc always gets
   `parents: [<folder_id>]`. An update targets `<doc_id>`.
-- **Governed harness.** Ask `kei-proxy authorize` before the write, with the
-  resource `drive:folder/<folder_id>` for a create or `drive:doc/<doc_id>`
-  for an update. Write only on allow. When the harness uses agentware, its
-  `KeiProxyEvaluator` makes this call.
+- **Governed harness.** Ask kei-proxy before the write, with the resource
+  `drive:folder/<folder_id>` for a create or `drive:doc/<doc_id>` for an
+  update. Write only on allow. When the harness uses agentware, its
+  `KeiProxyEvaluator` makes this call over the `kei-proxy serve` socket
+  client (the `kei-proxy authorize` CLI is the fallback with no daemon); a
+  socket that is down is a deny, never a fall back.
 - **Always give the exact commands.** Even when you cannot read the file or
   run anything yourself, reply with the whole recipe below. That means the
   `drive.file` token step, the preflight, and the exact `curl` write:
@@ -377,10 +378,9 @@ drive (My Drive or shared drive)
 └── file                    # id (UUID)
 ```
 
-### Resource types (ADR-028, for Kei policy)
+### Resource types for Kei policy
 
-Per [ADR-028](https://github.com/HaikeiLabs/kei/blob/main/docs/adr/028-policy-field-contract.md) §4, Google Drive
-declares two resource types for Kei policy (each declares its parent type):
+Google Drive declares two resource types for Kei policy (each declares its parent type):
 `folder` (no parent) and `file` (parent: `folder`):
 
 | Resource type | Parent type | Canonical id example |
