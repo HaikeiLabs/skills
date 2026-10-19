@@ -1,6 +1,6 @@
 # Haikei Skills
 
-A collection of [Agent Skills](https://agent-skills.io/) for building and
+A collection of [Agent Skills](https://agentskills.io/home) for building and
 operating AI assistants with Haikei's Kei platform: the **Kei API** for
 organization management, the **kei CLI** for customer-hosted bot runtimes, the
 **agentware SDK** for policy and audit on agent tool calls, **kei-agents**
@@ -25,6 +25,27 @@ Two consequences for contributors:
 
 ## Installing
 
+### Recommended: install with `npx skills`
+
+Install the Haikei router skill together with the area skill you need. Replace
+`<area-skill>` with a skill name from the table below, such as
+`kei-harness-setup` or `kei-cli`:
+
+```sh
+npx skills add HaikeiLabs/skills --skill haikei --skill <area-skill> -a codex -y
+```
+
+Use the matching agent ID for your harness: `claude-code`, `codex`, `opencode`,
+or `pi`. For example, Pi:
+
+```sh
+npx skills add HaikeiLabs/skills --skill haikei --skill kei-harness-setup -a pi -y
+```
+
+The `haikei` skill routes requests to the right product skill; always install it
+alongside the area skill. Plugin marketplace and Pi package installation are
+available as alternatives below.
+
 ### Copyable setup prompt
 
 Paste this prompt into the coding agent you want to configure. It tells the
@@ -32,12 +53,11 @@ agent to fetch the repository and install the same portable skill folders for
 the harness it is running in:
 
 ```text
-Install the Haikei Agent Skills from https://github.com/HaikeiLabs/skills.git.
-First inspect which harness you are running (Claude Code, Cursor, OpenCode,
-Pi, or Codex) and use its documented install flow. For Pi, run
-`pi install git:github.com/HaikeiLabs/skills`. For other harnesses, clone the repository
-to a temporary directory, review the skills/ folders, then copy or symlink
-each folder containing SKILL.md into that harness's skill directory.
+Install the Haikei Agent Skills with `npx skills add HaikeiLabs/skills
+--skill haikei --skill <area-skill> -a <agent> -y`. Always include the
+`haikei` router skill and choose an area skill that fits the task. Supported
+agent IDs include `claude-code`, `codex`, `opencode`, and `pi`. For Pi, you may
+instead run `pi install git:github.com/HaikeiLabs/skills`.
 Preserve existing skills, do not overwrite a same-named skill without asking,
 and do not copy .git metadata. After installation, verify that all SKILL.md
 files have name and description frontmatter and report the destination and
@@ -45,9 +65,8 @@ the installed skill names. Do not print secrets or modify project files
 outside the selected skill directory.
 ```
 
-The prompt is intentionally harness-neutral: the agent must discover its
-actual runtime and use its own supported install path instead of assuming
-that a path for another harness is valid.
+Preserve existing skills, do not overwrite a same-named skill without asking,
+and verify that the harness discovers the installed skill names.
 
 ### Claude Code
 
