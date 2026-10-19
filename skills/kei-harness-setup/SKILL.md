@@ -1,6 +1,6 @@
 ---
 name: kei-harness-setup
-description: "Connect Claude Code, Codex, OpenCode, or Cursor to Kei governance. Install the Haikei skills, pair the harness with a runtime installation and kei-proxy, pass identity on governed calls, and prove unbound calls are denied. Use for these harnesses, custom/SDK harnesses, and product harness routing. For Pi package installation and its local-socket adapter, use `kei-pi-setup`."
+description: "Choose and set up Kei harnesses: SDK (Agentware), Claude Code, Codex, Pi, OpenCode, or Open WebUI. Install skills or adapters, pair with a runtime and kei-proxy, pass identity on governed calls, and verify setup. See `kei-pi-setup` or `kei-openwebui`."
 ---
 
 # Set up a harness with Kei
@@ -67,7 +67,7 @@ line naming that skill (DeepSeek-style short answers still need it):
 ## Concepts
 
 - **Harness** — software that lets an LLM act as an agent (for example Claude
-  Code, OpenCode, or a custom bot).
+  Code, OpenCode, or an SDK (Agentware) application).
 - **Kei-enabled harness** — a harness governed by Kei through a **runtime
   installation**.
 - **Runtime installation** — Kei's record for the one runtime deployed beside
@@ -150,15 +150,23 @@ credential` into `kei setup`.
 | Skills repo | `https://github.com/HaikeiLabs/skills#installing` | Current skill-directory table |
 | The harness's own docs | Its skills documentation | Where that harness version discovers skills |
 
-## Supported harnesses
+## Choose a harness type
 
-| Harness | Kind | Notes |
-| --- | --- | --- |
-| Claude Code, Codex, OpenCode | Kei-enabled local coding harness | This skill's main path; desktop sync auto-discovers these kinds |
-| Pi | Kei-enabled local coding harness with a separate adapter | Use `kei-pi-setup`; installing the Pi extension is not `kei harness sync` |
-| Cursor | Kei-enabled local coding harness (skills only) | The skills repo ships a Cursor plugin; the console does not list a Cursor runtime adapter yet, so confirm before promising governed calls |
-| Assistant, PDE | Kei product harness | Adapter is built into the product; register its tools against an installation |
-| Discord | Haikei-internal product harness | Not a customer onboarding path |
+- **SDK (Agentware):** choose this for an application built with the Agentware SDK, including pydantic-ai, Gemini SDK, AWS AgentCore, or a bespoke loop; it uses `KeiProxyEvaluator` and `kei-proxy authorize`.
+- **Claude Code:** choose this for interactive coding sessions in Claude Code; desktop sync discovers it automatically.
+- **Codex:** choose this for interactive coding sessions in Codex; desktop sync discovers it automatically.
+- **Pi:** choose this for the Pi coding agent; its `kei-lime-pi` adapter uses the local proxy socket. See `kei-pi-setup`.
+- **OpenCode:** choose this for interactive coding sessions in OpenCode; desktop sync discovers it automatically.
+- **Open WebUI:** choose this for a governed chat UI deployment using the `openwebui-kei` image, Python library, and tool packs. See `kei-openwebui`.
+
+The API/catalog kind value `custom` names only the **SDK (Agentware)** type; it
+does not describe Pi or Open WebUI. Register an SDK harness with
+`kei harness add --kind custom`. Its manifest sync command is
+`kei harness sync --harness custom --manifest tools.json` (requires kei >=
+0.1.33). The current kei-cli is 0.2.0 and kei-proxy is v0.3.0.
+
+Cursor has a skills plugin, but it is not one of these six harness types; check
+the current runtime adapter support before promising governed calls.
 
 Any other harness is unsupported and is denied until an adapter is explicitly
 registered. Do not improvise one.
@@ -279,15 +287,15 @@ config. **Pi is the exception:** its `kei-lime-pi` extension uses the local
 owner-only Unix socket, and the daemon retains the runtime token. Do not pass
 the token to Pi; follow `kei-pi-setup`.
 
-## 3. Sync the harness (auto-discovery) or register a custom harness
+## 3. Sync the harness (auto-discovery) or register an SDK (Agentware) harness
 
-> **Prerequisite:** `kei policies` and `kei harness` ship in kei >v0.1.6,
-> unreleased as of 2026-10-01. Skip this step if the installed version predates
-> it. Load **`kei-harness-policy`** for the full command reference.
+> **Prerequisite:** use kei-cli 0.2.0 or later for current harness commands.
+> Manifest-based SDK (Agentware) sync requires kei >= 0.1.33. Load
+> **`kei-harness-policy`** for the full command reference.
 
 ### When to use `kei harness add`
 
-`kei harness add` is **only for custom/SDK harnesses** (`--kind custom`).
+`kei harness add` is **only for SDK (Agentware) harnesses** (`--kind custom`).
 Desktop coding harnesses (Claude Code, Codex, OpenCode) are **sessions**
 of one runtime installation per machine. They are auto-discovered by
 `kei harness sync` — you do NOT need to run `kei harness add` for them. Pi uses
@@ -296,7 +304,7 @@ a separate adapter; see `kei-pi-setup`.
 | Use case | Action |
 |---|---|
 | Desktop harness on a workstation | `kei harness sync` — no `add` needed |
-| Custom/SDK harness you built | `kei harness add --kind custom [--installation ID] [--agent ID]` |
+| SDK (Agentware) harness you built | `kei harness add --kind custom [--installation ID] [--agent ID]` |
 
 Flags: `--installation` defaults to the single installation on this machine;
 `--agent` defaults to the default agent. Errors: `ALREADY_EXISTS` means the
@@ -317,7 +325,9 @@ entirely — `sync` auto-discovers them:
 kei harness sync --harness claude_code
 ```
 
-`--kind` is `claude_code`, `codex`, `opencode`, or `custom`. Sync fetches
+The `custom` API kind is the SDK (Agentware) type. `--kind` accepts
+`claude_code`, `codex`, `opencode`, or `custom`; Pi and Open WebUI have their
+own adapters and are not `custom`. Sync fetches
 the policy bundle and renders the native config for that kind:
 
 ```sh
