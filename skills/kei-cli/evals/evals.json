@@ -74,7 +74,9 @@
             "resource",
             "resources",
             "command",
-            "exists"
+            "exists",
+            "available",
+            "support"
           ]
         },
         {
@@ -654,10 +656,7 @@
         },
         {
           "text": "The response offers retrying without --expected-issuer or upgrading the catalog.",
-          "contains_any": [
-            "without --expected-issuer",
-            "upgrade"
-          ]
+          "regex": "without[^.]{0,40}--expected-issuer|upgrade"
         }
       ]
     },
@@ -693,6 +692,208 @@
             "v0.1.32",
             "0.1.32",
             "newer"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "prompt": "I created a per-user OAuth GitHub connector in the Main workspace. How do I connect my own account from the CLI? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "expected_output": "kei connectors connect <id|name> --workspace Main [--no-browser]. Opens the browser (or prints the URL), polls until connected, prints state and granted scopes. Never prints a token. The command is for your own account only; other users must connect their own.",
+      "expectations": [
+        "The response uses kei connectors connect with --workspace.",
+        "The response says the command never prints a token.",
+        "The response says the command is for your own account, not another user's."
+      ],
+      "checks": [
+        {
+          "text": "The response uses kei connectors connect with --workspace.",
+          "contains_all": [
+            "kei connectors connect",
+            "--workspace"
+          ]
+        },
+        {
+          "text": "The response says the command never prints a token.",
+          "contains_any": [
+            "never prints",
+            "never printed",
+            "never shows",
+            "never shown",
+            "never reveals",
+            "never displayed",
+            "never exposed",
+            "does not print",
+            "doesn't print",
+            "does not show",
+            "not print a token",
+            "not printed",
+            "token is never",
+            "token is not",
+            "no token is printed",
+            "no token is shown",
+            "no token is displayed"
+          ]
+        },
+        {
+          "text": "The response says the command is for your own account, not another user's.",
+          "contains_any": [
+            "your own",
+            "your account",
+            "own account",
+            "authenticated user"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "prompt": "I ran `kei bot list` and one of our installations shows a version with '(below minimum)' next to it. What does that mean? Is the runtime blocked? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "expected_output": "The '(below minimum)' tag means the installation's runtime version is below the organization's minimum runtime version, set by an org owner. It is display-only information and does not block the runtime from operating.",
+      "expectations": [
+        "The response explains '(below minimum)' means the runtime version is below the org minimum.",
+        "The response says it is display-only and does not block the runtime."
+      ],
+      "checks": [
+        {
+          "text": "The response explains '(below minimum)' means the runtime version is below the org minimum.",
+          "contains_any": [
+            "below minimum",
+            "org minimum",
+            "minimum runtime version",
+            "minimum version"
+          ]
+        },
+        {
+          "text": "The response says it is display-only and does not block the runtime.",
+          "contains_any": [
+            "display-only",
+            "display only",
+            "does not block",
+            "doesn't block",
+            "not block"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "prompt": "I ran `kei connectors reconnect` on a per-user GitHub connector and the CLI told me to use a different command. What command should I use instead? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "expected_output": "The CLI now points reconnect to `kei connectors connect <id|name> --workspace WORKSPACE` for per-user OAuth connectors. Use that instead.",
+      "expectations": [
+        "The response says reconnect now points to kei connectors connect.",
+        "The response names kei connectors connect."
+      ],
+      "checks": [
+        {
+          "text": "The response says reconnect now points to kei connectors connect.",
+          "contains_any": [
+            "points to",
+            "use connect",
+            "connectors connect",
+            "instead"
+          ]
+        },
+        {
+          "text": "The response names kei connectors connect.",
+          "contains_all": [
+            "kei connectors connect"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "prompt": "Another developer on my team has a GitHub connector set up. I need to connect their account from my CLI session so they can use it. How do I do that? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "expected_output": "You cannot connect another user's account from your CLI session. `kei connectors connect` is for the authenticated user only. The other developer must run `kei login` and then `kei connectors connect` themselves.",
+      "expectations": [
+        "The response refuses to connect another user's account.",
+        "The response says each user must connect their own account with kei connectors connect after kei login.",
+        "The response does not invent a kei connectors login command or another non-existent command."
+      ],
+      "checks": [
+        {
+          "text": "The response refuses to connect another user's account.",
+          "contains_any": [
+            "cannot connect",
+            "not connect",
+            "can't connect",
+            "your own",
+            "their own",
+            "each user"
+          ]
+        },
+        {
+          "text": "The response says each user must connect their own account with kei connectors connect after kei login.",
+          "contains_all": [
+            "kei connectors connect",
+            "kei login"
+          ]
+        },
+        {
+          "text": "The response does not invent a kei connectors login command or another non-existent command.",
+          "not_contains": [
+            "kei connectors login",
+            "kei connectors auth",
+            "kei connectors impersonate",
+            "kei connectors sudo",
+            "kei connectors admin-connect"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "prompt": "I'm setting up a new developer machine with Kei. I want a single command that creates the runtime installation, gets the credential, writes the config, bootstraps, and binds everything. Is there one? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "expected_output": "Yes: `kei connect cli [--workspace NAME] [--yes]` (v0.1.34+). It does all those steps in one command. Login with `kei login` first.",
+      "expectations": [
+        "The response names kei connect as the one-command setup.",
+        "The response says it handles installation, credential, config, bootstrap, and bind."
+      ],
+      "checks": [
+        {
+          "text": "The response names kei connect as the one-command setup.",
+          "contains_all": [
+            "kei connect"
+          ]
+        },
+        {
+          "text": "The response says it handles installation, credential, config, bootstrap, and bind.",
+          "contains_any": [
+            "installation",
+            "credential",
+            "bootstrap",
+            "bind",
+            "one command",
+            "single command",
+            "one step"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "prompt": "Can I see a workspace-specific credential store override with kei credential-store get? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "expected_output": "Yes: `kei credential-store get --workspace WS` (v0.1.34+). Without --workspace it reads the organization store. If no override exists for the workspace, it reports that the workspace uses the organization's store.",
+      "expectations": [
+        "The response says yes and mentions the --workspace flag.",
+        "The response distinguishes between organization store and workspace override."
+      ],
+      "checks": [
+        {
+          "text": "The response says yes and mentions the --workspace flag.",
+          "contains_all": [
+            "--workspace",
+            "kei credential-store"
+          ]
+        },
+        {
+          "text": "The response distinguishes between organization store and workspace override.",
+          "contains_any": [
+            "organization",
+            "workspace override",
+            "organization's store",
+            "organization store"
           ]
         }
       ]

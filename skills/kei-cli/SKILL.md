@@ -1,6 +1,6 @@
 ---
 name: kei-cli
-description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade (including `--proxy-only` and `--uninstall`), `kei login` device-flow auth, runtime installations (`kei bot list|init|credential|agents|status|bind|delete`), harness command policies (`kei policies`), data connectors (`kei connectors`, including remote MCP connectors created from a catalog template with `kei connectors create --template` and their tool manifests reviewed and approved with `kei connectors manifests`, alias `tools`), model profiles and the credential store (`kei model-profiles`, `kei credential-store`), harness management (`kei harness` — `add` for custom/SDK only, `sync` for all harnesses including auto-discovered desktop), local runtime config (`kei setup`, `kei runtime bootstrap`), and bug reports from a harness (`kei feedback`, which redacts the transcript and asks before sending). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something from the CLI in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org or agent commands, and no group create/update/delete — say so rather than inventing one. (`kei workspaces list`, `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and `kei credential-store` are the resource-oriented exceptions, v0.1.13 or later; `kei users` and `kei groups members` need v0.1.16 or later.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
+description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade (including `--proxy-only` and `--uninstall`), `kei login` device-flow auth, runtime installations (`kei bot list|init|credential|agents|status|bind|delete`), harness command policies (`kei policies`), data connectors (`kei connectors`, including remote MCP connectors created from a catalog template with `kei connectors create --template`, per-user OAuth connection with `kei connectors connect`, and tool manifests reviewed and approved with `kei connectors manifests`, alias `tools`), model profiles and the credential store (`kei model-profiles`, `kei credential-store` with `--workspace` overrides), harness management (`kei harness` — `add` for custom/SDK only, `sync` for all harnesses including auto-discovered desktop), one-command harness setup (`kei connect`), workspace and group management (`kei workspaces create`, `kei groups create|list`), local runtime config (`kei setup`, `kei runtime bootstrap`), and bug reports from a harness (`kei feedback`, which redacts the transcript and asks before sending). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something from the CLI in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org or agent commands, and no group update/delete — say so rather than inventing one. (`kei workspaces list|create`, `kei groups create|list`, `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and `kei credential-store` are the resource-oriented exceptions, v0.1.13 or later; `kei users` and `kei groups members` need v0.1.16 or later; `kei workspaces create` and `kei groups create|list` need v0.1.33 or later; `kei connectors connect` and `kei credential-store get|put --workspace` need v0.1.34 or later.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
 ---
 
 # kei CLI
@@ -251,17 +251,22 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 ## Key guidelines
 
 - **Nothing outside the usage string exists.** No `kei org` or `kei agent`
-  commands; no group create, update, or delete; no `bot install`, `deploy`, or
-  `destroy`; no `kei setup doctor`. Orgs, workspaces, agents, and groups are
+  commands; no group update or delete; no `bot install`, `deploy`, or
+  `destroy`; no `kei setup doctor`. Orgs, agents, and groups are
   created and changed in the web app (or through the HTTP API — see
   `kei-api`). Say that plainly instead of guessing a command from an API route.
-  `kei workspaces list` does exist for workspace discovery only, and
+  `kei workspaces list|create` and `kei groups create|list` exist
+  (v0.1.33+), and
   `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and
   `kei credential-store` are the resource-oriented exceptions. Since v0.1.16,
   `kei users` (list, get, create, update, resolve, identities) and
   `kei groups members list|add|remove` manage users and group membership;
-  `kei bot list` (v0.1.8) lists installations. Check `kei help` for the
-  installed version before presenting any of them as available.
+  `kei bot list` (v0.1.8) lists installations. Since v0.1.34,
+  `kei connectors connect` connects your own per-user OAuth connector,
+  `kei credential-store get|put` accept `--workspace` to read/write workspace
+  overrides, and `kei connect` sets up a harness in one command.
+  Check `kei help` for the installed version before presenting any of them as
+  available.
 - **Credentials never touch the terminal.** `kei bot credential` refuses to
   write to an interactive terminal; pipe it into a secret manager. Never pass a
   token as an argument unless the user accepts shell-history exposure.
@@ -282,7 +287,10 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 | Show commands for this version | `kei help` | no |
 | Log in / out | `kei login [--no-browser]` / `kei logout` | — |
 | List workspaces | `kei workspaces list [--json]` | yes |
-| List runtime installations | `kei bot list [--json] [--all]` | yes |
+| Create a workspace (v0.1.33+) | `kei workspaces create --name NAME [--json] [--yes]` | yes |
+| Create a group (v0.1.33+) | `kei groups create --name NAME --workspace WORKSPACE [--description TEXT] [--json] [--yes]` | yes |
+| List groups (v0.1.33+) | `kei groups list --workspace WORKSPACE [--json]` | yes |
+| List runtime installations | `kei bot list [--json] [--all]` (v0.1.33+: shows VERSION column; flags `(below minimum)` when the installation's runtime version is below the org minimum; display-only, does not block the runtime) | yes |
 | Create a runtime installation | `kei bot init --platform cli\|teams\|discord\|slack\|whatsapp\|openwebui --name NAME [--agent ID] [--workspace WS]` | yes |
 | Emit the runtime credential | `kei bot credential --installation ID --workspace WORKSPACE \| <secret-manager import>` | yes |
 | Rotate the runtime credential | `kei bot credential --installation ID --workspace WS --rotate \| <secret-manager import>` | yes |
@@ -298,7 +306,8 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 | Import native harness rules | `kei policies import --from claude\|codex\|opencode [--file PATH] [--src PATTERN] [--out FILE] [--apply] [--workspace WS]` | yes |
 | List data connectors | `kei connectors list [--workspace WS] [--json]` | yes |
 | Create a data connector | `kei connectors create --provider P --name NAME [--account-model M] [--set k=v] [--credential-ref R] [--capabilities a,b] [--workspace WS]` | yes |
-| Get / reconnect / delete a connector | `kei connectors get ID [--json]` / `kei connectors reconnect ID [--no-browser] [--keep-secret]` / `kei connectors delete ID --yes` | yes |
+| Connect your own per-user OAuth connector (v0.1.34+) | `kei connectors connect <id|name> --workspace WORKSPACE [--no-browser]` | yes |
+| Get / reconnect / delete a connector | `kei connectors get ID [--json]` / `kei connectors reconnect ID [--no-browser] [--keep-secret]` (v0.1.34+: on per-user connectors, points to `kei connectors connect`) / `kei connectors delete ID --yes` | yes |
 | Add a remote MCP server (v0.1.32+) | `kei connectors create --template TEMPLATE_ID --label LABEL [--kind mcp] [--slug S] [--mcp-url URL] [--expected-issuer URL] [--workspace WS]` | yes |
 | Review an MCP connector's tool manifests (v0.1.32+; alias `tools`) | `kei connectors manifests list\|show CONNECTOR_ID [MANIFEST_ID] [--workspace WS] [--json]` | yes |
 | Approve a tool manifest (org admin, v0.1.32+) | `kei connectors manifests approve CONNECTOR_ID MANIFEST_ID [--workspace WS] [--yes]` | yes |
@@ -315,10 +324,11 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 | Can runtimes reach the provider? | `kei model-profiles readiness PROFILE --workspace WS` | yes |
 | Validate an endpoint like the console's Test button (no provider call) | `kei model-profiles test --endpoint URL` / `kei model-profiles test PROFILE [--workspace WS]` | `--endpoint`: no |
 | Delete a model profile | `kei model-profiles delete PROFILE [--workspace WS] --yes` | yes |
-| Credential store | `kei credential-store get` / `put` (creates it) / `update` (PATCH) | yes |
+| Credential store | `kei credential-store get [--workspace WS]` / `put [--workspace WS]` (creates it) / `update` (PATCH) (v0.1.34+: `--workspace` reads/writes the workspace override) | yes |
 | Users (v0.1.16+) | `kei users list\|get\|create\|update\|resolve` / `kei users identities list USER` | yes |
 | Group membership (v0.1.16+) | `kei groups members list\|add\|remove GROUP [USER] [--workspace WS]` | yes |
 | Entra directory sync (after v0.1.29; workflow in `kei-directory-sync`) | `kei directory-sync get [--json]` / `set [--tenant-id G] [--client-id G] [--app-id G] [--dry-run=true\|false] [--create-users=true\|false] [--revoke=true\|false] [--yes]` / `enable\|disable [--yes]` / `report [--limit N] [--json]` | yes |
+| One-command harness setup (v0.1.34+) | `kei connect HARNESS [--workspace NAME] [--yes]` (creates installation, credential, config, bootstrap, bind in one step) | yes |
 | Write local runtime config | `kei setup [--config PATH] [--control-plane-url URL]` | no (runtime token) |
 | Verify + heartbeat via local kei-proxy | `kei runtime bootstrap [--config PATH] [--proxy-path PATH]` | no (runtime token) |
 | Upgrade via Go | `kei upgrade [--version VERSION]` | no |
@@ -360,8 +370,15 @@ in [references/mcp-connectors.md](references/mcp-connectors.md).
   to choose the immutable slug (it defaults to one derived from the label),
   and `--expected-issuer` to pin the OAuth authorization server. When you give
   the create command, also say that each user then connects their own account
-  with OAuth (per user, so nothing is read from stdin) and that the
-  connector's tools stay blocked until an admin approves its tool manifest.
+  with OAuth (per user, so nothing is read from stdin) using `kei connectors
+  connect` (v0.1.34+) and that the connector's tools stay blocked until an
+  admin approves its tool manifest.
+- **Catalog too old for `--expected-issuer`.** When the remote catalog doesn't
+  support `--expected-issuer`, the CLI creates the connector without the issuer
+  pin but then fails closed: it deletes the connector rather than leave one
+  that trusts any authorization server. To fix this, upgrade the catalog (the
+  platform side), or re-create the connector without `--expected-issuer` if
+  that risk is acceptable.
 - **Tools come only from the approved manifest.** The runtime submits each
   manifest it observes as a candidate. Review it with
   `kei connectors manifests show CONNECTOR_ID` (newest candidate, with tools
@@ -371,6 +388,29 @@ in [references/mcp-connectors.md](references/mcp-connectors.md).
   scripts). `tools` is an alias for `manifests`.
 - `kei connectors get` shows an mcp connector's slug, MCP URL, issuer and
   manifest status; `kei connectors list --manifests` adds a status column.
+
+## Connecting your own per-user OAuth connector (v0.1.34+)
+
+`kei connectors connect` connects **your own** per-user OAuth connector
+(GitHub, Linear, Google Drive, etc.). It starts the OAuth bridge sign-in for
+the running user only; connecting another user's account is denied.
+
+```sh
+kei connectors connect <id|name> --workspace WORKSPACE [--no-browser]
+```
+
+- Opens the browser to the OAuth authorization page, or prints the URL with
+  `--no-browser`.
+- Polls until the connection completes (up to 10 minutes).
+- Prints the connection **state** and the **granted scopes** on success.
+- **Never prints a token.** The OAuth token stays server-side; the CLI shows
+  only state and scopes.
+- **Other users' accounts are denied.** The command is for the authenticated
+  user only. To connect another user, that user must run `kei connectors
+  connect` themselves after `kei login`.
+- `kei connectors reconnect` on a per-user connector now points to `kei
+  connectors connect` instead of the old "users connect through their chat
+  harness" message.
 
 ## Model profiles and the credential store
 
@@ -398,6 +438,13 @@ this order: (1) the credential store must exist first, created with
 `kei model-profiles create` with `--default-model` and `--auth-type api_key`
 (plus `--workspace`/`--agent` for scope); (3) check it with
 `kei model-profiles readiness`.
+
+**Workspace overrides (v0.1.34+).** `kei credential-store get --workspace WS`
+and `kei credential-store put --workspace WS` read or write a workspace-level
+credential store override, separate from the organization-level store. Without
+`--workspace`, the commands address the organization store. If no override
+exists for a workspace, `get --workspace WS` reports that the workspace uses
+the organization's store.
 - `kei model-profiles test` (v0.1.14 or later) does what the console's
   **Test** button does: it validates the endpoint (`https`, a host, no embedded
   credentials, query, or fragment) and **never contacts the provider**.
@@ -471,6 +518,28 @@ kei runtime bootstrap          # runs the configured kei-proxy to verify + send 
 `--runtime-token` (lands in shell history — prefer the prompt), and
 `--skip-verify`.
 
+## One-command harness setup: `kei connect` (v0.1.34+)
+
+`kei connect` sets up a harness end-to-end in a single command: creates the
+runtime installation, emits the credential, writes local config (`kei setup`),
+bootstraps (`kei runtime bootstrap`), and binds the installation — all in one
+step.
+
+```sh
+kei connect cli [--workspace NAME] [--yes]
+kei connect openwebui [--workspace NAME] [--yes]
+```
+
+- `HARNESS` is a harness kind: `cli`, `openwebui`, etc.
+- `--workspace` scopes the installation to a workspace (name or ID). If
+  omitted, the caller's default workspace is used.
+- `--yes` skips confirmation prompts.
+- The command authenticates with the `kei login` session token (login
+  first).
+- For the individual steps or when more control is needed, use the
+  per-command sequence (`kei bot init` → `kei bot credential` → `kei setup`
+  → `kei runtime bootstrap` → `kei bot bind`) — see `kei-runtime-setup`.
+
 ## Report a bug from your harness
 
 `kei feedback` sends a bug report to Kei from the terminal, optionally with the
@@ -513,10 +582,13 @@ Per-harness detail is in `kei-harness-setup`.
 ## When resource commands arrive (AIP/CRUD)
 
 The CLI is being extended toward the resource-oriented Kei API contract, but
-no released version has org or agent commands yet (`kei workspaces list`,
-`kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and
-`kei credential-store` are the resource-oriented exceptions, all in v0.1.13;
-`kei users` and `kei groups members` arrived in v0.1.16).
+no released version has org or agent commands yet (`kei workspaces list|create`,
+`kei groups create|list`, `kei connectors`, `kei policies`, `kei harness`,
+`kei model-profiles` and `kei credential-store` are the resource-oriented
+exceptions, all in v0.1.13; `kei users` and `kei groups members` arrived in
+v0.1.16; `kei workspaces create` and `kei groups create|list` arrived in
+v0.1.33; `kei connectors connect` and `kei credential-store get|put --workspace`
+arrived in v0.1.34).
 The first resource-oriented commands call the **shared AIP `/api/v1`
 endpoints**, not a private `/api/cli` backend: `kei policies` uses
 `/api/v1/policies`, `kei connectors` uses `/api/v1/data-connectors`, and
@@ -565,9 +637,12 @@ kei bot status --installation INSTALLATION_ID
   resource-oriented commands after the API's AIP migration; until a release
   ships one, do not describe it as available.
   **Exception:** `kei policies`, `kei harness`, `kei model-profiles` and `kei
-  credential-store` are released resource-oriented commands (v0.1.13), and
-  `kei users` / `kei groups members` are released in v0.1.16. For
-  harness policy workflows, load the `kei-harness-policy` skill.
+  credential-store` are released resource-oriented commands (v0.1.13),
+  `kei users` / `kei groups members` are released in v0.1.16,
+  `kei workspaces create` / `kei groups create|list` are released in v0.1.33,
+  and `kei connectors connect` / `kei credential-store get|put --workspace`
+  are released in v0.1.34. For harness policy workflows, load the
+  `kei-harness-policy` skill.
 - The CLI does not submit tool manifests (the runtime does), create connector
   templates, or grant a connector to a group (that is a policy). `--provider`
   has no `grafana` (or other MCP) value: an MCP server is added with
