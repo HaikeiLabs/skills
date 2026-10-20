@@ -403,6 +403,23 @@
           "regex": "preview[\\s\\S]*(confirm|\\[y/N\\])|(confirm|\\[y/N\\])[\\s\\S]*preview"
         }
       ]
+    },
+    {
+      "id": 12,
+      "prompt": "I am choosing a Kei harness. List all six user-facing harness types and say when to choose each. Explain which type the API/catalog calls kind custom, give its registration command, and show the manifest sync command and minimum kei version. Do not execute anything.",
+      "expected_output": "Names SDK (Agentware), Claude Code, Codex, Pi, OpenCode, and Open WebUI, with a brief selection use for each. States API/catalog kind custom maps only to SDK (Agentware), not Pi or Open WebUI. Gives kei harness add --kind custom and kei harness sync --harness custom --manifest tools.json, with kei >= 0.1.33.",
+      "expectations": [
+        "The response names the six harness types.",
+        "The response maps kind custom to SDK (Agentware).",
+        "The response does not describe Open WebUI or Pi as custom or SDK.",
+        "The response gives the exact registration and manifest sync commands and the minimum kei version."
+      ],
+      "checks": [
+        {"text":"The response names the six harness types.","contains_all":["SDK (Agentware)","Claude Code","Codex","Pi","OpenCode","Open WebUI"]},
+        {"text":"The response maps kind custom to SDK (Agentware).","regex":"(kind custom|custom.{0,30}(API|catalog) kind).{0,100}SDK \\(Agentware\\)|SDK \\(Agentware\\).{0,100}(kind custom|custom.{0,30}(API|catalog) kind)"},
+        {"text":"The response does not describe Open WebUI or Pi as custom or SDK.","not_contains":["Open WebUI is custom","Open WebUI is a custom harness","Open WebUI is an SDK","Open WebUI uses kind custom","Pi is custom","Pi is a custom harness","Pi is an SDK","Pi uses kind custom"]},
+        {"text":"The response gives the exact registration and manifest sync commands and the minimum kei version.","contains_all":["kei harness add --kind custom","kei harness sync --harness custom --manifest tools.json","0.1.33"]}
+      ]
     }
   ]
 }
