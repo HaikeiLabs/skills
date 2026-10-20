@@ -218,7 +218,7 @@ ask.
 ### 6. Custom harnesses and connectors
 
 For custom harnesses (`--kind custom`) and governed connectors (data-source
-calls through `kei-proxy connector invoke`), there is no native config to
+calls through credential release), there is no native config to
 render. These paths are evaluated by `kei-proxy` directly:
 
 - If a policy matches, `kei-proxy` permits or denies accordingly.

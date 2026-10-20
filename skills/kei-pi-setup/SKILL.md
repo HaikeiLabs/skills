@@ -116,12 +116,13 @@ registered v2 `tool_name` plus that tool's `arguments` and `context`, then:
 
 1. sends the complete operation for `POST /v1/preflight`;
 2. proceeds only with a valid, explicit permit and preflight handle;
-3. sends the exact operation to `POST /v1/connectors:invoke`.
+3. obtains the credential via `POST /v1/credentials:release`.
 
-The daemon validates the plan, consumes the handle once, decides policy,
-resolves the credential, executes the provider operation, and audits it. Pi
-must not call a provider directly as a fallback. The tool name and argument
-and context schemas must exactly match the v2 tool plan in the active bundle.
+Pi then calls the upstream API directly with the released credential. The
+daemon validates the plan, consumes the handle once, decides policy, and
+resolves the credential. Pi must not call a provider directly without the
+released credential. The tool name and argument and context schemas must
+exactly match the v2 tool plan in the active bundle.
 Connector calls also require an agent binding and a matching policy.
 
 ### Unsupported tools
@@ -132,10 +133,12 @@ Pi-side executor or grant permission. When asked about an unsupported tool,
 explicitly answer that the current Pi package does not implement it, then state
 that the executor is missing and reject calling a provider directly as a
 fallback; unsupported calls fail closed. Do not answer only that policy is
-insufficient. Supporting another tool
-requires a reviewed Pi-side executor plus the corresponding runtime registration
-and policy path. Connector-backed work must use the connector flow, not a local
-permit followed by a direct provider call.
+insufficient. Supporting another tool requires a reviewed Pi-side executor plus
+the corresponding runtime registration and policy path. Until one is registered,
+the block stays fail-closed: do not call a provider directly as a fallback for
+the missing tool. Connector-backed work must use the connector flow (preflight,
+credential release, then the provider call with the released credential), not a
+local permit followed by a direct provider call.
 
 ## Verify the setup
 
@@ -171,7 +174,7 @@ observed before execution.
   retry by bypassing the adapter.
 - **An unrecognized tool is blocked:** this is intentional. Add a reviewed Pi
   executor and runtime registration; do not bypass the gate or call the
-  provider directly.
+  provider without the released credential.
 
 ## Validation commands
 
@@ -197,8 +200,9 @@ kei-proxy policy show
   arbitrary Pi extensions remain outside the gate.
 - Policy and runtime registration determine what is allowed; package
   installation does not grant permission.
-- Pi never receives connector credentials and must not call a provider directly
-  after a local policy permit.
+- Pi receives connector credentials only via the release step and calls the
+  provider directly only with the released credential, never as an ungated
+  fallback.
 - For general harness setup use `kei-harness-setup`; for runtime installation,
   credential delivery, or bootstrap use `kei-runtime-setup` and `kei-cli`.
 - Source of truth: `HaikeiLabs/kei-lime-pi` README and code, Pi's package and

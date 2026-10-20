@@ -75,7 +75,7 @@ their browser, and calls run as that person.
 
 2. **Each user connects their Linear account.** There is no admin step and no
    URL to share. The first time a user's harness calls the connector,
-   `kei-proxy connector invoke` denies with `connector_not_connected`, and the
+   the credential release denies with `connector_not_connected`, and the
    response tells the harness to start the Linear sign-in. The user opens it,
    signs in to Linear, and selects **Authorize**.
 
@@ -186,13 +186,9 @@ so the connector must declare `issue.create`.
 
 ## Verify
 
-Run one read through the runtime. `team.read` takes a team key as the
-resource:
-
-```bash
-kei-proxy connector invoke --connector <connector-id> \
-  --capability team.read --action read --resource linear/team/<TEAM_KEY>
-```
+Run one read through the harness. `team.read` takes a team key as the
+resource. The harness sends a `team` GraphQL query; Kei authorizes it as
+`team.read` against `linear/team/<TEAM_KEY>`.
 
 A success exits 0 and prints the team's `id`, `key`, and `name`. There is no
 "list all teams" capability. Read one team by its key (for example

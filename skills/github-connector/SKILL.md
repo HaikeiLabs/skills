@@ -11,8 +11,9 @@ agents use them), and Semantics (data returned and entity relationships).
 
 ## Key rules
 
-- The agent never holds, asks for, or prints a raw credential. Kei supplies a
-  `GITHUB_TOKEN` at run time via `kei-proxy connector invoke`. If the user is
+- The agent never holds, asks for, or prints a raw credential. Kei authorizes
+  the call and releases a `GITHUB_TOKEN` at run time. The harness calls the
+  GitHub API directly with the released token. If the user is
   not connected to GitHub, the only valid setup path is `kei connectors
   create --provider github` (OAuth or PAT); repair with `kei connectors
   reconnect <id>`.
@@ -31,9 +32,9 @@ plugin installed. See the repo README for per-harness setup.
 
 Kei governs every connector call. The agent never holds, asks for, or prints a
 raw credential — the only valid setup path is `kei connectors create
---provider github`. Kei supplies a `GITHUB_TOKEN` at run time via
-`kei-proxy connector invoke`; the setup paths below are how the owner
-provisions that token.
+--provider github`. Kei authorizes each call and releases a `GITHUB_TOKEN` at
+run time. The harness calls the GitHub API directly; the setup paths below are
+how the owner provisions that token.
 
 - **OAuth (GitHub App):** An owner runs `kei connectors create --provider github
   --workspace W`. This returns a connect URL they open in a browser to
@@ -43,11 +44,9 @@ provisions that token.
   create --provider github` (reads the `GITHUB_TOKEN` without echo) or passes
   `--credential-ref <secret-manager-ref>` if the token already exists in the
   connected secret manager.
-- **At runtime:** The governed connector injects the `GITHUB_TOKEN` via
-  `kei-proxy connector invoke` (preferred) or through a `kei-proxy run`
-  wrapper that sets `GH_TOKEN=kei://connectors/<id>/token` and masks the
-  value in output. The `kei-proxy run` wrapper is pending
-  [HAI-305](https://linear.app/haikei/issue/HAI-305).
+- **At runtime:** Kei authorizes each call and releases the `GITHUB_TOKEN`. The
+  harness calls the GitHub API directly, injecting the token as the
+  `GITHUB_TOKEN` environment variable.
 
 ## Lexicon — commands and endpoints
 
@@ -87,11 +86,11 @@ The `gh api` command wraps the REST API, but agents may call it directly:
 
 ### Credential pass-through
 
-This connector does **not** manage credentials. Kei supplies a
-`GITHUB_TOKEN` (fine-grained personal access token with appropriate
-repository and organization permissions) at run time via
-`kei-proxy connector invoke`. The agent never reads or stores a token,
-secret, or API key.
+This connector does **not** manage credentials. Kei authorizes each call and
+releases a `GITHUB_TOKEN` (fine-grained personal access token with appropriate
+repository and organization permissions) at run time. The harness calls the
+GitHub API directly. The agent never reads or stores a token, secret, or
+API key.
 
 ### Denied command surface
 

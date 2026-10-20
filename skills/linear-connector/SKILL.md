@@ -14,8 +14,9 @@ directly.
 
 ## Key rules
 
-- The agent never holds, asks for, or prints a raw credential. Kei supplies
-  the user's Linear OAuth token at run time via `kei-proxy connector invoke`.
+- The agent never holds, asks for, or prints a raw credential. Kei authorizes
+  the call and releases the user's Linear OAuth token at run time. The harness
+  calls the Linear GraphQL API directly with the released token.
   Setup: an owner runs `kei connectors create --provider linear`; each user
   approves Linear in the browser (per-user OAuth with PKCE, like the Linear
   MCP). There is no API-key path. Repair a broken shared connection with
@@ -41,9 +42,9 @@ directly.
 - Any answer about creating an issue shows two things, in this order: first
   the GraphQL block `issueCreate(input: { teamId: "...", title: "..." })`
   selecting `success issue { id identifier }`, then the governed
-  `kei-proxy connector invoke --capability issue.create` call (its
-  `team_id` input becomes Linear's `teamId`). Say in words that Linear's
-  response has a `success` Boolean plus the issue's `id` and `identifier`.
+  `issue.create` capability (its `team_id` input becomes Linear's `teamId`).
+  Say in words that Linear's response has a `success` Boolean plus the issue's
+  `id` and `identifier`.
 
 ## Install
 
@@ -89,11 +90,11 @@ raw credential. Linear is OAuth only: there is no API-key or
 - **Connector ID:** not a secret. For Pedro on Discord it goes in the Helm
   value `keiProxy.runtime.linearConnectorID`, which sets
   `KEI_CONNECTOR_LINEAR_ID`.
-- **Verify** with a read: `kei-proxy connector invoke --connector <id>
-  --capability team.read --action read --resource linear/team/<KEY>`.
-- **At runtime:** the governed connector injects the credential through
-  `kei-proxy connector invoke`. The agent sees results and reason codes, never
-  the token.
+- **Verify** with a read: use the `team.read` capability to read a team in the
+  connected workspace.
+- **At runtime:** Kei authorizes each call and releases the credential. The
+  harness calls the Linear GraphQL API directly. The agent sees results and
+  reason codes, never the token.
 - **Rollout:** Linear sign-in works once the hosted Linear OAuth app is
   configured on the bridge; until then connecting fails with
   `connector provider not configured`.
@@ -115,11 +116,10 @@ don't only point at `references/setup.md`:
   their own, with `--capabilities team.read,issue.read,issue.create` so the
   bot can file issues. Say the ID goes in `keiProxy.runtime.linearConnectorID`.
   `file_bug` runs `issue.create` on `linear/team/<KEY>` with `team_id` and an
-  idempotency key (see [Governed capabilities](#governed-capabilities-kei-proxy-connector-invoke)).
+  idempotency key (see [Governed capabilities](#governed-capabilities)).
 - **How to create an issue:** show the `issueCreate` GraphQL mutation and its
   response (`success` plus `issue { id identifier }`), then the governed
-  `kei-proxy connector invoke --capability issue.create` call that runs it.
-  `kei-proxy connector invoke` has no `--data` flag; the input is `--input`.
+  `issue.create` capability that authorizes it.
 
 ## Lexicon — endpoints and queries
 
@@ -127,7 +127,8 @@ don't only point at `references/setup.md`:
 
 Linear exposes a GraphQL API at `https://api.linear.app/graphql`. All
 queries use `POST` with an `Authorization: Bearer <token>` header. The
-governed connector supplies the token via `kei-proxy connector invoke`.
+harness obtains through Kei credential release and adds as
+`Authorization: Bearer <token>`.
 
 | Query / Mutation | GraphQL operation | What it does | Agent notes |
 | --- | --- | --- | --- |
@@ -141,7 +142,7 @@ governed connector supplies the token via `kei-proxy connector invoke`.
 | Search issues | `searchIssues(query: "...", first: N)` | Full-text search across issues | Includes title, description, and comment text. |
 | Get user info | `viewer { id name email }` | Fetch the authenticated user | Useful for identity confirmation. |
 
-### Governed capabilities (kei-proxy connector invoke)
+### Governed capabilities
 
 These are what the governed connector actually executes. Resource formats are
 fixed; anything else is denied before Linear is called.
@@ -156,16 +157,8 @@ fixed; anything else is denied before Linear is called.
 | `comment.create` | `create` | `linear/issue/<ID>` | `{issue_id, body}` | `{id, issue_id, url}` |
 
 File a bug in team ENG (the team is the parent: `team_id` must equal the
-resource's team):
-
-```bash
-kei-proxy connector invoke --connector <connector_id> \
-  --capability issue.create --action create --resource linear/team/ENG \
-  --idempotency-key <stable-key> \
-  --input '{"team_id":"ENG","title":"Login crashes on Safari","description":"Steps...","priority":2}'
-```
-
-Under the hood `issue.create` runs Linear's `issueCreate` mutation:
+resource's team). The harness sends `issueCreate`, which Kei authorizes as
+`issue.create`:
 
 ```graphql
 mutation {
@@ -183,14 +176,8 @@ explain issue creation, name all three: `issueCreate` with `teamId` and
 `title`, the `success` flag, and the issue's `id`/`identifier`.
 `comment.create` runs `commentCreate`.
 
-Comment on ENG-42 (the issue is the parent):
-
-```bash
-kei-proxy connector invoke --connector <connector_id> \
-  --capability comment.create --action create --resource linear/issue/ENG-42 \
-  --idempotency-key <stable-key> \
-  --input '{"issue_id":"ENG-42","body":"Reproduced on 1.4.2."}'
-```
+Comment on ENG-42 (the issue is the parent). The harness sends `commentCreate`,
+which Kei authorizes as `comment.create`.
 
 Write rules:
 
@@ -213,10 +200,10 @@ Write rules:
 
 ### Credential pass-through
 
-This connector does **not** manage credentials. Kei supplies the Linear
-OAuth token (the user's, or the shared account's) at run time via
-`kei-proxy connector invoke`.
-The agent never reads or stores a token, secret, or API key.
+This connector does **not** manage credentials. Kei authorizes each call and
+releases the Linear OAuth token (the user's, or the shared account's) at run
+time. The harness calls the Linear GraphQL API directly. The agent never reads
+or stores a token, secret, or API key.
 
 ### Denied command surface
 

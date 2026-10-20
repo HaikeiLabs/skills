@@ -1,6 +1,6 @@
 ---
 name: kei-proxy
-description: "The `kei-proxy` v0.3.0 runtime executable — what an agent harness calls at run time to get a governed decision: `kei-proxy serve`, the long-lived daemon a harness talks to over an owner-only Unix socket (sessions, local-PDP `POST /v1/authorize`, models, chat, policy-bundle status) through the agentware socket client, `kei-proxy authorize` as the one-shot CLI fallback when no daemon runs, `connector invoke` for governed data, `runtime bootstrap|heartbeat`, `collector` for audit shipping, `hook` for report-only harness audit events, `model`, and `credential sync`. Load whenever code or config in a harness, adapter, container, or agent calls kei-proxy, sets KEI_RUNTIME_* or KEI_PROXY_* variables, reads its exit codes or JSON, or someone asks how an agent's tool call gets allowed or denied by Kei. Not for platform administration (logins, installations, credentials) — that is the `kei` CLI (kei-cli skill)."
+description: "The `kei-proxy` v0.3.0 runtime executable (kei-connector-runtime) — what an agent harness calls at run time to get a governed decision: `kei-proxy serve`, the long-lived daemon a harness talks to over an owner-only Unix socket (sessions, local-PDP `POST /v1/authorize`, models, chat, policy-bundle status) through the agentware socket client, `kei-proxy authorize` as the one-shot CLI fallback when no daemon runs, credential release for governed data, `runtime bootstrap|heartbeat`, `collector` for audit shipping, `hook` for report-only harness audit events, `model`, and `credential sync`. Load whenever code or config in a harness, adapter, container, or agent calls kei-proxy, sets KEI_RUNTIME_* or KEI_PROXY_* variables, reads its exit codes or JSON, or someone asks how an agent's tool call gets allowed or denied by Kei. Not for platform administration (logins, installations, credentials) — that is the `kei` CLI (kei-cli skill)."
 ---
 
 # kei-proxy (runtime for agent interaction)
@@ -130,16 +130,16 @@ all runtime operations.
 | --- | --- |
 | Decide a tool call (primary) | `PUT /v1/session`, then `POST /v1/authorize` with `X-Kei-Session` on the socket, through the agentware socket client |
 | Decide a tool call with no daemon (fallback; fetches its credential on allow) | `kei-proxy authorize --user U --tool T --action A --resource R` |
-| Invoke a governed data connector | `kei-proxy connector invoke --connector ID --capability C --action A --resource R [--idempotency-key KEY]` |
+| Release a credential for a governed connector | `POST /v1/credentials:release` on the socket |
 | Verify installation + first heartbeat | `kei-proxy runtime bootstrap` |
 | Keep liveness current | `kei-proxy runtime heartbeat --interval 1m` |
 | Ship local audit JSONL | `kei-proxy collector [--poll --poll-interval 1m]` |
 | Sync credential-store metadata; deliver connector secrets to this runtime | `kei-proxy credential sync` (claims one pending delivery per run) |
-| Run a connector call inside the daemon (identity mode) | `POST /v1/connectors:invoke` on the socket, or `kei-proxy connector invoke` as its client (`KEI_CREDENTIAL_RELEASE=identity`) |
+| Release a credential inside the daemon (identity mode) | `POST /v1/credentials:release` on the socket (`KEI_CREDENTIAL_RELEASE=identity`) |
 | Record a harness tool event for audit (report-only; installed by `kei harness sync`, not run by hand) | `kei-proxy hook claude` (event JSON on stdin from Claude Code) |
 | Show bundle state | `kei-proxy policy show` (reads persisted state; never contacts control plane) |
 | Force bundle refresh | `kei-proxy policy sync` (bypasses normal poll schedule) |
-| Long-running daemon (Unix socket + optional TCP) | `kei-proxy serve` (`KEI_RUNTIME_SOCKET_PATH`, default `/run/kei-proxy/runtime.sock`; TCP on `KEI_PROXY_LISTEN_ADDR`, default `:8085`, for existing Docker same-container deployments). Socket routes include `GET /healthz`, `GET /readyz`, session routes, `POST /v1/authorize`, `POST /v1/tools:register`, model and chat routes, `GET /v1/policy-bundle/status`, and `POST /v1/connectors:invoke`. |
+| Long-running daemon (Unix socket + optional TCP) | `kei-proxy serve` (`KEI_RUNTIME_SOCKET_PATH`, default `/run/kei-proxy/runtime.sock`; TCP on `KEI_PROXY_LISTEN_ADDR`, default `:8085`, for existing Docker same-container deployments). Socket routes include `GET /healthz`, `GET /readyz`, session routes, `POST /v1/authorize`, `POST /v1/tools:register`, model and chat routes, `GET /v1/policy-bundle/status`. |
 
 `kei-proxy org` and `kei-proxy init` also exist. They call the Kei API
 directly with a service secret and are Haikei-internal provisioning tools, not
@@ -300,26 +300,31 @@ neither required nor recommended with >= 0.1.11.)
 Never put a tenant, org, or workspace ID into agent-controlled tool
 parameters, and never log the credential `authorize` returns.
 
-## connector invoke
+## credential release
 
-For governed data connector calls, use `kei-proxy connector invoke`. Approvals grant workspace access, not per-call permission; `--approval-id` is no longer available. Check `kei-proxy connector invoke --help` for installed runtime options, and pass `--idempotency-key` when retrying a write.
+For governed data connectors. Per ADR-039, the harness obtains the credential
+via `POST /v1/credentials:release` over the socket after an allow decision,
+then calls the upstream API directly. The credential value is the only key
+material that leaves the daemon; it is never written to disk or logged. For
+retried writes, pass `--idempotency-key` so the runtime can deduplicate.
 
-## Identity mode: connectors run inside the daemon
+## Identity mode: credential release
 
 Check the kei-proxy version and the policy bundle together before relying on
 identity mode for an `opaque_ref` connector.
 
-Identity mode runs governed connector calls inside `kei-proxy serve` through
-`POST /v1/connectors:invoke` on the owner-only socket. Check the installed
-runtime version and the policy bundle before relying on a connector descriptor
-or credential source. Unsupported or unavailable connector credentials fail
-closed.
+In identity mode, `kei-proxy serve` holds the user's connector credential
+in session memory. The harness obtains the credential via
+`POST /v1/credentials:release` over the socket after an allow decision, then
+calls the upstream API directly. Check the installed runtime version and the
+policy bundle before relying on a connector descriptor or credential source.
+Unsupported or unavailable connector credentials fail closed.
 
 With `KEI_CREDENTIAL_RELEASE=identity` (default `legacy`), `kei-proxy serve`
-runs each governed connector call itself through `POST /v1/connectors:invoke`
-on the owner-only socket, and `kei-proxy connector invoke` is a thin client of
-that route. The daemon returns only the result. No socket route ever returns a
-credential.
+holds the user's connector credential in session memory. The harness obtains it
+via `POST /v1/credentials:release` over the socket after an allow decision,
+then calls the upstream API directly. The credential is the only key material
+that leaves the daemon; no socket route ever writes it to disk or a log.
 
 Connector availability depends on the bundle and the installed runtime. A v2
 bundle can carry a non-secret descriptor per active connector in

@@ -32,7 +32,7 @@
       "checks": [
         {"text":"The answer says the current Pi package does not implement search_wiki or web_search.","regex":"(?=.*search_wiki)(?=.*(?:does.{0,8}not.{0,8}implement|not.{0,8}implemented|does.{0,8}not.{0,8}support|doesn't support|doesn’t support|not.{0,8}supported|unsupported|not.{0,8}available|unavailable|doesn't have|doesn’t have|no executor|not.{0,8}a Pi tool|not.{0,8}a tool|cannot call|can't call|not registered|not enabled|not supported by Pi))"},
         {"text":"The answer distinguishes policy registration from a Pi-side executor implementation.","contains_all":["policy","executor"]},
-        {"text":"The answer rejects direct provider calls as a fallback and keeps the decision fail-closed.","contains_any":["directly","direct provider","fallback"]}
+        {"text":"The answer rejects direct provider calls as a fallback and keeps the decision fail-closed.","contains_any":["directly","direct provider","fallback","provider call","provider directly"]}
       ]
     },
     {

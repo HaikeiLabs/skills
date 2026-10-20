@@ -14,8 +14,9 @@ governed operations. Agents use the Google Drive API v3 directly.
 
 ## Key rules
 
-- The agent never holds, asks for, or prints a raw credential. Kei supplies a
-  Google OAuth access token at run time via `kei-proxy connector invoke`.
+- The agent never holds, asks for, or prints a raw credential. Kei authorizes
+  the call and releases a Google OAuth access token at run time. The harness
+  calls the Drive API directly with the released token.
   Setup: an owner runs `kei connectors create --provider googledrive` (OAuth or
   service-account key); re-authorize with `kei connectors reconnect <id>`.
 - Writing a doc (create or update a Google Doc) is harness-side with the
@@ -68,10 +69,9 @@ which are only for harness-side doc writes.
   connected secret manager.
 - **Repair / re-authorize:** if the connection breaks or the credential is
   rotated, re-authorize with `kei connectors reconnect <id>`.
-- **At runtime:** The governed connector injects the credential via
-  `kei-proxy connector invoke` (preferred) or through a `kei-proxy run`
-  wrapper that sets `GOOGLE_APPLICATION_CREDENTIALS=kei://connectors/<id>/token` and
-  masks the value in output. The `kei-proxy run` wrapper is not part of the current connector workflow.
+- **At runtime:** Kei authorizes each call and releases the credential. The
+  harness calls the Drive API directly. The agent sees results and reason
+  codes, never the token.
 
 ## Connector setup: Drive ID
 
@@ -121,10 +121,10 @@ Base URL: `https://www.googleapis.com/drive/v3`
 
 ### Credential pass-through
 
-This connector does **not** manage credentials. Kei supplies a Google OAuth
-access token (or service account token) at run time via
-`kei-proxy connector invoke`. The agent never reads or stores a token,
-secret, or API key.
+This connector does **not** manage credentials. Kei authorizes each call and
+releases a Google OAuth access token (or service account token) at run time.
+The harness calls the Drive API directly. The agent never reads or stores a
+token, secret, or API key.
 
 ### Denied command surface
 
@@ -147,8 +147,8 @@ when a user offers to paste a key, is always answered with
 `kei connectors reconnect <id>`), never with a Drive OAuth scope or gcloud.
 
 Drive writes are **harness-side** (owner decision 2026-10-09). Kei never
-writes: they are not a governed connector capability, and
-`kei-proxy connector invoke` does not write to Drive. The broad scopes do not
+writes through the governed connector: writes are not a governed connector
+capability. The broad scopes do not
 decide what an agent may do; Kei policy does. The harness calls the Drive REST API directly with the **invoking
 user's own Google OAuth token**:
 

@@ -123,7 +123,7 @@
     {
       "id": 5,
       "prompt": "How does credential management work for the Google Drive connector?",
-      "expected_output": "Kei supplies a Google OAuth access token (or service account token) at run time via kei-proxy connector invoke. The agent never reads or stores a token, secret, or API key.",
+      "expected_output": "Kei authorizes each call and releases a Google OAuth access token (or service account token) at run time. The harness calls the Drive API directly. The agent never reads or stores a token, secret, or API key.",
       "expectations": [
         "states that Kei handles credentials",
         "mentions OAuth access token",

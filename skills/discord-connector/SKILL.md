@@ -75,8 +75,8 @@ Base URL: `https://discord.com/api/v10`
    kei connectors reconnect <connector-id>
    ```
 
-3. **Runtime**: The governed connector injects the bot token into API calls
-   via `kei-proxy connector invoke`. The agent never sees the raw token.
+3. **Runtime**: Kei authorizes each call and releases the bot token. The
+   harness calls the Discord API directly. The agent never sees the raw token.
 
 > **Note**: The real Discord connector is being built (HAI-309/HAI-310).
 > `kei connectors create --provider discord` works once it ships.
@@ -259,8 +259,8 @@ node scripts/run-evals.mjs --skill discord-connector --harness opencode \
 
 ## Realistic usage boundaries
 
-- **Do not** manage credentials — Kei handles authentication via the bot
-  token injected by `kei-proxy connector invoke`.
+- **Do not** manage credentials — Kei handles authentication by authorizing
+  each call and releasing the bot token.
 - **Do not** construct `Authorization` headers manually — let the connector
   runtime inject the token.
 - **Do not** assume write access — check policy before creating, editing, or

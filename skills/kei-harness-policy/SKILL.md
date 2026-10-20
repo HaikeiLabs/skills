@@ -95,7 +95,7 @@ first. If something is not here, say so. In every answer:
   `kei://connectors/<id>/<field>` reference at run time and injects the value
   into the child process only; the agent never reads or stores it, and it is
   never in the policy. Say this is the same pattern as governed connector
-  calls (`connector invoke` uses the same connector policy check and secret
+  calls (credential release uses the same connector policy check and secret
   resolution).
 - **`policy_bundle_expired`:** the bundle passed its `not_after` expiry
   (ADR-026 §4). Refresh is normally automatic (the background refresher in
@@ -515,7 +515,7 @@ GH_TOKEN=kei://connectors/<connector-id>/token kei-proxy run -- git push
   `--connector <id>` optionally restricts them to one connector.
 - `kei-proxy` resolves each reference through the runtime credential path:
   the same connector policy check and tenant-side secret resolution that
-  `kei-proxy connector invoke` uses for governed connector calls. A denied or
+  credential release uses for governed connector calls. A denied or
   unresolvable reference means the command is not started, and `kei-proxy run`
   exits non-zero with a reason code.
 - The resolved value is injected **only into the child process's
