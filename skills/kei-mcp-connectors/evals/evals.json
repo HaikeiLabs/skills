@@ -1,0 +1,144 @@
+{
+  "skill_name": "kei-mcp-connectors",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I'm an admin and just created an MCP connector with slug linear_mcp. Give me the remaining steps to make it callable from a harness today. Do you need me to paste our OAuth client secret here?",
+      "expected_output": "Upgrade to kei 0.2.3 or later and log in; confirm activation and workspace admins group access; connect the admin's account using the connector ID and workspace name; make the first tool-list call from a harness; review and approve the candidate manifest; sync harness configuration and follow Codex hook trust guidance if using Codex.",
+      "expectations": [
+        "Explains the ordered activation, per-user connect, first tool-list, manifest review and approval, and harness sync flow.",
+        "Uses the workspace name in the connect command.",
+        "States that the first tool-list call from a harness after connection creates the candidate manifest.",
+        "Directs the user to complete OAuth in the browser and says no secret needs to be sent."
+      ],
+      "checks": [
+        {
+          "text": "Explains the ordered activation, per-user connect, first tool-list, manifest review and approval, and harness sync flow.",
+          "regex": "(?:activate|activation|active)[\\s\\S]*(?:connect(?: the admin.s account)?|OAuth)[\\s\\S]*(?:first|initial)[\\s\\S]*(?:tool.?list|tools/list|list(?:ing)?(?: the server.s)? tools?)[\\s\\S]*(?:candidate )?manifest[\\s\\S]*(?:review|inspect|approve)[\\s\\S]*(?:kei )?harness sync"
+        },
+        {
+          "text": "Uses the workspace name in the connect command.",
+          "regex": "(?=[\\s\\S]*kei connectors connect)(?=[\\s\\S]*--workspace)(?=[\\s\\S]*(?:workspace name|workspace NAME|--workspace\\s+(?:<[^>]*(?:name|NAME)[^>]*>|(?:NAME|Main|W)\\b)))"
+        },
+        {
+          "text": "States that the first tool-list call from a harness after connection creates the candidate manifest.",
+          "regex": "(?=[\\s\\S]*(?:first|initial)[\\s\\S]*(?:tool.?list|tools/list|lists? tools?))(?=[\\s\\S]*harness)(?=[\\s\\S]*(?:creates?|submits?|generates?|causes?)[\\s\\S]*(?:candidate )?manifest|(?:candidate )?manifest[\\s\\S]*(?:created|submitted|generated)[\\s\\S]*(?:first|initial)[\\s\\S]*(?:tool.?list|tools/list))"
+        },
+        {
+          "text": "Directs the user to complete OAuth in the browser and says no secret needs to be sent.",
+          "regex": "(?=[\\s\\S]*(?:complete|finish|authorize|sign in to)[\\s\\S]*OAuth[\\s\\S]*browser|browser[\\s\\S]*(?:complete|finish|authorize|OAuth))(?=[\\s\\S]*(?:no|not|never|do not|don\\x27t)[\\s\\S]{0,70}(?:send|share|paste|provide|need to provide|need to send|secret|credential|token)|(?:secret|credential|token)[\\s\\S]{0,60}(?:not needed|not required|stay|remain)[\\s\\S]{0,40}(?:browser|private|with you))"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "An MCP harness call returns HTTP 403 with reason connector_has_no_tools. Should I add an allow policy for this reason, or what should I do next?",
+      "expected_output": "A manifest has not been approved or available yet. Connect the admin account, make a first tool-list call from a harness to create the candidate manifest, inspect it, then approve it. Don't create a policy to fix this reason.",
+      "expectations": [
+        "Identifies the missing tool manifest as the issue and directs the admin through first tool-list and review/approval.",
+        "Directs the admin to connect first as a workspace admin, then make the first harness tool-list call to create tools for this connector reason."
+      ],
+      "checks": [
+        {
+          "text": "Identifies the missing tool manifest as the issue and directs the admin through first tool-list and review/approval.",
+          "regex": "(?=[\\s\\S]*(?:missing|no|without|not yet|empty)[\\s\\S]*(?:tools?|manifest)|(?:tools?|manifest)[\\s\\S]*(?:missing|not yet|empty))(?=[\\s\\S]*(?:workspace admin|admin)[\\s\\S]{0,80}connect|connect[\\s\\S]{0,80}(?:workspace admin|admin))(?=[\\s\\S]*(?:first|initial)[\\s\\S]*(?:tool.?list|tools/list|list tools)|(?:tool.?list|tools/list)[\\s\\S]*(?:first|initial))(?=[\\s\\S]*(?:approve|review|inspect))"
+        },
+        {
+          "text": "Directs the admin to connect first as a workspace admin, then make the first harness tool-list call to create tools for this connector reason.",
+          "regex": "(?=[\\s\\S]*(?:workspace admin|admin)[\\s\\S]{0,80}connect|connect[\\s\\S]{0,80}(?:workspace admin|admin))(?=[\\s\\S]*(?:first|initial)[\\s\\S]*(?:tool.?list|tools/list)|(?:tool.?list|tools/list)[\\s\\S]*(?:first|initial))"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "`kei connectors manifests list` says `No tool manifests yet`. The admin already ran `kei connectors connect`. Why is it empty?",
+      "expected_output": "Connect completes user OAuth but does not request tools or submit a manifest. The first harness tool-list call triggers manifest submission; run it, then list/show and approve the candidate.",
+      "expectations": [
+        "States that the first tool-list call from a harness after connection creates the candidate manifest.",
+        "Gives next actions to call a tool-list and review/approve."
+      ],
+      "checks": [
+        {
+          "text": "States that the first tool-list call from a harness after connection creates the candidate manifest.",
+          "regex": "(?=[\\s\\S]*(?:first|initial)[\\s\\S]*(?:tool.?list|tools/list|lists? tools?))(?=[\\s\\S]*harness)(?=[\\s\\S]*(?:creates?|submits?|generates?|causes?)[\\s\\S]*(?:candidate )?manifest|(?:candidate )?manifest[\\s\\S]*(?:created|submitted|generated)[\\s\\S]*(?:first|initial)[\\s\\S]*(?:tool.?list|tools/list))"
+        },
+        {
+          "text": "Gives next actions to call a tool-list and review/approve.",
+          "regex": "(?=[\\s\\S]*(?:first[\\s-]+tool.?list|first[\\s\\S]*(?:tools/list|list tools)|tools/list|list tools|(?:kei )?connectors manifests list))(?=[\\s\\S]*(?:review[\\s\\S]{0,60}approve|approve[\\s\\S]{0,60}review|inspect[\\s\\S]{0,60}approve|manifests show[\\s\\S]{0,80}approve|connectors manifests approve))"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "`kei harness sync` says policies are scoped to another harness and Codex hooks need trust. Does that mean my connector setup failed? What do I do?",
+      "expected_output": "Sync may still have succeeded. Explain that policies scoped to another harness won't be applied to this harness and require an admin to adjust policy scope if access is intended; Codex users should open Codex and run /hooks to trust the hooks. Avoid claiming sync grants policy access.",
+      "expectations": [
+        "Explains the other-harness policy warning as a policy scope issue, separate from connector setup.",
+        "Names the Codex `/hooks` trust step.",
+        "Does not claim harness sync creates or widens policies."
+      ],
+      "checks": [
+        {
+          "text": "Explains the other-harness policy warning as a policy scope issue, separate from connector setup.",
+          "regex": "(policy|policies)[\\s\\S]*(scope|scoped|another harness|harness:)[\\s\\S]*(admin|change|adjust|widen)"
+        },
+        {
+          "text": "Names the Codex `/hooks` trust step.",
+          "regex": "codex[\\s\\S]*(/hooks|hooks)[\\s\\S]*trust|/hooks[\\s\\S]*trust"
+        },
+        {
+          "text": "Does not claim harness sync creates or widens policies.",
+          "regex": "(sync|harness sync)[\\s\\S]*(does not|doesn't|not)[\\s\\S]*(policy|grant|widen|change)|polic(y|ies)[\\s\\S]*(not|unchanged|separate)"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I created this connector last month and now connect returns `no_matching_policy`. I'm using workspace UUID as --workspace. How should I troubleshoot?",
+      "expected_output": "--workspace takes the workspace name; retry with the exact name. Older connectors may not have the creating-admin admins-group permit, so an admin must add the group permit. no_matching_policy is an access-policy issue; do not guess UUID support or silently make a production policy change.",
+      "expectations": [
+        "Corrects workspace UUID to workspace name.",
+        "Identifies that older connectors may need a group permit added by an admin.",
+        "States production policy changes are the admin's decision.",
+        "Treats no_matching_policy as a policy issue rather than missing tools."
+      ],
+      "checks": [
+        {
+          "text": "Corrects workspace UUID to workspace name.",
+          "regex": "(?=[\\s\\S]*--workspace)(?=[\\s\\S]*(?:workspace name|workspace NAME|--workspace\\s+<(?:(?:workspace[-_ ]?)?name)>|name instead of (?:the )?(?:UUID|ID)|use (?:the )?workspace name))(?=[\\s\\S]*(?:UUID|workspace ID|workspace id))"
+        },
+        {
+          "text": "Identifies that older connectors may need a group permit added by an admin.",
+          "regex": "(?=[\\s\\S]*(?:older|existing|pre-existing|created earlier|from before|last month))(?=[\\s\\S]*connector)(?=[\\s\\S]*(?:admins group|admins|group|permit|policy|allow|access))(?=[\\s\\S]*(?:admin|administrator)[\\s\\S]{0,140}(?:add|grant|create|permit|policy|allow|access)|(?:permit|policy|allow|access)[\\s\\S]{0,140}(?:add|grant)[\\s\\S]{0,140}(?:admin|administrator))"
+        },
+        {
+          "text": "States production policy changes are the admin's decision.",
+          "regex": "(?=[\\s\\S]*(?:production|prod))(?=[\\s\\S]*(?:policy|permission|access))(?=[\\s\\S]*(?:admin|administrator))(?=[\\s\\S]*(?:decision|decide|approval|approve|own|responsibility|control|ask|check with|leave it to|only the|must decide))"
+        },
+        {
+          "text": "Treats no_matching_policy as a policy issue rather than missing tools.",
+          "regex": "no_matching_policy[\\s\\S]*(policy|access|permit|allow)"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "After activation, `kei connectors connect` fails with `no OAuth registration in this organization is for the resource's authorization server`. What does this mean? Do you need me to send you the OAuth client secret to fix it?",
+      "expected_output": "This is version-dependent. When the HAI-804 bridge auto-registration change is deployed, connect registers with the MCP server automatically. Before then the organization needs an OAuth registration for that authorization server; ask the platform owner to arrange it. Do not ask the user for OAuth secrets.",
+      "expectations": [
+        "Marks auto-registration behavior as version-dependent and gives the pre-deployment remedy.",
+        "Directs the user to ask the platform owner to arrange organization OAuth registration."
+      ],
+      "checks": [
+        {
+          "text": "Marks auto-registration behavior as version-dependent and gives the pre-deployment remedy.",
+          "regex": "(?=[\\s\\S]*(?:version.?dependent|version|deployed|deployment|shipped|rollout|older version))(?=[\\s\\S]*(?:auto.?register|automatically register|registration))(?=[\\s\\S]*(?:before|older|until|prior to|not yet deployed|before that))(?=[\\s\\S]*(?:platform owner|OAuth registration|organization registration))"
+        },
+        {
+          "text": "Directs the user to ask the platform owner to arrange organization OAuth registration.",
+          "regex": "(?=[\\s\\S]*(?:ask|contact|check with|have|request|platform owner)[\\s\\S]{0,100}(?:platform owner|owner|OAuth|registration)|(?:platform owner|owner)[\\s\\S]{0,100}(?:arrange|register|registration|OAuth))(?=[\\s\\S]*(?:organization|org)[\\s\\S]{0,50}OAuth[\\s\\S]{0,50}registration|OAuth[\\s\\S]{0,80}registration[\\s\\S]{0,80}(?:organization|org))"
+        }
+      ]
+    }
+  ]
+}
