@@ -135,6 +135,7 @@ skill.
 |-------|------------|
 | [haikei](skills/haikei/SKILL.md) | Router: "what are you trying to build?" maps a need to the right Haikei product and the skill to load |
 | [kei-cli](skills/kei-cli/SKILL.md) | The `kei` CLI (standalone `kei-cli` repo): `setup`, `runtime bootstrap`, `login`/`logout` (OIDC device flow, admin-only, org-bound), `upgrade`, and `bot init/credential/agents/status/bind/delete` for customer-hosted runtimes |
+| [kei-mcp-connectors](skills/kei-mcp-connectors/SKILL.md) | Set up a remote MCP connector end to end: create and activate it, connect a user's OAuth account, trigger and approve the tool manifest, sync a harness, and troubleshoot setup failures |
 | [kei-proxy](skills/kei-proxy/SKILL.md) | The `kei-proxy` runtime agents use at run time: `authorize` per tool call (exit codes, JSON, `KEI_PROXY_*` identity), credential release, `runtime bootstrap`/`heartbeat`, `collector`, `serve` — and how it differs from the `kei` admin CLI |
 | [kei-runtime-setup](skills/kei-runtime-setup/SKILL.md) | Stand up a customer-hosted runtime end to end: login, installation, credential to secret manager, `KEI_RUNTIME_*` env, `kei-proxy runtime bootstrap`/`heartbeat`, bind, and a fail-closed check |
 | [kei-credential-rotation](skills/kei-credential-rotation/SKILL.md) | Rotate or revoke a runtime installation credential (`kei bot credential --rotate`, immediate cutover) and the console-only agent-key rotation |

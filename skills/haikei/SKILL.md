@@ -109,7 +109,8 @@ exist in the code today.
 | Set up Pi with Kei | `kei-lime-pi` extension + local `kei-proxy` socket | Install the Pi package, keep the runtime token out of Pi, and verify supported tool calls fail closed | `kei-pi-setup` |
 | Create an organization or workspace | Kei API | Set up an org, workspaces, seats, plans, members. Always inspect the actual API routes before calling an endpoint | `kei-api` |
 | Add or manage a data connector | Kei API | Register a governed data source (GitHub, Linear, Drive, S3, http_api/CRM) and its status | `kei-api` |
-| Add an MCP server, or approve an MCP connector's tools | kei CLI (`kei connectors create --template`, `kei connectors manifests`) | A remote MCP server from a catalog template; its tools are usable only after an org admin approves its tool manifest. Needs kei v0.1.32 or later; check `kei help` | `kei-cli` |
+| Set up a remote MCP connector end to end, or troubleshoot its activation, OAuth connection, tool manifest, or harness sync | kei CLI + Kei console | An admin is creating or activating a remote MCP connector, connecting an account, approving tools, or diagnosing setup errors | `kei-mcp-connectors` |
+| Look up exact syntax for `kei connectors` commands | kei CLI | Connector administration outside the end-to-end setup flow, or exact flags for the installed version | `kei-cli` |
 | Manage groups, policies, users, roles, access levels | Kei API | Administer RBAC/ABAC state that decides agent and user access | `kei-api` |
 | Add, rename, or migrate an HTTP endpoint | API conventions | Define a route the AIP-style resource-oriented way, spell a custom method, or fix the Endpoint conventions CI check | `kei-api-conventions` |
 | Invite users to an org or harness | Kei API | Send or accept invitations; add members to an org | `kei-api` |
@@ -168,6 +169,11 @@ command and version requirement.
   `kei bot credential` into the customer's secret manager, bootstraps
   `kei-proxy`, and binds with `kei bot bind` once the runtime has heartbeated.
   There is no `kei bot install` or `kei bot deploy`; hosting is the customer's.
+- **"Set up a remote MCP connector so our harness can use its tools."** →
+  `kei-mcp-connectors`. Follow the ordered path: upgrade and log in, create and
+  activate, connect the user's account, make the first harness tool-list call,
+  review and approve the manifest, then run `kei harness sync`. Load `kei-cli`
+  for version-specific command syntax or `kei-proxy` for runtime invocation.
 - **"Rotate the Kei token for our prod harness."** → `kei-credential-rotation`.
   Rotation invalidates the old token immediately, so plan the restart.
 - **"Get our Entra groups and users into Kei."** → `kei-directory-sync`. The
