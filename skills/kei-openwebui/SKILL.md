@@ -1,6 +1,6 @@
 ---
 name: kei-openwebui
-description: Set up, verify and troubleshoot Open WebUI governed by Kei with the published openwebui-kei image (Open WebUI + the in-container kei-proxy daemon + the Kei connector). Use when someone wants to run Open WebUI with Kei; create the openwebui runtime installation (`kei bot init --platform openwebui`) and deliver KEI_RUNTIME_TOKEN; give the chat agent a model profile and `model:invoke` / `tool:<name>` permits; pull or mirror the image by digest (ECR Public, `az acr import`); run it as UID/GID 10001; set KEI_OPENWEBUI_TOOL_PACKS, KEI_PROXY_EGRESS_PROXY or WEBUI_SECRET_KEY; layer a tool pack (plain-data TOOLKITS with `tools`) and the boot tool sync; link Open WebUI users (claim link, or Entra users via kei directory-sync); or debug "tool is not registered in the policy bundle", a container that refuses to start because a pack declares no tools, `identity.unlinked`, audit rows shown "via installation", no models listed, or "left out of the manifest" warnings. Other kei commands are kei-cli; the Entra side is kei-directory-sync.
+description: Set up, verify and troubleshoot Open WebUI governed by Kei with the published openwebui-kei image (Open WebUI + the in-container kei-proxy daemon + the Kei connector). Use when someone wants to run Open WebUI with Kei; create the openwebui runtime installation (`kei bot init --platform openwebui`) and deliver KEI_RUNTIME_TOKEN; grant `tool:<name>` permits for governed tools; optionally configure a model profile to pass model credentials; pull or mirror the image by digest (ECR Public, `az acr import`); run it as UID/GID 10001; set KEI_OPENWEBUI_TOOL_PACKS, KEI_PROXY_EGRESS_PROXY or WEBUI_SECRET_KEY; layer a tool pack (plain-data TOOLKITS with `tools`) and the boot tool sync; link Open WebUI users (claim link, or Entra users via kei directory-sync); or debug "tool is not registered in the policy bundle", a container that refuses to start because a pack declares no tools, `identity.unlinked`, audit rows shown "via installation", no models listed, or "left out of the manifest" warnings. Other kei commands are kei-cli; the Entra side is kei-directory-sync.
 ---
 
 # Open WebUI with Kei (openwebui-kei)
@@ -13,9 +13,10 @@ sidecar), and the Kei connector. The connector adds:
   ready or there is no Open WebUI user;
 - the **Governor**, which every governed tool call goes through.
 
-Every model call and governed tool call is decided by kei-proxy from the
-installation's policy bundle and audited. Anything Kei can't decide is
-refused: it **fails closed**.
+Model inference uses the model configured in Open WebUI or its harness; it
+does not go through kei-proxy. Kei governs tool calls, which are checked
+against policy and audited. Anything Kei can't decide is refused: it **fails
+closed**.
 
 The user is **Open WebUI's own user id**, whatever SSO is configured. Kei
 links it to an email-keyed Kei user. Until then the user is **unlinked** and
@@ -36,11 +37,12 @@ The code wins over this file. Never invent a flag or an environment variable.
 ## What every answer must say
 
 - Name the real commands: `kei bot init --platform openwebui`,
-  `kei bot credential ... | <secret manager>`, `kei model-profiles`,
-  `kei policies create`, `kei directory-sync`.
-- Write each permit with `kei policies create`: `--dst-pattern model:invoke`
-  for model calls and `--dst-pattern tool:<name>` for each governed tool,
-  `<name>` being the tool's declared name exactly. Show the command.
+  `kei bot credential ... | <secret manager>`, `kei policies create`,
+  `kei directory-sync`.
+- The model configured in Open WebUI or its harness works without a Kei model
+  profile. Model profiles are optional and can pass model credentials; model
+  inference does not go through kei-proxy. Write a `tool:<name>` permit for
+  each governed tool, using its declared name exactly. Show the command.
 - A tool's name matches its `Tools` method as `<method>` or `<prefix>.<method>`
   (or, from v0.1.3, the declaration's `method`). Say so whenever a tool name or
   a "left out of the manifest" warning comes up.
@@ -69,8 +71,9 @@ The code wins over this file. Never invent a flag or an environment variable.
    Rotation is the same command with `--rotate` (use `kei-credential-rotation`).
    The container also needs `KEI_RUNTIME_CONTROL_PLANE_URL`, the control
    plane's base URL with no `/api/v1`.
-4. **Model profile**, assigned to the agent. Without one the Pipe lists no
-   models:
+4. **Optional model profile.** A model already configured in Open WebUI or
+   its harness works without a Kei model profile. Profiles are an opt-in
+   convenience for passing model credentials:
 
    ```sh
    kei model-profiles create --workspace <ws> --display-name acme-chat-model \
@@ -81,19 +84,20 @@ The code wins over this file. Never invent a flag or an environment variable.
 
    `--auth-type api_key` reads the key from stdin and needs a runtime with a
    credential-sync key (`kei-runtime-setup`).
-5. **Policies**, bound to the agent:
+5. **Policies** for governed tools:
 
    ```sh
-   kei policies create --workspace <ws> --name chat-models \
-     --src-pattern group:chat-users --dst-pattern model:invoke --effect permit --agent-id <agent-id>
    kei policies create --workspace <ws> --name chat-list-orders \
-     --src-pattern group:chat-users --dst-pattern tool:acme.orders.list_orders --effect permit --agent-id <agent-id>
+     --src-pattern group:chat-users --dst-pattern tool:acme.orders.list_orders --effect permit
    ```
 
    - `--src-pattern` is `user:<id>`, `group:<name>` or `*`.
-   - Kei policy alone decides (ADR-027). There is no confirmation or approval
-     step: a write tool runs as soon as a permit allows it.
+   - A write tool runs as soon as a permit allows it.
    - A permit only applies to a **registered** tool (section 3).
+   - A harness-executor tool (an Open WebUI tool pack) needs an exact
+     `tool:<name>` permit, a **registered** tool, and a **linked user**
+     (section 4). It does not need an agent-connector binding: agent-connector
+     bindings apply only to connector/MCP tools.
    - Read/write isn't in the request, so name the read and write tools
      separately.
 6. **Users.** See section 4.
@@ -216,8 +220,8 @@ installed. It is read-only and exits 1 on drift.
 | `KEI_RUNTIME_STATE_DIR (...) is not a writable directory` | Not running as 10001 | Run as UID/GID 10001 |
 | User refused **`identity.unlinked`** | Open WebUI user not linked to a Kei user | Open the claim link from the notification; no link → admin checks `kei users remote-identities list` |
 | Audit rows show the installation's owner **"via installation"**, denied | No session user: the Open WebUI user is unlinked, so the console attributes the row to the installation subject | Link the user; later rows show their own Kei user |
-| **No models** in Open WebUI | kei-proxy not ready, no model profile assigned to the agent, or no `model:invoke` permit | `kei model-profiles assignment --workspace <ws> --agent <id>`; add a `model:invoke` permit; check `/v1/models` |
-| Denied although a permit exists | User not in the group, permit not bound to the chat agent, or stale bundle | Check groups, `--agent-id`, `policy_revision` |
+| **No models** in Open WebUI | Model provider or model configuration in Open WebUI is missing or unavailable | Check Open WebUI's configured model provider, endpoint, credentials, and model name. Kei model profiles are optional credential convenience; inference does not go through kei-proxy. |
+| Denied although a permit exists | User is unlinked, the tool is not registered, the policy does not match, or the bundle is stale | Link the Open WebUI user; confirm exact tool registration and permit target/source, then check `policy_revision`. Harness-executor tools do not require an agent-connector binding. |
 | Boot warns **`tool sync: <toolkit>.<method> is left out of the manifest: ...`** | Boot matches each `Tools` method to the declaration named `<method>` or `<prefix>.<method>` (`acme.orders.cancel_order` → `cancel_order`), or from v0.1.3 the one whose `method` names it. This method matched none: really ungoverned, or its tool's name isn't `<prefix>.<method>`. Kei governs by the name the method sends, never the method name | Name the tool `<prefix>.<method>` after the method (`acme.orders.cancel` for `cancel`), or from v0.1.3 set the declaration's `method`. Until then the warning is diagnostic only if `registered N` is right and each method sends its declared name |
 | Turn fails `Kei governance is unavailable, so this request was not sent` | `kei_guard`: kei-proxy not ready | Check kei-proxy in the container log |
 
@@ -226,7 +230,6 @@ installed. It is read-only and exits 1 on drift.
 ```sh
 kei help | grep -E 'bot init|model-profiles|policies|directory-sync'
 kei bot status --installation <installation-id>
-kei model-profiles assignment --workspace <ws> --agent <agent-id>
 kei policies list --workspace <ws>
 # in the container:
 python -m kei_openwebui.boot --export-manifest

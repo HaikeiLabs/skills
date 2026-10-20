@@ -1,12 +1,14 @@
 ---
 name: kei-proxy
-description: "The `kei-proxy` runtime executable (kei-connector-runtime) — what an agent harness calls at run time to get a governed decision: `kei-proxy authorize` before a tool call (one-shot CLI), `kei-proxy serve` to run as a long-lived daemon exposing HTTP over a Unix socket (readiness, model routes; governed authorize route tracked by HAI-272), `connector invoke` for governed data, `runtime bootstrap|heartbeat`, `collector` for audit shipping, `hook` for report-only harness audit events, `model`, and `credential sync`. Load whenever code or config in a harness, adapter, container, or agent calls kei-proxy, sets KEI_RUNTIME_* or KEI_PROXY_* variables, reads its exit codes or JSON, or someone asks how an agent's tool call gets allowed or denied by Kei. Not for platform administration (logins, installations, credentials) — that is the `kei` CLI (kei-cli skill)."
+description: "The `kei-proxy` runtime executable (kei-connector-runtime) — what an agent harness calls at run time for governed tool execution: `kei-proxy authorize`, `kei-proxy serve` and the daemon's Unix-socket `POST /v1/authorize` preflight route, `connector invoke`, `runtime bootstrap|heartbeat`, `collector`, `hook`, and `credential sync`. Load whenever code or config in a harness, adapter, container, or agent calls kei-proxy, sets KEI_RUNTIME_* or KEI_PROXY_* variables, reads its exit codes or JSON, or someone asks how an agent's tool call gets allowed or denied by Kei. Model inference does not go through kei-proxy. Not for platform administration (logins, installations, credentials) — that is the `kei` CLI (kei-cli skill)."
 ---
 
 # kei-proxy (runtime for agent interaction)
 
-A tool adapter asks `kei-proxy authorize` before every tool call. Exit 0 means
-allow; treat any non-zero exit as deny. The runtime credential comes from the
+A tool adapter uses the daemon's Unix-socket `POST /v1/authorize` route to
+preflight whether a v2 tool call is allowed. Do not use one-shot
+`kei-proxy authorize` as an allow probe: it returns `preflight_required`.
+The runtime credential comes from the
 environment (`KEI_RUNTIME_TOKEN`, never an argument), and the agent ID is
 auto-discovered from the runtime installation: never set an agent-ID variable
 or pass `--agent-id`.
@@ -19,7 +21,7 @@ settle which one a task needs before anything else:
 | Who runs it | A person: org `owner`/`admin`, on a workstation | The harness, as a one-shot CLI subprocess per operation OR as a long-running daemon (`kei-proxy serve`) over a Unix socket |
 | Authenticates with | `kei login` device flow → CLI token in the OS keychain | `KEI_RUNTIME_TOKEN` (runtime credential only) from the environment |
 | Talks to | The control plane's admin APIs | The control plane's runtime APIs, plus local secret stores and providers |
-| Jobs | Log in, create/inspect/bind/delete runtime installations, emit/rotate runtime credentials | Decide allow/deny for a tool call, run allowed connector work locally, bootstrap + heartbeat, ship audit, serve readiness + model endpoints over a Unix socket (daemon mode) |
+| Jobs | Log in, create/inspect/bind/delete runtime installations, emit/rotate runtime credentials | Preflight governed tool calls, run allowed connector work locally, bootstrap + heartbeat, ship audit, serve readiness over a Unix socket (daemon mode) |
 | Lives | Operator's laptop | Same host or container as the harness (same-host daemon on bare metal, same-container daemon in Docker); optional same-pod companion container on Kubernetes |
 | Skill | `kei-cli` | this one |
 
@@ -120,7 +122,7 @@ all runtime operations.
 
 | Task | Command |
 | --- | --- |
-| Decide a tool call (and fetch its credential on allow) | `kei-proxy authorize --user U --tool T --action A --resource R` |
+| Preflight whether a v2 tool call is allowed | Daemon Unix-socket `POST /v1/authorize` |
 | Invoke a governed data connector | `kei-proxy connector invoke --connector ID --capability C --action A --resource R [--idempotency-key KEY]` |
 | Verify installation + first heartbeat | `kei-proxy runtime bootstrap` |
 | Keep liveness current | `kei-proxy runtime heartbeat --interval 1m` |
@@ -128,10 +130,9 @@ all runtime operations.
 | Sync credential-store metadata; deliver connector secrets to this runtime | `kei-proxy credential sync` (claims one pending delivery per run) |
 | Run a connector call inside the daemon (identity mode) | `POST /v1/connectors:invoke` on the socket, or `kei-proxy connector invoke` as its client (`KEI_CREDENTIAL_RELEASE=identity`) |
 | Record a harness tool event for audit (report-only; installed by `kei harness sync`, not run by hand) | `kei-proxy hook claude` (event JSON on stdin from Claude Code) |
-| Model profile / invocation | `kei-proxy model profile …`, `kei-proxy model  # uses runtime identity (no key flag needed)` (request JSON on stdin) |
 | Show bundle state | `kei-proxy policy show` (reads persisted state; never contacts control plane) |
 | Force bundle refresh | `kei-proxy policy sync` (bypasses normal poll schedule) |
-| Long-running daemon (Unix socket + optional TCP) | `kei-proxy serve` (`KEI_RUNTIME_SOCKET_PATH`, default `/run/kei-proxy/runtime.sock`; TCP on `KEI_PROXY_LISTEN_ADDR`, default `:8085`, for existing Docker same-container deployments). Current socket routes: `GET /healthz`, `GET /readyz`, `GET /v1/models`, `POST /v1/chat/completions`. Governed tool authorize route tracked by HAI-272. See `docs/unix-socket.md`. |
+| Long-running daemon (Unix socket + optional TCP) | `kei-proxy serve` (`KEI_RUNTIME_SOCKET_PATH`, default `/run/kei-proxy/runtime.sock`; TCP on `KEI_PROXY_LISTEN_ADDR`, default `:8085`, for existing Docker same-container deployments). The socket serves readiness and the governed `POST /v1/authorize` preflight route. Do not use one-shot `kei-proxy authorize` as an allow probe; it returns `preflight_required`. Model inference does not go through kei-proxy. See `docs/unix-socket.md`. |
 
 `kei-proxy org` and `kei-proxy init` also exist. They call the Kei API
 directly with a service secret and are Haikei-internal provisioning tools, not
@@ -141,7 +142,7 @@ For the full lifecycle of bundle identity, polling, state machine, and
 troubleshooting, see [`bundle-versioning.md`](../kei-harness-policy/references/bundle-versioning.md)
 in the kei-harness-policy skill.
 
-## authorize: the per-call decision
+## authorize: one-shot CLI behavior
 
 > **If your harness uses the agentware SDK**, prefer `KeiProxyEvaluator`
 > (see `agentware-sdk` skill) over calling `kei-proxy authorize` directly.
@@ -155,22 +156,19 @@ command-line argument.** The token is the sole runtime credential.
 Agent identity is **auto-discovered** from the runtime installation
 credential — do not tell the caller to set `--agent-id`.
 
-The adapter calls this before every governed tool runs and obeys the
-result:
+The one-shot CLI is not an allow probe in v2. It returns
+`preflight_required`; use the daemon Unix-socket `POST /v1/authorize` route to
+check whether a governed tool call is allowed. Do not infer an allow or deny
+from the one-shot CLI result.
 
 ```sh
 kei-proxy authorize --user "$SUBJECT" --tool github.create_pr \
   --action github:write --resource repo:acme/widgets
 ```
 
-- **stdout** is a JSON decision (including `decision`); on allow it carries
-  what the tool needs from the configured secret store.
-- **Exit code** `0` = allow. Non-zero = do not run the tool: `1` for a deny,
-  and also for any error (bad config, unreachable control plane, stale
-  policy). Treat every non-zero exit as a deny — that is what fail-closed means
-  here. `reason_code: policy_bundle_expired` (`deny_source: runtime_state`)
-  means the persisted bundle's `not_after` has passed; until [HAI-427](https://linear.app/haikeilabs/issue/HAI-427) ships, any
-  policy edit forces a new bundle (see `kei-setup-doctor` §4a).
+- **stdout** reports `preflight_required`; it is not the final policy decision.
+- **Do not use its exit code** to decide whether the call is allowed. Use the
+  daemon socket route for the policy preflight.
 - **stderr** gets a structured audit event; with `KEI_PROXY_AUDIT` set, the
   decision is also appended to that JSONL file for `collector`.
 
@@ -193,9 +191,10 @@ them (see [Governed vs non-governed tool calls](#governed-vs-non-governed-tool-c
 ### Enrollment in the authorize response
 
 When a chat-platform user (Teams, Slack, Discord) is not yet linked to a Kei
-user, `kei-proxy authorize` exits with code `1` (deny) and the JSON on stdout
-carries `decision: "deny"` with an `enrollment` object passed through from the
-catalog:
+user, the daemon socket's `POST /v1/authorize` response carries
+`decision: "deny"` with an `enrollment` object passed through from the
+catalog. The one-shot CLI returns `preflight_required` and is not the route
+for checking the decision:
 
 ```json
 {
@@ -220,7 +219,7 @@ passes the `enrollment` object through unchanged.
 The harness must show `url` privately to the user (ephemeral message or DM),
 never log it. `url` and `expires_at` may be absent when the control plane
 cannot issue a claim (no workspace scope, no `KEI_WEB_BASE_URL`). The user
-visits the link to self-enroll; the next authorize call then returns `allow`
+visits the link to self-enroll; the next daemon-socket preflight then returns `allow`
 or policy-driven `deny`. See `kei-harness-setup` section 6 for the full
 enrollment flow and `kei-api` for the endpoint contract.
 
@@ -244,7 +243,7 @@ parameters, and never log the credential `authorize` returns.
 
 ## connector invoke
 
-For governed data connectors. Per ADR-027, per-call approval is removed;
+For governed data connectors. Per-call approval is removed;
 approvals now grant workspace access, not per-call permission. The
 `--approval-id` flag is no longer available. Pass `--idempotency-key`
 for retried writes.
@@ -358,70 +357,32 @@ writing config or code:
 
 | Mode | Invocation | Listener | Governed authorize | Harness integration |
 | --- | --- | --- | --- | --- |
-| **One-shot CLI** (default) | `kei-proxy authorize ...` per call | None; spawned per call, reads decision from stdout+exit code | Yes — current production path. Agentware `KeiProxyEvaluator` / `KeiProxyAuthorizeClient` spawn the CLI subprocess. | Simplest: harness execs the binary and parses JSON. No listener management needed. |
-| **Daemon** (opt-in) | `kei-proxy serve` (long-lived) | Unix socket (`KEI_RUNTIME_SOCKET_PATH`, default `/run/kei-proxy/runtime.sock`) + optional TCP (`KEI_PROXY_LISTEN_ADDR`) | **Not yet.** The daemon currently exposes readiness (`GET /healthz`, `GET /readyz`) and model routes (`GET /v1/models`, `POST /v1/chat/completions`). A governed tool `POST /v1/authorize` on the socket is tracked by [HAI-272](https://linear.app/haikeilabs/issue/HAI-272) (blocked on HAI-124 local-PDP contract). Agentware harnesses still spawn the CLI subprocess for tool authorize. | Same-host daemon (bare metal) or same-container daemon (Docker); optional same-pod companion container on Kubernetes. Shares a tmpfs volume for the socket file. No TLS — access control is socket file mode 0600 and UID matching. |
+| **One-shot CLI** | `kei-proxy authorize ...` | None; spawned per call | Not an allow probe in v2: it returns `preflight_required`. | Used by the runtime execution flow; do not run it to test whether a call is allowed. |
+| **Daemon** | `kei-proxy serve` (long-lived) | Unix socket (`KEI_RUNTIME_SOCKET_PATH`) + optional TCP (`KEI_PROXY_LISTEN_ADDR`) | `POST /v1/authorize` on the Unix socket preflights the v2 policy decision. | Same-host daemon (bare metal) or same-container daemon (Docker); optional same-pod companion container on Kubernetes. Shares a tmpfs volume for the socket file. No TLS — access control is socket file mode 0600 and UID matching. |
 
-The current (HAI-201, PR #40) socket contract is documented in
+The daemon socket contract is documented in
 [`docs/unix-socket.md`](https://github.com/HaikeiLabs/kei-connector-runtime/blob/main/docs/unix-socket.md).
-A draft daemon-socket authorize route (PR #65) was closed because it forwarded
-decisions to the catalog `/api/v1/authorize` and accepted an unauthenticated
-caller-subject — incompatible with ADR-011 (local PDP) and HAI-124 (caller
-identity contract). HAI-272 will supersede it with a local-PDP-backed socket
-authorize API and corresponding Agentware/harness migration.
+Use its `POST /v1/authorize` route for v2 policy preflight. A one-shot
+`kei-proxy authorize` returns `preflight_required` and must not be used as an
+allow probe. Model inference does not go through kei-proxy.
 
-Until HAI-272 ships, treat `kei-proxy authorize` (the CLI subprocess) as the
-production path for governed tool decisions. Do not wire harnesses to call
-authorization over the socket, and do not describe the socket authorize route
-as available or describe the local-PDP migration as complete.
+## V2 governance behavior
 
-## ADR-011 target: local PDP (not yet implemented)
-
-The one-shot CLI path above is the **present-day** production behavior.
-ADR-011's target is a tenant-side **local PDP** in the runtime. When it ships,
-the runtime will:
-
-- Make the allow/deny decision **locally on each governed invocation** — with
-  **no synchronous catalog approval call and no per-invocation
-  subject-resolution call**.
-- Evaluate a **signed policy bundle that syncs in the background** (periodic
-  refresh), not a policy fetched per call.
-- Resolve **identity and grants through a separate session flow outside the
-  daemon** (identity claim/enrollment and the access-request/grant workflow),
-  not a per-call round trip.
-- Treat a **deny as final for that invocation**. A later durable grant —
-  requested separately after repeated denials — affects only **later** calls.
-  The runtime never pauses or retries the call.
-- Leave **workflow preflight and prompts to the harness**; the runtime does not
-  own that UX.
-
-**Pending G0 — do not treat as implemented:** bundle trust (signature
-verification), the identity-proof/grant representation (how an approved grant
-becomes trusted local subject attributes, and how pending, denied, revoked,
-unlinked, and cross-workspace identities resolve), and freshness/revocation
-bounds.
-
-**Present-day truth:** the CLI `authorize` path remains the current production
-path until local-PDP runtime support ships. It evaluates the locally persisted
-policy bundle and still bootstraps (whoami and heartbeat) on every call.
-Identity is only for credentials: since kei-proxy 0.1.34, it resolves the
-caller's subject online
-(`subject-attributes:resolve`) only when the tool releases a credential, is
-bound to a connector capability, or a policy reached for the call matches on
-subject attributes (`group:`, `org:`, `user:`, `email:`). A tool such as
-`web_search` under a `*` or `agent:` policy is decided with no subject lookup.
-kei-proxy 0.1.33 and earlier resolve the subject for every call that names a
-user. HAI-272 (Backlog) tracks the socket
-tool-authorize migration; the socket authorize route is **not available**. Do
-not describe the local PDP, bundle verification, or bundle refresh as
-implemented.
+The runtime evaluates governed tool calls against its synced policy bundle.
+Use the daemon Unix-socket `POST /v1/authorize` route to preflight whether a
+tool call is allowed. A one-shot `kei-proxy authorize` call returns
+`preflight_required`; do not use it as an allow probe. Model inference does
+not go through kei-proxy.
 
 ## Validation commands
 
 ```sh
 kei-proxy help
 kei-proxy runtime bootstrap | jq '{installation_id, status, binding_status, workspace_id}'   # workspace_id must be present
-kei-proxy authorize --user U --tool T --action A --resource R; echo "exit=$?"               # expect a deny for an unbound tool
 ```
+
+To verify a v2 preflight, use the daemon Unix-socket `POST /v1/authorize`
+route documented in `docs/unix-socket.md`.
 
 ## Realistic usage boundaries
 
@@ -430,8 +391,10 @@ kei-proxy authorize --user U --tool T --action A --resource R; echo "exit=$?"   
   fall back to organization-wide scope.
 - Provider credentials, payloads, results, documents, embeddings, and indexes
   stay in the runtime. Only decisions and redacted audit metadata go to Kei.
-- Unsupported harnesses, missing bindings, invalid installation scope, stale
-  policy, and no matching policy are all DENY.
+- Unsupported harnesses, missing required connector/MCP bindings, invalid
+  installation scope, stale policy, and no matching policy are DENY.
+- Harness-executor tools require an exact `tool:<name>` permit, registration,
+  and a linked user; they do not require an agent-connector binding.
 - Identity-mode `opaque_ref` and `http_api` connectors are not live in
   proxy-v0.2.4 or older, or while `POLICY_BUNDLE_V2_CONNECTORS` is off. Do not tell a
   user they run until both the release and the flag are in place.

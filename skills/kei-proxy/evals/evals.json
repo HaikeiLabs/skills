@@ -3,35 +3,51 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "I'm writing a tool adapter that needs to check whether an agent is allowed to read a customer record. What executable do I call and how do I handle its exit codes?",
-      "expected_output": "Call kei-proxy authorize with the --tool, --action, --resource, and --user flags. The KEI_RUNTIME_TOKEN env var supplies credentials. Exit 0 is allow, any non-zero (including errors) is deny. Agent ID is auto-discovered from the environment; do not set it.",
+      "prompt": "I'm writing a tool adapter that needs to check whether an agent is allowed to read a customer record. Which Kei route do I use, and where does its credential come from?",
+      "expected_output": "Use the kei-proxy runtime: the daemon Unix-socket POST /v1/authorize route preflights the v2 decision; a one-shot kei-proxy authorize returns preflight_required and is not an allow probe, so its exit code is not the decision. The KEI_RUNTIME_TOKEN env var supplies the credential, never an argument. Agent ID is auto-discovered from the runtime installation; do not set it. Agents never run kei login.",
       "expectations": [
-        "The response uses kei-proxy authorize, not the kei admin CLI, for the per-call decision.",
-        "The response treats any non-zero exit, including errors, as deny.",
+        "The response uses the kei-proxy runtime, not the kei admin CLI, for the per-call decision.",
+        "The response says the one-shot CLI does not decide the call and points at the daemon socket route.",
         "The runtime token comes from the KEI_RUNTIME_TOKEN environment variable, not a command-line argument.",
         "The response does not tell the user to set an agent-ID environment variable.",
         "The response does not tell the agent to run kei login."
       ],
       "checks": [
         {
-          "text": "The response uses kei-proxy authorize, not the kei admin CLI, for the per-call decision.",
-          "contains_all": ["kei-proxy authorize"]
+          "text": "The response uses the kei-proxy runtime, not the kei admin CLI, for the per-call decision.",
+          "contains_any": [
+            "kei-proxy authorize",
+            "/v1/authorize"
+          ]
         },
         {
-          "text": "The response treats any non-zero exit, including errors, as deny.",
-          "contains_all": ["non-zero", "deny"]
+          "text": "The response says the one-shot CLI does not decide the call and points at the daemon socket route.",
+          "contains_any": [
+            "preflight_required",
+            "/v1/authorize"
+          ]
         },
         {
           "text": "The runtime token comes from the KEI_RUNTIME_TOKEN environment variable, not a command-line argument.",
-          "contains_any": ["KEI_RUNTIME_TOKEN", "runtime credential", "credential from the environment"]
+          "contains_any": [
+            "KEI_RUNTIME_TOKEN",
+            "runtime credential",
+            "credential from the environment"
+          ]
         },
         {
           "text": "The response does not tell the user to set an agent-ID environment variable.",
-          "not_contains": ["KEI_PROXY_AGENT_ID=", "export KEI_PROXY_AGENT_ID", "set KEI_PROXY_AGENT_ID"]
+          "not_contains": [
+            "KEI_PROXY_AGENT_ID=",
+            "export KEI_PROXY_AGENT_ID",
+            "set KEI_PROXY_AGENT_ID"
+          ]
         },
         {
           "text": "The response does not tell the agent to run kei login.",
-          "not_contains": ["run kei login"]
+          "not_contains": [
+            "run kei login"
+          ]
         }
       ]
     },
@@ -47,7 +63,9 @@
       "checks": [
         {
           "text": "The response says the agent should not run kei login.",
-          "contains_all": ["kei login"]
+          "contains_all": [
+            "kei login"
+          ]
         },
         {
           "text": "The response distinguishes the kei platform admin CLI from the kei-proxy runtime used by agents.",
@@ -55,7 +73,9 @@
         },
         {
           "text": "The response points the agent at kei-proxy authorize with KEI_RUNTIME_TOKEN in its environment.",
-          "contains_all": ["KEI_RUNTIME_TOKEN"]
+          "contains_all": [
+            "KEI_RUNTIME_TOKEN"
+          ]
         }
       ]
     },
@@ -70,11 +90,16 @@
       "checks": [
         {
           "text": "The response recommends kei runtime bootstrap on the workstation after kei setup.",
-          "contains_any": ["kei runtime bootstrap", "runtime bootstrap"]
+          "contains_any": [
+            "kei runtime bootstrap",
+            "runtime bootstrap"
+          ]
         },
         {
           "text": "The response says ongoing heartbeat is kei-proxy runtime heartbeat.",
-          "contains_all": ["runtime heartbeat"]
+          "contains_all": [
+            "runtime heartbeat"
+          ]
         }
       ]
     },
@@ -94,7 +119,10 @@
         },
         {
           "text": "The response says production should not run with kei-proxy disabled and that tests inject a fake evaluator for an allow.",
-          "contains_all": ["fake", "evaluator"]
+          "contains_all": [
+            "fake",
+            "evaluator"
+          ]
         },
         {
           "text": "The response distinguishes governed calls from non-governed local calls that never reach Kei.",
@@ -113,7 +141,11 @@
       "checks": [
         {
           "text": "The response lists the required flags for kei-proxy authorize.",
-          "contains_all": ["--tool", "--action", "--resource"]
+          "contains_all": [
+            "--tool",
+            "--action",
+            "--resource"
+          ]
         },
         {
           "text": "The response states agent ID is auto-discovered and should not be set explicitly.",
@@ -132,11 +164,15 @@
       "checks": [
         {
           "text": "The response uses kei-proxy connector invoke for governed data.",
-          "contains_all": ["connector invoke"]
+          "contains_all": [
+            "connector invoke"
+          ]
         },
         {
           "text": "The response passes --idempotency-key for retried writes.",
-          "contains_all": ["--idempotency-key"]
+          "contains_all": [
+            "--idempotency-key"
+          ]
         }
       ]
     },
@@ -167,7 +203,7 @@
     },
     {
       "id": 8,
-      "prompt": "A Claude Code session ran one command that failed and asked about another that never ran (headless). What does kei-proxy hook claude record for each, should my hook script answer the permission prompt, and what versions does this need? Do not execute anything — just explain in text.",
+      "prompt": "A Claude Code session ran one command that failed and asked about another that never ran (headless). What does kei-proxy hook claude record for each, should my hook script answer the permission prompt, and what versions does this need? Do not execute anything \u2014 just explain in text.",
       "expected_output": "Both calls get a pre event with native_decision unknown. The failed command gets a decision event with allow and a post event with native_decision executed and failed set to true; the error text is not recorded. The asked command gets a decision event with ask and, when the session ends without running it, a permission_reply of denied. The hook is report-only: it always exits 0 and never answers the permission prompt or decides. This needs kei-proxy 0.2.5 or newer and Claude Code 2.1.119 or newer.",
       "expectations": [
         "the failed command's post event carries a failed flag",
@@ -198,6 +234,30 @@
           ]
         }
       ]
+    },
+    {
+      "prompt": "How do I check whether a tool call is allowed with Kei v2? I tried the one-shot authorize command.",
+      "expected_output": "Use the daemon Unix socket POST /v1/authorize route to check the policy decision. One-shot kei-proxy authorize returns preflight_required and is not an allow probe.",
+      "expectations": [
+        "The response points to daemon socket POST /v1/authorize.",
+        "The response says the one-shot command returns preflight_required."
+      ],
+      "checks": [
+        {
+          "text": "The response points to daemon socket POST /v1/authorize.",
+          "contains_all": [
+            "/v1/authorize",
+            "socket"
+          ]
+        },
+        {
+          "text": "The response says the one-shot command returns preflight_required.",
+          "contains_all": [
+            "preflight_required"
+          ]
+        }
+      ],
+      "id": 9
     }
   ]
 }

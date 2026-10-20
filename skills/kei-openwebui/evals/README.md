@@ -1,7 +1,7 @@
 # kei-openwebui evals
 
 Eval cases for the kei-openwebui skill (Open WebUI governed by Kei: the Kei
-installation, credential, model profile and policies; the image by digest and
+installation, credential, optional model profiles and tool policies; the image by digest and
 UID 10001; tool packs and the boot tool sync; user linking; and
 troubleshooting).
 

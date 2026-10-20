@@ -250,13 +250,13 @@
     {
       "id": 8,
       "prompt": "I ran kei harness sync --harness claude_code but it says 'No registered harnesses selected'. What's going on?",
-      "expected_output": "Explains the policy bundle cached by kei-proxy is stale (HAI-403) and the new installation's harnesses are not reflected until the next refresh. Desktop harnesses are auto-discovered — no `kei harness add` needed. Suggests any policy edit triggers a refresh, or waiting for the background poll. Mentions the 6-hour bundle refresh window and references kei-harness-policy references/bundle-versioning.md.",
+      "expected_output": "Explains the policy bundle cached by kei-proxy is stale (HAI-403) and the new installation's harnesses are not reflected until the next refresh. Desktop harnesses are auto-discovered \u2014 no `kei harness add` needed. Suggests any policy edit triggers a refresh, or waiting for the background poll. Mentions the 6-hour bundle refresh window and references kei-harness-policy references/bundle-versioning.md.",
       "expectations": [
         "The response identifies the cause as a stale policy bundle (HAI-403).",
         "The response suggests a policy edit as a workaround to force a bundle refresh.",
         "The response mentions the 6-hour background refresh window.",
         "The response references kei-harness-policy references/bundle-versioning.md for versioning details.",
-        "The response clarifies that desktop harnesses are auto-discovered — no `add` needed."
+        "The response clarifies that desktop harnesses are auto-discovered \u2014 no `add` needed."
       ],
       "checks": [
         {
@@ -289,7 +289,7 @@
           ]
         },
         {
-          "text": "The response clarifies that desktop harnesses are auto-discovered — no `add` needed.",
+          "text": "The response clarifies that desktop harnesses are auto-discovered \u2014 no `add` needed.",
           "contains_any": [
             "auto-discovered",
             "add"
@@ -299,7 +299,7 @@
     },
     {
       "id": 9,
-      "prompt": "I installed Codex next to Claude Code on the same machine and both need Kei governance. Do I run `kei harness add` for each? How does the setup script handle this? Do not execute anything — just explain in text. If you don't know something, just say so.",
+      "prompt": "I installed Codex next to Claude Code on the same machine and both need Kei governance. Do I run `kei harness add` for each? How does the setup script handle this? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
       "expected_output": "No `kei harness add` needed for either. Desktop coding harnesses (Claude Code, Codex, OpenCode) are sessions of the same runtime installation and are auto-discovered by `kei harness sync`. The setup script (setup-lib.sh) calls `kei harness add` with `|| true` for backward compatibility, but its primary path is `kei harness sync` which detects all desktop harnesses automatically. `kei harness add` is only for custom/SDK harnesses (`--kind custom`).",
       "expectations": [
         "states that desktop harnesses do not need `kei harness add`",
@@ -335,7 +335,7 @@
     },
     {
       "id": 10,
-      "prompt": "I just finished the Kei harness setup for Claude Code — skills installed, runtime bootstrapped, harness registered and synced, verify.sh passed. What's the last thing I should do to be sure the setup actually works end to end?",
+      "prompt": "I just finished the Kei harness setup for Claude Code \u2014 skills installed, runtime bootstrapped, harness registered and synced, verify.sh passed. What's the last thing I should do to be sure the setup actually works end to end?",
       "expected_output": "Says setup is not complete until the harness itself makes one governed tool call (e.g. have Claude Code run git status) and the call is confirmed in the console: Audit Logs shows the call with the harness kind, and the installation's card shows the recent activity. Notes the runtime service must be running (kei runtime service status) for the audit upload.",
       "expectations": [
         "The response instructs making one governed tool call inside the harness itself (for example, having Claude Code run git status) as the final step, rather than stopping at shell-level checks.",
@@ -370,7 +370,7 @@
     },
     {
       "id": 11,
-      "prompt": "Kei denied a tool call in my harness that I think it should have allowed, and I want to report it to the Kei team with the session attached. I use Claude Code on this machine and my teammates use Codex and OpenCode. What exact command does each of us run, and what happens to secrets in the transcript? Do not execute anything — just explain in text.",
+      "prompt": "Kei denied a tool call in my harness that I think it should have allowed, and I want to report it to the Kei team with the session attached. I use Claude Code on this machine and my teammates use Codex and OpenCode. What exact command does each of us run, and what happens to secrets in the transcript? Do not execute anything \u2014 just explain in text.",
       "expected_output": "Run kei feedback from the project directory (kei 0.1.20+, logged in) with a required --description: kei feedback --description \"...\" --export claude for Claude Code, --export codex for Codex, --export opencode for OpenCode; add --session <session-id> for a specific session. Token-shaped strings (API keys, GitHub/Slack/AWS tokens, JWTs, bearer tokens, private keys, Kei runtime tokens) are redacted locally before anything is sent. The CLI shows a preview with redaction counts and asks Send? [y/N]; answering no sends nothing.",
       "expectations": [
         "The response gives the kei feedback command with --export for each harness: claude, codex and opencode.",
@@ -416,9 +416,28 @@
       ],
       "checks": [
         {"text":"The response names the six harness types.","contains_all":["SDK (Agentware)","Claude Code","Codex","Pi","OpenCode","Open WebUI"]},
-        {"text":"The response maps kind custom to SDK (Agentware).","regex":"(kind custom|custom.{0,30}(API|catalog) kind).{0,100}SDK \\(Agentware\\)|SDK \\(Agentware\\).{0,100}(kind custom|custom.{0,30}(API|catalog) kind)"},
+        {"text":"The response maps kind custom to SDK (Agentware).","regex":"custom[^.\\n]{0,120}SDK \\(Agentware\\)|SDK \\(Agentware\\)[^.\\n]{0,120}custom"},
         {"text":"The response does not describe Open WebUI or Pi as custom or SDK.","not_contains":["Open WebUI is custom","Open WebUI is a custom harness","Open WebUI is an SDK","Open WebUI uses kind custom","Pi is custom","Pi is a custom harness","Pi is an SDK","Pi uses kind custom"]},
         {"text":"The response gives the exact registration and manifest sync commands and the minimum kei version.","contains_all":["kei harness add --kind custom","kei harness sync --harness custom --manifest tools.json","0.1.33"]}
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "I registered an Open WebUI tool pack and wrote a permit for its tool. Do I need to bind that permit to the agent, or do agent-connector bindings apply? What has to be in place before that permit lets the tool run?",
+      "expected_output": "A harness-executor tool pack needs the exact tool:<name> permit, tool registration and a linked user; agent-connector bindings only apply to connector/MCP tools.",
+      "expectations": [
+        "The response says tool packs need exact tool:<name> permit, registration and linked user.",
+        "The response says agent-connector bindings are only for connector/MCP tools."
+      ],
+      "checks": [
+        {
+          "text": "The response says tool packs need exact tool:<name> permit, registration and linked user.",
+          "regex": "(?=[\\s\\S]*tool:)(?=[\\s\\S]*regist)(?=[\\s\\S]*(?:linked user|user[^.\\n]{0,40}link|link[^.\\n]{0,40}user))"
+        },
+        {
+          "text": "The response says agent-connector bindings are only for connector/MCP tools.",
+          "regex": "(?=[\\s\\S]*connector)(?=[\\s\\S]*(MCP|connector tools))"
+        }
       ]
     }
   ]
