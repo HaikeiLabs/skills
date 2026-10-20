@@ -30,33 +30,50 @@
         "The answer rejects direct provider calls as a fallback and keeps the decision fail-closed."
       ],
       "checks": [
-        {"text":"The answer says the current Pi package does not implement search_wiki or web_search.","regex":"(?=.*search_wiki)(?=.*(?:does not implement|not implemented|does not support|doesn't support|doesn’t support|not supported|unsupported|not available|unavailable|doesn't have|doesn’t have|no executor|not a Pi tool|not a tool|cannot call|can't call|not registered|not enabled|not supported by Pi))"},
+        {"text":"The answer says the current Pi package does not implement search_wiki or web_search.","regex":"(?=.*search_wiki)(?=.*(?:does.{0,8}not.{0,8}implement|not.{0,8}implemented|does.{0,8}not.{0,8}support|doesn't support|doesn’t support|not.{0,8}supported|unsupported|not.{0,8}available|unavailable|doesn't have|doesn’t have|no executor|not.{0,8}a Pi tool|not.{0,8}a tool|cannot call|can't call|not registered|not enabled|not supported by Pi))"},
         {"text":"The answer distinguishes policy registration from a Pi-side executor implementation.","contains_all":["policy","executor"]},
         {"text":"The answer rejects direct provider calls as a fallback and keeps the decision fail-closed.","contains_any":["directly","direct provider","fallback"]}
       ]
     },
     {
       "id": 3,
-      "prompt": "For Pi Bash, is authorization based on existing shell: argv-prefix policies, or should I grant a broad tool:pi.bash permission? Which proxy version is required, what happens to compound commands before execution, and if raw command text is not stored in the audit, what does the audit retain instead?",
-
-
-      "expected_output": "Pi bash is evaluated locally against existing v2 shell: argv-prefix policies with harness:pi; it is not granted by tool:pi.bash. The runtime accepts one simple command and denies compound or unsupported syntax before execution. Raw command text is sent only over the local socket and is not stored in audit; the audit record contains a digest. Use kei-proxy 0.2.4 or later.",
+      "prompt": "For Pi Bash, does the audit store or log the raw command text? What does it retain instead? Answer directly.",
+      "expected_output": "No. Raw command text is not stored or logged in the audit. It retains a SHA-256 argument digest and decision metadata.",
+      "expectations": [
+        "The answer explicitly says raw command text is not stored or logged.",
+        "The answer says the audit retains a digest."
+      ],
+      "checks": [
+        {"text":"The answer explicitly says raw command text is not stored or logged.","regex":"(?=.*(?:digest|hash))(?=.*(?:raw command|original command|command text|raw text))(?=.*(?:not stored|never stored|not retained|never retained|not logged|never logged|not recorded|never recorded|not included|not kept|never kept|not captured|not persisted|does not store|doesn't store|doesn’t store|is not stored|isn't stored|isn’t stored|no raw command|no command text|no raw text))"},
+        {"text":"The answer says the audit retains a digest.","contains_any":["digest","hash"]}
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "How is Pi Bash authorized? Should I grant a broad tool:pi.bash permission, and what minimum kei-proxy version is required?",
+      "expected_output": "Use existing v2 shell: argv-prefix policies, not a broad tool:pi.bash grant. Pi Bash requires kei-proxy 0.2.4 or later.",
       "expectations": [
         "The answer identifies existing shell policies as Pi Bash's authorization mechanism.",
-        "The answer says raw command text is not stored or logged in the audit.",
-        "The answer says the audit record contains a digest.",
-        "The answer says compound syntax is denied.",
-        "The answer says denial happens before execution.",
-
+        "The answer rejects a broad tool:pi.bash grant.",
         "The answer gives the minimum proxy version for Pi Bash."
       ],
       "checks": [
         {"text":"The answer identifies existing shell policies as Pi Bash's authorization mechanism.","contains_any":["shell:","shell policy","shell rules"]},
-        {"text":"The answer says raw command text is not stored or logged in the audit.","regex":"(?=.*(?:digest|hash))(?=.*(?:not stored|never stored|not retained|never retained|not logged|never logged|not included|not exposed|not recorded|not shown|not displayed|not part of (?:the )?audit|only (?:the |a )?(?:digest|hash)|(?:digest|hash) only|no raw command|not raw command|no command text|no raw text|doesn't store|doesn’t store|isn't recorded|isn’t recorded))"},
-        {"text":"The answer says the audit record contains a digest.","contains_all":["digest"]},
-        {"text":"The answer says compound syntax is denied.","contains_any":["compound","only one simple command","only simple commands"]},
-        {"text":"The answer says denial happens before execution.","contains_any":["before execution","before Bash executes"]},
+        {"text":"The answer rejects a broad tool:pi.bash grant.","regex":"(?=.*(?:shell:|shell policies))(?=.*tool:pi\\.bash)(?=.*(?:do.{0,8}not.{0,8}grant|don't grant|don’t grant|should not grant|not.{0,8}a broad|not.{0,8}a dedicated permission|not.{0,8}use).{0,50})"},
         {"text":"The answer gives the minimum proxy version for Pi Bash.","contains_all":["0.2.4"]}
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "What happens to compound or unsupported Pi Bash syntax? Is it denied before Bash executes?",
+      "expected_output": "Only one simple command in the restricted grammar is supported. Compound and unsupported syntax are denied before execution.",
+      "expectations": [
+        "The answer says compound syntax is denied.",
+        "The answer says denial happens before execution."
+      ],
+      "checks": [
+        {"text":"The answer says compound syntax is denied.","contains_any":["compound","only one simple command","only simple commands"]},
+        {"text":"The answer says denial happens before execution.","contains_any":["before execution","before Bash executes"]}
       ]
     }
   ]
