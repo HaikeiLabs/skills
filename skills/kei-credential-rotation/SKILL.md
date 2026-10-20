@@ -33,8 +33,10 @@ If bootstrap output is missing `workspace_id` after a rotation, rotate again wit
 | Source | How to retrieve | Use for |
 | --- | --- | --- |
 | Installed binary | `kei help` (look for `--rotate` on `bot credential`) | Whether this release supports CLI rotation |
-| Console: CLI authentication and identity | `https://app.haikeilabs.com/#/docs/create-an-organization` | Credential handling rules |
-| Console: Runtime installations | `https://app.haikeilabs.com/#/docs/add-a-workspace` | Runtime credential management |
+| Docs: CLI authentication and identity | `https://docs.haikeilabs.com/kei/reference/cli` | Credential handling rules |
+| Docs: Runtime installations | `https://docs.haikeilabs.com/kei/runtime/tenant-runtime` | Runtime credential management |
+
+Append `.md` to any docs page URL for the raw page.
 
 ## Which secret?
 

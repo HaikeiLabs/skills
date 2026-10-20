@@ -31,9 +31,11 @@ and changes between releases. **Prefer retrieval over this file.**
 | Source | How to retrieve | Use for |
 | --- | --- | --- |
 | Installed binary | `kei help`, `kei <command> --help`, `kei bot` (lists subcommands) | Exact commands, flags, and allowed values for the version actually installed |
-| Kei console docs | `https://app.haikeilabs.com/#/docs/getting-started`, `#/docs/create-an-organization` (CLI authentication and identity), `#/docs/add-a-workspace` (proxy runtime) | The customer-facing, supported workflow |
+| Kei docs | `https://docs.haikeilabs.com/kei/get-started/sign-in`, `https://docs.haikeilabs.com/kei/reference/cli` (CLI authentication and identity), `https://docs.haikeilabs.com/kei/runtime/tenant-runtime` (proxy runtime) | The customer-facing, supported workflow |
 | `kei-cli` README | `https://github.com/HaikeiLabs/kei-cli` (private) | Install options, build from source |
 | Release endpoint | `https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/latest.txt` | Latest published version |
+
+Append `.md` to any docs page URL for the raw page.
 
 When this skill and `kei help` disagree, **trust `kei help`** and mention the
 difference to the user.

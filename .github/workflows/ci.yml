@@ -56,3 +56,5 @@ jobs:
         run: node scripts/verify-evals.mjs
       - name: Fail on internal markdown links to missing files
         run: node scripts/check-internal-links.mjs
+      - name: Fail on retired in-console docs URLs
+        run: node scripts/check-stale-console-docs.mjs

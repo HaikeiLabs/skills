@@ -49,9 +49,11 @@ the runtime the harness runs for agent interaction (command reference:
 | Source | How to retrieve | Use for |
 | --- | --- | --- |
 | Installed binaries | `kei help`, `kei-proxy help`, `kei-proxy runtime --help` | Exact subcommands, flags, env vars for the installed versions |
-| Console: CLI authentication and identity | `https://app.haikeilabs.com/#/docs/create-an-organization` | Login, installations, `kei setup`, credentials |
-| Console: Configure the tenant-side proxy | `https://app.haikeilabs.com/#/docs/add-a-workspace` | Runtime env vars, bootstrap output, container build |
-| Console: Agent setup | `https://app.haikeilabs.com/#/docs/agent-setup` | Harness → runtime → policy catalog flow, DENY rules |
+| Docs: CLI authentication and identity | `https://docs.haikeilabs.com/kei/reference/cli` | Login, installations, `kei setup`, credentials |
+| Docs: Configure the tenant-side proxy | `https://docs.haikeilabs.com/kei/runtime/tenant-runtime` | Runtime env vars, bootstrap output, container build |
+| Docs: Agent setup | `https://docs.haikeilabs.com/kei/connect-your-harness/harness-setup` | Harness → runtime → policy catalog flow, DENY rules |
+
+Append `.md` to any docs page URL for the raw page.
 
 When this skill and the binaries' help disagree, trust the binary and tell the
 user.
