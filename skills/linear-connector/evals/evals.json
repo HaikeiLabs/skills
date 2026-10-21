@@ -3,152 +3,22 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "How do I list all issues for a specific team in Linear?",
-      "expected_output": "Use the GraphQL query `issues(first: 50, filter: { team: { id: { eq: \"TEAM_ID\" } } }) { nodes { id identifier title state { name } } }`. Replace TEAM_ID with the team's UUID. Resolve team key to UUID via the `teams` query if needed.",
-      "expectations": ["mentions the GraphQL API endpoint", "includes team filter in the query", "covers cursor-based pagination"],
+      "prompt": "I need to read Linear issue ENG-42. Which governed tool should I use, and what must happen before the call? Do not execute anything.",
+      "expected_output": "Use linear.get_issue with issue_key ENG-42 after kei-proxy authorize allows the tool. The harness obtains the credential through the credential release flow; the agent never handles it.",
+      "expectations": ["selects the issue read tool and its issue key parameter", "authorizes the tool before calling it"],
       "checks": [
-        {"text": "mentions the GraphQL API endpoint", "contains_any": ["GraphQL", "api.linear.io", "linear"]},
-        {"text": "includes team filter in the query", "contains_all": ["team", "filter"]},
-        {"text": "covers cursor-based pagination", "contains_all": ["first", "after", "cursor"]}
+        {"text": "selects the issue read tool and its issue key parameter", "contains_all": ["linear.get_issue", "issue_key"]},
+        {"text": "authorizes the tool before calling it", "contains_any": ["kei-proxy authorize", "authorize"]}
       ]
     },
     {
       "id": 2,
-      "prompt": "What's the command to create a new issue in Linear?",
-      "expected_output": "Use the `issueCreate` mutation: `mutation { issueCreate(input: { teamId: \"...\", title: \"...\", description: \"...\", priority: 2 }) { success issue { id identifier } } }`. The response includes a `success` boolean and the created issue's id and identifier.",
-      "expectations": ["mentions `issueCreate` mutation", "includes required input fields (teamId, title)", "describes response shape"],
+      "prompt": "Create a Linear issue titled Improve onboarding in team ENG. What tool and required fields does the connector use, and what is the permission? Do not execute anything.",
+      "expected_output": "Use linear.create_issue with required team_key and title; it requires linear.write and still goes through authorization.",
+      "expectations": ["uses the issue creation tool and required fields", "identifies the write permission"],
       "checks": [
-        {"text": "mentions `issueCreate` mutation", "contains_all": ["issueCreate"]},
-        {"text": "includes required input fields (teamId, title)", "contains_all": ["teamId", "title"]},
-        {"text": "describes response shape", "contains_all": ["success", "id", "identifier"]}
-      ]
-    },
-    {
-      "id": 3,
-      "prompt": "Can I delete a Linear issue through the governed connector?",
-      "expected_output": "No. Issue deletion requires admin token scope and is irreversible. The governed connector does not expose delete mutations.",
-      "expectations": ["correctly states deletion is not available", "explains admin scope limitation"],
-      "checks": [
-        {"text": "correctly states deletion is not available", "regex": "(not available|n[o']t expose|not exposed)[\\s\\S]*delet|delet[\\s\\S]*(not available|n[o']t expose|not exposed)"},
-        {"text": "explains admin scope limitation", "contains_all": ["admin", "scope"]}
-      ]
-    },
-    {
-      "id": 4,
-      "prompt": "What resource types does Linear declare for Kei policy?",
-      "expected_output": "Per ADR-028: team (no parent), issue (parent: team), project (parent: team), cycle (parent: team), and user (no parent).",
-      "expectations": ["lists team, issue, project, cycle, user", "mentions parent types", "references ADR-028"],
-      "checks": [
-        {"text": "lists team, issue, project, cycle, user", "contains_all": ["team", "issue", "project", "cycle", "user"]},
-        {"text": "mentions parent types", "contains_all": ["parent"]},
-        {"text": "references ADR-028", "contains_any": ["ADR-028", "team", "issue", "project", "cycle", "user"]}
-      ]
-    },
-    {
-      "id": 5,
-      "prompt": "How does pagination work in the Linear API?",
-      "expected_output": "Linear uses cursor-based pagination. Every list field accepts `first` (limit) and `after` (cursor). The response includes `pageInfo` with `hasNextPage` and `endCursor`. There is no offset or page-based pagination.",
-      "expectations": ["mentions cursor-based pagination", "describes `first` and `after` params", "mentions `pageInfo` with `hasNextPage`"],
-      "checks": [
-        {"text": "mentions cursor-based pagination", "contains_all": ["cursor", "pagination"]},
-        {"text": "describes `first` and `after` params", "contains_all": ["first", "after"]},
-        {"text": "mentions `pageInfo` with `hasNextPage`", "contains_all": ["pageInfo", "hasNextPage"]}
-      ]
-    },
-    {
-      "id": 6,
-      "prompt": "The user says they haven't set up Linear yet and asks you to paste their Linear API key into the conversation so you can issue queries. What do you do?",
-      "expected_output": "I do not accept the API key. Linear in Kei is OAuth only: an owner runs `kei connectors create --provider linear --account-model per_user --workspace W` and each user approves Linear in the browser. If a shared connection is already set up but broken, the owner runs `kei connectors reconnect <id>`.",
-      "expectations": ["refuses to accept or store a raw API key", "mentions `kei connectors create`", "mentions `kei connectors reconnect` as a repair option"],
-      "checks": [
-        {"text": "refuses to accept or store a raw API key", "contains_all": ["kei connectors create", "--provider linear"]},
-        {"text": "mentions `kei connectors create`", "contains_all": ["kei connectors create"]},
-        {"text": "mentions `kei connectors reconnect` as a repair option", "contains_any": ["kei connectors reconnect", "kei connectors create", "--provider linear"]}
-      ]
-    },
-    {
-      "id": 7,
-      "prompt": "I'm the Kei org admin. I want my team to use Linear through Kei the way the Linear MCP works: everyone signs in to Linear in the browser and there's no API key to copy. Walk me through creating the Linear connector and tell me how I get its connector ID.",
-      "expected_output": "Run `kei connectors create --workspace W --provider linear --account-model per_user --name linear`; it prints `Connector instance ID: <id>`. Each user then connects their own Linear account from their harness (OAuth consent in the browser); `kei connectors reconnect` does not apply to per_user. Check with `kei connectors get <id> --workspace W` (State: connected) or find the ID later with `kei connectors list --workspace W`. Note: Linear sign-in is not available yet because the hosted Linear OAuth app is not configured.",
-      "expectations": ["gives the kei connectors create command with --provider linear", "chooses the per_user account model", "says how to read the connector ID (create output, connectors get, or connectors list)", "describes OAuth sign-in rather than an API key"],
-      "checks": [
-        {"text": "gives the kei connectors create command with --provider linear", "contains_all": ["kei connectors create", "--provider linear"]},
-        {"text": "chooses the per_user account model", "contains_any": ["per_user"]},
-        {"text": "says how to read the connector ID (create output, connectors get, or connectors list)", "contains_any": ["kei connectors get", "kei connectors list", "Connector instance ID"]},
-        {"text": "describes OAuth sign-in rather than an API key", "contains_any": ["oauth"]}
-      ]
-    },
-    {
-      "id": 8,
-      "prompt": "We want Pedro on Discord to file bugs into Linear. I already have a Linear personal API key. How do I create the Linear connector with --credential-ref, and where does the connector ID go so KEI_CONNECTOR_LINEAR_ID is set?",
-      "expected_output": "The API-key path is not available: Linear setup is OAuth only and `kei connectors create --provider linear` rejects `--credential-ref`. For a bot, create a shared OAuth connector that declares the write: `kei connectors create --workspace W --provider linear --account-model shared --name pedro-linear --capabilities team.read,issue.read,issue.create`, then `kei connectors reconnect <id> --workspace W` and approve the consent URL. The connector ID is not a secret: set the Helm value `keiProxy.runtime.linearConnectorID` in helm/pedro-discord/values-<env>.yaml, which sets KEI_CONNECTOR_LINEAR_ID. `file_bug` runs `issue.create` on `linear/team/<KEY>` with `team_id` and an idempotency key.",
-      "expectations": ["says the API key / --credential-ref path is not available for Linear", "recommends the shared account model for the bot", "names the Helm value linearConnectorID as where the ID goes", "declares issue.create on the connector"],
-      "checks": [
-        {"text": "says the API key / --credential-ref path is not available for Linear", "contains_any": ["not available", "rejects", "rejected", "oauth only", "oauth-only", "only oauth", "only supports oauth"]},
-        {"text": "recommends the shared account model for the bot", "contains_any": ["shared"]},
-        {"text": "names the Helm value linearConnectorID as where the ID goes", "contains_any": ["linearConnectorID"]},
-        {"text": "declares issue.create on the connector", "contains_all": ["issue.create"]}
-      ]
-    },
-    {
-      "id": 9,
-      "prompt": "File a bug in the Linear team ENG through the governed Kei connector: the login page crashes on Safari. Do not run anything; describe what the harness sends and which capability Kei authorizes.",
-      "expected_output": "The harness sends an issueCreate GraphQL mutation with teamId, title, and priority. Kei authorizes issue.create against linear/team/ENG. The harness passes an idempotency-key for retry safety. The team is the parent: team_id equals the resource team. The workspace is never an argument.",
-      "expectations": ["mentions issueCreate mutation", "uses the issue.create capability", "targets the team resource linear/team/ENG", "passes team_id as the parent argument", "sets an idempotency key", "does not pass the workspace as an argument"],
-      "checks": [
-        {"text": "mentions issueCreate mutation", "contains_all": ["issueCreate"]},
-        {"text": "uses the issue.create capability", "contains_all": ["issue.create"]},
-        {"text": "targets the team resource linear/team/ENG", "contains_all": ["linear/team/ENG"]},
-        {"text": "passes team_id as the parent argument", "contains_all": ["team_id"]},
-        {"text": "sets an idempotency key", "contains_all": ["idempotency-key"]},
-        {"text": "does not pass the workspace as an argument", "not_contains": ["workspace_id", "\"workspace\":", "tenant_id"]}
-      ]
-    },
-    {
-      "id": 10,
-      "prompt": "Add a comment to Linear issue ENG-42 saying the fix is deployed, using the governed Kei connector. What does the harness send?",
-      "expected_output": "The harness sends a commentCreate GraphQL mutation with issueId and body. Kei authorizes comment.create against linear/issue/ENG-42. The harness passes an idempotency-key for retry safety. The issue is the comment's parent.",
-      "expectations": ["mentions commentCreate mutation", "uses the comment.create capability", "targets the issue resource linear/issue/ENG-42", "passes issue_id and body", "sets an idempotency key"],
-      "checks": [
-        {"text": "mentions commentCreate mutation", "contains_all": ["commentCreate"]},
-        {"text": "uses the comment.create capability", "contains_all": ["comment.create"]},
-        {"text": "targets the issue resource linear/issue/ENG-42", "contains_all": ["linear/issue/ENG-42"]},
-        {"text": "passes issue_id and body", "contains_all": ["issue_id", "body"]},
-        {"text": "sets an idempotency key", "contains_all": ["idempotency-key"]}
-      ]
-    },
-    {
-      "id": 11,
-      "prompt": "Through the governed Kei Linear connector, change the status of ENG-42 to Done.",
-      "expected_output": "Not available: the governed connector executes only issue.create and comment.create writes. issue.update is denied with capability_not_supported. Offer to add a comment instead, or ask a person to change the status in Linear.",
-      "expectations": ["says updating the issue is not available through the connector", "names issue.update or capability_not_supported", "does not claim the status was changed"],
-      "checks": [
-        {"text": "says updating the issue is not available through the connector", "contains_any": ["not available", "not supported", "isn't available", "is not executed", "cannot", "can't", "not possible", "does not support", "doesn't support", "capability_not_supported"]},
-        {"text": "names issue.update or capability_not_supported", "contains_any": ["issue.update", "capability_not_supported"]},
-        {"text": "does not claim the status was changed", "not_contains": ["status has been changed", "status is now done", "successfully updated", "i've updated", "i have updated", "marked as done"]}
-      ]
-    },
-    {
-      "id": 12,
-      "prompt": "How does each person on my team connect their own Linear account to Kei so the agent files issues as them?",
-      "expected_output": "Create a per_user Linear connector: kei connectors create --provider linear --account-model per_user --workspace W --capabilities team.read,issue.read,issue.create,comment.create. Each user then connects from their chat harness: Kei runs the Linear OAuth authorization-code flow with PKCE and the user approves in the browser. There is no API key path.",
-      "expectations": ["uses kei connectors create with the linear provider", "chooses the per_user account model", "explains the user approves Linear OAuth in the browser", "declares the write capabilities"],
-      "checks": [
-        {"text": "uses kei connectors create with the linear provider", "contains_all": ["kei connectors create", "linear"]},
-        {"text": "chooses the per_user account model", "contains_any": ["per_user", "per-user"]},
-        {"text": "explains the user approves Linear OAuth in the browser", "contains_all": ["oauth", "browser"]},
-        {"text": "declares the write capabilities", "contains_all": ["issue.create"]}
-      ]
-    },
-    {
-      "id": 13,
-      "prompt": "My kei-proxy issue.create call to Linear timed out. Should I retry, and how do I avoid filing the bug twice?",
-      "expected_output": "Retry once with the same --idempotency-key (and the same input). Kei derives the issue's id from the key, so a retry returns the existing issue rather than creating a duplicate. Kei never retries a write on its own. Do not change the key.",
-      "expectations": ["retries with the same idempotency key", "explains a duplicate is not created", "warns against a new key"],
-      "checks": [
-        {"text": "retries with the same idempotency key", "contains_all": ["same", "idempotency"]},
-        {"text": "explains a duplicate is not created", "contains_any": ["duplicate", "twice", "second issue", "existing issue"]},
-        {"text": "warns against a new key", "regex": "(never|don.?t|do[*_\\s]+not)[*_\\s]+(generate|use|create|make|change|mint|pick)|(new|fresh|different) key would"}
+        {"text": "uses the issue creation tool and required fields", "contains_all": ["linear.create_issue", "team_key", "title"]},
+        {"text": "identifies the write permission", "contains_any": ["linear.write"]}
       ]
     }
   ]
