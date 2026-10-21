@@ -92,6 +92,10 @@ The code wins over this file. Never invent a flag or an environment variable.
    ```
 
    - `--src-pattern` is `user:<id>`, `group:<name>` or `*`.
+     `*` from the CLI grants nothing for `tool:` dst policies because the
+     CLI does not establish a bundle subject. Use `user:` or `group:` for
+     tool permits; `*` and bare/wildcard/`model:`/`connector:` target
+     patterns are silently skipped (HAI-673).
    - A write tool runs as soon as a permit allows it.
    - A permit only applies to a **registered** tool (section 3).
    - A harness-executor tool (an Open WebUI tool pack) needs an exact

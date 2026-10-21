@@ -245,10 +245,9 @@ parameters, and never log the credential `authorize` returns.
 
 ## connector invoke
 
-For governed data connectors. Per-call approval is removed;
-approvals now grant workspace access, not per-call permission. The
-`--approval-id` flag is no longer available. Pass `--idempotency-key`
-for retried writes.
+For governed data connectors. Approvals grant workspace access, not per-call
+permission. The `--approval-id` flag is no longer available. Pass
+`--idempotency-key` for retried writes.
 
 ## Identity mode: connectors run inside the daemon
 

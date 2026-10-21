@@ -564,6 +564,54 @@
         }
       ],
       "id": 14
+    },
+    {
+      "id": 15,
+      "prompt": "I created a Kei policy with --src-pattern \"*\" for a tool permit, but the tool calls are still denied. Does src * not work?",
+      "expected_output": "* grants nothing for tool:/capability: dst policies from the CLI because the CLI does not establish a bundle subject (HAI-673). The row is skipped with non_person_principal. Use user:<id> or group:<name> instead. * works only for harness command policies (shell:/skill:/path:) where kei harness sync renders it against every harness.",
+      "expectations": [
+        "The response says * grants nothing for tool dst from CLI.",
+        "The response says to use user: or group: instead.",
+        "The response says * works only for harness command policies."
+      ],
+      "checks": [
+        {
+          "text": "The response says * grants nothing for tool dst from CLI.",
+          "regex": "\\*[^.]{0,100}(?:grants nothing|does nothing|not (?:work|grant)|skip|silently)[^.]{0,80}(?:tool|CLI)"
+        },
+        {
+          "text": "The response says to use user: or group: instead.",
+          "regex": "(?:user:|group:)[^.]{0,80}(?:instead|not|rather than|not.*\\*)"
+        },
+        {
+          "text": "The response says * works only for harness command policies.",
+          "regex": "\\*[^.]{0,80}(?:work|render|applies?|used?)[^.]{0,60}(?:harness|shell:|skill:|path:)"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "I deleted the seeded web_search permit from our workspace policies but it came back after the next bundle refresh. How do I make the deletion stick?",
+      "expected_output": "The seeded web_search/search_wiki permits are re-seeded on every bundle refresh until HAI-670 is fixed. Deleting the agent-bound pair does not stick. The workaround is to create a higher-priority deny that overrides the seeded permit, or wait for HAI-670. The pedro-discord route pair has the same limitation.",
+      "expectations": [
+        "The response says seeded permits are re-seeded on bundle refresh.",
+        "The response says deletion does not stick until HAI-670.",
+        "The response offers a workaround (higher-priority deny)."
+      ],
+      "checks": [
+        {
+          "text": "The response says seeded permits are re-seeded on bundle refresh.",
+          "regex": "(?:seed|re.seed|reappear|come.?back|re.create)[^.]{0,100}(?:bundle refresh|refresh|HAI-670)"
+        },
+        {
+          "text": "The response says deletion does not stick until HAI-670.",
+          "regex": "(?:does not stick|won't stick|wont stick|not stick|until HAI-670|HAI-670.{0,40}(?:fix|resolv|address))"
+        },
+        {
+          "text": "The response offers a workaround (higher-priority deny).",
+          "regex": "(?:higher.priority|override|workaround|deny.*permit|permit.*deny)"
+        }
+      ]
     }
   ]
 }
