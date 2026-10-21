@@ -83,10 +83,10 @@ out.
   missing `KEI_RUNTIME_TOKEN`, or a wrong `KEI_RUNTIME_CONTROL_PLANE_URL`.
   The diagnosis is read-only environment checks (is `KEI_PROXY_DISABLED`
   unset or `false`, are `KEI_RUNTIME_TOKEN` and
-  `KEI_RUNTIME_CONTROL_PLANE_URL` present, without printing the token) plus
-  a single probe, the literal command `kei-proxy authorize`, for a
-  known-permitted tool (`kei-proxy authorize --user USER --tool TOOL
-  --action ACTION --resource RESOURCE`), expecting an allow. Change nothing.
+  `KEI_RUNTIME_CONTROL_PLANE_URL` present, without printing the token) plus a
+  preflight check using the daemon's Unix-socket `POST /v1/authorize` route
+  for a known-permitted tool. Do not use one-shot `kei-proxy authorize` as an
+  allow probe; v2 returns `preflight_required`. Change nothing.
   YOU MUST say "the diagnosis is read-only" in the answer, using the word
   "read-only".
 - **Legacy (v1) policy rows** (a bare `dst_pattern` like `search_wiki`, often
@@ -362,11 +362,12 @@ If **every** governed tool call is denied, check whether kei-proxy is disabled
 or misconfigured before assuming a policy problem. `KEI_PROXY_DISABLED=true`
 turns permits off, so a disabled, missing, or misconfigured proxy denies every
 governed call (fail-closed, HAI-249) — it never permits one. The diagnosis
-is read-only checks plus a single `kei-proxy authorize` probe. Read-only
-checks: confirm the harness environment has `KEI_PROXY_DISABLED` unset (or
-`false`) and that `KEI_RUNTIME_TOKEN` and `KEI_RUNTIME_CONTROL_PLANE_URL` are
-present, then run the literal command `kei-proxy authorize` once, for a
-known-permitted tool, and expect an allow.
+is read-only checks plus a daemon socket preflight. Read-only checks: confirm
+the harness environment has `KEI_PROXY_DISABLED` unset (or `false`) and that
+`KEI_RUNTIME_TOKEN` and `KEI_RUNTIME_CONTROL_PLANE_URL` are present, then use
+the daemon Unix-socket `POST /v1/authorize` route for a known-permitted tool.
+Do not use one-shot `kei-proxy authorize` as an allow probe; v2 returns
+`preflight_required`.
 
 ### 4a. Check bundle expiry (harness command policies)
 
@@ -552,7 +553,7 @@ The `kei-harness-setup` skill has the full version with exact commands.
 | `kei bot status` shows `pending` | No first heartbeat yet | Wait; check outbound connectivity. Do not bind/rotate for pending alone |
 | No heartbeat after terminal exits | `kei runtime service install` not available (HAI-406) | Use systemd/launchd/container restart policy as workaround; run `kei runtime service install` when available |
 | Every governed call denied with `reason_code: policy_bundle_expired` | Bundle `not_after` passed; the catalog does not reissue expired bundles ([HAI-427](https://linear.app/haikeilabs/issue/HAI-427)), so runtimes go dark 12 h after the last policy edit | Check `<state_dir>/policy/bundle.json` / `state.json` (by default `~/Library/Application Support/kei-proxy` on macOS, `~/.local/share/kei-proxy` on Linux), or console Agents → Policy bundle **Not ready** (bundle expired). Make any policy edit to force a new bundle, then `kei-proxy policy sync` (see 4a) |
-| Every governed call denied | `KEI_PROXY_DISABLED=true`, missing token, wrong URL, or kei-proxy not on `PATH` | Unset `KEI_PROXY_DISABLED`, inject token from secret manager, confirm URL (no `/api/v1`), read-only checks first, then a single `kei-proxy authorize` probe for a known-permitted tool |
+| Every governed call denied | `KEI_PROXY_DISABLED=true`, missing token, wrong URL, or kei-proxy not on `PATH` | Unset `KEI_PROXY_DISABLED`, inject token from secret manager, confirm URL (no `/api/v1`), read-only checks first, then preflight a known-permitted tool with daemon Unix-socket `POST /v1/authorize`. One-shot `kei-proxy authorize` returns `preflight_required`; it is not an allow probe. |
 
 ### Harness registration / sync
 
@@ -586,7 +587,7 @@ The `kei-harness-setup` skill has the full version with exact commands.
 - When a credential is lost, mention **"hash"**, **"cannot be recovered"**, **"rotation"** (not just "rotate"), **"approval"** (the exact word "approval", not "approve"), and **"piping"** (the new credential is piped to its destination).
 - When CA certificate is missing, mention **"ca-certificates"**, **"Docker"**, **"final stage"**, **"earlier build stage"**, **"carry over"**, **"apt-get"**, and **"docker run"**.
 - When diagnosing agent-ID mismatch, mention **"kei-proxy"** **"0.1.11"**, **"agentware"** **"0.4.0"**, **"upgrading"** (for both), **"attach"**, **"agent"**, **"installation"**, and that the harness must **"deny governed calls"** rather than guess an ID.
-- When all governed calls are denied, mention **"KEI_PROXY_DISABLED"**, **"fail-closed"**, and that a disabled, missing, or misconfigured proxy **"denies"** every **"governed call"** and never permits one; rule the proxy out before blaming a **"policy change"**; and say the diagnosis is **"read-only"** environment checks plus a single **"kei-proxy authorize"** probe.
+- When all governed calls are denied, mention **"KEI_PROXY_DISABLED"**, **"fail-closed"**, and that a disabled, missing, or misconfigured proxy **"denies"** every **"governed call"** and never permits one; rule the proxy out before blaming a **"policy change"**; and say the diagnosis is **"read-only"** environment checks plus a daemon Unix-socket **"POST /v1/authorize"** preflight. Do not recommend one-shot `kei-proxy authorize` as an allow probe.
 - When the policy bundle is stale, mention **"HAI-403"**, **"stale policy bundle"**, **"retrying sync"**, **"bundle refresh"**, **"policy edit"**, **"background refresh"**, and that **"desktop"** harnesses are **"auto-discovered"**.
 - When an identity-mode connector call denies `credential_unavailable` or `credential_backend_mismatch`, mention **"kei-proxy credential sync"**, **"KEI_RUNTIME_STATE_DIR"**, **"connector-credentials.json"**, **"kei connectors reconnect"**, and **"proxy-v0.2.4"** (it is not live in that release; it needs kei-proxy 0.2.5 or newer and the `POLICY_BUNDLE_V2_CONNECTORS` gate).
 - When legacy policy rows come up (bare `dst_pattern` without a `tool:` prefix), mention **"bare_target"**, **"grant nothing"**, **"newly grant"** (converting is a policy decision), **"Delete this legacy row"**, **"kei policies delete"**, and **"approval"**.

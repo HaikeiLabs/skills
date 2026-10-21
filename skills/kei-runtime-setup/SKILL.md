@@ -25,7 +25,7 @@ The order, start to finish (sections 0–8 below have the commands):
    heartbeat itself. Name the `kei-proxy` binary when you give this step; it
    is the runtime on every path.
 7. Bind with `kei bot bind` only after the first heartbeat is reported.
-8. Confirm a deliberately unbound call is denied (fail closed).
+8. Confirm a call without a matching tool permit is denied (fail closed).
 
 ## Concepts
 
@@ -74,21 +74,22 @@ runtime never needs `kei login`.
 Governed tool calls are decided on the same host as the harness. `kei-proxy`
 supports two modes:
 
-- **One-shot CLI (default)** — the harness spawns `kei-proxy authorize` per
-  operation and reads the decision from its stdout+exit code. No listener.
-  This is the simplest path; Agentware evaluators use it.
+- **One-shot CLI** — the runtime invokes `kei-proxy authorize` as part of its
+  execution flow. Do not use it as an allow probe: v2 returns
+  `preflight_required`.
 - **Daemon mode (opt-in)** — `kei-proxy serve` runs as a long-lived daemon
   exposing HTTP over a Unix socket (`KEI_RUNTIME_SOCKET_PATH`). The normal
   deployment is a same-host daemon (bare metal) or a same-container daemon
   (Docker); on Kubernetes it can run as an optional same-pod companion
   container. The socket default is `$TMPDIR/kei-proxy/runtime.sock` on macOS
   and `/run/kei-proxy/runtime.sock` on Linux (`KEI_RUNTIME_SOCKET_PATH`
-  overrides both). The daemon serves readiness (`/healthz`, `/readyz`), model
-  routes (`/v1/models`, `/v1/chat/completions`), and a governed
-  `POST /v1/authorize` plus `PUT`/`DELETE /v1/session` on the owner-only
-  socket. The decision is made **locally** by the runtime PDP against the
+  overrides both). The daemon serves readiness (`/healthz`, `/readyz`) and
+  governed `POST /v1/authorize` plus `PUT`/`DELETE /v1/session` routes on the owner-only
+  socket. Use its `POST /v1/authorize` route to preflight whether a tool call
+  is allowed. The decision is made **locally** by the runtime PDP against the
   synced policy bundle (no per-call catalog round trip), and a background
-  refresher keeps the bundle current (see "Keep the heartbeat running").
+  refresher keeps the bundle current (see "Keep the heartbeat running"). Model
+  inference does not go through kei-proxy.
 
 See the `kei-proxy` skill for the full CLI/daemon comparison and the socket
 contract (`docs/unix-socket.md` in the kei-connector-runtime repo). Do not
@@ -220,7 +221,7 @@ verified and heartbeating); they differ in where the runtime settings live.
 | Get `kei-proxy` | Comes with `kei`: since kei-cli v0.1.4 the release installer also installs a pinned `kei-proxy` next to `kei` | Build `kei-proxy:local` from the Kei repo (below) or copy the bundled binary into the image | Same as one-shot CLI; the daemon is the same binary invoked via `kei-proxy serve` |
 | Settings live in | `~/.config/kei.yaml` (mode `0600`), written by `kei setup` | Harness process environment, from the secret manager | Harness process environment; daemon inherits `KEI_RUNTIME_SOCKET_PATH` |
 | Bootstrap with | `kei runtime bootstrap` | `kei-proxy runtime bootstrap` | `kei-proxy runtime bootstrap` before starting `serve` |
-| Governed calls | `kei-proxy authorize` subprocess | `kei-proxy authorize` subprocess | `kei-proxy authorize` subprocess, or `POST /v1/authorize` over the socket (local PDP) |
+| Check whether a governed call is allowed | `POST /v1/authorize` over daemon Unix socket | `POST /v1/authorize` over daemon Unix socket | `POST /v1/authorize` over daemon Unix socket (local PDP) |
 
 ### Path A: workstation — `kei setup` then `kei runtime bootstrap`
 
@@ -275,11 +276,12 @@ public `kei-proxy` image is published; do not invent a registry URL. When
 someone asks for a sidecar "listening on a port", answer with all three:
 
 1. There is no image to pull; build `kei-proxy:local` as above.
-2. One-shot CLI mode runs `kei-proxy authorize` as a subprocess per call;
-   daemon mode (`kei-proxy serve`) is a same-host or same-container daemon.
-3. The daemon serves the governed `POST /v1/authorize` route over its Unix
-   socket (decided locally by the runtime PDP), not over a TCP port. Name the
-   authorize route; "it uses a socket" alone is not enough.
+2. The runtime may use the one-shot CLI execution flow or the long-running
+   daemon (`kei-proxy serve`), which runs on the same host or container.
+3. To check whether a tool call is allowed, use the daemon's `POST
+   /v1/authorize` route over its Unix socket (decided locally by the runtime
+   PDP), not TCP. One-shot `kei-proxy authorize` returns `preflight_required`
+   and is not an allow probe.
 
 Then, in the runtime, before the harness accepts work:
 
@@ -289,9 +291,9 @@ kei-proxy runtime bootstrap
 
 #### Optional: run as a daemon (same-host or same-container)
 
-Instead of spawning `kei-proxy authorize` per call via the CLI, the harness
-can start `kei-proxy serve` as a long-lived daemon. The normal deployment is
-a same-host daemon (bare metal) or a same-container daemon (Docker); on
+For v2 policy preflight, the harness can use `kei-proxy serve` as a long-lived
+daemon. The normal deployment is a same-host daemon (bare metal) or a
+same-container daemon (Docker); on
 Kubernetes it can run as an optional same-pod companion container. The daemon
 communicates over a Unix domain socket. This is optional and opt-in.
 
@@ -306,9 +308,9 @@ socket file mode is `0600` — both must run as the same UID.
 kei-proxy serve
 ```
 
-The daemon serves readiness (`/healthz`, `/readyz`), model endpoints
-(`/v1/models`, `/v1/chat/completions`), and a governed `POST /v1/authorize`
-plus `PUT`/`DELETE /v1/session` on the owner-only socket. The authorize
+The daemon serves readiness (`/healthz`, `/readyz`), and a governed
+`POST /v1/authorize` plus `PUT`/`DELETE /v1/session` on the owner-only socket.
+Model inference does not go through kei-proxy. The authorize
 decision is made **locally** by the runtime PDP against the synced policy
 bundle — no per-call catalog round trip — and the request carries no subject
 field (identity comes from the in-memory session). A background refresher polls
@@ -412,7 +414,7 @@ kei-proxy credential sync | jq '{claimed, success}'
 - kei-proxy serves on a Unix socket; keep its TCP listener on loopback
   (`KEI_PROXY_LISTEN_ADDR=127.0.0.1:...`), never on an ingress port.
 - Only the harness's own UI belongs behind your ingress.
-- Keep the model endpoints and the secret store on private networking.
+- Keep the secret store on private networking.
 - Never put the sync private key, `KEI_RUNTIME_TOKEN` or provider keys in argv,
   logs or an image.
 
@@ -573,11 +575,13 @@ in `kei-harness-setup`.
 ## 8. Prove it fails closed
 
 A runtime is not set up until a denial has been observed. Run one permitted,
-disposable operation and one that no policy allows (for example an unbound
-connector). The denied call must fail without a provider call and produce only
-redacted audit metadata. Unsupported harnesses, missing bindings, invalid
-installation scope, stale policy, and requests with no matching policy are all
-explicit **DENY** — never a fallback to broader scope.
+disposable operation and one that no policy allows (for example a connector
+with no matching policy), and use the daemon Unix-socket `POST /v1/authorize`
+route to check the policy decision. One-shot `kei-proxy authorize` returns
+`preflight_required`; it is not an allow probe. The denied call must fail
+without a provider call and produce only redacted audit metadata. Unsupported
+harnesses, invalid installation scope, stale policy, and requests with no
+matching policy are all explicit **DENY** — never a fallback to broader scope.
 
 If the runtime writes local audit JSONL through `KEI_PROXY_AUDIT`, ship it:
 

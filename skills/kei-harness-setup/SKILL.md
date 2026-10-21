@@ -1,6 +1,6 @@
 ---
 name: kei-harness-setup
-description: "Choose and set up Kei harnesses: SDK (Agentware), Claude Code, Codex, Pi, OpenCode, or Open WebUI. Install skills or adapters, pair with a runtime and kei-proxy, pass identity on governed calls, and verify setup. See `kei-pi-setup` or `kei-openwebui`."
+description: "Choose and set up Kei harnesses: SDK (Agentware), Claude Code, Codex, Pi, OpenCode, or Open WebUI. Install skills or adapters, pair with a runtime and kei-proxy, pass identity on governed calls, verify setup, and prove calls without matching permits are denied. See `kei-pi-setup` or `kei-openwebui`."
 ---
 
 # Set up a harness with Kei
@@ -32,8 +32,8 @@ line naming that skill (DeepSeek-style short answers still need it):
   discovered the skills; then do the runtime half (`kei login`, then runtime
   setup).
 - **Making tool calls go through Kei:** installing skills does not by itself
-  allow tool calls; policy decides. Include a deny check: an unbound call must
-  fail.
+  allow tool calls; policy decides. Include a deny check: a call without a
+  matching permit must fail.
 
 - **Model or tool formats:** `kei-openai-backends`. Never answer with the
   skill name alone, even in a one-line answer; always add the one-line
@@ -385,14 +385,13 @@ To read the assigned agent ID at runtime, use the agentware SDK's
 `link.identity()` (see `agentware-sdk` skill). If identity is not available,
 deny governed calls — never guess a fallback agent ID.
 
-### 4a. Use KeiProxyEvaluator instead of hand-rolling authorize
+### 4a. Use the daemon socket for an allow check
 
-If your harness imports the agentware SDK (any of the three ports), use
-`KeiProxyEvaluator` instead of calling `kei-proxy authorize` directly. It
-handles spawn, timeout, env filtering, decision parsing, enrollment
-extraction, and all fail-closed invariants. See the `agentware-sdk` skill for
-per-language construction, the decision table, and testing with shared
-fixtures.
+To check whether a tool call is allowed, use the daemon's Unix-socket
+`POST /v1/authorize` route. A one-shot `kei-proxy authorize` call is not an
+allow probe in v2: it returns `preflight_required`. If the harness imports the
+agentware SDK, use its evaluator for the governed tool execution path; see the
+`agentware-sdk` skill for per-language construction and testing.
 
 Do **not** keep a local allow list in the harness. The workspace policy bundle
 (`kei-proxy` + `kei-policy-catalog`) is the single source of truth for what
@@ -405,32 +404,22 @@ is allowed. A local allow list is stale on deploy and invisible to audit.
 
 ## 5. Grant access (console)
 
-Access comes from a policy assigned to a group that the agent belongs to — agents
-are group members since HAI-614, so there is no per-agent binding step. A tool is
-not allowed just because the adapter exposes it; baseline tools like `search_wiki`
-and `web_search` are policy-governed too. Manage group membership and policies in
-the console under **Agents → Groups**.
+A harness-executor tool (for example, an Open WebUI tool pack) needs an exact
+`tool:<name>` permit, a registered tool, and a linked user. It does not need an
+agent-connector binding. Agent-connector bindings apply only to connector/MCP
+tools. A tool is not allowed just because the adapter exposes it; manage group
+membership and policies in the console under **Agents → Groups**.
 
 ## 6. Prove it fails closed
 
-Run one permitted, disposable call and one deliberately **unbound** call.
-An unbound call has no agent binding, no matching policy, or references a tool
-not registered for this installation — it must be denied:
-
-```sh
-# Permitted call (agent is bound, tool is registered)
-kei-proxy authorize --user TEST_USER_ID --tool github.create_pr \
-  --action github:write --resource repo:acme/widgets; echo "exit=$?"
-
-# Unbound call — no agent binding, no registration, must be DENY
-kei-proxy authorize --user UNBOUND_USER --tool nonexistent.tool \
-  --action unknown:action --resource unknown:resource; echo "exit=$?"
-```
-
-The unbound call must be denied without any provider call and produce only
-redacted audit metadata. Exit code `0` is ALLOW; any non-zero exit is DENY
-(or an error). Missing bindings, an unregistered harness, invalid installation
-scope, stale policy, and no matching policy must all be **DENY**. The harness
+Run one permitted, disposable call and one deliberately denied call through
+the harness. For a preflight check, use the daemon Unix-socket
+`POST /v1/authorize` route. Do not run one-shot `kei-proxy authorize` as an
+allow probe; v2 returns `preflight_required`. A harness-executor tool is
+denied when it has no matching exact tool permit, is not registered, or the
+user is unlinked. A denied call must fail without a provider call and produce
+only redacted audit metadata. Invalid installation scope, stale policy, and
+no matching policy must all be **DENY**. The harness
 is not set up until you have seen a denial — until then the agent can see the
 Haikei skills but has not proven that governed calls actually go through Kei.
 
@@ -463,8 +452,8 @@ harness should not run with kei-proxy disabled.
 
 ## 7. Make one governed call in the harness (first use)
 
-Shell-level checks (`kei-proxy authorize`, `verify.sh`) prove the plumbing, but
-they do not prove the harness itself makes a governed call. Setup is not
+The daemon socket's `POST /v1/authorize` route can preflight a policy decision,
+but it does not prove the harness itself makes a governed call. Setup is not
 complete until the harness does.
 
 In the harness, make **one** governed tool call — for example, have the agent

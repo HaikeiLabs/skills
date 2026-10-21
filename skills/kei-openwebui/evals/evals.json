@@ -4,13 +4,12 @@
     {
       "id": 1,
       "prompt": "We're Acme. I want our Open WebUI governed by Kei using your published openwebui-kei image. What do I set up on the Kei side before I deploy the container?",
-      "expected_output": "Creates the openwebui installation with kei bot init --platform openwebui, pipes kei bot credential into a secret manager, creates and assigns a model profile, and writes model:invoke and tool:<name> permits with kei policies create.",
+      "expected_output": "Creates the openwebui installation with kei bot init --platform openwebui, pipes kei bot credential into a secret manager, and writes exact tool:<name> permits with kei policies create for governed tools. The model already configured in Open WebUI or its harness works without a Kei model profile; profiles are optional credential convenience.",
       "expectations": [
         "The response creates the installation with platform openwebui.",
         "The response delivers the runtime credential with kei bot credential.",
-        "The response gives the agent a model profile.",
-        "The response writes a model:invoke permit.",
-        "The response writes tool:<name> permits with kei policies create."
+        "The response writes tool:<name> permits with kei policies create.",
+        "The response does not require a model:invoke permit or a model profile."
       ],
       "checks": [
         {
@@ -27,24 +26,15 @@
           ]
         },
         {
-          "text": "The response gives the agent a model profile.",
-          "contains_any": [
-            "kei model-profiles create",
-            "kei model-profiles assign"
-          ]
-        },
-        {
-          "text": "The response writes a model:invoke permit.",
-          "contains_all": [
-            "model:invoke"
-          ]
-        },
-        {
           "text": "The response writes tool:<name> permits with kei policies create.",
           "contains_all": [
             "kei policies create",
             "tool:"
           ]
+        },
+        {
+          "text": "The response does not require a model:invoke permit or a model profile.",
+          "regex": "(?:does not need|do not need|don't need|don't have to|do not have to|does not have to|no need for|no need to|not required|not necessary|unnecessary|unneeded|optional|without)[^.\\n]{0,80}(?:model profile|model:invoke)|(?:model profile|model:invoke)[^.\\n]{0,80}(?:not required|not needed|not necessary|no need|optional|unnecessary|unneeded|without|do not need|does not need|don't need|don't have to|only)"
         }
       ]
     },
@@ -210,16 +200,7 @@
       "checks": [
         {
           "text": "The response says the pack declares no governed tools.",
-          "contains_any": [
-            "no tools",
-            "no governed tools",
-            "doesn't declare",
-            "does not declare",
-            "declares no",
-            "no `tools`",
-            "has no `tools`",
-            "missing the `tools`"
-          ]
+          "regex": "(?:no|zero|empty|missing|without|lacks?|absent|declares? no|doesn't declare|does not declare|none)[^.\\n]{0,40}tools?|tools?[^.\\n]{0,30}(?:empty|missing|absent|none)|manifest[^.\\n]{0,30}(?:empty|missing|absent|none)"
         },
         {
           "text": "The response explains an empty manifest would unregister every tool.",
@@ -326,30 +307,32 @@
     {
       "id": 9,
       "prompt": "Open WebUI with openwebui-kei shows no models in the model picker. What do I check?",
-      "expected_output": "The Kei Pipe is the only provider and lists the agent's model profile; check kei-proxy is ready, kei model-profiles assignment for the agent, a model:invoke permit, and /v1/models on the socket.",
+      "expected_output": "Model inference uses the model configured in Open WebUI or its harness and does not go through kei-proxy. Check the configured model provider, endpoint, credentials, and model name; a Kei model profile is optional credential convenience.",
       "expectations": [
-        "The response checks the agent's model profile assignment.",
-        "The response checks a model:invoke permit.",
-        "The response checks the /v1/models endpoint."
+        "The response checks Open WebUI model provider configuration.",
+        "The response says inference does not go through kei-proxy.",
+        "The response says a Kei model profile is optional."
       ],
       "checks": [
         {
-          "text": "The response checks the agent's model profile assignment.",
+          "text": "The response checks Open WebUI model provider configuration.",
           "contains_any": [
-            "kei model-profiles assignment",
-            "kei model-profiles assign"
+            "model provider",
+            "endpoint",
+            "model name",
+            "credentials"
           ]
         },
         {
-          "text": "The response checks a model:invoke permit.",
-          "contains_all": [
-            "model:invoke"
-          ]
+          "text": "The response says inference does not go through kei-proxy.",
+          "regex": "(?:inference|model calls?|chat completions?)[^.\\n]{0,80}(?:not|does not|never)[^.\\n]{0,40}kei-proxy|kei-proxy[^.\\n]{0,80}(?:not|does not|never)[^.\\n]{0,40}(?:inference|model calls?|chat completions?)"
         },
         {
-          "text": "The response checks the /v1/models endpoint.",
-          "contains_all": [
-            "/v1/models"
+          "text": "The response says a Kei model profile is optional.",
+          "contains_any": [
+            "optional",
+            "not required",
+            "does not need"
           ]
         }
       ]
@@ -393,44 +376,28 @@
     },
     {
       "id": 11,
-      "prompt": "We want the chat-users group to be able to cancel orders with acme.orders.cancel_order through Open WebUI. Do users need to confirm writes, and what policy do I create?",
-      "expected_output": "Kei policy alone decides; there is no confirmation step. kei policies create --src-pattern group:chat-users --dst-pattern tool:acme.orders.cancel_order --effect permit, bound to the agent, after the tool is registered.",
+      "prompt": "We want the chat-users group to be able to cancel orders with acme.orders.cancel_order through Open WebUI. Do users need to confirm writes, what policy do I create, and what has to be in place before that permit lets the tool run?",
+      "expected_output": "Kei policy decides without a per-call approval step. Create an exact tool:<name> permit with kei policies create after registering the harness-executor tool and linking the user; agent-connector bindings apply only to connector/MCP tools.",
       "expectations": [
-        "The response creates a permit with kei policies create.",
-        "The response uses the tool:<name> destination.",
-        "The response uses a group source pattern.",
-        "The response says there is no confirmation step."
+        "The response creates an exact tool permit with kei policies create.",
+        "The response says the user must be linked and the tool registered.",
+        "The response does not require an agent-connector binding for the tool pack."
       ],
       "checks": [
         {
-          "text": "The response creates a permit with kei policies create.",
+          "text": "The response creates an exact tool permit with kei policies create.",
           "contains_all": [
             "kei policies create",
-            "--effect permit"
-          ]
-        },
-        {
-          "text": "The response uses the tool:<name> destination.",
-          "contains_all": [
             "tool:acme.orders.cancel_order"
           ]
         },
         {
-          "text": "The response uses a group source pattern.",
-          "contains_all": [
-            "group:chat-users"
-          ]
+          "text": "The response says the user must be linked and the tool registered.",
+          "regex": "(?=[\\s\\S]*regist)(?=[\\s\\S]*(?:linked user|user[^.\\n]{0,40}link|link[^.\\n]{0,40}user|link[^.\\n]{0,40}identity))"
         },
         {
-          "text": "The response says there is no confirmation step.",
-          "contains_any": [
-            "no confirmation",
-            "no approval",
-            "not need to confirm",
-            "don't need to confirm",
-            "no need to confirm",
-            "without confirmation"
-          ]
+          "text": "The response does not require an agent-connector binding for the tool pack.",
+          "regex": "(?:does not need|do not need|don't need|does not require|do not require|no need for|not required|without|no)[^.\\n]{0,60}agent[- ]connector binding|agent[- ]connector binding[^.\\n]{0,80}(?:only apply|apply only|only for|are only|only)"
         }
       ]
     },
@@ -464,6 +431,34 @@
           ]
         }
       ]
+    },
+    {
+      "prompt": "My Open WebUI model stopped working after we set up Kei. Does the model need to go through kei-proxy, and do I need to create a model profile?",
+      "expected_output": "The model configured in Open WebUI or its harness keeps working without a Kei model profile. Model profiles are optional convenience for passing model credentials. Inference does not go through kei-proxy. Kei governs tool calls.",
+      "expectations": [
+        "Model configured in harness works without Kei model profile.",
+        "Model profiles are optional credential convenience.",
+        "Inference does not go through kei-proxy."
+      ],
+      "checks": [
+        {
+          "text": "Model configured in harness works without Kei model profile.",
+          "regex": "(?:does not need|do not need|don't need|don't have to|do not have to|does not have to|no need for|no need to|not required|not necessary|unnecessary|unneeded|optional|without)[^.\\n]{0,80}(?:model profile|model:invoke)|(?:model profile|model:invoke)[^.\\n]{0,80}(?:not required|not needed|not necessary|no need|optional|unnecessary|unneeded|without|do not need|does not need|don't need|don't have to|only)"
+        },
+        {
+          "text": "Model profiles are optional credential convenience.",
+          "contains_any": [
+            "credential",
+            "credentials",
+            "API key"
+          ]
+        },
+        {
+          "text": "Inference does not go through kei-proxy.",
+          "regex": "(?:inference|model calls?|chat completions?)[^.\n]{0,80}(?:not|does not|never)[^.\n]{0,40}kei-proxy|kei-proxy[^.\n]{0,80}(?:not|does not|never)[^.\n]{0,40}(?:inference|model calls?|chat completions?)"
+        }
+      ],
+      "id": 13
     }
   ]
 }

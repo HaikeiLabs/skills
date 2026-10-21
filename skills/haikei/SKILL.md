@@ -104,7 +104,7 @@ exist in the code today.
 | Stand up a customer-hosted runtime / kei-proxy | kei CLI (`kei bot …`) + `kei-proxy runtime` | New installation → credential → config → bootstrap → heartbeat → bind. The CLI surface (login, init, credential, bind) lives in `kei-cli`; the boot/run surface lives in `kei-runtime-setup` | `kei-runtime-setup` + `kei-cli` |
 | Rotate or revoke a runtime credential (KEI_RUNTIME_TOKEN) | kei CLI `bot credential --rotate` | Scheduled rotation, suspected leak, or a bootstrap missing `workspace_id`. Rotation invalidates the old token immediately; plan the restart | `kei-credential-rotation` |
 | Sync a customer's Entra groups and users into a Kei org | Azure portal + kei CLI `kei directory-sync` | App roles → Kei groups (`group:<role value>`), users created as org members; set up the sync app's Graph permissions and federated credential, dry run, report, go live, or debug a failed run | `kei-directory-sync` |
-| Run Open WebUI with Kei | `openwebui-kei` image + kei CLI (`kei bot init --platform openwebui`, `kei model-profiles`, `kei policies`) | Installation, credential, model profile, `model:invoke` / `tool:<name>` permits, the image by digest (UID 10001), a tool pack and the boot tool sync, linking users, or debugging `tool_not_registered`, `identity.unlinked` or no models | `kei-openwebui` |
+| Run Open WebUI with Kei | `openwebui-kei` image + kei CLI (`kei bot init --platform openwebui`, `kei policies`) | Installation, credential, optional model profile for model credentials, `tool:<name>` permits, the image by digest (UID 10001), a tool pack and the boot tool sync, linking users, or debugging `tool_not_registered`, `identity.unlinked` or no models | `kei-openwebui` |
 | Connect Claude Code, Codex, or OpenCode to Kei | Haikei skills + kei-proxy | Install these skills in a coding harness and route its governed calls through the runtime | `kei-harness-setup` |
 | Set up Pi with Kei | `kei-lime-pi` extension + local `kei-proxy` socket | Install the Pi package, keep the runtime token out of Pi, and verify supported tool calls fail closed | `kei-pi-setup` |
 | Create an organization or workspace | Kei API | Set up an org, workspaces, seats, plans, members. Always inspect the actual API routes before calling an endpoint | `kei-api` |
@@ -182,8 +182,10 @@ command and version requirement.
   (`kei audit keys create`).
 - **"Run our Open WebUI through Kei."** → `kei-openwebui`. Create the
   installation with `kei bot init --platform openwebui`, pipe
-  `kei bot credential` into the secret manager, assign a model profile, and
-  write `model:invoke` and `tool:<name>` permits. Deploy
+  `kei bot credential` into the secret manager, and write `tool:<name>` permits
+  for governed tools. A model configured in Open WebUI or its harness works
+  without a Kei model profile; profiles are optional credential convenience,
+  and inference does not go through kei-proxy. Deploy
   `openwebui-kei@sha256:<digest>` as UID 10001 with the tool pack layered on;
   the boot log shows `tool sync: registered N tool(s)`.
 - **"Set up Kei in Claude Code for the team."** → `kei-harness-setup`.
