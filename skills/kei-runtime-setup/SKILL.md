@@ -431,6 +431,14 @@ connector works differently: an `http_api` connector such as the one named
 tenant secret store, and it can only find that secret if
 **`kei-proxy credential sync` has already delivered it to this runtime**.
 
+**Air-gapped-after-session-start principle (HAI-672):** Connector credentials
+are loaded into the daemon's memory only after a session starts (`POST
+/v1/session`). Before that the runtime holds no tenant credentials — not even
+for `opaque_ref` connectors whose secrets were synced earlier. This means a
+compromised runtime process cannot exfiltrate credentials unless a session is
+explicitly open. Idle sessions are reaped after `KEI_SESSION_IDLE_TTL`
+(default 30 minutes), which also evicts their in-memory credentials.
+
 1. The runtime needs a credential-sync key (`KEI_CREDENTIAL_SYNC_KEY_ID`,
    `KEI_CREDENTIAL_SYNC_PRIVATE_KEY`, registered at bootstrap with
    `KEI_CREDENTIAL_STORE_INSTALLATION_ID`; see

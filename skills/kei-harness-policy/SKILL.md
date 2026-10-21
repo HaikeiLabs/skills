@@ -250,19 +250,26 @@ and **dst-pattern** says **what** it governs.
 
 - **People and agents are the normal sources.** `user:`, `email:`, `group:`,
   `agent:` and `*` apply whichever harness produces the call.
+- **`*` only meaningfully applies to harness command policies** (`shell:`,
+  `skill:`, `path:`) where `kei harness sync` renders it against every
+  harness. For `tool:` or `capability:` dst policies, `*` from the CLI
+  grants nothing because the CLI does not establish a bundle subject —
+  use `user:` or `group:` instead (HAI-673).
 - **`harness:<kind>` / `harness:<id>` is optional and narrower**, for rules that
   differ by harness ("Codex may never run `rm`"). It applies to everyone on
   that harness. It is valid only with a harness destination (`shell:`,
   `skill:`, `path:`, `mcp:`, or a harness tool name such as
   `tool:claude_code.edit`); the catalog rejects any other destination on save
   with `INVALID_ARGUMENT`.
-- **`agent:<id>` with an exact `tool:` or `capability:` destination is checked
-  at call time** by `kei-proxy`: it matches when **either** the user or the
-  calling agent matches. A broad agent permit can therefore grant around a
-  user's narrower rules; cap it with a higher-priority deny (for example
-  `agent:<id>` `shell:git push --force` deny at 60 over `agent:<id>`
-  `shell:git` permit at 50). An `agent:` source with a harness destination is
-  rendered by `kei harness sync`.
+- **`agent:<id>` is a source principal** (HAI-673). When used with an exact
+  `tool:` or `capability:` destination it is checked at call time by
+  `kei-proxy`: it matches when **either** the user or the calling agent
+  matches. A broad agent permit can therefore grant around a user's narrower
+  rules; cap it with a higher-priority deny (for example `agent:<id>`
+  `shell:git push --force` deny at 60 over `agent:<id>` `shell:git` permit at
+  50). An `agent:` source with a harness destination is rendered by
+  `kei harness sync`. The `--agent-id` CLI flag is a scope column that narrows
+  which agent a policy applies to — it is not a source principal.
 
 ### Destinations beyond the harness
 
@@ -604,9 +611,14 @@ command. Scope denies to the prefix you mean.
 - **A skipped deny never becomes an allow.** When a person-sourced deny cannot
   render, sync withholds the permits it overlaps and the harness asks; it does
   not render those permits as allows.
-- **Policies are created by hand, never seeded.** There is no `kei policies
-  seed` or `--init-defaults` flag. The first policy in a workspace is a
-  conscious authoring act.
+- **Policies are created by hand, never seeded — with two exceptions.**
+  `web_search` and `search_wiki` tool permits are seeded when the workspace
+  is created. A `pedro-discord` route pair (agent-bound permit + bind) is
+  seeded when the pedro-discord agent is set up. Deleting the agent-bound
+  permit does not stick until HAI-670 is fixed; the seed row reappears on
+  the next bundle refresh. There is no `kei policies seed` or
+  `--init-defaults` flag for other policies. The first non-seeded policy in a
+  workspace is a conscious authoring act.
 - **There is no report-only enforcement mode.** The report-only hook (HP-C6)
   only audits; it is not a way to log violations without enforcing them.
   Preview a change with `kei harness sync --dry-run` or by listing the

@@ -449,6 +449,7 @@ does (`ClassifyPolicyEnforcement` in kei-policy-catalog
 
 | `dst_pattern` | What the catalog does | Doctor verdict |
 |---|---|---|
+| Any dst, src is non-person (`*`, `org:`, etc.) | Skipped, `non_person_principal`; the source principal is neither a person nor an agent (HAI-673) | **Legacy src.** Grants nothing. Use `user:`, `group:`, or `agent:` |
 | No `:` at all (`search_wiki`, `web_search`) | Skipped, `skip_reason: bare_target` | **Legacy row.** Grants nothing |
 | `tool:` or `capability:` that is not one exact name (for example `tool:*`) | Skipped (`tool_target_wildcard`, `capability_target_wildcard`) | Legacy row. Grants nothing |
 | `model:<name>` | Skipped, `model_policy_superseded_by_assignment`; model access comes from the agent's model-profile assignment (HAI-459) | Grants nothing; see `kei model-profiles assignment` |
