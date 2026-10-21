@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Set up Pi with Kei on my Mac. I want the instructions and adapter, and I do not want the runtime token in Pi's environment.",
+      "prompt": "Set up Pi with Kei on my Mac. Give me the instructions and adapter install steps, say whether installing packages alone grants policy permission, keep the runtime token out of Pi's environment, and include tests for both permitted and denied calls.",
       "expected_output": "Install HaikeiLabs/skills and HaikeiLabs/kei-lime-pi with Pi's Git package manager. Keep the runtime credential in kei-proxy's protected configuration; Pi calls the local owner-only socket. Confirm an active v2 bundle and test both a permitted and denied call.",
       "expectations": [
         "The answer gives both Pi package install commands from the official GitHub repositories.",
@@ -20,17 +20,60 @@
     },
     {
       "id": 2,
-      "prompt": "The policy bundle permits search_wiki. Can I just ask Pi to call search_wiki now?",
-      "expected_output": "Not with the current kei-lime-pi package: it implements read/write/edit and kei_connector, not search_wiki. A policy or Discord harness registration does not add a Pi executor. Add a Pi-side implementation and matching runtime registration/policy; do not call the provider directly as a fallback.",
+      "prompt": "The policy bundle permits search_wiki. Does the current Pi package implement search_wiki, and can I call its provider directly if Pi blocks it?",
+
+
+      "expected_output": "Not with the current kei-lime-pi package: it implements read/write/edit/bash and kei_connector, not search_wiki. A policy or Discord harness registration does not add a Pi executor. Add a Pi-side implementation and matching runtime registration/policy; do not call the provider directly as a fallback.",
       "expectations": [
         "The answer says the current Pi package does not implement search_wiki or web_search.",
         "The answer distinguishes policy registration from a Pi-side executor implementation.",
         "The answer rejects direct provider calls as a fallback and keeps the decision fail-closed."
       ],
       "checks": [
-        {"text":"The answer says the current Pi package does not implement search_wiki or web_search.","contains_all":["does not implement","search_wiki"]},
+        {"text":"The answer says the current Pi package does not implement search_wiki or web_search.","regex":"(?=.*search_wiki)(?=.*(?:does.{0,8}not.{0,8}implement|not.{0,8}implemented|does.{0,8}not.{0,8}support|doesn't support|doesn’t support|not.{0,8}supported|unsupported|not.{0,8}available|unavailable|doesn't have|doesn’t have|no executor|not.{0,8}a Pi tool|not.{0,8}a tool|cannot call|can't call|not registered|not enabled|not supported by Pi))"},
         {"text":"The answer distinguishes policy registration from a Pi-side executor implementation.","contains_all":["policy","executor"]},
         {"text":"The answer rejects direct provider calls as a fallback and keeps the decision fail-closed.","contains_any":["directly","direct provider","fallback"]}
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "For Pi Bash, does the audit store or log the raw command text? What does it retain instead? Answer directly.",
+      "expected_output": "No. Raw command text is not stored or logged in the audit. It retains a SHA-256 argument digest and decision metadata.",
+      "expectations": [
+        "The answer explicitly says raw command text is not stored or logged.",
+        "The answer says the audit retains a digest."
+      ],
+      "checks": [
+        {"text":"The answer explicitly says raw command text is not stored or logged.","regex":"(?=.*(?:digest|hash))(?=.*(?:raw command|original command|command text|raw text))(?=.*(?:not stored|never stored|not retained|never retained|not logged|never logged|not recorded|never recorded|not included|not kept|never kept|not captured|not persisted|does not store|doesn't store|doesn’t store|is not stored|isn't stored|isn’t stored|no raw command|no command text|no raw text))"},
+        {"text":"The answer says the audit retains a digest.","contains_any":["digest","hash"]}
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "How is Pi Bash authorized? Should I grant a broad tool:pi.bash permission, and what minimum kei-proxy version is required?",
+      "expected_output": "Use existing v2 shell: argv-prefix policies, not a broad tool:pi.bash grant. Pi Bash requires kei-proxy 0.2.4 or later.",
+      "expectations": [
+        "The answer identifies existing shell policies as Pi Bash's authorization mechanism.",
+        "The answer rejects a broad tool:pi.bash grant.",
+        "The answer gives the minimum proxy version for Pi Bash."
+      ],
+      "checks": [
+        {"text":"The answer identifies existing shell policies as Pi Bash's authorization mechanism.","contains_any":["shell:","shell policy","shell rules"]},
+        {"text":"The answer rejects a broad tool:pi.bash grant.","regex":"(?=.*(?:shell:|shell policies))(?=.*tool:pi\\.bash)(?=.*(?:do.{0,8}not.{0,8}grant|don't grant|don’t grant|should not grant|not.{0,8}a broad|not.{0,8}a dedicated permission|not.{0,8}use).{0,50})"},
+        {"text":"The answer gives the minimum proxy version for Pi Bash.","contains_all":["0.2.4"]}
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "What happens to compound or unsupported Pi Bash syntax? Is it denied before Bash executes?",
+      "expected_output": "Only one simple command in the restricted grammar is supported. Compound and unsupported syntax are denied before execution.",
+      "expectations": [
+        "The answer says compound syntax is denied.",
+        "The answer says denial happens before execution."
+      ],
+      "checks": [
+        {"text":"The answer says compound syntax is denied.","contains_any":["compound","only one simple command","only simple commands"]},
+        {"text":"The answer says denial happens before execution.","contains_any":["before execution","before Bash executes"]}
       ]
     }
   ]
