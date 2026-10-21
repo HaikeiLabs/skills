@@ -57,11 +57,13 @@ later. For example, `authorize` takes `--user`, `--tool`, `--action` and
 | Source | How to retrieve | Use for |
 | --- | --- | --- |
 | Installed binary | `kei-proxy help`, `kei-proxy <command> --help` | Commands, flags, env vars for this version |
-| Console: Configure the tenant-side proxy | `https://app.haikeilabs.com/#/docs/add-a-workspace` | Runtime env, bootstrap output, container build |
-| Console: Runtime installations | `https://app.haikeilabs.com/#/docs/add-a-workspace` | Runtime env, bootstrap output, container build |
-| Console: Audit logs | `https://app.haikeilabs.com/#/docs/groups-policies-users` | `collector` |
+| Docs: Configure the tenant-side proxy | `https://docs.haikeilabs.com/kei/runtime/tenant-runtime` | Runtime env, bootstrap output, container build |
+| Docs: Runtime installations | `https://docs.haikeilabs.com/kei/runtime/tenant-runtime` | Runtime env, bootstrap output, container build |
+| Docs: Audit logs | `https://docs.haikeilabs.com/kei/audit/logs` | `collector` |
 | Source | `HaikeiLabs/kei-connector-runtime` (private): `main.go` usage | Ground truth |
 | Socket contract | [`docs/unix-socket.md`](https://github.com/HaikeiLabs/kei-connector-runtime/blob/main/docs/unix-socket.md) in the runtime repo | Socket path, lifecycle, auth, current vs future routes |
+
+Append `.md` to any docs page URL for the raw page.
 
 ## FIRST: confirm it is present and configured
 

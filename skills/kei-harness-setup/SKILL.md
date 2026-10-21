@@ -144,11 +144,13 @@ credential` into `kei setup`.
 
 | Source | How to retrieve | Use for |
 | --- | --- | --- |
-| Console: Agent setup | `https://app.haikeilabs.com/#/docs/agent-setup` | Supported harnesses, the harness → runtime → catalog flow, DENY rules |
-| Console: Get started | `https://app.haikeilabs.com/#/docs/getting-started` | Per-harness skill install commands |
+| Docs: Agent setup | `https://docs.haikeilabs.com/kei/connect-your-harness/harness-setup` | Supported harnesses, the harness → runtime → catalog flow, DENY rules |
+| Docs: Get started | `https://docs.haikeilabs.com/kei/get-started/install-skills` | Per-harness skill install commands |
 | Console: Agents page | **Agents →** a harness card → **Copy setup prompt** | The canonical per-harness setup prompt |
 | Skills repo | `https://github.com/HaikeiLabs/skills#installing` | Current skill-directory table |
 | The harness's own docs | Its skills documentation | Where that harness version discovers skills |
+
+Append `.md` to any docs page URL for the raw page.
 
 ## Choose a harness type
 
