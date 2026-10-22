@@ -53,8 +53,9 @@ exposes it, and a local call is not safe just because it never reaches Kei.
 
 Your knowledge of `kei-proxy` subcommands may be outdated. **Prefer retrieval.**
 If you cannot run the binary or open the sources below (no shell or network),
-answer from this skill and don't retry. Its tables match kei-proxy 0.1.11 and
-later. For example, `authorize` takes `--user`, `--tool`, `--action` and
+answer from this skill and don't retry. Check the installed binary and the
+matching Agentware SDK README for release-specific behavior. For example,
+`authorize` takes `--user`, `--tool`, `--action` and
 `--resource`, and never `--agent-id`, because the agent ID is auto-discovered.
 
 ## Retrieval sources
@@ -430,10 +431,11 @@ Choose the mode once, at startup, through the selector: **a configured socket
 that is down is a refusal (`proxy_unavailable`), never a silent fall back** to
 the CLI.
 
-## ADR-011 target: local PDP
+## Local PDP behavior
 
-ADR-011's target is a tenant-side **local PDP** in the runtime. The daemon's
-socket authorize route implements it; the target is that the runtime will:
+The tenant-side **local PDP** is implemented in the runtime daemon. The
+daemon's socket authorize route decides from the locally synced policy bundle.
+The runtime's intended boundaries are:
 
 - Make the allow/deny decision **locally on each governed invocation** — with
   **no synchronous catalog approval call and no per-invocation
@@ -449,8 +451,7 @@ socket authorize route implements it; the target is that the runtime will:
 - Leave **workflow preflight and prompts to the harness**; the runtime does not
   own that UX.
 
-**Pending G0 — do not treat as implemented:** bundle trust (signature
-verification), the identity-proof/grant representation (how an approved grant
+**Not implemented:** bundle trust (signature verification), the identity-proof/grant representation (how an approved grant
 becomes trusted local subject attributes, and how pending, denied, revoked,
 unlinked, and cross-workspace identities resolve), and freshness/revocation
 bounds.
