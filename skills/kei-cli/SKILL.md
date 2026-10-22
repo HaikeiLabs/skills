@@ -1,9 +1,12 @@
 ---
 name: kei-cli
-description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade (including `--proxy-only` and `--uninstall`), `kei login` device-flow auth, runtime installations (`kei bot list|init|credential|agents|status|bind|delete`), harness command policies (`kei policies`), data connectors (`kei connectors`, including remote MCP connectors created from a catalog template with `kei connectors create --template`, per-user OAuth connection with `kei connectors connect`, and tool manifests reviewed and approved with `kei connectors manifests`, alias `tools`), model profiles and the credential store (`kei model-profiles`, `kei credential-store` with `--workspace` overrides), harness management (`kei harness` — `add` for custom/SDK only, `sync` for all harnesses including auto-discovered desktop), one-command harness setup (`kei connect`), workspace and group management (`kei workspaces create`, `kei groups create|list`), local runtime config (`kei setup`, `kei runtime bootstrap`), and bug reports from a harness (`kei feedback`, which redacts the transcript and asks before sending). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something from the CLI in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org or agent commands, and no group update/delete — say so rather than inventing one. (`kei workspaces list|create`, `kei groups create|list`, `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and `kei credential-store` are the resource-oriented exceptions, v0.1.13 or later; `kei users` and `kei groups members` need v0.1.16 or later; `kei workspaces create` and `kei groups create|list` need v0.1.33 or later; `kei connectors connect` and `kei credential-store get|put --workspace` need v0.1.34 or later.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
+description: "The `kei` v0.2.0 platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade (including `--proxy-only` and `--uninstall`), `kei login` device-flow auth, runtime installations (`kei bot list|init|credential|agents|status|bind|delete`), harness command policies (`kei policies`), data connectors (`kei connectors`, including remote MCP connectors created from a catalog template with `kei connectors create --template`, per-user OAuth connection with `kei connectors connect`, and tool manifests reviewed and approved with `kei connectors manifests`, alias `tools`), model profiles and the credential store (`kei model-profiles`, `kei credential-store` with `--workspace` overrides), harness management (`kei harness` — `add` for custom/SDK only, `sync` for all harnesses including auto-discovered desktop), one-command harness setup (`kei connect`), workspace and group management (`kei workspaces create`, `kei groups create|list`), local runtime config (`kei setup`, `kei runtime bootstrap`), and bug reports from a harness (`kei feedback`, which redacts the transcript and asks before sending). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something from the CLI in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org or agent commands, and no group update/delete — say so rather than inventing one. (`kei workspaces list|create`, `kei groups create|list`, `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and `kei credential-store` are the resource-oriented exceptions, v0.1.13 or later; `kei users` and `kei groups members` need v0.1.16 or later; `kei workspaces create` and `kei groups create|list` need v0.1.33 or later; `kei connectors connect` and `kei credential-store get|put --workspace` need v0.1.34 or later.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
 ---
 
 # kei CLI
+
+`kei` 0.2.0 is the current published CLI release. Check `kei --version` and
+`kei help` for the installed binary before relying on command syntax.
 
 `kei` is the Kei **platform administration** CLI. It authenticates an org
 owner/admin and manages **runtime installations** — the identity a
@@ -12,14 +15,15 @@ time; that is `kei-proxy`.
 
 | | `kei` — platform admin (this skill) | `kei-proxy` — runtime for agent interaction |
 | --- | --- | --- |
-| Who runs it | A person: org `owner`/`admin` | The harness — as a one-shot CLI subprocess per governed operation, or as a `kei-proxy serve` daemon over a Unix socket |
+| Who runs it | A person: org `owner`/`admin` | The harness — as a `kei-proxy serve` daemon over a Unix socket (primary, through the agentware socket client), or as a one-shot CLI subprocess per governed operation (fallback with no daemon) |
 | Auth | `kei login` → CLI token in the OS keychain | `KEI_RUNTIME_TOKEN` in the harness environment |
-| Jobs | Login, installations, runtime credentials, bind, agents-on-installation | Allow/deny each tool call (`kei-proxy authorize`), governed connector calls (`kei-proxy connector invoke`), heartbeat, audit shipping |
+| Jobs | Login, installations, runtime credentials, bind, agents-on-installation | Allow/deny each tool call (socket `POST /v1/authorize`, or `kei-proxy authorize`), governed connector calls (`kei-proxy connector invoke`), heartbeat, audit shipping |
 | Skill | `kei-cli` | `kei-proxy` |
 
 If the task is "make the agent's tool call go through Kei" or "check whether
-the agent may do X", the answer is `kei-proxy authorize` — load `kei-proxy`,
-not this skill. An agent never needs `kei login` to do its work. `kei setup`
+the agent may do X", the answer is kei-proxy (`kei-proxy serve` with the
+agentware socket client; `kei-proxy authorize` as the no-daemon fallback) —
+load `kei-proxy`, not this skill. An agent never needs `kei login` to do its work. `kei setup`
 and `kei runtime bootstrap` are the only bridge: admin conveniences that write
 local runtime config and invoke `kei-proxy` to verify it.
 
@@ -32,7 +36,7 @@ and changes between releases. **Prefer retrieval over this file.**
 | --- | --- | --- |
 | Installed binary | `kei help`, `kei <command> --help`, `kei bot` (lists subcommands) | Exact commands, flags, and allowed values for the version actually installed |
 | Kei docs | `https://docs.haikeilabs.com/kei/get-started/sign-in`, `https://docs.haikeilabs.com/kei/reference/cli` (CLI authentication and identity), `https://docs.haikeilabs.com/kei/runtime/tenant-runtime` (proxy runtime) | The customer-facing, supported workflow |
-| `kei-cli` README | `https://github.com/HaikeiLabs/kei-cli` (private) | Install options, build from source |
+| Published release | `https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/latest.txt` | Current released version and installer |
 | Release endpoint | `https://kei-cli-releases.s3.us-east-1.amazonaws.com/kei-cli/latest.txt` | Latest published version |
 
 Append `.md` to any docs page URL for the raw page.
@@ -95,21 +99,8 @@ default version resolves from the `KEI_PROXY_VERSION` env var, a
 `KEI_PROXY_VERSION` file in the current directory, or the copy published
 alongside `install.sh`.
 
-`go install` also works (Go 1.26+), but the package path depends on the
-release. Through v0.1.5 the command lives at the module root and builds a
-binary named `kei-cli`, so rename it:
-
-```sh
-go install github.com/HaikeiLabs/kei-cli@latest
-mv "$(go env GOPATH)/bin/kei-cli" "$(go env GOPATH)/bin/kei"
-```
-
-Releases after the entrypoint moved to `cmd/kei` build `kei` directly:
-`go install github.com/HaikeiLabs/kei-cli/cmd/kei@latest`. If one path fails
-with "does not contain package", use the other. `kei upgrade [--version V]`
-reinstalls through `go install` (Go must be on `PATH`); it does not use the S3
-installer.
-
+Use the published release installer above; build commands are not part of this
+public operator guide.
 ## FIRST: log in
 
 Every `kei bot …` command calls the control plane with the operator's CLI
@@ -269,9 +260,11 @@ kei policies delete my-policy-name --workspace my-workspace --yes
   overrides, and `kei connect` sets up a harness in one command.
   Check `kei help` for the installed version before presenting any of them as
   available.
-- **Credentials never touch the terminal.** `kei bot credential` refuses to
-  write to an interactive terminal; pipe it into a secret manager. Never pass a
-  token as an argument unless the user accepts shell-history exposure.
+- **Credentials never touch the terminal.** `kei connectors connect` never
+  prints a token; it prints only connection state and granted scopes.
+  `kei bot credential` refuses to write to an interactive terminal; pipe it
+  into a secret manager. Never pass a token as an argument unless the user
+  accepts shell-history exposure.
 - **The CLI does not provision infrastructure.** The customer owns hosting and
   secrets; the CLI registers and inspects control-plane metadata.
 - **Every ID is a UUID.** `--installation` and `--agent` are validated as UUIDs
@@ -314,7 +307,7 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 | Review an MCP connector's tool manifests (v0.1.32+; alias `tools`) | `kei connectors manifests list\|show CONNECTOR_ID [MANIFEST_ID] [--workspace WS] [--json]` | yes |
 | Approve a tool manifest (org admin, v0.1.32+) | `kei connectors manifests approve CONNECTOR_ID MANIFEST_ID [--workspace WS] [--yes]` | yes |
 | Register a custom/SDK harness | `kei harness add --kind custom [--installation ID] [--agent ID]` | yes |
-| Sync tool registrations | `kei harness sync [--harness KIND] [--dry-run]` | yes |
+| Sync tool registrations | `kei harness sync [--harness KIND] [--manifest PATH] [--dry-run]` | yes |
 | List registered harnesses | `kei harness list --installation ID [--json]` | yes |
 | Remove a harness | `kei harness remove AGENT_ID --installation ID` | yes |
 | List / get model profiles | `kei model-profiles list [--workspace WS]` / `kei model-profiles get PROFILE [--workspace WS]` | yes |

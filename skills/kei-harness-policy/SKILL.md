@@ -11,8 +11,10 @@ description: "Govern harness command execution through Kei policies — import n
 Kei governs a coding-agent harness in two layers:
 
 1. **Tool-call policy** — the standard Kei ABAC path: agent tool calls go
-   through `kei-proxy authorize`, the runtime PDP decides from the bundle
-   (ADR-026, ADR-028).
+   through kei-proxy — the `kei-proxy serve` socket (`POST /v1/authorize` in a
+   session, through the agentware socket client), or the one-shot
+   `kei-proxy authorize` CLI as the fallback with no daemon — and the runtime
+   PDP decides from the bundle (ADR-026, ADR-028).
 2. **Harness command policy** — the harness's native terminal/command execution
    layer (e.g. Claude Code's bash tool, Codex's shell, OpenCode's permission
    system). The harness decides natively from a config file rendered by
@@ -148,12 +150,17 @@ first. If something is not here, say so. In every answer:
 | Delete a policy | `kei policies delete ID --yes [--workspace WS]` | yes |
 | Import native harness rules | `kei policies import --from claude\|codex\|opencode [--file PATH] [--src PATTERN] [--out FILE] [--apply] [--workspace WS]` | yes |
 | Register a custom/SDK harness | `kei harness add --kind custom [--installation ID] [--agent ID]` | yes |
-| Sync tool registrations | `kei harness sync [--harness KIND] [--dry-run]` | yes |
+| Sync tool registrations | `kei harness sync [--harness KIND] [--manifest PATH] [--dry-run]` | yes |
 | List registered harnesses | `kei harness list --installation ID [--json]` | yes |
 | Remove a harness | `kei harness remove AGENT_ID --installation ID` | yes |
 
 All `policies` and `harness` commands accept `--api-url URL` to override the
 default control-plane URL.
+
+For a custom SDK harness, `kei harness sync --harness custom --manifest
+tools.json` registers local tool metadata (kei >= 0.1.33). Agentware can also
+register `ToolSpec` declarations through the runtime socket at
+`POST /v1/tools:register`.
 
 ## When to use `kei harness add`
 
@@ -278,7 +285,8 @@ Tool-call policies use `tool:<name>` (one exact name, no wildcards) or
 (`selector_v2` with `connector_id` and nothing else; the console's **All tools
 on this connector**). It covers every tool bound to that connector, including
 tools added later, and a higher-priority deny on one tool still carves it out.
-These are decided by `kei-proxy authorize`, not rendered.
+These are decided by kei-proxy at run time (the `kei-proxy serve` socket
+authorize route, or the `kei-proxy authorize` CLI fallback), not rendered.
 
 ### Examples
 
@@ -361,6 +369,9 @@ is already a dry run.
 
 ## Rendering native config: `kei harness sync` (there is no `policies export`)
 
+Preview with `kei harness sync --harness claude_code --dry-run`; it requires
+kei >v0.1.6.
+
 There is no `kei policies export` command. The native config file is rendered by
 `kei harness sync`, which reads the current policy bundle and writes the
 harness's native config (Claude Code `permissions.allow`/`deny`, Codex
@@ -406,6 +417,10 @@ kei harness sync --harness claude_code
 ```
 
 **Custom/SDK harnesses** need explicit registration first:
+
+Register custom tools with `kei harness sync --harness custom --manifest
+tools.json` (kei >= 0.1.33) or Agentware `ToolSpec` over
+`POST /v1/tools:register`.
 
 ```sh
 # 1. Register a custom harness for an assigned agent
@@ -483,6 +498,9 @@ lifecycle are in
 For diagnosis of a stale or expired bundle, see the `kei-setup-doctor` skill.
 
 ## Credential injection for shell: dst commands
+
+Credentials are resolved through `kei-proxy`, not embedded in policies; the
+agent never reads or stores raw credentials.
 
 A harness command policy never carries a credential. When a command needs one
 (e.g. a GitHub token for `git push`), the agent runs it through `kei-proxy run`

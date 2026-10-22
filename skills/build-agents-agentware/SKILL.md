@@ -1,6 +1,6 @@
 ---
 name: build-agents-agentware
-description: Build a governed AI agent end to end with the open-source kei-agents package and the agentware SDK — compose a prebuilt agent or workflow (Pedro, the PDE search agent, bug_to_linear_pr, crm_linear_followup, …) from its system prompt and rendered tools, wrap every tool call with AuditedToolClient so it is decided by policy, audited, and attributed to the invoking human, swap the local policy for KeiProxyEvaluator to let Kei decide, and design tool arguments with the Lexicon/Pragmatics/Semantics rule (relationship arguments carry the parent id; proxy-delegated scope is never an argument). Use when someone asks how to build, compose, or wire up an agent with agentware or kei-agents, how to govern or audit an agent's tool calls, what a tool's arguments should be, or how a subagent keeps the human's identity. For testing the agent load test-agents; for shipping it load deploy-agents.
+description: Build a governed AI agent end to end with the open-source kei-agents package and the agentware SDK — compose a prebuilt agent or workflow (Pedro, the PDE search agent, bug_to_linear_pr, crm_linear_followup, …) from its system prompt and rendered tools, wrap every tool call with AuditedToolClient so it is decided by policy, audited, and attributed to the invoking human, use KeiProxyEvaluator to let Kei decide, and design tool arguments with the Lexicon/Pragmatics/Semantics rule (relationship arguments carry the parent id; proxy-delegated scope is never an argument). Use when someone asks how to build, compose, or wire up an agent with agentware or kei-agents, how to govern or audit an agent's tool calls, what a tool's arguments should be, or how a subagent keeps the human's identity. For testing the agent load test-agents; for shipping it load deploy-agents.
 ---
 
 # Build agents with the agentware SDK
@@ -11,24 +11,26 @@ separate; each has one owner:
 | Layer | What it is | Package |
 | --- | --- | --- |
 | **Definition** | System prompt + tool schemas + the permissions the agent may hold | `kei-agents` (`agents` import) |
-| **Governance** | Every tool call is decided (allow/deny/filter), audited, and attributed to a human | agentware SDK (`pedro_agentware`, Go, TypeScript) |
-| **Runtime decision** | The live allow/deny comes from the workspace policy, made tenant-side | `kei-proxy`, reached through `KeiProxyEvaluator` |
+| **Governance** | Every tool call is decided (allow/deny/filter), audited, and attributed to a human | agentware SDK (`haikeilabs.agentware`, Go, TypeScript) |
+| **Runtime decision** | The live allow/deny comes from the workspace policy, made tenant-side | `kei-proxy serve`, reached through `KeiProxyEvaluator` and the socket client |
 
 The model never decides what it is allowed to do. A refusal in the prompt is
 not a control; the policy check in front of the tool is.
 
 ## Install
 
-Both Python packages install from a checkout (neither is on public PyPI yet):
+The agentware SDK is published to PyPI as `haikeilabs-agentware` (import
+`haikeilabs.agentware`; the old `pedro_agentware` import still works as a
+deprecated shim). `kei-agents` installs from a checkout:
 
 ```bash
 git clone https://github.com/HaikeiLabs/agentware && git clone https://github.com/HaikeiLabs/kei-agents
 python -m venv .venv && . .venv/bin/activate
-pip install -e ./agentware/python -e ./kei-agents        # Python >= 3.10
+pip install haikeilabs-agentware -e ./kei-agents         # Python >= 3.10
 ```
 
-TypeScript: `npm install @haikeilabs/agentware` (>= 0.7.0). Go:
-`go get github.com/soypete/pedro-agentware/go`.
+TypeScript: `npm install @haikeilabs/agentware` (>= 0.11.0). Go:
+`go get github.com/haikeilabs/agentware/go`.
 
 ## 1. Compose a prebuilt agent
 
@@ -84,17 +86,15 @@ raises `PermissionError`; it is still audited.
 
 ```python
 import asyncio
-from pedro_agentware.middleware import (
-    Action, AuditedToolClient, CallerContext, Policy, Rule, SimplePolicyEvaluator,
+from haikeilabs.agentware.middleware import (
+    AuditedToolClient, CallerContext,
 )
+from haikeilabs.agentware.kei import KeiProxyEvaluator, select_authorization_client
 
-# Local policy: the Discord default group may use three tools; everything else is denied.
-local = SimplePolicyEvaluator(Policy(
-    rules=[Rule(name="default-group", tools=["file_bug", "search_wiki", "web_search"],
-                action=Action.ALLOW)],
-    default_deny=True,
-))
-client = AuditedToolClient(source="my-harness", evaluator=local)
+client = AuditedToolClient(
+    source="my-harness",
+    evaluator=KeiProxyEvaluator(select_authorization_client("discord")),
+)
 
 def file_bug(**args):
     return {"issue": f"{args['team_key']}-123"}
@@ -118,28 +118,49 @@ async def main():
 asyncio.run(main())
 ```
 
-Rules are first-match-wins; `default_deny=True` makes an unlisted tool a deny.
-A rule can also match `conditions` on args or caller fields, rate-limit with
-`max_rate`, or return `Action.FILTER` with `redact_fields`.
+Python exposes the `PolicyEvaluator` interface; it does not include a local
+`Policy`, `Rule`, or `SimplePolicyEvaluator` implementation. Use the proxy
+evaluator above or implement the interface for an external policy engine.
 
 ### Let Kei decide: `KeiProxyEvaluator`
 
-The local policy is for tests and offline use. In a deployed harness, swap the
-evaluator; the client, the tools, and the audit stay the same:
+In a deployed harness, use the workspace policy evaluator; the client, the tools, and the audit stay the same:
 
 ```python
-from pedro_agentware.kei import KeiProxyAuthorizeClient, KeiProxyEvaluator
+from haikeilabs.agentware import ToolSpec, register_tool_specs
+from haikeilabs.agentware.kei import (   # pedro_agentware.kei still works (deprecated shim)
+    KeiProxyEvaluator, ToolManifestSyncConfig, select_authorization_client, sync_tool_manifest,
+)
 
-client.with_policy(KeiProxyEvaluator(KeiProxyAuthorizeClient(executable="kei-proxy", timeout=10.0)))
+# Before serving: sync the governed tools. An empty manifest is refused,
+# and a failed sync raises ToolManifestSyncError: the harness must not serve.
+sync_tool_manifest(registry.export_kei_tool_manifest(), ToolManifestSyncConfig.from_env(),
+                   expect_tools=True)
+# The kei-proxy serve socket client when KEI_RUNTIME_SOCKET_PATH is set,
+# otherwise the one-shot `kei-proxy authorize` CLI client.
+client.with_policy(KeiProxyEvaluator(select_authorization_client("discord")))
 ```
+Instead of the control-plane sync helper above, choose direct local socket
+registration: define the governed declarations as `ToolSpec` values and call
+`await register_tool_specs(specs, socket_client);
+that sends manifest v3 to `POST /v1/tools:register`. In TypeScript use
+`registerToolSpecs`, and in Go use `toolsync.SocketRegistrar.Send`. An operator
+can also use `kei harness sync --harness custom --manifest tools.json` with kei
+>= 0.1.33.
 
-It runs `kei-proxy authorize` per call and **fails closed**: only an explicit
-`allow`/`permit` with exit 0 allows. A missing binary (`proxy_unavailable`),
-an unset `KEI_RUNTIME_TOKEN` (`missing_token`), a timeout, or unparseable
-output is a DENY. Pin the binary with `expected_sha256=` (absolute path
-required). The token reaches the child through the environment only, never
-argv. The harness sends the tool name and never an authorize resource; the
-catalog resolves resources from the tool's registered scope.
+The primary path is the **`kei-proxy serve` daemon plus the socket client**.
+Run the daemon beside the harness and set `KEI_RUNTIME_SOCKET_PATH`; the
+adapter opens a `kei.session/v2` session for the caller's user and authorizes
+in it over the owner-only Unix socket. The `kei-proxy authorize` subprocess
+(`KeiProxyAuthorizeClient`) is the **fallback** for one-shot environments with
+no daemon (pin it with `expected_sha256=`, absolute path required). Both
+**fail closed**: only an explicit `allow`/`permit` allows. An unreachable
+daemon or missing binary (`proxy_unavailable`), an unset `KEI_RUNTIME_TOKEN`
+(`missing_token`), a timeout, or an unparseable answer is a DENY. **A
+configured socket that is down is a refusal, never a silent fall back** to the
+CLI. The runtime token is never logged and never put in argv. The harness
+sends the tool name and never an authorize resource; the catalog resolves
+resources from the tool's registered scope.
 
 On a deny, `decision.enrollment` (an unlinked chat user) or `decision.connect`
 (the user's own OAuth connection is missing or expired) may carry a one-time
@@ -147,8 +168,9 @@ link. `AuditedToolClient` turns a deny into `PermissionError`, so when you
 need those links call `evaluator.evaluate(tool, args, caller)` yourself first
 and send the `url` privately to that user. Never log it or post it in a shared
 channel. The `agentware-sdk` skill has the full decision table and the Go
-(`evaluator.NewKeiProxyEvaluator`) and TypeScript (async-only
-`await evaluator.evaluate(...)`) spellings.
+(`runtimesocket.SelectAuthorizationClient` + `evaluator.NewKeiProxyEvaluator`,
+`toolsync.Sync`) and TypeScript (`selectAuthorizationClient`,
+`syncToolManifest`, async-only `await evaluator.evaluate(...)`) spellings.
 
 ### Keep the human as the invoking subject
 
@@ -213,7 +235,7 @@ scope (see `test-agents`).
 ## 4. Register governed tools with Kei
 
 Before Kei can decide a tool by name, an admin loads its scope into the
-catalog. In agentware 0.7.0 a tool declares a `KeiScope` (service, action,
+catalog. In agentware 0.11.0 a tool declares a `KeiScope` (service, action,
 resource patterns), and `ToolRegistry.export_kei_tool_manifest()` emits
 deterministic JSON for the admin to load. The runtime never registers tools
 itself. Details: `agentware-sdk`, "Making governed tool calls".
@@ -231,6 +253,8 @@ cd python && pytest tests/action_tool_boundary_test.py -v
 
 # Prove fail-closed locally: with no kei-proxy on PATH every call is denied
 PATH=/usr/bin:/bin python your_harness.py         # expect "kei-proxy missing_token" or "proxy_unavailable"
+# ...and with a configured socket and no daemon: a refusal, never a CLI fall back
+KEI_RUNTIME_SOCKET_PATH=/tmp/no-daemon.sock python your_harness.py   # expect "proxy_unavailable"
 ```
 
 ## Realistic usage boundaries

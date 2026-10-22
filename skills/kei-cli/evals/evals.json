@@ -534,7 +534,7 @@
     },
     {
       "id": 16,
-      "prompt": "I want to add our team's remote MCP server at https://mcp.example.com/mcp to the Main workspace in Kei, labelled \"Metrics (prod)\". What kei command do I run? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "prompt": "I want to add our team's remote MCP server at https://mcp.example.com/mcp to the Main workspace in Kei, labelled \"Metrics (prod)\". What kei command do I run? Do not execute anything — just explain in text. If you don't know something, just say so.",
       "expected_output": "kei connectors create --workspace Main --template custom_mcp --label \"Metrics (prod)\" --mcp-url https://mcp.example.com/mcp (optionally --kind mcp and --slug). The template comes from the catalog; --mcp-url is needed because custom_mcp has no URL. The command prints the slug. Users connect their own accounts with OAuth; nothing is read from stdin. Needs kei v0.1.32 or later (check kei help).",
       "expectations": [
         "The response uses kei connectors create with --template.",
@@ -583,7 +583,7 @@
     },
     {
       "id": 17,
-      "prompt": "Our MCP connector's runtime submitted a new tool manifest. As the org admin, how do I see what changed and approve it from the kei CLI? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "prompt": "Our MCP connector's runtime submitted a new tool manifest. As the org admin, how do I see what changed and approve it from the kei CLI? Do not execute anything — just explain in text. If you don't know something, just say so.",
       "expected_output": "kei connectors manifests show CONNECTOR_ID --workspace W shows the newest candidate and the tools added (+), removed (-) and changed (~) since the approved manifest. Then kei connectors manifests approve CONNECTOR_ID MANIFEST_ID --workspace W; it needs the manifest ID, shows the changes and asks to confirm (--yes in scripts). Only an org owner or admin can approve. tools is an alias for manifests.",
       "expectations": [
         "The response reviews the candidate with kei connectors manifests show (or the tools alias).",
@@ -631,7 +631,7 @@
     },
     {
       "id": 18,
-      "prompt": "I created an MCP connector with kei connectors create --template custom_mcp --label X --mcp-url https://mcp.example.com/mcp --expected-issuer https://login.example.com/tenant/v2.0, and the CLI said the catalog does not support expected_issuer and that it deleted the connector. What happened and what should I do? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "prompt": "I created an MCP connector with kei connectors create --template custom_mcp --label X --mcp-url https://mcp.example.com/mcp --expected-issuer https://login.example.com/tenant/v2.0, and the CLI said the catalog does not support expected_issuer and that it deleted the connector. What happened and what should I do? Do not execute anything — just explain in text. If you don't know something, just say so.",
       "expected_output": "The catalog predates expected_issuer, so it created the connector without the issuer pin. The CLI fails closed: it deleted the connector rather than leave one that trusts any authorization server. Upgrade the catalog (the platform side), or create the connector without --expected-issuer if you accept that. Check kei connectors list to confirm nothing was left behind.",
       "expectations": [
         "The response explains the catalog is too old to store expected_issuer.",
@@ -662,7 +662,7 @@
     },
     {
       "id": 19,
-      "prompt": "Is there a kei command to list the tool manifests of an MCP connector, and does kei connectors tools exist? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "prompt": "Is there a kei command to list the tool manifests of an MCP connector, and does kei connectors tools exist? Do not execute anything — just explain in text. If you don't know something, just say so.",
       "expected_output": "Yes: kei connectors manifests list CONNECTOR_ID --workspace W lists the manifests (id, status, tool count, hash); tools is an alias, so kei connectors tools list is the same. It needs kei v0.1.32 or later; check kei help. The runtime submits manifests; the CLI only reviews and approves.",
       "expectations": [
         "The response names kei connectors manifests list.",
@@ -698,7 +698,7 @@
     },
     {
       "id": 20,
-      "prompt": "I created a per-user OAuth GitHub connector in the Main workspace. How do I connect my own account from the CLI? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "prompt": "I created a per-user OAuth GitHub connector in the Main workspace. How do I connect my own account from the CLI? Do not execute anything — just explain in text. If you don't know something, just say so.",
       "expected_output": "kei connectors connect <id|name> --workspace Main [--no-browser]. Opens the browser (or prints the URL), polls until connected, prints state and granted scopes. Never prints a token. The command is for your own account only; other users must connect their own.",
       "expectations": [
         "The response uses kei connectors connect with --workspace.",
@@ -748,7 +748,7 @@
     },
     {
       "id": 21,
-      "prompt": "I ran `kei bot list` and one of our installations shows a version with '(below minimum)' next to it. What does that mean? Is the runtime blocked? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "prompt": "I ran `kei bot list` and one of our installations shows a version with '(below minimum)' next to it. What does that mean? Is the runtime blocked? Do not execute anything — just explain in text. If you don't know something, just say so.",
       "expected_output": "The '(below minimum)' tag means the installation's runtime version is below the organization's minimum runtime version, set by an org owner. It is display-only information and does not block the runtime from operating.",
       "expectations": [
         "The response explains '(below minimum)' means the runtime version is below the org minimum.",
@@ -778,7 +778,7 @@
     },
     {
       "id": 22,
-      "prompt": "I ran `kei connectors reconnect` on a per-user GitHub connector and the CLI told me to use a different command. What command should I use instead? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "prompt": "I ran `kei connectors reconnect` on a per-user GitHub connector and the CLI told me to use a different command. What command should I use instead? Do not execute anything — just explain in text. If you don't know something, just say so.",
       "expected_output": "The CLI now points reconnect to `kei connectors connect <id|name> --workspace WORKSPACE` for per-user OAuth connectors. Use that instead.",
       "expectations": [
         "The response says reconnect now points to kei connectors connect.",
@@ -804,7 +804,7 @@
     },
     {
       "id": 23,
-      "prompt": "Another developer on my team has a GitHub connector set up. I need to connect their account from my CLI session so they can use it. How do I do that? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "prompt": "Another developer on my team has a GitHub connector set up. I need to connect their account from my CLI session so they can use it. How do I do that? Do not execute anything — just explain in text. If you don't know something, just say so.",
       "expected_output": "You cannot connect another user's account from your CLI session. `kei connectors connect` is for the authenticated user only. The other developer must run `kei login` and then `kei connectors connect` themselves.",
       "expectations": [
         "The response refuses to connect another user's account.",
@@ -844,7 +844,7 @@
     },
     {
       "id": 24,
-      "prompt": "I'm setting up a new developer machine with Kei. I want a single command that creates the runtime installation, gets the credential, writes the config, bootstraps, and binds everything. Is there one? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "prompt": "I'm setting up a new developer machine with Kei. I want a single command that creates the runtime installation, gets the credential, writes the config, bootstraps, and binds everything. Is there one? Do not execute anything — just explain in text. If you don't know something, just say so.",
       "expected_output": "Yes: `kei connect cli [--workspace NAME] [--yes]` (v0.1.34+). It does all those steps in one command. Login with `kei login` first.",
       "expectations": [
         "The response names kei connect as the one-command setup.",
@@ -873,7 +873,7 @@
     },
     {
       "id": 25,
-      "prompt": "Can I see a workspace-specific credential store override with kei credential-store get? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
+      "prompt": "Can I see a workspace-specific credential store override with kei credential-store get? Do not execute anything — just explain in text. If you don't know something, just say so.",
       "expected_output": "Yes: `kei credential-store get --workspace WS` (v0.1.34+). Without --workspace it reads the organization store. If no override exists for the workspace, it reports that the workspace uses the organization's store.",
       "expectations": [
         "The response says yes and mentions the --workspace flag.",
@@ -895,6 +895,37 @@
             "organization's store",
             "organization store"
           ]
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "prompt": "Our agent runs as a long-lived service and needs Kei to decide each tool call. Which Kei executable does it use, how does it run, and does the agent need `kei login`?",
+      "expected_output": "Not the kei admin CLI and never kei login: the agent uses kei-proxy, the runtime. A long-lived harness runs kei-proxy serve and talks to it over the Unix socket with the agentware socket client; the one-shot kei-proxy authorize CLI is the fallback where no daemon runs. Runtime auth is KEI_RUNTIME_TOKEN.",
+      "expectations": [
+        "uses kei-proxy serve for a long-lived harness",
+        "keeps kei-proxy authorize as the fallback",
+        "says the agent does not run kei login"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "kei-proxy serve"
+          ],
+          "text": "uses kei-proxy serve for a long-lived harness"
+        },
+        {
+          "contains_any": [
+            "fallback",
+            "fall back"
+          ],
+          "text": "keeps kei-proxy authorize as the fallback"
+        },
+        {
+          "contains_all": [
+            "kei login"
+          ],
+          "text": "says the agent does not run kei login"
         }
       ]
     }

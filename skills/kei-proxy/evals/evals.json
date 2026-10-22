@@ -203,7 +203,7 @@
     },
     {
       "id": 8,
-      "prompt": "A Claude Code session ran one command that failed and asked about another that never ran (headless). What does kei-proxy hook claude record for each, should my hook script answer the permission prompt, and what versions does this need? Do not execute anything \u2014 just explain in text.",
+      "prompt": "A Claude Code session ran one command that failed and asked about another that never ran (headless). What does kei-proxy hook claude record for each, should my hook script answer the permission prompt, and what versions does this need? Do not execute anything — just explain in text.",
       "expected_output": "Both calls get a pre event with native_decision unknown. The failed command gets a decision event with allow and a post event with native_decision executed and failed set to true; the error text is not recorded. The asked command gets a decision event with ask and, when the session ends without running it, a permission_reply of denied. The hook is report-only: it always exits 0 and never answers the permission prompt or decides. This needs kei-proxy 0.2.5 or newer and Claude Code 2.1.119 or newer.",
       "expectations": [
         "the failed command's post event carries a failed flag",
@@ -258,6 +258,121 @@
         }
       ],
       "id": 9
+    },
+    {
+      "id": 10,
+      "prompt": "My one-shot job has no kei-proxy daemon. Is `kei-proxy authorize` a reliable v2 allow probe, and what should I use for a v2 policy decision?",
+      "expected_output": "The one-shot kei-proxy authorize CLI remains a fallback for one-shot environments, but it is not a v2 allow probe and returns preflight_required. Use the daemon Unix-socket POST /v1/authorize route through the Agentware socket client for a v2 policy decision.",
+      "expectations": [
+        "The response identifies kei-proxy authorize as a one-shot fallback but says it does not decide v2 policy.",
+        "The response points to the daemon socket POST /v1/authorize route for a v2 policy decision."
+      ],
+      "checks": [
+        {
+          "text": "The response identifies kei-proxy authorize as a one-shot fallback but says it does not decide v2 policy.",
+          "regex": "(?=.*kei-proxy authorize)(?=.*(fallback|one[ -]?shot))(?=.*(not|no|does not|doesn.t)[\\s\\S]{0,80}(v2|policy decision|allow probe)|preflight_required)"
+        },
+        {
+          "text": "The response points to the daemon socket POST /v1/authorize route for a v2 policy decision.",
+          "regex": "(?=.*(/v1/authorize|authorize route))(?=.*(socket|daemon))"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "What should I verify before relying on identity mode for an opaque_ref http_api connector, and which fail-closed reason codes can occur?",
+      "expected_output": "Check the installed kei-proxy version and the policy bundle’s connector descriptor/capability before relying on identity mode. Unsupported credential sources fail closed with credential_source_not_supported; descriptor_invalid, credential_unavailable and credential_backend_mismatch cover invalid descriptors or unavailable/mismatched secrets, and provider or unsupported account-model failures also deny.",
+      "expectations": [
+        "says to verify runtime version and policy bundle",
+        "says unsupported connector credentials fail closed",
+        "names relevant deny reasons"
+      ],
+      "checks": [
+        {
+          "text": "says to verify runtime version and policy bundle",
+          "regex": "(?:version|release)[\\s\\S]{0,100}(?:policy[ -]?)?bundle|(?:policy[ -]?)?bundle[\\s\\S]{0,100}(?:version|release)|(?:check|verify)[\\s\\S]{0,60}(?:kei[ -]?proxy|runtime)[\\s\\S]{0,60}(?:policy[ -]?)?bundle"
+        },
+        {
+          "text": "says unsupported connector credentials fail closed",
+          "regex": "fail.?closed"
+        },
+        {
+          "text": "names relevant deny reasons",
+          "contains_all": [
+            "descriptor_invalid",
+            "credential_unavailable",
+            "credential_backend_mismatch"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "Our chat bot is a long-running service and kei-proxy can run as a daemon in the same container. How should the bot ask kei-proxy for a per-user tool decision, and what should it do at startup before taking traffic?",
+      "expected_output": "Run kei-proxy serve and set KEI_RUNTIME_SOCKET_PATH; at startup sync the tool manifest (sync_tool_manifest / syncToolManifest / toolsync.Sync; an empty manifest is refused) and pick the client with the selector; the socket client opens a kei.session/v2 session per user with PUT /v1/session and authorizes with POST /v1/authorize and X-Kei-Session. The kei-proxy authorize CLI is the fallback for one-shot environments with no daemon. Runtime token from KEI_RUNTIME_TOKEN, never argv, never logged. Choose either the SDK control-plane sync helper or agentware 0.11.0 can register typed ToolSpec declarations over the local socket with POST /v1/tools:register (Python register_tool_specs, TypeScript registerToolSpecs, Go toolsync.SocketRegistrar); operators can also run kei harness sync --harness custom --manifest tools.json with kei >= 0.1.33.",
+      "expectations": [
+        "uses kei-proxy serve over the Unix socket",
+        "opens a session per user before authorizing",
+        "syncs the tool manifest before serving",
+        "keeps the kei-proxy authorize CLI only as the fallback",
+        "mentions socket tool registration with ToolSpec or POST /v1/tools:register"
+      ],
+      "checks": [
+        {
+          "text": "uses kei-proxy serve over the Unix socket",
+          "regex": "kei[ -]?proxy[\\s`]*serve|daemon[\\s\\S]{0,100}(?:unix[ -]?)?socket|(?:unix[ -]?)?socket[\\s\\S]{0,100}daemon"
+        },
+        {
+          "contains_any": [
+            "/v1/session",
+            "open_session",
+            "openSession",
+            "OpenSession"
+          ],
+          "text": "opens a session per user before authorizing"
+        },
+        {
+          "regex": "tool[\\s`-]*manifest|sync[\\s`_]*tool[\\s`_]*manifest|syncToolManifest|toolsync",
+          "text": "syncs the tool manifest before serving"
+        },
+        {
+          "contains_any": [
+            "fallback",
+            "fall back"
+          ],
+          "text": "keeps the kei-proxy authorize CLI only as the fallback"
+        },
+        {
+          "text": "mentions socket tool registration with ToolSpec or POST /v1/tools:register",
+          "regex": "Tool[\\s-]*Spec|/v1/tools\\s*:\\s*register|register_tool_specs|registerToolSpecs|SocketRegistrar"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "KEI_RUNTIME_SOCKET_PATH is set for our harness, but `kei-proxy serve` isn't running. Should the harness automatically switch to calling `kei-proxy authorize` per call so users aren't blocked? And may it log the runtime token when that happens?",
+      "expected_output": "No. A configured socket that is down is a refusal (proxy_unavailable), never a silent fall back to the CLI; every governed call is denied (fail-closed) until the daemon is back. The runtime token comes from KEI_RUNTIME_TOKEN and is never logged.",
+      "expectations": [
+        "says the call is denied with proxy_unavailable",
+        "says there is no fall back to the CLI",
+        "says the runtime token is never logged"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "proxy_unavailable"
+          ],
+          "text": "says the call is denied with proxy_unavailable"
+        },
+        {
+          "regex": "(never|not|no|don't|do not|must not|won't|shouldn't|should not)\\W+(\\w+\\W+){0,4}(fall(s|ing)?[ -]?back|switch)",
+          "text": "says there is no fall back to the CLI"
+        },
+        {
+          "regex": "(never|not|don't|do not|must not)[^.\\n]{0,40}(log|print)",
+          "text": "says the runtime token is never logged"
+        }
+      ]
     }
   ]
 }

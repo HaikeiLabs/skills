@@ -54,11 +54,11 @@
     {
       "id": 3,
       "prompt": "I need to read the agent ID assigned to my runtime installation from within the agentware SDK. The agent was set up in the Kei console and attached to the installation. How do I get the agent ID in TypeScript, and what should I do if identity is not available?",
-      "expected_output": "Uses link.identity() from @haikeilabs/agentware >= 0.4.0 with kei-proxy >= 0.1.11, reads defaultAgentId and agents from the identity object, denies governed calls if identity is unavailable rather than guessing a fallback agent ID.",
+      "expected_output": "Uses link.identity() from Agentware 0.11.0 with kei-proxy v0.3.0 and kei-cli 0.2.0 (the current compatibility row), reads defaultAgentId and agents from the identity object, and denies governed calls if identity is unavailable rather than guessing a fallback agent ID.",
       "expectations": [
         "The response reads agent identity from link.identity(), not from an environment variable.",
         "The response denies governed calls when identity is undefined rather than guessing a fallback agent ID.",
-        "The response requires kei-proxy >= 0.1.11 and agentware >= 0.4.0."
+        "The response uses current compatibility minimums: Agentware 0.11.0, kei-proxy v0.3.0, and kei-cli 0.2.0."
       ],
       "checks": [
         {
@@ -75,30 +75,24 @@
           "text": "The response denies governed calls when identity is undefined rather than guessing a fallback agent ID."
         },
         {
-          "contains_all": [
-            "0.1.11",
-            "0.4.0"
-          ],
-          "text": "The response requires kei-proxy >= 0.1.11 and agentware >= 0.4.0."
+          "text": "The response uses current compatibility minimums: Agentware 0.11.0, kei-proxy v0.3.0, and kei-cli 0.2.0.",
+          "regex": "(?=.*(?:(?:agentware|agentware SDK)[\\s\\S]{0,35}0\\.11\\.0|0\\.11\\.0[\\s\\S]{0,35}(?:agentware|agentware SDK)))(?=.*kei-proxy[\\s\\S]{0,35}v?0\\.3\\.0)(?=.*kei-cli[\\s\\S]{0,35}0\\.2\\.0)"
         }
       ]
     },
     {
       "id": 4,
       "prompt": "I'm writing a custom harness in Python and need to govern my agents' tool calls through Kei. Show me how to construct a KeiProxyEvaluator and what happens when kei-proxy is unreachable.",
-      "expected_output": "Constructs KeiProxyEvaluator with KeiProxyAuthorizeClient, sets executable and timeout, explains that an unreachable proxy yields DENY with proxy_unavailable reason (fail-closed), and uses evaluator.evaluate() before every tool call.",
+      "expected_output": "Uses the recommended socket client path to construct KeiProxyEvaluator, configures the socket client, explains that an unreachable configured socket yields DENY with proxy_unavailable reason (fail-closed), and uses evaluator.evaluate() before every tool call. If it mentions deprecated KeiProxyAuthorizeClient, identifies it as the subprocess fallback/deprecated path.",
       "expectations": [
-        "constructs KeiProxyEvaluator with KeiProxyAuthorizeClient and sets executable and timeout",
+        "uses the socket client path with KeiProxyEvaluator; any legacy KeiProxyAuthorizeClient reference is marked deprecated",
         "explains that an unreachable proxy denies with proxy_unavailable (fail-closed)",
         "calls evaluator.evaluate() before each tool call with tool name, args, and caller context"
       ],
       "checks": [
         {
-          "contains_all": [
-            "KeiProxyEvaluator",
-            "KeiProxyAuthorizeClient"
-          ],
-          "text": "constructs KeiProxyEvaluator with KeiProxyAuthorizeClient and sets executable and timeout"
+          "text": "uses the socket client path with KeiProxyEvaluator; any legacy KeiProxyAuthorizeClient reference is marked deprecated",
+          "regex": "(?:(?=[\\s\\S]*KeiProxyEvaluator)(?=[\\s\\S]*(KeiProxySocketAuthorizationClient|KeiProxySocketAuthorizeClient|socket client|socket authorization client))|(?=[\\s\\S]*KeiProxyEvaluator)(?=[\\s\\S]*KeiProxyAuthorizeClient)(?=[\\s\\S]*deprecated))"
         },
         {
           "contains_all": [
@@ -118,10 +112,10 @@
     {
       "id": 5,
       "prompt": "A governed tool call returned a DENY with an enrollment payload containing a URL. How should my harness handle this, and what must never happen with that URL?",
-      "expected_output": "Extracts decision.enrollment.url from the DENY payload, delivers it privately to the user (e.g. DM, never in a public channel), warns not to log it or cache an expired link, and explains the user must visit it to link their chat identity before they can use governed tools.",
+      "expected_output": "Extracts decision.enrollment.url from the DENY payload, delivers the one-time claim URL privately to the user, never logs the URL or its contents and never caches an expired link, and explains the user must visit it to link their chat identity before they can use governed tools.",
       "expectations": [
         "extracts enrollment.url from the decision payload and delivers it privately to the user",
-        "warns not to log the URL or cache an expired link",
+        "warns that claim or enrollment URLs are never logged and expired links are never cached",
         "explains the user must visit the link to link their chat identity before governed tools work"
       ],
       "checks": [
@@ -130,8 +124,8 @@
           "regex": "^(?=[\\s\\S]*url)(?=[\\s\\S]*(privately|private|direct message|\\bDM\\b|only to the user))"
         },
         {
-          "text": "warns not to log the URL or cache an expired link",
-          "regex": "^(?=[\\s\\S]*(never|not|n.t|no)\\W+(\\w+\\W+){0,2}(log|be logged))(?=[\\s\\S]*expired)"
+          "text": "warns that claim or enrollment URLs are never logged and expired links are never cached",
+          "regex": "(?=[\\s\\S]*(never|not|do not|don.t|must not)[\\s\\S]{0,60}(log|logging))(?=[\\s\\S]*(never|not|do not|don.t|must not)[\\s\\S]{0,60}(cache|store)[\\s\\S]{0,60}expired)"
         },
         {
           "contains_all": [
@@ -180,70 +174,264 @@
       "id": 7,
       "prompt": "Our fake kei-proxy in a test prints {\"decision\":\"allow\"} on stdout but exits with code 1. What Decision does KeiProxyEvaluator return, and with which reason class from the shared parity table?",
       "expected_output": "DENY with reason class exit_mismatch: only an explicit allow/permit with exit 0 allows (fail-closed). Reasons read 'kei-proxy <class>'.",
-      "expectations": ["says the decision is a deny", "names the exit_mismatch reason class"],
+      "expectations": [
+        "says the decision is a deny",
+        "names the exit_mismatch reason class"
+      ],
       "checks": [
-        {"text": "says the decision is a deny", "regex": "\\bden(y|ied|ies)\\b"},
-        {"text": "names the exit_mismatch reason class", "contains_all": ["exit_mismatch"]}
+        {
+          "text": "says the decision is a deny",
+          "regex": "\\bden(y|ied|ies)\\b"
+        },
+        {
+          "text": "names the exit_mismatch reason class",
+          "contains_all": [
+            "exit_mismatch"
+          ]
+        }
       ]
     },
     {
       "id": 8,
       "prompt": "When my agentware harness authorizes github.get_issue through KeiProxyEvaluator, should it also pass the repository as an authorize resource (--resource) so Kei knows what is being touched?",
       "expected_output": "No. The harness never passes an authorize resource; it authorizes by tool name only and the catalog resolves resource patterns from the tool's registered KeiScope.",
-      "expectations": ["says the harness never passes an authorize resource", "says the catalog resolves resources from the registered scope by tool name"],
+      "expectations": [
+        "says the harness never passes an authorize resource",
+        "says the catalog resolves resources from the registered scope by tool name"
+      ],
       "checks": [
-        {"text": "says the harness never passes an authorize resource", "contains_any": ["never pass", "don't pass", "do not pass", "should not pass", "shouldn't pass", "must not pass", "no resource", "not pass", "don’t pass", "shouldn’t pass"]},
-        {"text": "says the catalog resolves resources from the registered scope by tool name", "contains_all": ["catalog"]}
+        {
+          "text": "says the harness never passes an authorize resource",
+          "contains_any": [
+            "never pass",
+            "don't pass",
+            "do not pass",
+            "should not pass",
+            "shouldn't pass",
+            "must not pass",
+            "no resource",
+            "not pass",
+            "don’t pass",
+            "shouldn’t pass"
+          ]
+        },
+        {
+          "text": "says the catalog resolves resources from the registered scope by tool name",
+          "contains_all": [
+            "catalog"
+          ]
+        }
       ]
     },
     {
       "id": 9,
       "prompt": "Our CallerContext carries an agent id. Should KeiProxyEvaluator forward it to kei-proxy authorize as --agent-id?",
       "expected_output": "No client sends --agent-id: kei-proxy 0.1.11+ resolves the agent from the runtime installation, even when the caller carries an agent id.",
-      "expectations": ["says no --agent-id is sent", "says kei-proxy resolves the agent from the runtime installation"],
+      "expectations": [
+        "says no --agent-id is sent",
+        "says kei-proxy resolves the agent from the runtime installation"
+      ],
       "checks": [
-        {"text": "says no --agent-id is sent", "contains_any": ["no --agent-id", "no `--agent-id", "not send", "don't send", "do not send", "never send", "never sends", "shouldn't", "should not", "omit", "not forward", "don't forward", "do not forward", "No.", "don’t send", "shouldn’t", "don’t forward"]},
-        {"text": "says kei-proxy resolves the agent from the runtime installation", "contains_any": ["installation"]}
+        {
+          "text": "says no --agent-id is sent",
+          "contains_any": [
+            "no --agent-id",
+            "no `--agent-id",
+            "not send",
+            "don't send",
+            "do not send",
+            "never send",
+            "never sends",
+            "shouldn't",
+            "should not",
+            "omit",
+            "not forward",
+            "don't forward",
+            "do not forward",
+            "No.",
+            "don’t send",
+            "shouldn’t",
+            "don’t forward"
+          ]
+        },
+        {
+          "text": "says kei-proxy resolves the agent from the runtime installation",
+          "contains_any": [
+            "installation"
+          ]
+        }
       ]
     },
     {
       "id": 10,
       "prompt": "In agentware 0.7.0 Python, which ToolRegistry method produces the tool manifest an admin loads into the Kei catalog, and what happens to registered tools that don't declare a KeiScope?",
       "expected_output": "ToolRegistry.export_kei_tool_manifest() (ExportKeiToolManifest in Go, exportKeiToolManifest in TS) emits deterministic JSON sorted by tool name; tools that do not implement GovernedTool / kei_scope() are silently omitted from the manifest but keep working locally. The admin loads it with kei tools import --file.",
-      "expectations": ["names export_kei_tool_manifest", "says tools without a KeiScope are omitted from the manifest"],
+      "expectations": [
+        "names export_kei_tool_manifest",
+        "says tools without a KeiScope are omitted from the manifest"
+      ],
       "checks": [
-        {"text": "names export_kei_tool_manifest", "contains_any": ["export_kei_tool_manifest", "exportKeiToolManifest", "ExportKeiToolManifest"]},
-        {"text": "says tools without a KeiScope are omitted from the manifest", "contains_any": ["omitted", "excluded", "left out", "not included", "skipped", "omits", "excludes"]}
+        {
+          "text": "names export_kei_tool_manifest",
+          "contains_any": [
+            "export_kei_tool_manifest",
+            "exportKeiToolManifest",
+            "ExportKeiToolManifest"
+          ]
+        },
+        {
+          "text": "says tools without a KeiScope are omitted from the manifest",
+          "contains_any": [
+            "omitted",
+            "excluded",
+            "left out",
+            "not included",
+            "skipped",
+            "omits",
+            "excludes"
+          ]
+        }
       ]
     },
     {
       "id": 11,
       "prompt": "To keep things simple, can my agentware harness call POST /api/v1/tools itself at startup to register its governed tools with Kei?",
       "expected_output": "No. Agentware never calls POST /api/v1/tools at runtime; manifest export is a build-time/deployment-time action and an admin loads the JSON into the catalog.",
-      "expectations": ["says the harness does not call POST /api/v1/tools at runtime", "says an admin loads the exported manifest at build or deploy time"],
+      "expectations": [
+        "says the harness does not call POST /api/v1/tools at runtime",
+        "says an admin loads the exported manifest at build or deploy time"
+      ],
       "checks": [
-        {"text": "says the harness does not call POST /api/v1/tools at runtime", "regex": "(never|not|n.t|no)\\W+(\\w+\\W+){0,3}(call|register|hit|post)|not at runtime|build[- ]time|deploy[- ]time"},
-        {"text": "says an admin loads the exported manifest at build or deploy time", "contains_any": ["admin"]}
+        {
+          "text": "says the harness does not call POST /api/v1/tools at runtime",
+          "regex": "(never|not|n.t|no)\\W+(\\w+\\W+){0,3}(call|register|hit|post)|not at runtime|build[- ]time|deploy[- ]time"
+        },
+        {
+          "text": "says an admin loads the exported manifest at build or deploy time",
+          "contains_any": [
+            "admin"
+          ]
+        }
       ]
     },
     {
       "id": 12,
       "prompt": "In TypeScript with @haikeilabs/agentware 0.7.0, can I call KeiProxyEvaluator.evaluate synchronously and plug it into MiddlewareImpl.withPolicy?",
-      "expected_output": "No. Since 0.7.0 KeiProxyAuthorizeClient is async only and evaluate returns Promise<Decision>; there is no synchronous evaluate. Await it before running the tool; it does not plug into the sync MiddlewareImpl.withPolicy — call it directly.",
-      "expectations": ["says evaluate is async and must be awaited", "says it does not plug into the synchronous withPolicy"],
+      "expected_output": "No. KeiProxyEvaluator.evaluate is asynchronous and returns Promise<Decision>; await it before running the tool. The synchronous MiddlewareImpl.withPolicy path cannot directly consume this async evaluator, so invoke it directly or use an async-compatible boundary.",
+      "expectations": [
+        "says evaluate is async and must be awaited",
+        "explains the async evaluator cannot be directly used as synchronous withPolicy middleware, allowing equivalent wording"
+      ],
       "checks": [
-        {"text": "says evaluate is async and must be awaited", "contains_any": ["await", "async", "Promise"]},
-        {"text": "says it does not plug into the synchronous withPolicy", "contains_any": ["does not plug", "doesn't plug", "not plug", "cannot plug", "can't plug", "call it directly", "directly", "not compatible", "incompatible", "doesn’t plug", "can’t plug"]}
+        {
+          "text": "says evaluate is async and must be awaited",
+          "contains_any": [
+            "await",
+            "async",
+            "Promise"
+          ]
+        },
+        {
+          "text": "explains the async evaluator cannot be directly used as synchronous withPolicy middleware, allowing equivalent wording",
+          "regex": "(?:(does not|doesn.t|cannot|can.t|won.t|will not|is not|isn.t)[\\s\\S]{0,80}(plug|fit|work|integrat|use)[\\s\\S]{0,80}(sync|withPolicy|middleware)|(sync|withPolicy|middleware)[\\s\\S]{0,80}(cannot|can.t|does not|doesn.t|not compatible|incompatible)[\\s\\S]{0,80}(async|evaluator|plug|fit|work)|call[\\s\\S]{0,30}(evaluate|it)[\\s\\S]{0,30}directly)"
+        }
       ]
     },
     {
       "id": 13,
       "prompt": "For compliance we want the agentware audit record to keep the full raw tool arguments of every call. Is that what it stores?",
       "expected_output": "No. The audit record stores a SHA-256 digest of the arguments rather than the arguments themselves, plus the invoking subject, the delegation chain (parent_span, delegation_depth), resources touched, the policy decision and rule, token counts, latency and success/error. Bearer tokens and raw credentials are never stored.",
-      "expectations": ["says the record stores a digest of the arguments, not the raw arguments", "says the raw arguments themselves are not stored"],
+      "expectations": [
+        "says the record stores a digest of the arguments, not the raw arguments",
+        "says the raw arguments themselves are not stored"
+      ],
       "checks": [
-        {"text": "says the record stores a digest of the arguments, not the raw arguments", "contains_any": ["digest", "SHA-256", "sha256", "hash"]},
-        {"text": "says the raw arguments themselves are not stored", "regex": "(not|never|n.t|no)\\W+(\\w+\\W+){0,4}(raw|full|plaintext|original|arguments|args)|instead of (the )?(raw|full)|rather than (the )?(raw|full)|only (a |the )?(sha-?256 )?(digest|hash)"}
+        {
+          "text": "says the record stores a digest of the arguments, not the raw arguments",
+          "contains_any": [
+            "digest",
+            "SHA-256",
+            "sha256",
+            "hash"
+          ]
+        },
+        {
+          "text": "says the raw arguments themselves are not stored",
+          "regex": "(not|never|n.t|no)\\W+(\\w+\\W+){0,4}(raw|full|plaintext|original|arguments|args)|instead of (the )?(raw|full)|rather than (the )?(raw|full)|only (a |the )?(sha-?256 )?(digest|hash)"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "My Python agent harness will run in a container next to `kei-proxy serve`. How should it connect to kei-proxy for tool authorization, and what does it have to do before it starts serving requests?",
+      "expected_output": "Uses the agentware socket client: sync the tool manifest first with sync_tool_manifest (ToolManifestSyncConfig.from_env), which rejects or refuses an empty manifest and must stop the harness from serving on failure; then select_authorization_client with KEI_RUNTIME_SOCKET_PATH set so the socket client (KeiProxySocketAuthorizeClient, sessions via open_session) is used; wrap it in KeiProxyEvaluator. Imports from haikeilabs.agentware.kei (pedro_agentware.kei is a deprecated shim). The kei-proxy authorize CLI is only the fallback when no daemon runs. Choose either the SDK control-plane sync helper or agentware 0.11.0 can register typed ToolSpec declarations over the local socket with POST /v1/tools:register (Python register_tool_specs, TypeScript registerToolSpecs, Go toolsync.SocketRegistrar); operators can also run kei harness sync --harness custom --manifest tools.json with kei >= 0.1.33.",
+      "expectations": [
+        "syncs the tool manifest with sync_tool_manifest before serving",
+        "selects the socket client with select_authorization_client and KEI_RUNTIME_SOCKET_PATH",
+        "says empty tool manifests are rejected or refused",
+        "keeps the kei-proxy authorize CLI only as the fallback when no daemon runs",
+        "mentions socket tool registration with ToolSpec or POST /v1/tools:register"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "sync_tool_manifest"
+          ],
+          "text": "syncs the tool manifest with sync_tool_manifest before serving"
+        },
+        {
+          "contains_all": [
+            "select_authorization_client",
+            "KEI_RUNTIME_SOCKET_PATH"
+          ],
+          "text": "selects the socket client with select_authorization_client and KEI_RUNTIME_SOCKET_PATH"
+        },
+        {
+          "regex": "(empty|zero|no)[ -]?(tool[ -]?)?manifest[\\s\\S]{0,80}(refus|reject|invalid|error|fail)|(refus|reject|invalid|error|fail)[\\s\\S]{0,80}(empty|zero|no)[ -]?(tool[ -]?)?manifest",
+          "text": "says empty tool manifests are rejected or refused"
+        },
+        {
+          "contains_any": [
+            "fallback",
+            "fall back"
+          ],
+          "text": "keeps the kei-proxy authorize CLI only as the fallback when no daemon runs"
+        },
+        {
+          "text": "mentions socket tool registration with ToolSpec or POST /v1/tools:register",
+          "regex": "ToolSpec|/v1/tools:register|register_tool_specs|registerToolSpecs|SocketRegistrar"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "Our Go harness sets KEI_RUNTIME_SOCKET_PATH, but the kei-proxy daemon is down. Should the harness quietly fall back to spawning `kei-proxy authorize` so tools keep working? Also, can we log the KEI_RUNTIME_TOKEN at debug level to troubleshoot?",
+      "expected_output": "No. the socket selector (runtimesocket.SelectAuthorizationClient in Go) chooses once: a configured socket that is down is a refusal (proxy_unavailable), never a silent fall back to the CLI; KeiProxyEvaluator denies (fail-closed). The runtime token is never logged: it is sent only as Authorization: Bearer and never appears in a log line, an error or String().",
+      "expectations": [
+        "says a configured socket that is down is a refusal with proxy_unavailable",
+        "says there is no fall back to the CLI",
+        "says the runtime token is never logged",
+        "identifies socket client selection behavior, by behavior or Go API name"
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "proxy_unavailable"
+          ],
+          "text": "says a configured socket that is down is a refusal with proxy_unavailable"
+        },
+        {
+          "regex": "(never|not|no|don't|do not|must not|won't)\\W+(\\w+\\W+){0,4}fall(s|ing)?[ -]?back",
+          "text": "says there is no fall back to the CLI"
+        },
+        {
+          "regex": "never[^.\\n]{0,30}log|not[^.\\n]{0,30}\\blog",
+          "text": "says the runtime token is never logged"
+        },
+        {
+          "text": "identifies socket client selection behavior, by behavior or Go API name",
+          "regex": "(select(or|ion)? (the )?(socket|authorization) client|socket (client )?selection|runtimesocket[.`]*SelectAuthorizationClient|(?=[\\s\\S]*(configured socket|KEI_RUNTIME_SOCKET_PATH))(?=[\\s\\S]*(down|unreachable|unavailable))(?=[\\s\\S]*(refus|fail.closed|den(y|ies))))"
+        }
       ]
     }
   ]

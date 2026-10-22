@@ -96,11 +96,7 @@ package for it.
 
 ## How authorization is decided
 
-> **Control-plane endpoint.** `POST /api/v1/authorize` is a control-plane API
-> route. Harnesses checking whether a v2 tool call is allowed use the local
-> daemon's Unix-socket `POST /v1/authorize` route. A one-shot
-> `kei-proxy authorize` call returns `preflight_required` and is not an allow
-> probe.
+> **Control-plane API reference.** `POST /api/v1/authorize` is a control-plane route; harnesses do not call it to authorize a governed tool invocation. The runtime decision uses `kei-proxy serve` and its local Unix-socket `POST /v1/authorize` route through the Agentware socket client. The one-shot `kei-proxy authorize` CLI remains a fallback for one-shot environments, but it is not a v2 allow probe: it returns `preflight_required`. See `agentware-sdk` and `kei-proxy` for the socket path and CLI behavior.
 
 `POST /api/v1/authorize` is the ABAC decision endpoint. The request carries the
 harness token (or user identity) plus `action`, `resource`, `service`, `agent_id`,
