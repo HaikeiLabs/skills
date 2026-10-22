@@ -154,6 +154,8 @@ skill.
 | [kei-tool-adapters](skills/kei-tool-adapters/SKILL.md) | Tool adapters and the governor tool-lane pattern: schema/client/guard/envelope/renderer/runtime stacks, GovernorClient proposals and stdio protocol, the typed tool-lane registry, and the agentware TS SDK tool formats |
 | [kei-headless-evals](skills/kei-headless-evals/SKILL.md) | Headless, deterministic evaluation harnesses: EvalSuite/EvalCase/EvalTrace/EvalReport, ScriptedBackend, golden fixtures, the assistant CLI, and the agentware eval harnesses |
 | [kei-openai-backends](skills/kei-openai-backends/SKILL.md) | OpenAI-compatible LLM backend integration: LLM_ENDPOINT/LLM_MODEL wiring, pydantic-ai OpenAIChatModel, agentware per-family tool formats and reasoning fields, and agentware eval model backends |
+| [linear-connector](skills/linear-connector/SKILL.md) | Generated reference for governed Linear connector tools, permissions, request mappings, and credential flow |
+| [github-connector](skills/github-connector/SKILL.md) | Generated reference for governed GitHub connector tools, permissions, request mappings, and credential flow |
 ## Templates
 
 | Template | Use |

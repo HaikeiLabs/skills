@@ -1,21 +1,7 @@
 # github-connector evals
 
-Eval cases for the GitHub connector skill.
+Deterministic prompt-only cases for pull request lookup and creation. Each
+expectation has a single case-insensitive deterministic check.
 
-## Running
-
-```bash
-node scripts/run-evals.mjs --skill github-connector --harness opencode \
-  --model-profile deepseek-v4-flash --jobs 1 \
-  --out evals-out/github-connector-deepseek-$(date +%F)
-```
-
-```bash
-node scripts/run-evals.mjs --skill github-connector --harness opencode \
-  --model-profile qwen3.8-27b --jobs 1 \
-  --out evals-out/github-connector-qwen-$(date +%F)
-```
-
-## Results
-
-See `results/` for committed benchmark outputs.
+Run with `node scripts/run-evals.mjs --skill github-connector --model-profile deepseek-v4-flash --jobs 1 --repeats 3`.
+Run Qwen through the worker turnlock as described in `AGENTS.md`.

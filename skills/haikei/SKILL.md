@@ -262,6 +262,9 @@ command and version requirement.
   The action (posting the message): `agentware-sdk` wraps the tool call with
   policy and audit, `kei-agents` defines the tool, and `kei-proxy` authorizes
   it at run time. Name all of these in the answer.
+- **"Inspect a GitHub pull request through Kei."** Discover the workspace
+  connector with `kei connectors list --workspace W`, then load
+  `github-connector` for supported reads and permission requirements.
 - **"Add our Grafana MCP server to Kei."** → `kei-cli`. Create it from a
   catalog template: `kei connectors create --workspace W --kind mcp --template
   custom_mcp --label "Grafana (prod)" --mcp-url https://<host>/mcp` (use the
