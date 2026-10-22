@@ -49,7 +49,7 @@
     {
       "id": 5,
       "prompt": "How does credential management work for the Discord connector?",
-      "expected_output": "A workspace admin runs `kei connectors create --provider discord` which reads the bot token from stdin without echoing it. For rotation, use `kei connectors reconnect <connector-id>`. At runtime, the token is injected via kei-proxy connector invoke. The agent never sees the raw token.",
+      "expected_output": "A workspace admin runs `kei connectors create --provider discord` which reads the bot token from stdin without echoing it. For rotation, use `kei connectors reconnect <connector-id>`. At runtime, Kei authorizes each call and releases the bot token. The agent never sees the raw token.",
       "expectations": ["mentions kei connectors create --provider discord", "states the token is read without echo", "mentions kei connectors reconnect for rotation", "confirms agent never stores or prints the token"],
       "checks": [
         {"text": "mentions kei connectors create --provider discord", "contains_all": ["kei connectors create", "--provider discord"]},
@@ -61,7 +61,7 @@
     {
       "id": 6,
       "prompt": "What Discord API version should I use and what authentication header does the connector need?",
-      "expected_output": "Use `https://discord.com/api/v10` as the base URL. The governed connector injects the Authorization header (`Authorization: Bot <token>`) via kei-proxy connector invoke; the agent should never construct it manually or print the token value.",
+      "expected_output": "Use `https://discord.com/api/v10` as the base URL. Kei authorizes each call and releases the bot token; the harness injects the Authorization header (`Authorization: Bot <token>`). The agent should never construct it manually or print the token value.",
       "expectations": ["mentions v10 API version", "states the Authorization header format", "confirms agent should not construct or expose the token"],
       "checks": [
         {"text": "mentions v10 API version", "contains_all": ["v10"]},

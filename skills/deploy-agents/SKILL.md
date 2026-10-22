@@ -204,8 +204,8 @@ it, authorize denies with a `connect` block (`url`, `provider`,
 to that user, and the next call succeeds. In identity mode
 (`KEI_CREDENTIAL_RELEASE=identity`) the daemon fetches the user's connector
 credential when their session starts and holds it **in memory for that session
-only**; `POST /v1/connectors:invoke` runs the provider call inside the daemon,
-and no socket route ever returns a credential.
+only**; `POST /v1/credentials:release` returns the credential to the harness,
+which calls the upstream API directly.
 
 ## Validation commands
 

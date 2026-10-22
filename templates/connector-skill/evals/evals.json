@@ -44,7 +44,7 @@
     {
       "id": 5,
       "prompt": "How does credential management work for the PROVIDER_NAME connector?",
-      "expected_output": "Kei supplies the credential at run time via kei-proxy connector invoke. The agent never reads or stores a token, secret, or API key.",
+      "expected_output": "Kei authorizes each call and releases the credential at run time. The harness calls the provider API directly. The agent never reads or stores a token, secret, or API key.",
       "expectations": ["states that Kei handles credentials", "confirms agent never stores secrets"],
       "checks": [
         {"text": "states that Kei handles credentials", "contains_any": ["Kei", "kei-proxy"]},

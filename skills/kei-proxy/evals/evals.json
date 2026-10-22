@@ -155,18 +155,16 @@
     },
     {
       "id": 6,
-      "prompt": "How do I invoke a governed data connector and handle retries for writes? The doc says per-call approval is removed.",
-      "expected_output": "Use kei-proxy connector invoke for governed data access. For retried writes, pass --idempotency-key so the runtime can deduplicate. Per-call authorize calls are removed for connector invoke.",
+      "prompt": "How do I access governed data through the runtime and handle retries for writes?",
+      "expected_output": "Use credential release for governed data access. The harness obtains the credential via POST /v1/credentials:release, then calls the upstream API directly. For retried writes, pass --idempotency-key so the runtime can deduplicate.",
       "expectations": [
-        "The response uses kei-proxy connector invoke for governed data.",
+        "The response mentions credential release for governed data.",
         "The response passes --idempotency-key for retried writes."
       ],
       "checks": [
         {
-          "text": "The response uses kei-proxy connector invoke for governed data.",
-          "contains_all": [
-            "connector invoke"
-          ]
+          "text": "The response mentions credential release for governed data.",
+          "contains_all": ["credentials:release"]
         },
         {
           "text": "The response passes --idempotency-key for retried writes.",
@@ -178,7 +176,7 @@
     },
     {
       "id": 7,
-      "prompt": "In kei-proxy identity mode, which reason codes can a POST /v1/connectors:invoke call to our http_api connector named crm (an opaque_ref connector) deny with, and does this work in proxy-v0.2.4?",
+      "prompt": "In kei-proxy identity mode, which reason codes can a POST /v1/credentials:release call for our http_api connector named crm (an opaque_ref connector) deny with, and does this work in proxy-v0.2.4?",
       "expected_output": "Not in proxy-v0.2.4: it ships with the next kei-proxy release and needs POLICY_BUNDLE_V2_CONNECTORS enabled in the control plane; until then the call denies credential_source_not_supported. Once live it can deny credential_unavailable, credential_backend_mismatch, descriptor_invalid, account_model_not_supported or provider_error.",
       "expectations": [
         "The response names the deny codes credential_unavailable, credential_backend_mismatch and descriptor_invalid.",

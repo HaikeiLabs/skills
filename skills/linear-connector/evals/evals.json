@@ -92,10 +92,11 @@
     },
     {
       "id": 9,
-      "prompt": "File a bug in the Linear team ENG through the governed Kei connector: the login page crashes on Safari. Do not run anything; reply with the exact kei-proxy command you would use.",
-      "expected_output": "kei-proxy connector invoke --connector <id> --capability issue.create --action create --resource linear/team/ENG --idempotency-key <key> --input '{\"team_id\":\"ENG\",\"title\":\"Login page crashes on Safari\",\"description\":\"...\",\"priority\":2}'. The team is the parent: team_id equals the resource team. The workspace is never an argument.",
-      "expectations": ["uses the issue.create capability", "targets the team resource linear/team/ENG", "passes team_id as the parent argument", "sets an idempotency key", "does not pass the workspace as an argument"],
+      "prompt": "File a bug in the Linear team ENG through the governed Kei connector: the login page crashes on Safari. Do not run anything; describe what the harness sends and which capability Kei authorizes.",
+      "expected_output": "The harness sends an issueCreate GraphQL mutation with teamId, title, and priority. Kei authorizes issue.create against linear/team/ENG. The harness passes an idempotency-key for retry safety. The team is the parent: team_id equals the resource team. The workspace is never an argument.",
+      "expectations": ["mentions issueCreate mutation", "uses the issue.create capability", "targets the team resource linear/team/ENG", "passes team_id as the parent argument", "sets an idempotency key", "does not pass the workspace as an argument"],
       "checks": [
+        {"text": "mentions issueCreate mutation", "contains_all": ["issueCreate"]},
         {"text": "uses the issue.create capability", "contains_all": ["issue.create"]},
         {"text": "targets the team resource linear/team/ENG", "contains_all": ["linear/team/ENG"]},
         {"text": "passes team_id as the parent argument", "contains_all": ["team_id"]},
@@ -105,10 +106,11 @@
     },
     {
       "id": 10,
-      "prompt": "Add a comment to Linear issue ENG-42 saying the fix is deployed, using the governed Kei connector. What call do you make?",
-      "expected_output": "kei-proxy connector invoke --capability comment.create --action create --resource linear/issue/ENG-42 --idempotency-key <key> --input '{\"issue_id\":\"ENG-42\",\"body\":\"The fix is deployed.\"}'. The issue is the comment's parent.",
-      "expectations": ["uses the comment.create capability", "targets the issue resource linear/issue/ENG-42", "passes issue_id and body", "sets an idempotency key"],
+      "prompt": "Add a comment to Linear issue ENG-42 saying the fix is deployed, using the governed Kei connector. What does the harness send?",
+      "expected_output": "The harness sends a commentCreate GraphQL mutation with issueId and body. Kei authorizes comment.create against linear/issue/ENG-42. The harness passes an idempotency-key for retry safety. The issue is the comment's parent.",
+      "expectations": ["mentions commentCreate mutation", "uses the comment.create capability", "targets the issue resource linear/issue/ENG-42", "passes issue_id and body", "sets an idempotency key"],
       "checks": [
+        {"text": "mentions commentCreate mutation", "contains_all": ["commentCreate"]},
         {"text": "uses the comment.create capability", "contains_all": ["comment.create"]},
         {"text": "targets the issue resource linear/issue/ENG-42", "contains_all": ["linear/issue/ENG-42"]},
         {"text": "passes issue_id and body", "contains_all": ["issue_id", "body"]},

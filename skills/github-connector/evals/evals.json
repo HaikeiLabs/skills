@@ -47,7 +47,7 @@
     {
       "id": 5,
       "prompt": "How does credential management work for the GitHub connector?",
-      "expected_output": "Kei supplies a GITHUB_TOKEN (fine-grained PAT) at run time via kei-proxy connector invoke. The agent never reads or stores a token, secret, or API key.",
+      "expected_output": "Kei authorizes each call and releases a GITHUB_TOKEN (fine-grained PAT) at run time. The harness calls the GitHub API directly. The agent never reads or stores a token, secret, or API key.",
       "expectations": ["states that Kei handles credentials", "mentions GITHUB_TOKEN", "confirms agent never stores secrets"],
       "checks": [
         {"text": "states that Kei handles credentials", "contains_all": ["Kei"]},

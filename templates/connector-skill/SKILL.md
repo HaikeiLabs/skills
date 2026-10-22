@@ -27,11 +27,9 @@ raw credential.
   create --provider <PROVIDER_ID>` (reads the secret without echo) or passes
   `--credential-ref <secret-manager-ref>` if the secret already exists in the
   connected secret manager.
-- **At runtime:** The governed connector injects the credential via
-  `kei-proxy connector invoke` (preferred) or through a `kei-proxy run`
-  wrapper that sets `<ENV_VAR>=kei://connectors/<id>/token` and masks the
-  value in output. The `kei-proxy run` wrapper is pending
-  [HAI-305](https://linear.app/haikei/issue/HAI-305).
+- **At runtime:** Kei authorizes each call and releases the credential. The
+  harness calls the provider API directly. The agent never sees the raw
+  credential.
 
 ## Lexicon — commands and endpoints
 
@@ -51,9 +49,9 @@ raw credential.
 
 ### Credential pass-through
 
-This connector does **not** manage credentials. Kei supplies the credential at
-run time via `kei-proxy connector invoke`. The agent never reads or stores a
-token, secret, or API key.
+This connector does **not** manage credentials. Kei authorizes each call and
+releases the credential at run time. The harness calls the provider API
+directly. The agent never reads or stores a token, secret, or API key.
 
 ### Denied command surface
 

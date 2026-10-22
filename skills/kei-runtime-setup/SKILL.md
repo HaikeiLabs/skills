@@ -423,8 +423,10 @@ kei-proxy credential sync | jq '{claimed, success}'
 Not live yet: this needs the catalog's `POLICY_BUNDLE_V2_CONNECTORS` gate
 enabled and kei-proxy 0.2.5 or newer deployed (see the release status below).
 
-With `KEI_CREDENTIAL_RELEASE=identity` the daemon runs connector calls itself
-(`POST /v1/connectors:invoke`). A user's own OAuth connection (github, gmail,
+With `KEI_CREDENTIAL_RELEASE=identity` the daemon holds the credential in
+session memory. The harness obtains it via `POST /v1/credentials:release` over
+the socket, then calls the upstream API directly. A user's own OAuth connection
+(github, gmail,
 google_drive, linear) loads when their session starts. An `opaque_ref`
 connector works differently: an `http_api` connector such as the one named
 `crm`, or notion, discord or tito. The daemon reads its secret from your

@@ -22,7 +22,7 @@ the scripts in `scripts/` (see the repo README).
 | `kei-harness-setup` | Connect coding-agent harnesses to Kei governance |
 | `kei-headless-evals` | Headless deterministic evaluation harnesses |
 | `kei-openai-backends` | OpenAI-compatible LLM backend integration |
-| `kei-proxy` | `kei-proxy` runtime — authorize, connector invoke, heartbeat, collector |
+| `kei-proxy` | `kei-proxy` runtime — authorize, credential release, heartbeat, collector |
 | `kei-runtime-setup` | Stand up customer-hosted Kei runtimes |
 | `kei-setup-doctor` | Diagnose Kei runtime installations |
 | `kei-teams-ingress` | Microsoft Teams / Bot Framework integration |

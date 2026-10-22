@@ -272,8 +272,8 @@ node scripts/run-evals.mjs --skill grafana-connector --harness opencode \
 
 ## Realistic usage boundaries
 
-- **Do not** manage credentials — Kei handles authentication via the
-  service-account token injected by `kei-proxy connector invoke`.
+- **Do not** manage credentials — Kei handles authentication by authorizing
+  each call and releasing the service-account token.
 - **Do not** expose the raw service-account token in output, logs, or
   conversation — Kei masks the credential via the runtime.
 - **Do not** assume write access — check policy before creating or modifying

@@ -66,7 +66,7 @@ Who is acting?
 
 Need to operate Kei from a terminal?
 ├─ Which admin command / what flags / install or upgrade kei → kei-cli
-├─ Which runtime command (authorize, connector invoke, heartbeat, collector) → kei-proxy
+├─ Which runtime command (authorize, credential release, heartbeat, collector) → kei-proxy
 ├─ New runtime next to a harness (installation, credential, bootstrap, bind) → kei-runtime-setup
 ├─ Rotate / revoke a runtime credential (KEI_RUNTIME_TOKEN) — agent keys deprecated for runtime; rotation invalidates the old token immediately → kei-credential-rotation
 ├─ Sync Entra (Azure AD) app roles into Kei groups and users, or debug that sync (`kei directory-sync`) → kei-directory-sync
@@ -140,7 +140,7 @@ command and version requirement.
 
 | Surface | Repo / package | Owns | Does not own |
 | --- | --- | --- | --- |
-| `kei-proxy` runtime | the `kei-connector-runtime` repository | Per-call `authorize`, `connector invoke`, `runtime bootstrap`/`heartbeat`, `collector`, `credential sync`, `model`, `serve` — what agents use at run time | Logins, installations, credential minting (admin CLI); agents and keys (console) |
+| `kei-proxy` runtime | the `kei-connector-runtime` repository | Per-call `authorize`, credential release, `runtime bootstrap`/`heartbeat`, `collector`, `credential sync`, `model`, `serve` — what agents use at run time | Logins, installations, credential minting (admin CLI); agents and keys (console) |
 | `kei` CLI | the `kei-cli` repository (not `kei/cmd/kei`) | `kei setup`, `kei runtime bootstrap`, `kei login`/`logout`, `kei upgrade`, `kei bot` (init/agents/status/delete/credential/bind), and `kei connectors` (list/create/get/reconnect/delete — released in kei; v0.1.13 is current) for customer-hosted runtimes | Org, workspace, agent, group, policy, user commands (none exist); `bot install`/`deploy`/`destroy`/`list` (none exist) |
 | Kei API | `cmd/abac-engine` | Organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles, consents, audit — all of org management | CLI-shaped org management |
 | agentware SDK | `pedro-agentware` (`go/`, `python/`, `typescript/`) | Policy/audit middleware, delegation, harness contract, kei auth/proxy modules | Connector execution, credential resolution, control-plane data |
