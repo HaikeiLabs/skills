@@ -368,7 +368,10 @@ jobs:
       (needs.scope.outputs.mode == 'changed' || needs.scope.outputs.mode == 'all') &&
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
         github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: kei-agent-evals
+    # DeepSeek runs on kei-agent-evals (EVAL_DEEPSEEK_BASE_URL), Qwen on
+    # kei-agent-evals-qwen (EVAL_QWEN_BASE_URL), matching the two scale sets
+    # deployed by HaikeiLabs/kei .github/workflows/deploy-agent-evals-runner.yaml.
+    runs-on: ${{ matrix.profile == 'qwen3.8-27b' && 'kei-agent-evals-qwen' || 'kei-agent-evals' }}
     # A pull request runs one repeat of the suites it changes, split into
     # shards sized per profile (shard_runs), so 30 minutes is enough and a stuck
     # job frees its runner soon. The nightly sweep (three repeats of every
