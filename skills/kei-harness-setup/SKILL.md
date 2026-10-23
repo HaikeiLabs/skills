@@ -389,7 +389,6 @@ KEI_PROXY_FRAMEWORK=claude|codex|opencode|pi   # which harness
 # (kei-proxy >= 0.1.11, agentware >= 0.4.0). No agent-ID env var needed.
 KEI_PROXY_INVOKING_SUBJECT=<the human who started the task>
 KEI_PROXY_PARENT_SPAN / KEI_PROXY_DELEGATION_DEPTH   # when a subagent delegates
-KEI_PROXY_REGISTRY=<tool → service registry path>
 ```
 
 Keep the human who started the task as the invoking subject through every
