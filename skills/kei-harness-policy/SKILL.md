@@ -5,7 +5,16 @@ description: "Govern harness command execution through Kei policies — import n
 
 # Harness command policy
 
-**Requires kei v0.1.7 or newer**, the first release with `kei policies` and
+## Compatibility at a glance
+
+| Harness | Policy source | Enforceable by sync? |
+| --- | --- | --- |
+| Claude Code | `shell:` policies | Yes, rendered to native command permissions |
+| Codex | `shell:` policies | Yes, rendered as Codex shell rules |
+| OpenCode | `shell:` policies | Yes, rendered to native bash permissions |
+| Codex | group policies | No. Group policies are not rendered into Codex rules. |
+
+**Requires kei v0.1.7 or newer**, the first release with harness policies and
 `kei harness`; every supported kei release has them.
 
 Kei governs a coding-agent harness in two layers:
@@ -74,9 +83,10 @@ first. If something is not here, say so. In every answer:
 - **Any `kei policies` or `kei harness` command** (including
   `kei harness sync --dry-run`): say it needs kei v0.1.7 or newer (kei >
   v0.1.6; check `kei --version`).
-- **Writing a policy:** give the whole `kei policies create --name ...
-  --src-pattern ... --dst-pattern ... --effect permit|deny` command, not a list
-  of field values.
+- **Writing a policy:** use `kei policy create --workspace WS --group GROUP
+  --allow TARGET` (or `--deny TARGET`). The older `kei policies` alias is
+  deprecated; do not suggest `--name`, `--src-pattern`, or `--dst-pattern`
+  flags for the installed policy command.
 - **`kei harness sync` for Claude Code, Codex, or OpenCode** (including any
   import answer): always say that desktop harnesses are auto-discovered from
   the runtime installation, so no `kei harness add` is needed (that is only
@@ -131,7 +141,7 @@ first. If something is not here, say so. In every answer:
 
 | Source | How to retrieve | Use for |
 | --- | --- | --- |
-| Installed binary | `kei help`, `kei policies --help`, `kei harness --help` | Exact subcommands, flags, and allowed values for the installed version |
+| Installed binary | `kei help`, `kei policy -h`, `kei harness -h` | Exact subcommands, flags, and allowed values for the installed version |
 | Policy contract | `docs/contracts/policy-set-v1.schema.json`, `docs/contracts/policy-bundle-v1.schema.json` | The JSON schema a policy must satisfy |
 | Harness docs | The harness's own skills documentation | How a particular harness loads native config (Claude Code's `settings.json`, Codex's `~/.codex/rules/*.rules`, OpenCode's `opencode.json`) |
 | ADR-029 | `docs/adr/029-harness-command-policy.md` | Design rationale, shell:/skill:/path: schemes, report-only hook, match dialect |
@@ -143,12 +153,11 @@ first. If something is not here, say so. In every answer:
 
 | Task | Command | Needs login |
 | --- | --- | --- |
-| List policies for a workspace | `kei policies list [--workspace WS] [--page-size N] [--json]` | yes |
-| Get a policy | `kei policies get ID [--workspace WS] [--json]` | yes |
-| Create a shell:/skill:/path: policy | `kei policies create --name NAME --src-pattern PATTERN --dst-pattern DST --effect permit\|deny [--priority N] [--agent-id ID]` | yes |
-| Update a policy | `kei policies update ID [--name N] [--src-pattern P] [--dst-pattern D] [--effect permit\|deny] [--priority N] [--enabled]` | yes |
-| Delete a policy | `kei policies delete ID --yes [--workspace WS]` | yes |
-| Import native harness rules | `kei policies import --from claude\|codex\|opencode [--file PATH] [--src PATTERN] [--out FILE] [--apply] [--workspace WS]` | yes |
+| List policies for a workspace | `kei policy list --workspace WS` | yes |
+| Get a policy | `kei policy get ID --workspace WS` | yes |
+| Create a group allow/deny policy | `kei policy create --workspace WS --group GROUP --allow TARGET` (or `--deny TARGET`) | yes |
+| Test a policy | `kei policy test --workspace WS --as group:GROUP TARGET` | yes |
+| Delete a policy | `kei policy delete ID --workspace WS` | yes |
 | Register a custom/SDK harness | `kei harness add --kind custom [--installation ID] [--agent ID]` | yes |
 | Sync tool registrations | `kei harness sync [--harness KIND] [--manifest PATH] [--dry-run]` | yes |
 | List registered harnesses | `kei harness list --installation ID [--json]` | yes |
@@ -290,55 +299,17 @@ authorize route, or the `kei-proxy authorize` CLI fallback), not rendered.
 
 ### Examples
 
-**Allow git + deny curl for OpenCode:**
+**Create and test a group shell policy:**
 
 ```sh
-# 1. Permit git commands from the OpenCode harness
-kei policies create \
-  --name "allow git" \
-  --src-pattern "harness:opencode" \
-  --dst-pattern "shell:git" \
-  --effect permit \
-  --priority 100
-
-# 2. Deny curl commands from the OpenCode harness
-kei policies create \
-  --name "deny curl" \
-  --src-pattern "harness:opencode" \
-  --dst-pattern "shell:curl" \
-  --effect deny \
-  --priority 100
+kei groups create --name developers --workspace WORKSPACE
+kei policy create --workspace WORKSPACE --group developers --allow shell:git
+kei policy test --workspace WORKSPACE --as group:developers shell:git
 ```
 
-At equal priority a deny beats a permit (ADR-028 §2), so `deny curl` would
-override any broad permit covering curl — but since `shell:curl` and
-`shell:git` are distinct dst schemes, no conflict occurs here. After creating
-the policies, run `kei harness sync` to render them into the native harness
-config.
-
-**Allow git for any harness (`*` src):**
-
-```sh
-# Permit git for any harness connected to this installation
-kei policies create \
-  --name "allow git" \
-  --src-pattern "*" \
-  --dst-pattern "shell:git" \
-  --effect permit \
-  --priority 100
-```
-
-**Targeted deny — block `rm -rf` for a group:**
-
-```sh
-# Deny dangerous rm -rf for the developers group
-kei policies create \
-  --name "deny rm -rf" \
-  --src-pattern "group:developers" \
-  --dst-pattern "shell:rm -rf" \
-  --effect deny \
-  --priority 200
-```
+The CLI policy is a group policy; it is not rendered into Codex shell rules by
+`kei harness sync`. For harness-native command policy syntax and rendering,
+use the rendered policy source table above and verify against `kei policy -h`.
 
 ## Importing from native harness config
 

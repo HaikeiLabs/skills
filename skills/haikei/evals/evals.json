@@ -4,7 +4,7 @@
     {
       "id": 1,
       "prompt": "I want to create a workspace, attach a governed GitHub connector, and let an agent call it with policy and audit. Which Haikei surface and skill should I use?",
-      "expected_output": "Routes organization and workspace configuration to the Kei API skill, and agent policy/audit enforcement to the agentware SDK skill, with the boundary between them explained.",
+      "expected_output": "Routes supported workspace, group, user, policy, and connector administration to kei-cli, and agent policy/audit enforcement to the agentware SDK skill, with the boundary between them explained. Uses kei-api only for operations not exposed by the CLI.",
       "expectations": [
         "The response does not invent a kei CLI org or workspace command.",
         "The response distinguishes ABAC resource management from agentware enforcement and audit."
@@ -12,10 +12,7 @@
       "checks": [
         {
           "text": "The response does not invent a kei CLI org or workspace command.",
-          "not_contains": [
-            "kei org",
-            "kei workspace"
-          ]
+          "not_contains": ["kei org"]
         },
         {
           "contains_all": [
@@ -191,9 +188,25 @@
         "The response keeps the runtime token out of Pi and uses the local socket."
       ],
       "checks": [
-        {"text":"The response routes Pi adapter setup to kei-pi-setup.","contains_all":["kei-pi-setup"]},
-        {"text":"The response names kei-lime-pi as the Pi adapter package.","contains_all":["kei-lime-pi"]},
-        {"text":"The response keeps the runtime token out of Pi and uses the local socket.","contains_all":["token","socket"]}
+        {
+          "text": "The response routes Pi adapter setup to kei-pi-setup.",
+          "contains_all": [
+            "kei-pi-setup"
+          ]
+        },
+        {
+          "text": "The response names kei-lime-pi as the Pi adapter package.",
+          "contains_all": [
+            "kei-lime-pi"
+          ]
+        },
+        {
+          "text": "The response keeps the runtime token out of Pi and uses the local socket.",
+          "contains_all": [
+            "token",
+            "socket"
+          ]
+        }
       ]
     },
     {
@@ -268,10 +281,68 @@
         "The response gives the exact registration and manifest sync commands and the minimum kei version."
       ],
       "checks": [
-        {"text":"The response names the six harness types.","contains_all":["SDK (Agentware)","Claude Code","Codex","Pi","OpenCode","Open WebUI"]},
-        {"text":"The response maps kind custom to SDK (Agentware).","regex":"(kind custom|custom.{0,30}(API|catalog) kind).{0,100}SDK \\(Agentware\\)|SDK \\(Agentware\\).{0,100}(kind custom|custom.{0,30}(API|catalog) kind)"},
-        {"text":"The response does not describe Open WebUI or Pi as custom or SDK.","not_contains":["Open WebUI is custom","Open WebUI is a custom harness","Open WebUI is an SDK","Open WebUI uses kind custom","Pi is custom","Pi is a custom harness","Pi is an SDK","Pi uses kind custom"]},
-        {"text":"The response gives the exact registration and manifest sync commands and the minimum kei version.","contains_all":["kei harness add --kind custom","kei harness sync --harness custom --manifest tools.json","0.1.33"]}
+        {
+          "text": "The response names the six harness types.",
+          "contains_all": [
+            "SDK (Agentware)",
+            "Claude Code",
+            "Codex",
+            "Pi",
+            "OpenCode",
+            "Open WebUI"
+          ]
+        },
+        {
+          "text": "The response maps kind custom to SDK (Agentware).",
+          "regex": "(kind custom|custom.{0,30}(API|catalog) kind).{0,100}SDK \\(Agentware\\)|SDK \\(Agentware\\).{0,100}(kind custom|custom.{0,30}(API|catalog) kind)"
+        },
+        {
+          "text": "The response does not describe Open WebUI or Pi as custom or SDK.",
+          "not_contains": [
+            "Open WebUI is custom",
+            "Open WebUI is a custom harness",
+            "Open WebUI is an SDK",
+            "Open WebUI uses kind custom",
+            "Pi is custom",
+            "Pi is a custom harness",
+            "Pi is an SDK",
+            "Pi uses kind custom"
+          ]
+        },
+        {
+          "text": "The response gives the exact registration and manifest sync commands and the minimum kei version.",
+          "contains_all": [
+            "kei harness add --kind custom",
+            "kei harness sync --harness custom --manifest tools.json",
+            "0.1.33"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "A user asks whether the Kei CLI can create a workspace, group, user, policy, and connector. Which surface should you route to?",
+      "expected_output": "Route supported workspace, group, user, policy, and connector administration to kei-cli and the installed kei CLI; use kei-api only for operations the CLI does not expose. Never claim these resource command groups are wholly absent.",
+      "expectations": [
+        "supported factual terms",
+        "reject stale guidance"
+      ],
+      "checks": [
+        {
+          "text": "supported factual terms",
+          "contains_all": [
+            "kei-cli",
+            "kei-api",
+            "kei groups",
+            "kei policy"
+          ]
+        },
+        {
+          "text": "reject stale guidance",
+          "not_contains": [
+            "no CLI"
+          ]
+        }
       ]
     }
   ]

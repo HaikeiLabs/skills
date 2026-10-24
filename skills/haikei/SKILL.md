@@ -25,9 +25,11 @@ skills plugin and is loaded by your agent alongside the skills it routes to
 - Use the need-to-surface map below to choose, then load the named skill. A
   request like "invite a user" uses the Kei API, not a CLI command — no
   `kei` CLI command exists for it.
-- Respect the boundary that is true today: the **CLI** manages customer-hosted
-  bot runtimes; the **Kei API** is where organization management actually
-  lives. Do not suggest a CLI command that does not exist.
+- Use the installed CLI for supported workspace, group, user, policy, and
+  connector administration (`kei workspaces`, `kei groups`, `kei users`,
+  `kei policy`, `kei connectors`). Use the Kei API for resources or operations
+  the installed CLI does not expose; check `kei --help` before claiming a CLI
+  command is absent.
 - When several surfaces could fit, explain the deciding requirement: is this
   org management (API), runtime deployment (CLI), in-harness tool governance
   (agentware SDK), or agent capability definition (kei-agents)?
@@ -77,7 +79,8 @@ Need to operate Kei from a terminal?
 ├─ Add a remote MCP server, or review and approve its tools (`kei connectors create --template`, `kei connectors manifests` / `tools`) → kei-cli
 ├─ Manage harness policies (list, get, create, update, delete, import) or register a harness (add, sync, list, remove) → kei-harness-policy
 ├─ Encrypt audit args / manage audit encryption keys (kei audit keys create|list|disable, kei audit decrypt) → kei-audit-encryption
-└─ Org, workspace, agent, policy, user → web app (no CLI); HTTP API → kei-api
+├─ Workspace, group, user, policy, connector → kei CLI → kei-cli
+└─ Org-wide operations and resources not exposed by the CLI → Kei API → kei-api
 
 Need a coding agent governed by Kei?
 ├─ Install/configure Pi with Kei's local adapter → kei-pi-setup
@@ -281,7 +284,7 @@ command and version requirement.
   Semantics placeholders, add eval cases, and register the resource types per
   ADR-028.
 - **"Import my Claude Code allow list into Kei and keep it in sync."** →
-  `kei-harness-policy`. Use `kei policies import --from claude --apply` to read
+  `kei-harness-policy`. The legacy `kei policies import --from claude --apply` alias can read
   the existing `permissions.allow` into Kei policies. Desktop harnesses like
   Claude Code are auto-discovered — no `kei harness add` needed. Just run
   `kei harness sync --harness claude_code` to re-render native config

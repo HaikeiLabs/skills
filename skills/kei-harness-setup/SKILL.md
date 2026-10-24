@@ -5,6 +5,11 @@ description: "Choose and set up Kei harnesses: SDK (Agentware), Claude Code, Cod
 
 # Set up a harness with Kei
 
+For Claude Code, Codex, OpenCode, or Pi, the advertised one-command path is
+`kei connect HARNESS [--workspace NAME] [--yes]` (`HARNESS` is `claude-code`,
+`codex`, `opencode`, or `pi`). Use the manual steps below when you need to
+inspect or customize setup.
+
 Kei governs a harness through this chain:
 
 `harness adapter → kei-proxy → kei-policy-catalog`
@@ -160,7 +165,7 @@ Append `.md` to any docs page URL for the raw page.
 
 The API/catalog kind `custom` maps only to SDK (Agentware), not Pi or Open WebUI.
 
-- **SDK (Agentware):** choose this for an application built with the Agentware SDK, including pydantic-ai, Gemini SDK, AWS AgentCore, or a bespoke loop. Agentware 0.11.0 uses `KeiProxyEvaluator` with the socket client from `kei-proxy serve`; the `kei-proxy authorize` CLI is the fallback for one-shot environments without a daemon.
+- **SDK (Agentware):** choose this for an application built with the Agentware SDK, including pydantic-ai, Gemini SDK, AWS AgentCore, or a bespoke loop. Agentware 0.12.0 uses `KeiProxyEvaluator` with the socket client from `kei-proxy serve`; the `kei-proxy authorize` CLI is a version and policy dependent fallback for one-shot environments without a daemon.
 - **Claude Code:** choose this for interactive coding sessions in Claude Code; desktop sync discovers it automatically.
 - **Codex:** choose this for interactive coding sessions in Codex; desktop sync discovers it automatically.
 - **Pi:** choose this for the Pi coding agent; its `kei-lime-pi` adapter uses the local proxy socket. See `kei-pi-setup`.
@@ -171,13 +176,13 @@ The API/catalog kind value `custom` names only the **SDK (Agentware)** type; it
 does not describe Pi or Open WebUI. Register an SDK harness with
 `kei harness add --kind custom`. Its manifest sync command is
 `kei harness sync --harness custom --manifest tools.json` (requires kei >=
-0.1.33). The current kei-cli is 0.2.0 and kei-proxy is v0.3.0.
+0.1.33). The current kei-cli is 0.2.x and kei-proxy is v0.3.x.
 
 For custom Agentware harnesses, install the published SDK package for your
 language: `pip install haikeilabs-agentware`, `npm i @haikeilabs/agentware`,
 or `go get github.com/haikeilabs/agentware/go`. Run `kei-proxy serve` beside
 the harness and set `KEI_RUNTIME_SOCKET_PATH`; sync the tool manifest before
-serving requests. Agentware 0.11.0 also registers typed `ToolSpec` declarations
+serving requests. Agentware 0.12.0 also registers typed `ToolSpec` declarations
 over the socket with `POST /v1/tools:register` (Python
 `register_tool_specs`, TypeScript `registerToolSpecs`, Go
 `toolsync.SocketRegistrar`). This is an alternative to the operator-managed
@@ -407,7 +412,7 @@ deny governed calls — never guess a fallback agent ID.
 Long-running Agentware harnesses use the socket client with
 `KEI_RUNTIME_SOCKET_PATH`.
 
-If your harness imports Agentware 0.11.0 (any of the three ports), run
+If your harness imports Agentware 0.12.0 (any of the three ports), run
 `kei-proxy serve` beside it, sync a non-empty tool manifest before serving,
 and construct `KeiProxyEvaluator` with the SDK selector and
 `KEI_RUNTIME_SOCKET_PATH`. The selector chooses the socket client when the
