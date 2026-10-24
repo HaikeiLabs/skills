@@ -553,6 +553,30 @@
           ]
         }
       ]
+    },
+    {
+      "id": 17,
+      "prompt": "`kei policy test` says our group may run `gh api`, and `kei harness sync` finished, but Claude Code denies the command anyway. Where do I look? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "An allow-list miss: sync renders Kei policy into the native allow list (permissions.allow). A command with no matching entry falls through to Claude Code's own permission check (auto-mode classifier), which can deny it. Entries match the start of the command, so cd ... && gh api does not match. Do not hand-edit the Kei-managed block; add a policy (kei policy create --group GROUP --allow shell:gh api) and run kei harness sync.",
+      "expectations": [
+        "explains the fall-through to the harness's own permission check",
+        "says entries match the start of a command so compound commands do not match",
+        "says not to hand-edit and to add a policy then run kei harness sync"
+      ],
+      "checks": [
+        {
+          "text": "explains the fall-through to the harness's own permission check",
+          "regex": "fall[s ]*through|own permission|classifier"
+        },
+        {
+          "text": "says entries match the start of a command so compound commands do not match",
+          "regex": "(start|beginning|prefix)[\\s\\S]{0,200}(compound|cd )|(compound|cd )[\\s\\S]{0,200}(start|beginning|prefix)"
+        },
+        {
+          "text": "says not to hand-edit and to add a policy then run kei harness sync",
+          "regex": "(do not|don't|never|not)[\\s\\S]{0,40}(hand-)?edit|kei policy create[\\s\\S]{0,400}kei harness sync"
+        }
+      ]
     }
   ]
 }

@@ -1,11 +1,12 @@
 ---
 name: kei-cli
-description: "The `kei` v0.2.0 platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade (including `--proxy-only` and `--uninstall`), `kei login` device-flow auth, runtime installations (`kei bot list|init|credential|agents|status|bind|delete`), harness command policies (`kei policies`), data connectors (`kei connectors`, including remote MCP connectors created from a catalog template with `kei connectors create --template`, per-user OAuth connection with `kei connectors connect`, and tool manifests reviewed and approved with `kei connectors manifests`, alias `tools`), model profiles and the credential store (`kei model-profiles`, `kei credential-store` with `--workspace` overrides), harness management (`kei harness` — `add` for custom/SDK only, `sync` for all harnesses including auto-discovered desktop), one-command harness setup (`kei connect`), workspace and group management (`kei workspaces create`, `kei groups create|list`), local runtime config (`kei setup`, `kei runtime bootstrap`), and bug reports from a harness (`kei feedback`, which redacts the transcript and asks before sending). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something from the CLI in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org or agent commands, and no group update/delete — say so rather than inventing one. (`kei workspaces list|create`, `kei groups create|list`, `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and `kei credential-store` are the resource-oriented exceptions, v0.1.13 or later; `kei users` and `kei groups members` need v0.1.16 or later; `kei workspaces create` and `kei groups create|list` need v0.1.33 or later; `kei connectors connect` and `kei credential-store get|put --workspace` need v0.1.34 or later.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
+description: "The `kei` v0.2.13 platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade (including `--proxy-only` and `--uninstall`), `kei login` device-flow auth, runtime installations (`kei bot list|init|credential|agents|status|bind|delete`), group-based policies (`kei policy create|list|get|delete|test`; `kei policies` is the deprecated form, still needed for `update`, `import` and `harness:<kind>` sources), data connectors (`kei connectors`, including remote MCP connectors created from a catalog template with `kei connectors create --template`, per-user OAuth connection with `kei connectors connect`, and tool manifests reviewed and approved with `kei connectors manifests`, alias `tools`), model profiles and the credential store (`kei model-profiles`, `kei credential-store` with `--workspace` overrides), harness management (`kei harness` — `add` for custom/SDK only, `sync` for all harnesses including auto-discovered desktop), one-command harness setup (`kei connect`), workspace and group management (`kei workspaces create`, `kei groups create|list`), local runtime config (`kei setup`, `kei runtime bootstrap`), and bug reports from a harness (`kei feedback`, which redacts the transcript and asks before sending). Load before running or suggesting any `kei` command so syntax, flags, and auth are right, and whenever someone asks how to do something from the CLI in Kei. Biases toward the installed binary's help and the Kei console docs over this file. There are no org or agent commands, and no group update, and `kei groups delete` only with `--yes` (and `--force` when policies reference the group) — say so rather than inventing one. (`kei workspaces list|create`, `kei groups create|list`, `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and `kei credential-store` are the resource-oriented exceptions, v0.1.13 or later; `kei users` and `kei groups members` need v0.1.16 or later; `kei workspaces create` and `kei groups create|list` need v0.1.33 or later; `kei connectors connect` and `kei credential-store get|put --workspace` need v0.1.34 or later.) For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
 ---
 
 # kei CLI
 
-`kei` 0.2.0 is the current published CLI release. Check `kei --version` and
+`kei` 0.2.13 is the current published CLI release (this skill was checked
+against its `kei --help` and `kei policy --help`). Check `kei --version` and
 `kei help` for the installed binary before relying on command syntax.
 
 `kei` is the Kei **platform administration** CLI. It authenticates an org
@@ -211,7 +212,7 @@ default. The state dir holds transient runtime data (policy bundle cache,
 heartbeat timestamps); `0700` ensures other processes on the machine cannot
 read it.
 
-### 5. `kei policies list` returns a decode error on kei ≤ 0.1.10
+### 5. `kei policies list` (deprecated form) returns a decode error on kei ≤ 0.1.10
 
 **Symptom:**
 ```
@@ -232,7 +233,9 @@ not decode the request." Then: upgrade to v0.1.11 or later; until then, use
 the web app.
 
 After upgrading to v0.1.11+, `kei policies list` works and all `kei policies`
-subcommands accept a policy **name** in addition to ID:
+subcommands accept a policy **name** in addition to ID. `kei policies` is
+deprecated; the same reads and deletes are `kei policy list|get|delete`. Only
+`update` and `import` have no `kei policy` form:
 
 ```sh
 kei policies list --workspace my-workspace --json
@@ -244,14 +247,16 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 ## Key guidelines
 
 - **Nothing outside the usage string exists.** No `kei org` or `kei agent`
-  commands; no group update or delete; no `bot install`, `deploy`, or
+  commands; no group update (`kei groups delete GROUP --workspace WS --yes [--force]`
+  exists); no `bot install`, `deploy`, or
   `destroy`; no `kei setup doctor`. Orgs, agents, and groups are
   created and changed in the web app (or through the HTTP API — see
   `kei-api`). Say that plainly instead of guessing a command from an API route.
   `kei workspaces list|create` and `kei groups create|list` exist
   (v0.1.33+), and
-  `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and
-  `kei credential-store` are the resource-oriented exceptions. Since v0.1.16,
+  `kei connectors`, `kei policy`, `kei policies` (deprecated), `kei harness`,
+  `kei model-profiles` and `kei credential-store` are the resource-oriented
+  exceptions. Since v0.1.16,
   `kei users` (list, get, create, update, resolve, identities) and
   `kei groups members list|add|remove` manage users and group membership;
   `kei bot list` (v0.1.8) lists installations. Since v0.1.34,
@@ -270,7 +275,7 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 - **Every ID is a UUID.** `--installation` and `--agent` are validated as UUIDs
   before any request is made.
 - **Before a resource command, verify three things:** the exact name in
-  `kei help` (`kei policies`, plural), the installed version (`kei --version`),
+  `kei help` (`kei policy`; `kei policies` is a deprecated alias), the installed version (`kei --version`),
   and the contract (opaque page tokens for `list`, PATCH with an update mask
   for `update`). Login is a precondition, not one of the three. See
   *When resource commands arrive* below.
@@ -293,12 +298,14 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 | Activate after first heartbeat | `kei bot bind --installation ID` | yes |
 | List / attach / detach agents | `kei bot agents list\|add\|remove --installation ID [--agent ID] [--default]` | yes |
 | Delete an installation | `kei bot delete --installation ID --yes` | yes |
-| List policies for a workspace | `kei policies list [--workspace WS] [--page-size N] [--json]` | yes |
-| Get a policy | `kei policies get <name-or-id> [--workspace WS] [--json]` | yes |
-| Create a harness command policy | `kei policies create --name NAME --src-pattern PATTERN --dst-pattern DST --effect permit\|deny [--priority N] [--agent-id ID]` | yes |
-| Update a policy | `kei policies update <name-or-id> [--name N] [--src-pattern P] [--dst-pattern D] [--effect permit\|deny] [--priority N] [--enabled]` | yes |
-| Delete a policy | `kei policies delete <name-or-id> --yes [--workspace WS]` | yes |
-| Import native harness rules | `kei policies import --from claude\|codex\|opencode [--file PATH] [--src PATTERN] [--out FILE] [--apply] [--workspace WS]` | yes |
+| List policies for a workspace | `kei policy list [--workspace WS] [--page-size N] [--json]` | yes |
+| Get a policy | `kei policy get <name-or-id> [--workspace WS] [--json]` | yes |
+| Create a policy for a group | `kei policy create --workspace WS --group GROUP --allow TARGET` (or `--deny TARGET`) | yes |
+| Test a decision | `kei policy test TARGET --as group:NAME [--workspace WS] [--json]` | yes |
+| Create a policy with a `harness:<kind>` source, priority or agent scope (deprecated) | `kei policies create --name NAME --src-pattern PATTERN --dst-pattern DST --effect permit\|deny [--priority N] [--agent-id ID] [--description TEXT]` | yes |
+| Update a policy (deprecated; no `kei policy update`) | `kei policies update <name-or-id> [--name N] [--src-pattern P] [--dst-pattern D] [--effect permit\|deny] [--priority N] [--enabled]` | yes |
+| Delete a policy | `kei policy delete <name-or-id> --yes [--workspace WS]` | yes |
+| Import native harness rules (deprecated; no `kei policy import`) | `kei policies import --from claude\|codex\|opencode [--file PATH] [--src PATTERN] [--out FILE] [--apply] [--workspace WS]` | yes |
 | List data connectors | `kei connectors list [--workspace WS] [--json]` | yes |
 | Create a data connector | `kei connectors create --provider P --name NAME [--account-model M] [--set k=v] [--credential-ref R] [--capabilities a,b] [--workspace WS]` | yes |
 | Connect your own per-user OAuth connector (v0.1.34+) | `kei connectors connect <id|name> --workspace WORKSPACE [--no-browser]` | yes |
@@ -324,6 +331,15 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 | Group membership (v0.1.16+) | `kei groups members list\|add\|remove GROUP [USER] [--workspace WS]` | yes |
 | Entra directory sync (after v0.1.29; workflow in `kei-directory-sync`) | `kei directory-sync get [--json]` / `set [--tenant-id G] [--client-id G] [--app-id G] [--dry-run=true\|false] [--create-users=true\|false] [--revoke=true\|false] [--yes]` / `enable\|disable [--yes]` / `report [--limit N] [--json]` | yes |
 | One-command harness setup (v0.1.34+) | `kei connect HARNESS [--workspace NAME] [--yes]` (creates installation, credential, config, bootstrap, bind in one step) | yes |
+| Delete a group | `kei groups delete GROUP --workspace WS --yes [--force]` (`--force` deletes it even if policies reference it) | yes |
+| Time-bound access grant | `kei access grant create --principal user:ID\|agent:ID --target TARGET --ttl 4h [--reason TEXT] [--workspace WS]`; `list`, `get GRANT_ID`, `revoke GRANT_ID --workspace WS --yes` | yes |
+| Rename a runtime installation | `kei bot update --installation ID --name NAME` | yes |
+| Test a connector / list connector templates | `kei connectors test NAME [--workspace WS]` / `kei connectors templates [--json]` | yes |
+| Check harness drift | `kei harness sync --check [--json]` (exit 1 on drift, 2 on error); `--dry-run` previews; `--no-hook` skips the audit hook | yes |
+| Diagnose local setup | `kei doctor` (runtime service, heartbeat, harness hooks, policy bundle; exit 1 on any FAIL) | no |
+| Background runtime service | `kei runtime service install\|uninstall\|status`; `kei runtime heartbeat` | no |
+| Manage Haikei skills | `kei skills status\|update\|add\|install [--harness KIND] [--dry-run]` | no |
+| Read the docs | `kei docs` (list pages), `kei docs <slug>` (print one) | no |
 | Write local runtime config | `kei setup [--config PATH] [--control-plane-url URL]` | no (runtime token) |
 | Verify + heartbeat via local kei-proxy | `kei runtime bootstrap [--config PATH] [--proxy-path PATH]` | no (runtime token) |
 | Upgrade via Go | `kei upgrade [--version VERSION]` | no |
@@ -578,15 +594,15 @@ Per-harness detail is in `kei-harness-setup`.
 
 The CLI is being extended toward the resource-oriented Kei API contract, but
 no released version has org or agent commands yet (`kei workspaces list|create`,
-`kei groups create|list`, `kei connectors`, `kei policies`, `kei harness`,
-`kei model-profiles` and `kei credential-store` are the resource-oriented
-exceptions, all in v0.1.13; `kei users` and `kei groups members` arrived in
+`kei groups create|list`, `kei connectors`, `kei policies` (now deprecated for
+`kei policy`), `kei harness`, `kei model-profiles` and `kei credential-store`
+are the resource-oriented exceptions, all in v0.1.13; `kei users` and `kei groups members` arrived in
 v0.1.16; `kei workspaces create` and `kei groups create|list` arrived in
 v0.1.33; `kei connectors connect` and `kei credential-store get|put --workspace`
 arrived in v0.1.34).
 The first resource-oriented commands call the **shared AIP `/api/v1`
-endpoints**, not a private `/api/cli` backend: `kei policies` uses
-`/api/v1/policies`, `kei connectors` uses `/api/v1/data-connectors`, and
+endpoints**, not a private `/api/cli` backend: `kei policy` and
+`kei policies` use `/api/v1/policies`, `kei connectors` uses `/api/v1/data-connectors`, and
 `kei model-profiles` uses `/api/v1/organizations/{org}/model-profiles` (with
 `:setDefault`; model-profile update is still `PUT` in the API today).
 Before using or documenting one, confirm it in `kei help`
@@ -607,10 +623,12 @@ not describe a future command as available.
 When someone asks what to verify before running a resource command, answer
 with all three (login is a precondition, not one of them):
 
-1. The **exact name** in `kei help`: it is `kei policies`, plural; there is
-   no `kei policy`.
+1. The **exact name** in `kei help`: it is `kei policy` (`list`, `get`,
+   `create`, `delete`, `test`); `kei policies` is a deprecated alias that also
+   has `update` and `import`. There is no `kei policy update`.
 2. The **installed version**: `kei --version`; for example `kei policies list`
-   needs v0.1.11 or later.
+   needs v0.1.11 or later, and the `kei policy` command needs a release that
+   lists it in `kei help` (0.2.13 does).
 3. The **contract** above: opaque page tokens for `list`, PATCH with an
    update mask for `update`.
 
@@ -631,7 +649,7 @@ kei bot status --installation INSTALLATION_ID
   available for workspace discovery). The CLI will grow
   resource-oriented commands after the API's AIP migration; until a release
   ships one, do not describe it as available.
-  **Exception:** `kei policies`, `kei harness`, `kei model-profiles` and `kei
+  **Exception:** `kei policy` (and the deprecated `kei policies`), `kei harness`, `kei model-profiles` and `kei
   credential-store` are released resource-oriented commands (v0.1.13),
   `kei users` / `kei groups members` are released in v0.1.16,
   `kei workspaces create` / `kei groups create|list` are released in v0.1.33,

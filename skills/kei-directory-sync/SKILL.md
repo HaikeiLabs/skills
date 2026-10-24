@@ -199,8 +199,11 @@ Synced groups are ordinary Kei groups, referenced as **`group:<role value>`**,
 e.g. `group:pilot`. Write policies only after the first live run:
 
 ```sh
-kei policies create --workspace WS --name pilot-git --src-pattern group:pilot --dst-pattern shell:git --effect permit
+kei policy create --workspace WS --group pilot --allow shell:git
 ```
+
+`kei policies create --src-pattern group:pilot ...` is the deprecated form of
+the same rule; prefer `kei policy create`.
 
 Load **`kei-harness-policy`** for policy patterns and **`kei-cli`** for the rest
 of the CLI (`kei groups members list GROUP_ID` to see who the sync added).

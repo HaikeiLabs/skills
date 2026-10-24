@@ -160,6 +160,8 @@ There are two kinds of policy:
   machine — shell commands, skills, paths:
 
 ```sh
+kei policy create --workspace WS --group developers --allow shell:git
+# A harness:<kind> source needs the deprecated `kei policies create`:
 kei policies create --workspace WS --name "allow git" \
   --src-pattern "harness:opencode" --dst-pattern "shell:git" --effect permit --priority 100
 kei policies create --workspace WS --name "deny curl" \
@@ -167,7 +169,7 @@ kei policies create --workspace WS --name "deny curl" \
 ```
 
 At equal priority, deny wins. If you already have allow lists in Claude Code,
-`kei policies import --from claude` turns them into Kei policies (it's a dry
+`kei policies import --from claude` (deprecated command; `kei policy` has no import) turns them into Kei policies (it's a dry
 run until you add `--apply`).
 
 ## Step 6: connectors where each user brings their own account

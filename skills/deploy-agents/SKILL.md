@@ -1,6 +1,6 @@
 ---
 name: deploy-agents
-description: Deploy and distribute a governed AI agent with Kei — create a runtime installation and deliver its credential (KEI_RUNTIME_TOKEN) to a secret manager, run kei-proxy as an in-container daemon beside the harness (runtime bootstrap, heartbeat, `kei-proxy serve` on an owner-only Unix socket, per-user sessions, local POST /v1/authorize, the agentware socket client with tool-manifest sync), bind it, connect the harness (Claude Code, Codex, OpenCode via skills + `kei harness sync`; a Discord or other chat bot via its own installation and per-user sessions), control what the agent may do with policies (tool-call policies by group, harness command policies with `kei policies`), and add connectors whose OAuth is per user (`kei connectors create --account-model per_user`, connect links). Use when someone asks how to ship, deploy, containerize, host, distribute, or roll out an agent built with agentware/kei-agents, how to give it permissions, or how users connect their own accounts. Building the agent is build-agents-agentware; testing it is test-agents.
+description: Deploy and distribute a governed AI agent with Kei — create a runtime installation and deliver its credential (KEI_RUNTIME_TOKEN) to a secret manager, run kei-proxy as an in-container daemon beside the harness (runtime bootstrap, heartbeat, `kei-proxy serve` on an owner-only Unix socket, per-user sessions, local POST /v1/authorize, the agentware socket client with tool-manifest sync), bind it, connect the harness (Claude Code, Codex, OpenCode via skills + `kei harness sync`; a Discord or other chat bot via its own installation and per-user sessions), control what the agent may do with policies (tool-call policies by group, harness command policies with `kei policy`), and add connectors whose OAuth is per user (`kei connectors create --account-model per_user`, connect links). Use when someone asks how to ship, deploy, containerize, host, distribute, or roll out an agent built with agentware/kei-agents, how to give it permissions, or how users connect their own accounts. Building the agent is build-agents-agentware; testing it is test-agents.
 ---
 
 # Deploy and distribute governed agents
@@ -170,13 +170,23 @@ invisible to audit). Two kinds:
 | Policy | Governs | Managed with |
 | --- | --- | --- |
 | **Tool-call (ABAC)** | Which subject/group may call which tool or connector capability | Console **Policies**, or `/api/v1/policies` (`kei-api`); group membership with `kei groups members add GROUP USER --workspace WS` |
-| **Harness command** | What a coding harness may run (`shell:`, `skill:`, `path:` destinations) | `kei policies create|import|update`, rendered by `kei harness sync` |
+| **Harness command** | What a coding harness may run (`shell:`, `skill:`, `path:` destinations) | `kei policy create|list|get|delete|test` (group-based); deprecated `kei policies create|update|import` only for a `harness:<kind>` source, a priority or an import; rendered by `kei harness sync` |
 
 ```sh
+kei policy create --workspace WS --group developers --allow shell:git
+kei policy test "shell:git push" --as group:developers --workspace WS
+# harness:<kind> source or priority: the deprecated `kei policies create` takes
+# --name --src-pattern --dst-pattern --effect --priority
 kei policies create --workspace WS --name "allow git" --src-pattern "harness:opencode" \
   --dst-pattern "shell:git" --effect permit --priority 100
 kei policies import --from claude --workspace WS            # dry run; --apply creates them
 ```
+
+A command with no matching rendered allow entry falls through to the harness's
+own permission check and can be denied even when Kei permits it; entries match
+the start of a command, so `cd repo && git push` misses `shell:git`. Add a Kei
+policy and run `kei harness sync`; never hand-edit the Kei-managed block
+(`kei-harness-policy`, "Allow-list misses").
 
 At equal priority a deny beats a permit. A typical agent split: everyday tools
 (`file_bug`, `search_wiki`, `web_search`) for the `default` group, every tool

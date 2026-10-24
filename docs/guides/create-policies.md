@@ -85,16 +85,17 @@ check **All tools on this connector**.
 **CLI.**
 
 ```sh
-kei policies create --name "admins: deny git push --force" \
-  --src-pattern "group:admins" --dst-pattern "shell:git push --force" \
-  --effect deny --priority 100
-
-kei policies create --name "allow git" \
-  --src-pattern "*" --dst-pattern "shell:git" \
-  --effect permit --priority 10
+kei policy create --workspace my-workspace --group admins --deny "shell:git push --force"
+kei policy create --workspace my-workspace --group developers --allow shell:git
+kei policy test "shell:git push --force" --as group:admins --workspace my-workspace
 ```
 
-`kei policies import --from claude` (or `codex`, `opencode`) reads a
+`kei policy` is group-based. `kei policies create` is deprecated; it is only
+still needed for a `harness:<kind>` source, an explicit priority or an agent
+scope (`--name`, `--src-pattern`, `--dst-pattern`, `--effect`, `--priority`).
+
+`kei policies import --from claude` (or `codex`, `opencode`; the deprecated
+command, since `kei policy` has no import) reads a
 harness's existing allow list. By default it only prints the policies it
 would create. Add `--apply` to create them.
 

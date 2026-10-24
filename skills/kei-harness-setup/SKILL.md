@@ -35,6 +35,16 @@ governed tool calls are allowed.
   existing skills instead of overwriting them; show how to verify the harness
   discovered the skills; then do the runtime half (`kei login`, then runtime
   setup).
+- **Kei permits a command but the harness still denies or prompts for it:**
+  explain the allow-list miss. `kei harness sync` renders Kei policy into the
+  harness's native allow/deny list (Claude Code: `permissions.allow` in
+  `settings.json`); a command with no matching allow entry falls through to
+  the harness's own permission check (for Claude Code, the auto-mode
+  classifier), which can deny it. Entries match the **start** of a command, so
+  a compound command such as `cd repo && git push` does not match `git`. Do not
+  hand-edit the Kei-managed block; add a Kei policy (`kei policy create
+  --workspace WS --group GROUP --allow shell:<prefix>`) and run
+  `kei harness sync`. Detail and the stacked-PR merge example: `kei-harness-policy`.
 - **Making tool calls go through Kei:** installing skills does not by itself
   allow tool calls; policy decides. Include a deny check: a call without a
   matching permit must fail.
@@ -433,7 +443,10 @@ A harness-executor tool (for example, an Open WebUI tool pack) needs an exact
 `tool:<name>` permit, a registered tool, and a linked user. It does not need an
 agent-connector binding. Agent-connector bindings apply only to connector/MCP
 tools. A tool is not allowed just because the adapter exposes it; manage group
-membership and policies in the console under **Agents → Groups**.
+membership and policies in the console under **Agents → Groups**, or from the
+CLI with `kei policy create --workspace WS --group GROUP --allow tool:<name>`
+(group-based; `kei policies create` is deprecated). Check a decision with
+`kei policy test tool:<name> --as group:GROUP --workspace WS`.
 
 ## 6. Prove it fails closed
 
@@ -734,6 +747,7 @@ versions and the 6-hour reuse window work. Workaround:
 
 ```sh
 # Force a bundle refresh by touching a policy
+# (no `kei policy update` exists; the deprecated `kei policies update` does this)
 kei policies update <any-policy> --workspace WS --description "no-op refresh"
 kei harness sync --harness <kind>
 ```
@@ -792,7 +806,9 @@ dst_pattern: web_search
 dst_pattern: tool:web_search
 ```
 
-If the policy was created through the CLI, re-create or update it:
+If the policy was created through the CLI, update it with the deprecated
+`kei policies update` (there is no `kei policy update`) or delete it and create
+it again with `kei policy create --group GROUP --allow tool:web_search`:
 
 ```sh
 kei policies update <name-or-id> --workspace WS --dst-pattern tool:web_search
@@ -848,7 +864,34 @@ kei harness sync --harness <kind>             # apply
 See `kei-harness-policy references/bundle-versioning.md` for the 6-hour
 refresh window and versioning model.
 
-### 12. Runtime credential was lost (no recovery)
+### 12. Kei policy permits a command, but the harness denies or prompts
+
+**Symptom:** `kei policy test` says allow, `kei harness sync` reports success,
+yet the harness blocks the command (Claude Code's auto-mode classifier denies
+it) or asks for approval.
+
+**Cause:** An allow-list miss. The harness checks its rendered native allow
+list first. A command with no matching entry falls through to the harness's
+own permission check, which can deny it even though Kei policy permits it.
+Entries match the start of the command: `cd repo && gh pr merge ...` starts with
+`cd`, so a `gh` entry does not match it. A different command needs its own
+entry: a pull request in a stack rejects `gh pr merge` and needs the
+asynchronous merge API call (`gh api -X PUT repos/ORG/REPO/pulls/N/merge-async
+...`), which starts with `gh api`, not `gh pr merge`.
+
+**Fix:** Do not hand-edit the Kei-managed block. Add a policy for the command's
+real leading tokens, then render it:
+
+```sh
+kei policy create --workspace WS --group GROUP --allow "shell:gh api"
+kei harness sync --dry-run --harness claude_code
+kei harness sync --harness claude_code
+```
+
+Run the command on its own, not inside `cd ... && ...`. Full explanation in
+`kei-harness-policy` ("Allow-list misses").
+
+### 13. Runtime credential was lost (no recovery)
 
 **Symptom:** The `KEI_RUNTIME_TOKEN` environment variable is missing, and
 the secret manager no longer has the value. There is no backup.
@@ -865,7 +908,7 @@ kei bot credential --installation <ID> --rotate | <secret-manager import>
 Update the environment variable on every consumer, then restart or reload the
 runtime. Each rotation invalidates the previous credential immediately.
 
-### 13. Every governed tool call denied with `policy_bundle_expired`
+### 14. Every governed tool call denied with `policy_bundle_expired`
 
 **Symptom:** Every governed tool is denied, including ones that worked
 before and local tools such as `web_search`. The decision carries
@@ -892,7 +935,7 @@ jq '{state, expires_at, highest_bundle_version}' "<state_dir>/policy/state.json"
 `not_after` / `expires_at` in the past confirms it.
 
 **Fix:** Make any policy edit in the workspace, in the console or with
-`kei policies update`. A no-op change is enough: it forces the catalog to
+the deprecated `kei policies update` (there is no `kei policy update`). A no-op change is enough: it forces the catalog to
 issue a new bundle. A runtime running `kei-proxy serve` or
 `kei-proxy runtime heartbeat` picks it up on its next poll (60 s by
 default); otherwise run `kei-proxy policy sync`. `kei-proxy policy show`

@@ -95,7 +95,7 @@ out.
   policy decision, not a cleanup. The fix is to delete them, and YOU MUST
   include this sentence: "Delete them only after approval for the listed
   rows." Name both ways to delete: the console **Delete this legacy row**
-  action and `kei policies delete`. Section 4c has the commands.
+  action and `kei policy delete`. Section 4c has the commands.
 - **`kei harness sync` says "No registered harnesses selected".** The
   policy bundle cached by kei-proxy (in its cache directory,
   `~/Library/Application Support/kei-proxy` on macOS or
@@ -380,7 +380,7 @@ expire at the same time.
 |---------|-------------|-------|-----|
 | All governed calls denied with `policy_bundle_expired` | Bundle `not_after` has passed | `kei-proxy policy show` (offline bundle state) or check the runtime logs for `bundle_expired` | Re-establish connectivity and run `kei-proxy policy sync` (or `kei-proxy runtime bootstrap`) to force a fresh bundle fetch; then `kei harness sync --harness KIND --dry-run` to preview the re-rendered native config. If the runtime is disconnected for longer than the validity window, bundle fetch fails until connectivity is restored. |
 | Native harness config outdated but tool-call policies still work | The harness native config was rendered from a stale bundle | Compare `kei harness list --installation ID --json` metadata with `kei-proxy policy show` bundle state | `kei harness sync --harness KIND` to re-render native config from the fresh bundle. Requires kei >v0.1.6. |
-| All governed calls denied with `policy_bundle_expired` (`deny_source: runtime_state`) while the runtime is online, and `kei-proxy policy sync` still leaves the bundle expired | The catalog does not reissue a bundle when it expires ([HAI-427](https://linear.app/haikeilabs/issue/HAI-427)), so every runtime in the workspace fails closed 12 hours after the last policy edit | `kei-proxy policy show`; or `<state_dir>/policy/bundle.json` (`not_after`) and `state.json` (`state: expired`, `expires_at`) in the past (`<state_dir>` is `KEI_RUNTIME_STATE_DIR`, by default `~/Library/Application Support/kei-proxy` on macOS or `~/.local/share/kei-proxy` on Linux). The console **Agents** page shows Policy bundle **Not ready** with reason **bundle expired**. | Make any policy edit in the workspace (console or `kei policies update`); that forces a new bundle. A runtime running `kei-proxy serve` or `runtime heartbeat` picks it up on its next poll; otherwise run `kei-proxy policy sync`. Confirm with `kei-proxy policy show`. Repeat after each 12-hour quiet period until [HAI-427](https://linear.app/haikeilabs/issue/HAI-427) ships. |
+| All governed calls denied with `policy_bundle_expired` (`deny_source: runtime_state`) while the runtime is online, and `kei-proxy policy sync` still leaves the bundle expired | The catalog does not reissue a bundle when it expires ([HAI-427](https://linear.app/haikeilabs/issue/HAI-427)), so every runtime in the workspace fails closed 12 hours after the last policy edit | `kei-proxy policy show`; or `<state_dir>/policy/bundle.json` (`not_after`) and `state.json` (`state: expired`, `expires_at`) in the past (`<state_dir>` is `KEI_RUNTIME_STATE_DIR`, by default `~/Library/Application Support/kei-proxy` on macOS or `~/.local/share/kei-proxy` on Linux). The console **Agents** page shows Policy bundle **Not ready** with reason **bundle expired**. | Make any policy edit in the workspace (console, or the deprecated `kei policies update`; there is no `kei policy update`); that forces a new bundle. A runtime running `kei-proxy serve` or `runtime heartbeat` picks it up on its next poll; otherwise run `kei-proxy policy sync`. Confirm with `kei-proxy policy show`. Repeat after each 12-hour quiet period until [HAI-427](https://linear.app/haikeilabs/issue/HAI-427) ships. |
 | `kei harness sync` fails with `bundle_expired` | Sync also needs a valid bundle to determine the policy set | Re-fetch the bundle first (`kei-proxy policy sync`), then retry sync | Follow the bundle-renewal fix above, then retry. Retrying sync without refreshing the bundle will not help. |
 
 While `kei-proxy serve` runs, a background refresher polls the current bundle
@@ -439,7 +439,7 @@ they look like grants. Check every workspace, read-only:
 
 ```sh
 kei workspaces list --json
-kei policies list --workspace WORKSPACE_ID --json   # once per workspace
+kei policy list --workspace WORKSPACE_ID --json   # once per workspace
 ```
 
 Classify each row by its `dst_pattern` the way the catalog's bundle compiler
@@ -480,11 +480,11 @@ Explain legacy rows to the admin like this:
   Kei console, or, after approval, run once per row:
 
   ```sh
-  kei policies delete POLICY_ID --workspace WORKSPACE_ID --yes
+  kei policy delete POLICY_ID --workspace WORKSPACE_ID --yes
   ```
 
   Use the policy ID, not the name: legacy rows in different workspaces often
-  share a name. Re-run `kei policies list --workspace WORKSPACE_ID --json` to
+  share a name. Re-run `kei policy list --workspace WORKSPACE_ID --json` to
   confirm they are gone. Deleting them does not change any runtime decision.
 
 v1 policy bundles are deprecated (HAI-437). If `kei-proxy policy show` or
@@ -569,7 +569,7 @@ The `kei-harness-setup` skill has the full version with exact commands.
 | Symptom | Cause | Fix |
 |---|---|---|
 | `policy bundle candidate rejected: invalid policy bundle schema` | `dst_pattern` uses bare name instead of `tool:` prefix (HAI-372) | Legacy (v1) row: the catalog now skips it (`bare_target`) instead of rejecting the bundle. Do not convert it to `tool:<name>`; that newly grants access. Delete it with approval (see 4c), then re-bootstrap |
-| Admin sees policies such as `member:workspace:wiki` → `search_wiki` but users are still denied | Legacy (v1) rows with a bare `dst_pattern`, skipped with `bare_target`; they grant nothing | List them per workspace (4c). Offer the console **Delete this legacy row** action or `kei policies delete POLICY_ID --workspace WORKSPACE_ID --yes`, only after approval for the listed rows |
+| Admin sees policies such as `member:workspace:wiki` → `search_wiki` but users are still denied | Legacy (v1) rows with a bare `dst_pattern`, skipped with `bare_target`; they grant nothing | List them per workspace (4c). Offer the console **Delete this legacy row** action or `kei policy delete POLICY_ID --workspace WORKSPACE_ID --yes`, only after approval for the listed rows |
 
 ### Credential
 
@@ -591,5 +591,5 @@ The `kei-harness-setup` skill has the full version with exact commands.
 - When all governed calls are denied, mention **"KEI_PROXY_DISABLED"**, **"fail-closed"**, and that a disabled, missing, or misconfigured proxy **"denies"** every **"governed call"** and never permits one; rule the proxy out before blaming a **"policy change"**; and say the diagnosis is **"read-only"** environment checks plus a daemon Unix-socket **"POST /v1/authorize"** preflight. Do not recommend one-shot `kei-proxy authorize` as an allow probe.
 - When the policy bundle is stale, mention **"HAI-403"**, **"stale policy bundle"**, **"retrying sync"**, **"bundle refresh"**, **"policy edit"**, **"background refresh"**, and that **"desktop"** harnesses are **"auto-discovered"**.
 - When an identity-mode connector call denies `credential_unavailable` or `credential_backend_mismatch`, mention **"kei-proxy credential sync"**, **"KEI_RUNTIME_STATE_DIR"**, **"connector-credentials.json"**, **"kei connectors reconnect"**, and **"proxy-v0.2.4"** (it is not live in that release; it needs kei-proxy 0.2.5 or newer and the `POLICY_BUNDLE_V2_CONNECTORS` gate).
-- When legacy policy rows come up (bare `dst_pattern` without a `tool:` prefix), mention **"bare_target"**, **"grant nothing"**, **"newly grant"** (converting is a policy decision), **"Delete this legacy row"**, **"kei policies delete"**, and **"approval"**.
+- When legacy policy rows come up (bare `dst_pattern` without a `tool:` prefix), mention **"bare_target"**, **"grant nothing"**, **"newly grant"** (converting is a policy decision), **"Delete this legacy row"**, **"kei policy delete"**, and **"approval"**.
 - When the proxy cache is stale, mention **"HAI-404"**, **"stale proxy cache"**, **"Application Support"**, **"kei-proxy"**, **"moving"** (the cache aside, not deleting it), and **"re-bootstrap"** — do NOT say "re-create the installation".

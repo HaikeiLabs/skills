@@ -632,6 +632,78 @@
           "regex": "Tool[\\s-]*Spec|/v1/tools\\s*:\\s*register|--manifest[\\s`]*tools\\.json|custom[\\s\\S]{0,100}(?:manifest|register tools|tools? registration)|(?:manifest|register tools)[\\s\\S]{0,100}custom"
         }
       ]
+    },
+    {
+      "id": 18,
+      "prompt": "How do I give our developers group permission to run git through Kei, and which command do I use now that `kei policies` is old? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "Use the group-based command: kei policy create --workspace WS --group developers --allow shell:git, then kei harness sync. kei policies is deprecated; it is only still needed for a harness:<kind> source, a priority or an agent scope, and takes --name --src-pattern --dst-pattern --effect.",
+      "expectations": [
+        "uses kei policy create with --group and --allow",
+        "says kei policies is deprecated",
+        "names the flags the deprecated kei policies create takes or when it is still needed"
+      ],
+      "checks": [
+        {
+          "text": "uses kei policy create with --group and --allow",
+          "regex": "kei policy create[\\s\\S]{0,200}--group[\\s\\S]{0,200}--allow|kei policy create[\\s\\S]{0,200}--allow[\\s\\S]{0,200}--group"
+        },
+        {
+          "text": "says kei policies is deprecated",
+          "regex": "deprecat"
+        },
+        {
+          "text": "names the flags the deprecated kei policies create takes or when it is still needed",
+          "regex": "--src-pattern|harness:(<kind>|opencode|claude_code|codex)|priority"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "Our Kei policy permits `git push` for the developers group and `kei harness sync` succeeded, but Claude Code still denies `cd repo && git push origin main`. Why, and how do I fix it? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "An allow-list miss: kei harness sync renders Kei policy into Claude Code's permissions.allow. A command with no matching allow entry falls through to Claude Code's own permission check (the auto-mode classifier), which can deny it even though Kei permits it. Allow entries match the start of a command, so the compound command starting with cd does not match the git entry. Run git push on its own. Do not hand-edit the Kei-managed block; add a Kei policy and run kei harness sync.",
+      "expectations": [
+        "says a command with no matching allow entry falls through to the harness's own permission check or classifier",
+        "says allow entries match the start of the command so the cd compound command does not match",
+        "says not to hand-edit the Kei-managed block and to add a policy and run kei harness sync"
+      ],
+      "checks": [
+        {
+          "text": "says a command with no matching allow entry falls through to the harness's own permission check or classifier",
+          "regex": "fall[s ]*through|own permission|classifier"
+        },
+        {
+          "text": "says allow entries match the start of the command so the cd compound command does not match",
+          "regex": "(start|beginning|prefix)[\\s\\S]{0,200}(compound|cd )|(compound|cd )[\\s\\S]{0,200}(start|beginning|prefix)"
+        },
+        {
+          "text": "says not to hand-edit the Kei-managed block and to add a policy and run kei harness sync",
+          "regex": "(do not|don't|never|not)[\\s\\S]{0,40}(hand-)?edit[\\s\\S]{0,400}kei harness sync|kei harness sync[\\s\\S]{0,400}(do not|don't|never)[\\s\\S]{0,40}(hand-)?edit"
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "prompt": "Our CI agent in Claude Code can run `gh pr merge`, but merging a PR that is part of a stack is rejected, and the async merge call gets denied. What is going on and what do we change in Kei? Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "A PR in a stack rejects the normal merge command and needs the asynchronous merge API call (gh api -X PUT repos/ORG/REPO/pulls/N/merge-async), a separate command that starts with gh api, so it needs its own allow entry. An entry for gh pr merge does not cover it. Add a Kei policy such as kei policy create --group GROUP --allow \"shell:gh api\" and run kei harness sync; run it as its own command, not inside cd ... &&.",
+      "expectations": [
+        "names the merge-async API call as the separate merge command for a stacked PR",
+        "says it needs its own allow entry because it is a different command from gh pr merge",
+        "adds a Kei policy and runs kei harness sync"
+      ],
+      "checks": [
+        {
+          "text": "names the merge-async API call as the separate merge command for a stacked PR",
+          "regex": "merge-async"
+        },
+        {
+          "text": "says it needs its own allow entry because it is a different command from gh pr merge",
+          "regex": "(own|separate|different|another|new)[\\s\\S]{0,80}(allow )?(entry|command|policy)"
+        },
+        {
+          "text": "adds a Kei policy and runs kei harness sync",
+          "regex": "kei policy create[\\s\\S]{0,400}kei harness sync"
+        }
+      ]
     }
   ]
 }

@@ -62,7 +62,7 @@
     {
       "id": 3,
       "prompt": "I want to run `kei policy list` and `kei policy update` for a workspace. What should you verify before using those commands?",
-      "expected_output": "Checks the installed CLI help and governed contract first, explains that current releases may not provide these commands, and routes unsupported resource management to the Kei API skill without inventing endpoints.",
+      "expected_output": "Checks `kei help` for the installed version first. `kei policy list` exists in current releases, but `kei policy update` does not (kei policy has list, get, create, delete, test); the deprecated `kei policies update` does. Mentions the resource contract (opaque page tokens, update mask) as requirements, and routes anything unsupported to the Kei API skill without inventing endpoints.",
       "expectations": [
         "The response does not claim a future resource command exists without source or help evidence.",
         "The response mentions opaque pagination and PATCH/update-mask semantics only as contract requirements for a released resource command."
@@ -926,6 +926,30 @@
             "kei login"
           ],
           "text": "says the agent does not run kei login"
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "prompt": "Which kei command creates a policy for a group, and can I edit one afterwards? I remember `kei policies create --name ... --src-pattern ...`. Do not execute anything — just explain in text, with code where it helps.",
+      "expected_output": "kei policy create --workspace WS --group GROUP --allow TARGET (or --deny TARGET) is the current command; kei policies is deprecated. kei policy has list, get, create, delete and test, but no update: delete and re-create, or use the deprecated kei policies update. Check kei help for the installed version.",
+      "expectations": [
+        "gives kei policy create with --group and --allow or --deny",
+        "says kei policies is deprecated",
+        "says kei policy has no update"
+      ],
+      "checks": [
+        {
+          "text": "gives kei policy create with --group and --allow or --deny",
+          "regex": "kei policy create[\\s\\S]{0,200}--group[\\s\\S]{0,200}--(allow|deny)"
+        },
+        {
+          "text": "says kei policies is deprecated",
+          "regex": "deprecat"
+        },
+        {
+          "text": "says kei policy has no update",
+          "regex": "no (`?kei policy update`?|update)|(delete|remove)[\\s\\S]{0,60}(re-?create|create it again)|kei policies update"
         }
       ]
     }

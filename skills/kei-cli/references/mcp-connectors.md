@@ -85,5 +85,5 @@ kei connectors manifests approve CONNECTOR_ID MANIFEST_ID --workspace WS [--yes]
 
 - Submitting a manifest: the runtime does that, with its runtime token.
 - Creating or editing connector templates.
-- Granting a connector to a group: that is a policy (`kei policies`, or the
+- Granting a connector to a group: that is a policy (`kei policy create --group GROUP --allow connector:ID`, or the
   console), not a connector field.
