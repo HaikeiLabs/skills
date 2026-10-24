@@ -4,11 +4,11 @@
     {
       "id": 1,
       "prompt": "We're Acme. I want our Open WebUI governed by Kei using your published openwebui-kei image. What do I set up on the Kei side before I deploy the container?",
-      "expected_output": "Creates the openwebui installation with kei bot init --platform openwebui, pipes kei bot credential into a secret manager, and writes exact tool:<name> permits with kei policies create for governed tools. The model already configured in Open WebUI or its harness works without a Kei model profile; profiles are optional credential convenience.",
+      "expected_output": "Creates the openwebui installation with kei bot init --platform openwebui, pipes kei bot credential into a secret manager, and writes exact tool:<name> permits with kei policy create (the deprecated kei policies create also works) for governed tools. The model already configured in Open WebUI or its harness works without a Kei model profile; profiles are optional credential convenience.",
       "expectations": [
         "The response creates the installation with platform openwebui.",
         "The response delivers the runtime credential with kei bot credential.",
-        "The response writes tool:<name> permits with kei policies create.",
+        "The response writes tool:<name> permits with kei policy create.",
         "The response does not require a model:invoke permit or a model profile."
       ],
       "checks": [
@@ -26,11 +26,8 @@
           ]
         },
         {
-          "text": "The response writes tool:<name> permits with kei policies create.",
-          "contains_all": [
-            "kei policies create",
-            "tool:"
-          ]
+          "text": "The response writes tool:<name> permits with kei policy create.",
+          "regex": "(?=[\\s\\S]*kei polic(y|ies) create)(?=[\\s\\S]*tool\\:)"
         },
         {
           "text": "The response does not require a model:invoke permit or a model profile.",
@@ -377,19 +374,16 @@
     {
       "id": 11,
       "prompt": "We want the chat-users group to be able to cancel orders with acme.orders.cancel_order through Open WebUI. Do users need to confirm writes, what policy do I create, and what has to be in place before that permit lets the tool run?",
-      "expected_output": "Kei policy decides without a per-call approval step. Create an exact tool:<name> permit with kei policies create after registering the harness-executor tool and linking the user; agent-connector bindings apply only to connector/MCP tools.",
+      "expected_output": "Kei policy decides without a per-call approval step. Create an exact tool:<name> permit with kei policy create (the deprecated kei policies create also works) after registering the harness-executor tool and linking the user; agent-connector bindings apply only to connector/MCP tools.",
       "expectations": [
-        "The response creates an exact tool permit with kei policies create.",
+        "The response creates an exact tool permit with kei policy create.",
         "The response says the user must be linked and the tool registered.",
         "The response does not require an agent-connector binding for the tool pack."
       ],
       "checks": [
         {
-          "text": "The response creates an exact tool permit with kei policies create.",
-          "contains_all": [
-            "kei policies create",
-            "tool:acme.orders.cancel_order"
-          ]
+          "text": "The response creates an exact tool permit with kei policy create.",
+          "regex": "(?=[\\s\\S]*kei polic(y|ies) create)(?=[\\s\\S]*tool\\:acme.orders.cancel_order)"
         },
         {
           "text": "The response says the user must be linked and the tool registered.",

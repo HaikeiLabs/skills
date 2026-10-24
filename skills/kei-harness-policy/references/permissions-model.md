@@ -12,8 +12,9 @@ Kei governs harness permissions in three layers that work together:
 
 ### 1. Policy creation
 
-You author policies in the Kei control plane using `kei policies create` or the
-web console. Each policy has a `src` (who), `dst` (what), and `effect`
+You author policies in the Kei control plane using `kei policy create --group GROUP --allow|--deny TARGET` (the deprecated
+`kei policies create` is only for a `harness:<kind>` source, a priority or an
+agent scope) or the web console. Each policy has a `src` (who), `dst` (what), and `effect`
 (`permit` or `deny`). For harness commands the `dst` uses one of three schemes:
 
 | Scheme | Matches | Example |

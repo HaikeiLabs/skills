@@ -71,12 +71,7 @@ The entries in `policy/harness-commands.example.json` permit common loop command
 
 ```sh
 # Create one policy per entry (repeat for each permit/deny rule)
-kei policies create \
-  --name "allow herdr orchestration" \
-  --src "*" \
-  --dst "shell:herdr" \
-  --effect permit \
-  --priority 100
+kei policy create --workspace WS --group developers --allow shell:herdr
 ```
 
 If you don't use Kei, add equivalent allow rules in your harness's native config:

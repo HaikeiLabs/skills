@@ -37,7 +37,7 @@ The code wins over this file. Never invent a flag or an environment variable.
 ## What every answer must say
 
 - Name the real commands: `kei bot init --platform openwebui`,
-  `kei bot credential ... | <secret manager>`, `kei policies create`,
+  `kei bot credential ... | <secret manager>`, `kei policy create`,
   `kei directory-sync`.
 - The model configured in Open WebUI or its harness works without a Kei model
   profile. Model profiles are optional and can pass model credentials; model
@@ -87,15 +87,19 @@ The code wins over this file. Never invent a flag or an environment variable.
 5. **Policies** for governed tools:
 
    ```sh
-   kei policies create --workspace <ws> --name chat-list-orders \
-     --src-pattern group:chat-users --dst-pattern tool:acme.orders.list_orders --effect permit
+   kei policy create --workspace <ws> --group chat-users \
+     --allow tool:acme.orders.list_orders
    ```
 
-   - `--src-pattern` is `user:<id>`, `group:<name>` or `*`.
-     `*` from the CLI grants nothing for `tool:` dst policies because the
-     CLI does not establish a bundle subject. Use `user:` or `group:` for
-     tool permits; `*` and bare/wildcard/`model:`/`connector:` target
-     patterns are silently skipped (HAI-673).
+   - `kei policy create` is group-based: `--group` names the group or
+     autogroup, and `--allow` or `--deny` names the target. `kei policies`
+     is deprecated; use it only for a `user:<id>` source, a priority or an
+     agent scope (`--src-pattern`, `--dst-pattern`, `--effect`, `--name`).
+   - A `*` source grants nothing for `tool:` dst policies because the CLI
+     does not establish a bundle subject. Use a group (or `user:` through
+     the deprecated command) for tool permits; `*` and
+     bare/wildcard/`model:`/`connector:` target patterns are silently
+     skipped (HAI-673).
    - A write tool runs as soon as a permit allows it.
    - A permit only applies to a **registered** tool (section 3).
    - A harness-executor tool (an Open WebUI tool pack) needs an exact
@@ -232,9 +236,9 @@ installed. It is read-only and exits 1 on drift.
 ## Validation commands
 
 ```sh
-kei help | grep -E 'bot init|model-profiles|policies|directory-sync'
+kei help | grep -E 'bot init|model-profiles|policy|directory-sync'
 kei bot status --installation <installation-id>
-kei policies list --workspace <ws>
+kei policy list --workspace <ws>
 # in the container:
 python -m kei_openwebui.boot --export-manifest
 "$KEI_PROXY_PATH" policy show

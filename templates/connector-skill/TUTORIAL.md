@@ -241,7 +241,7 @@ Per [ADR-028](https://github.com/HaikeiLabs/kei/blob/main/docs/adr/028-policy-fi
 
 Provide 2–3 YAML policy examples in the `## Policy entries (examples)`
 section. These are **illustrations** — the skill is a reference the admin reads
-when authoring policy in the console or through `kei policies create`:
+when authoring policy in the console or through `kei policy create`:
 
 ```yaml
 # On-call engineers can read incidents in their services
