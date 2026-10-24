@@ -151,8 +151,9 @@ in the kei-harness-policy skill.
 
 ## The socket client: the primary integration
 
-For a long-running bot, run `kei-proxy serve` and sync the tool manifest
-(`sync_tool_manifest` / `kei harness sync`) before taking traffic.
+**Register tools before serving.** For a long-running bot, run `kei-proxy serve`
+and sync the tool manifest (`sync_tool_manifest` / `kei harness sync`) before
+taking traffic.
 
 Run `kei-proxy serve` beside the harness (same host or container, same UID:
 the socket is mode `0600`) and use the agentware SDK's socket client. The full
@@ -290,7 +291,6 @@ Identity and delegation come from flags or environment:
 | `KEI_PROXY_FRAMEWORK` | `--framework` | Harness, e.g. `claude`, `codex` |
 | `KEI_PROXY_SPAN_ID` / `KEI_PROXY_PARENT_SPAN` / `KEI_PROXY_DELEGATION_DEPTH` | `--span-id` / `--parent-span` / `--delegation-depth` | Delegation chain; span ID is the dedupe key |
 | `KEI_PROXY_TOOL_ARGS_DIGEST` | `--tool-args-digest` | SHA-256 of the tool args — never the raw args |
-| `KEI_PROXY_REGISTRY` | `--registry` | Tool → service registry (default `/data/config/tools.yaml`) |
 
 **Agent ID is auto-discovered** — the proxy resolves it from the runtime
 identity event. Do not set `KEI_PROXY_AGENT_ID` or pass `--agent-id`; omit
@@ -304,9 +304,11 @@ parameters, and never log the credential `authorize` returns.
 
 For governed data connectors. Per ADR-039, the harness obtains the credential
 via `POST /v1/credentials:release` over the socket after an allow decision,
-then calls the upstream API directly. The credential value is the only key
-material that leaves the daemon; it is never written to disk or logged. For
-retried writes, pass `--idempotency-key` so the runtime can deduplicate.
+then calls the upstream API directly. **Before using identity mode, verify
+the installed kei-proxy version and the active policy bundle.** The credential
+value is the only key material that leaves the daemon; it is never written to
+disk or logged. For retried writes, pass `--idempotency-key` so the runtime
+can deduplicate.
 
 ## Identity mode: credential release
 
