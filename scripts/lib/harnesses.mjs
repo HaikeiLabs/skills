@@ -31,31 +31,22 @@ export const OPENCODE_READ_DENIED = ['*/evals/*', 'evals/*'];
 export const CODEX_DISABLED_FEATURES = ['multi_agent', 'apps', 'browser_use', 'in_app_browser',
   'computer_use', 'image_generation'];
 
-// opencode 1.18 permission config (keys from https://opencode.ai/config.json).
-// The last matching rule wins, so the blanket deny comes first. A permission
-// whose last rule is a `*` deny is removed from the model's tool list, so
-// task (subagents), bash, edit/write/patch, glob, grep, web and the rest are
-// not offered at all. `read` is matched against the path relative to the
-// worktree: `.opencode/skills/...` inside a git checkout, or the absolute path
-// without its leading slash otherwise, so both forms are allowed.
-export const OPENCODE_SKILL_READ_PATTERNS = ['.opencode/skills/*', '*/.opencode/skills/*'];
-export const OPENCODE_DENIED = ['task', 'bash', 'edit', 'glob', 'grep', 'list', 'lsp', 'webfetch',
-  'websearch', 'todowrite', 'question', 'external_directory', 'doom_loop'];
-
-// `skill` allows only the skill under test, so a built-in or stray skill
-// cannot stand in for it (the without_skill run has the same rule; the skill
-// is simply not installed there).
+// OpenCode v2 uses ordered action/resource/effect permission rules. The
+// blanket deny is followed by the only capabilities the eval needs: loading
+// the skill under test and reading the isolated scratch project, excluding
+// eval fixtures. The scratch project contains only the staged skill, so
+// project reads let OpenCode inspect its root and skill references.
 export function opencodePermission(skill) {
-  return {
-    '*': 'deny',
-    ...Object.fromEntries(OPENCODE_DENIED.map((name) => [name, 'deny'])),
-    skill: { '*': 'deny', [skill]: 'allow' },
-    read: { '*': 'deny', ...Object.fromEntries(OPENCODE_SKILL_READ_PATTERNS.map((p) => [p, 'allow'])),
-      ...Object.fromEntries(OPENCODE_READ_DENIED.map((p) => [p, 'deny'])) },
-  };
+  return [
+    { action: '*', resource: '*', effect: 'deny' },
+    { action: 'skill', resource: skill, effect: 'allow' },
+    { action: 'read', resource: '*', effect: 'allow' },
+    ...OPENCODE_READ_DENIED.map((resource) => ({ action: 'read', resource, effect: 'deny' })),
+    { action: 'external_directory', resource: '*', effect: 'deny' },
+  ];
 }
 
-// The profile's sampling settings (EV-C1 §3). opencode 1.18 sends a model's
+// The profile's sampling settings (EV-C1 §3). OpenCode sends a model's
 // `options` in the body of every chat completions request, and otherwise sends
 // no temperature at all, so the server would sample at its own default.
 //
@@ -78,7 +69,7 @@ export function samplingOptions(opts) {
 }
 
 export function opencodeConfig(opts, skill, baseURL) {
-  const config = { permission: opencodePermission(skill) };
+  const config = { permissions: opencodePermission(skill) };
   if (opts.modelProfile) {
     const [, ...modelParts] = opts.model.split('/');
     const modelId = modelParts.join('/');
@@ -135,7 +126,7 @@ export const HARNESSES = {
   },
   opencode: {
     skillDir: '.opencode/skills',
-    command: (prompt, model, cwd) => ['opencode', ['run', '--dir', cwd,
+    command: (prompt, model) => ['opencode', ['run', '--standalone',
       ...(model ? ['-m', model] : []), prompt]],
     // `opencode run` has no tool flags; the sandbox is inline config.
     // The run also ignores the user's opencode setup: an empty config home

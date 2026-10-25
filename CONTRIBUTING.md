@@ -142,8 +142,10 @@ configuration lives in `scripts/lib/harnesses.mjs` and is covered by
     `bash`, `edit`/`write`/`patch`, `glob`, `grep`, `list`, `webfetch`,
     `websearch` and the rest are not offered to the model at all.
   - `skill` allows only the skill under test.
-  - `read` is allowed only under `.opencode/skills/`, for the skill's own
-    reference files. The `skill` tool injects `SKILL.md` itself.
+  - `read` is allowed within the isolated scratch project, which contains only
+    the staged skill. The eval fixtures and answer keys are never staged, known
+    eval paths remain denied, and `external_directory` denies reads outside the
+    scratch project. The `skill` tool injects `SKILL.md` itself.
   - The run ignores your own opencode setup: an empty config home, no
     `OPENCODE_CONFIG`, and pure mode. A personal `opencode.json`, its
     instructions, its `external_directory` allowlist, and global skills and
