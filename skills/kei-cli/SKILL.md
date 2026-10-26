@@ -27,6 +27,35 @@ load `kei-proxy`, not this skill. An agent never needs `kei login` to do its wor
 and `kei runtime bootstrap` are the only bridge: admin conveniences that write
 local runtime config and invoke `kei-proxy` to verify it.
 
+## Answer checklist
+
+For these common questions, include every listed point directly in the answer;
+do not leave it implicit or rely on a link to the reference:
+
+- **Resource commands:** check the exact subcommand in `kei help`. If a command
+  such as `kei policy update` is absent, say it is not available in that
+  release and refer to the `kei-api` skill; do not invent it. Explain opaque
+  page tokens for `list` and PATCH with an update mask for a supported
+  `update`.
+- **Per-user OAuth:** say `kei connectors connect` is for the authenticated
+  user's own account, never prints a token, and cannot connect another user's
+  account. Say each user must run `kei login` and then `kei connectors connect`
+  for their own account.
+- **Manifest review:** `kei connectors manifests show` displays added (`+`),
+  removed (`-`), and changed (`~`) tools. Only an org owner or admin can
+  approve with `kei connectors manifests approve`; it needs the manifest ID
+  and asks for confirmation unless `--yes` is used in a script.
+- **Tool-call authorization:** say `kei-proxy serve` decides calls for a
+  long-lived service; `kei-proxy authorize` is the fallback when no daemon is
+  running. The agent does not use `kei login`; runtime authentication uses
+  `KEI_RUNTIME_TOKEN`.
+- **Harness policy model:** include the command forms and state: standing
+  policies apply only to groups and autogroups; targets are typed; any
+  matching deny wins with no priority; “Bindings are wiring between
+  resources; they do not authorize access”; and “See the Policies and Groups
+  reference in the Kei console.” For imports, `--src` is required, preview is
+  the default, and `--apply` creates proposals.
+
 Your knowledge of `kei` flags and subcommands may be outdated; the CLI is young
 and changes between releases. **Prefer retrieval over this file.**
 
@@ -231,15 +260,50 @@ JSON decode error is the known kei ≤ 0.1.10 bug (HAI-373): the server could
 not decode the request." Then: upgrade to v0.1.11 or later; until then, use
 the web app.
 
-After upgrading to v0.1.11+, `kei policies list` works and all `kei policies`
-subcommands accept a policy **name** in addition to ID:
+For current policy commands, use the singular `kei policy` command group. The
+plural `kei policies` remains as a deprecated compatibility alias. Check the
+installed command help for exact syntax. The human-facing policy model and
+examples are in the Policies and Groups reference pages in the Kei console.
+
+## Policies and access grants
+
+Standing policies apply to groups or autogroups. A user or agent receives
+individual access through a time-bound access grant. Any matching deny wins;
+there is no priority field or priority ordering. Principals and targets are
+typed, and bindings connect resources without granting authorization.
+
+For a policy workflow, make the boundaries explicit: a standing rule applies
+to a group or autogroup; a typed target such as `shell:git` can be tested as a
+typed subject such as `group:GROUP`; any matching deny wins and there is no
+priority. State this explicitly: “Bindings are wiring between resources; they
+do not authorize access.” For the human-facing model, direct admins to “the
+Policies and Groups reference in the Kei console.” Import proposals with `kei
+policies import --from claude --src harness:* --workspace WORKSPACE`; `--src`
+is required, preview is the default, and `--apply` creates the proposals.
+
+Use the installed help as the syntax authority:
 
 ```sh
-kei policies list --workspace my-workspace --json
-kei policies update my-policy-name --workspace my-workspace --dst-pattern tool:web_search
-kei policies get my-policy-name --workspace my-workspace
-kei policies delete my-policy-name --workspace my-workspace --yes
+kei policy create -h
+kei policy test -h
+kei access grant create -h
+kei policies import -h
 ```
+
+The installed CLI currently documents these forms:
+
+```sh
+kei policy create --workspace WORKSPACE --group GROUP --allow TARGET
+kei policy test TARGET --workspace WORKSPACE --as group:GROUP
+kei access grant create --workspace WORKSPACE --principal user:USER_ID \
+  --target TARGET --ttl 4h
+kei policies import --from claude --src harness:claude_code --workspace WORKSPACE
+```
+
+`kei policies import` requires `--src`. Check its help for supported source
+patterns and import options. For human-facing explanation of groups, grants,
+typed targets, and deny behavior, direct admins to the Policies and Groups
+reference pages in the Kei console rather than duplicating the full guide here.
 
 ## Key guidelines
 
@@ -274,6 +338,28 @@ kei policies delete my-policy-name --workspace my-workspace --yes
   and the contract (opaque page tokens for `list`, PATCH with an update mask
   for `update`). Login is a precondition, not one of the three. See
   *When resource commands arrive* below.
+- **Do not present a future resource command as available.** Confirm the exact
+  command in the installed `kei help` and a released version or API contract;
+  if the command is not confirmed, say so and describe only the documented
+  contract requirements. For a released resource `update`, explain PATCH and
+  its update mask; for `list`, explain opaque page tokens.
+- **Model-profile status:** `kei model-profiles list` and other resource
+  commands fail on kei 0.1.12 and earlier; recommend upgrading to v0.1.13 or
+  later. `kei model-profiles test` validates the endpoint only and never
+  contacts the provider. Use
+  `kei model-profiles readiness PROFILE --workspace WORKSPACE` to check
+  whether a runtime can reach the provider.
+- **Runtime version labels:** `(below minimum)` means the runtime version is
+  below the organization's minimum. It is display-only and does not block
+  the runtime.
+- **Per-user OAuth:** `kei connectors connect` connects only the authenticated
+  user's own account after `kei login`; it never prints a token. Do not connect
+  another user's account from your session—each user must log in and run
+  `kei connectors connect` for their own account.
+- **Runtime authorization:** a long-lived service uses `kei-proxy serve` for
+  each tool-call decision, with `kei-proxy authorize` as the no-daemon
+  fallback. The agent does not run `kei login`; that is for the human
+  platform administrator using the `kei` CLI.
 
 ## Quick reference
 
@@ -296,7 +382,9 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 | List policies for a workspace | `kei policy list --workspace WS` | yes |
 | Get a policy | `kei policy get ID --workspace WS` | yes |
 | Create a group allow/deny policy | `kei policy create --workspace WS --group GROUP --allow TARGET` (or `--deny TARGET`) | yes |
-| Test a policy | `kei policy test --workspace WS --as SUBJECT TARGET` | yes |
+| Test a policy | `kei policy test TARGET --workspace WS --as SUBJECT` | yes |
+| Create a temporary access grant | `kei access grant create --workspace WS --principal user:ID --target TARGET --ttl 4h` | yes |
+| Import harness policies | `kei policies import --from claude --src harness:claude_code --workspace WS` | yes |
 | Delete a policy | `kei policy delete ID --workspace WS` | yes |
 | List data connectors | `kei connectors list [--workspace WS] [--json]` | yes |
 | Create a data connector | `kei connectors create --provider P --name NAME [--account-model M] [--set k=v] [--credential-ref R] [--capabilities a,b] [--workspace WS]` | yes |
@@ -611,9 +699,9 @@ not describe a future command as available.
 When someone asks what to verify before running a resource command, answer
 with all three (login is a precondition, not one of them):
 
-1. The **exact name** in `kei help`: it is `kei policies`, plural; there is
-   use the singular `kei policy` command group; `kei policies` is a deprecated
-   compatibility alias.
+1. The **exact name** in `kei help`: use singular `kei policy`; `kei policies`
+   is a deprecated compatibility alias. Policy import remains under
+   `kei policies import` and requires `--src`.
 2. The **installed version**: `kei --version`; for example `kei policies list`
    needs v0.1.11 or later.
 3. The **contract** above: opaque page tokens for `list`, PATCH with an

@@ -1,6 +1,6 @@
 ---
 name: kei-harness-policy
-description: "Govern harness command execution through Kei policies — import native allow/deny rules from Claude Code, Codex, or OpenCode into Kei policy bundles; create/update/delete shell:/skill:/path: policies; register custom/SDK agent-keyed harnesses and sync tool registrations; credential injection via kei:// references. Use when running `kei policies list|get|create|update|delete|import` or `kei harness add|sync|list|remove`. Covers ADR-029 harness-command-policy (3NF harness resource keyed by agent; kinds claude_code|codex|opencode|custom), ADR-028 kei.match/v1, HP-C1 rev1 policy API shape, HP-C3 harness adapter/tool discovery, HP-C5 bundle trust, HP-C6 report-only hook, and credential resolution for shell: dst commands."
+description: "Govern harness command execution through Kei policies. Use when creating or testing group policies, importing harness rules, or syncing policies into Claude Code, Codex, or OpenCode native configuration. Standing policies apply to groups and autogroups; user and agent access uses time-bound grants; deny wins and bindings only wire resources."
 ---
 
 # Harness command policy
@@ -38,10 +38,9 @@ OpenCode `permission.bash`).
 
 ## Key facts
 
-- **Version.** If `kei --version` reports something older than v0.1.7, use
-  the web console or the Kei API (`kei-api` skill) instead. When this skill
-  and `kei help` disagree, **trust `kei help`** and mention the difference to
-  the user.
+- **CLI syntax.** Check the installed binary help for exact commands and flags.
+  When this skill and `kei help` disagree, **trust `kei help`** and mention the
+  difference to the user.
 - **Sync renders, Kei does not intercept.** `kei harness sync` renders the
   policy bundle into each harness's native config, and the harness enforces it
   itself. Sync is manual: run it after every policy change. Preview with
@@ -80,9 +79,19 @@ Answer from this skill: the commands, flags, bundle fields, and boundaries are
 on this page and in `references/`, so you do not need to search a codebase
 first. If something is not here, say so. In every answer:
 
-- **Any `kei policies` or `kei harness` command** (including
-  `kei harness sync --dry-run`): say it needs kei v0.1.7 or newer (kei >
-  v0.1.6; check `kei --version`).
+- **Command syntax:** check the installed binary help. When this skill and
+  `kei help` disagree, trust the installed help.
+- **Temporary access grant:** for a request to grant a user or agent temporary
+  access, answer directly with the command in **Create, test, and grant access**
+  below, substituting the requested principal, target, and duration. Do not
+  search files or read references for this standard example. Keep the response
+  to the command and a brief explanation.
+- **Import proposals:** when showing or recommending an import, include both
+  required selectors in the command: `--from claude` selects the Claude
+  harness, and `--src harness:*` selects the source pattern. Never give an
+  import command with only `--src`; the exact general form is
+  `kei policies import --from claude --src harness:* --workspace WS`. Say that
+  this previews proposals by default and adding `--apply` creates them.
 - **Writing a policy:** use `kei policy create --workspace WS --group GROUP
   --allow TARGET` (or `--deny TARGET`). The older `kei policies` alias is
   deprecated; do not suggest `--name`, `--src-pattern`, or `--dst-pattern`
@@ -118,10 +127,10 @@ first. If something is not here, say so. In every answer:
   `not_after`; after that every governed call is denied. Check connectivity to
   the control plane, the control-plane URL, DNS, and the runtime token
   (expired or rotated). `kei-proxy policy sync` forces a fresh fetch.
-- **Bundle versions:** name the fields (`bundle_id`, `bundle_version`,
-  `policy_revision`) and say when each changes. Also say the catalog reuses
-  the current bundle for up to 6 hours (the reuse window) and re-issues it at
-  half-life. Point to `references/bundle-versioning.md`.
+- **Bundle versions:** explain `bundle_id`, `bundle_version`, and
+  `policy_revision` only as summarized in `references/bundle-versioning.md`.
+  Do not use the bundle version as a proxy for whether a policy decision is
+  allowed.
 
 ## Concepts
 
@@ -142,11 +151,10 @@ first. If something is not here, say so. In every answer:
 | Source | How to retrieve | Use for |
 | --- | --- | --- |
 | Installed binary | `kei help`, `kei policy -h`, `kei harness -h` | Exact subcommands, flags, and allowed values for the installed version |
-| Policy contract | `docs/contracts/policy-set-v1.schema.json`, `docs/contracts/policy-bundle-v1.schema.json` | The JSON schema a policy must satisfy |
-| Harness docs | The harness's own skills documentation | How a particular harness loads native config (Claude Code's `settings.json`, Codex's `~/.codex/rules/*.rules`, OpenCode's `opencode.json`) |
-| ADR-029 | `docs/adr/029-harness-command-policy.md` | Design rationale, shell:/skill:/path: schemes, report-only hook, match dialect |
-| Permissions model | [`references/permissions-model.md`](references/permissions-model.md) | Sources, native rendering per harness, the bundle subject, skipped denies with captured `kei harness sync` output |
-| Guide | [`docs/guides/create-policies.md`](../../docs/guides/create-policies.md) | Reader-facing walkthrough of creating policies, with the same worked example |
+| Policy reference | Policies and Groups reference pages in the Kei console | Human-facing policy model, groups, grants, targets, and examples |
+| Installed CLI | `kei policy -h`, `kei access grant create -h`, `kei policies import -h` | Exact syntax and flags for the installed version |
+| Harness docs | The harness's own skills documentation | How a particular harness loads native configuration |
+| Permissions model | [`references/permissions-model.md`](references/permissions-model.md) | Harness-specific boundaries for the current policy model |
 | Bundle versioning | [`references/bundle-versioning.md`](references/bundle-versioning.md) | Bundle identity fields (bundle_id, bundle_version, policy_revision), lifecycle, polling/refresh, rollback protection, state machine, troubleshooting |
 
 ## Quick reference
@@ -156,7 +164,7 @@ first. If something is not here, say so. In every answer:
 | List policies for a workspace | `kei policy list --workspace WS` | yes |
 | Get a policy | `kei policy get ID --workspace WS` | yes |
 | Create a group allow/deny policy | `kei policy create --workspace WS --group GROUP --allow TARGET` (or `--deny TARGET`) | yes |
-| Test a policy | `kei policy test --workspace WS --as group:GROUP TARGET` | yes |
+| Test a policy | `kei policy test TARGET --workspace WS --as group:GROUP` | yes |
 | Delete a policy | `kei policy delete ID --workspace WS` | yes |
 | Register a custom/SDK harness | `kei harness add --kind custom [--installation ID] [--agent ID]` | yes |
 | Sync tool registrations | `kei harness sync [--harness KIND] [--manifest PATH] [--dry-run]` | yes |
@@ -241,102 +249,67 @@ Every pattern is an exact, case-sensitive match except:
 A star anywhere else is a literal. `shell:git*` matches only the literal string
 `git*`.
 
-### Precedence (ADR-028 §2)
+### Policy model
 
-1. `priority` descending;
-2. at equal priority, `deny` before `permit`;
-3. then policy `id` ascending.
+Kei uses one policy model:
 
-The first eligible policy whose `src` and `dst` both match decides. If no
-policy matches, the harness falls through to its own native permission mode
-(usually `ask` for native harnesses; custom harnesses and connectors deny by
-default).
+- Standing policies apply to groups and autogroups.
+- User and agent access is granted through time-bound access grants.
+- Any matching deny wins. There is no priority field or priority ordering.
+- Principals and targets are typed; use an explicit target scheme such as
+  `shell:`, `skill:`, or `path:`.
+- For example, `shell:git` is a typed target and `group:developers` is a typed
+  subject. State explicitly: “Bindings are wiring between resources; they do
+  not authorize access.”
 
-### Pattern semantics
+For the human-facing explanation and policy examples, direct admins to “the
+Policies and Groups reference in the Kei console.” This skill keeps only the
+CLI syntax and harness-specific behavior.
 
-In a harness command policy, **src-pattern** says **who** the policy applies to,
-and **dst-pattern** says **what** it governs.
+### Create, test, and grant access
 
-| Field | What it identifies | Examples |
-| --- | --- | --- |
-| src-pattern | Who: a person, group, agent, everyone, or (optionally) a harness | `user:<id>`, `group:developers`, `agent:<id>`, `*`, `harness:opencode` |
-| dst-pattern | Command prefix after shell normalization, skill, path, or MCP tool | `shell:git`, `shell:herdr`, `shell:rm`, `skill:kei-agents`, `path:/workspace` |
-
-### Sources
-
-- **People and agents are the normal sources.** `user:`, `email:`, `group:`,
-  `agent:` and `*` apply whichever harness produces the call.
-- **`*` only meaningfully applies to harness command policies** (`shell:`,
-  `skill:`, `path:`) where `kei harness sync` renders it against every
-  harness. For `tool:` or `capability:` dst policies, `*` from the CLI
-  grants nothing because the CLI does not establish a bundle subject —
-  use `user:` or `group:` instead (HAI-673).
-- **`harness:<kind>` / `harness:<id>` is optional and narrower**, for rules that
-  differ by harness ("Codex may never run `rm`"). It applies to everyone on
-  that harness. It is valid only with a harness destination (`shell:`,
-  `skill:`, `path:`, `mcp:`, or a harness tool name such as
-  `tool:claude_code.edit`); the catalog rejects any other destination on save
-  with `INVALID_ARGUMENT`.
-- **`agent:<id>` is a source principal** (HAI-673). When used with an exact
-  `tool:` or `capability:` destination it is checked at call time by
-  `kei-proxy`: it matches when **either** the user or the calling agent
-  matches. A broad agent permit can therefore grant around a user's narrower
-  rules; cap it with a higher-priority deny (for example `agent:<id>`
-  `shell:git push --force` deny at 60 over `agent:<id>` `shell:git` permit at
-  50). An `agent:` source with a harness destination is rendered by
-  `kei harness sync`. The `--agent-id` CLI flag is a scope column that narrows
-  which agent a policy applies to — it is not a source principal.
-
-### Destinations beyond the harness
-
-Tool-call policies use `tool:<name>` (one exact name, no wildcards) or
-`capability:<name>` (exact). A connector-wide grant names only the connector
-(`selector_v2` with `connector_id` and nothing else; the console's **All tools
-on this connector**). It covers every tool bound to that connector, including
-tools added later, and a higher-priority deny on one tool still carves it out.
-These are decided by kei-proxy at run time (the `kei-proxy serve` socket
-authorize route, or the `kei-proxy authorize` CLI fallback), not rendered.
-
-### Examples
-
-**Create and test a group shell policy:**
+For an agent that needs four hours to run `shell:git`, use this command as the
+direct answer; replace `AGENT_ID` and `TICKET` with the real values:
 
 ```sh
-kei groups create --name developers --workspace WORKSPACE
-kei policy create --workspace WORKSPACE --group developers --allow shell:git
-kei policy test --workspace WORKSPACE --as group:developers shell:git
+kei access grant create --workspace WORKSPACE --principal agent:AGENT_ID \
+  --target shell:git --ttl 4h --reason TICKET
 ```
 
-The CLI policy is a group policy; it is not rendered into Codex shell rules by
-`kei harness sync`. For harness-native command policy syntax and rendering,
-use the rendered policy source table above and verify against `kei policy -h`.
+Do not run the command. A grant is time-bound; a matching deny still wins.
+
+```sh
+kei policy create --workspace WORKSPACE --group developers --allow shell:git
+kei policy test shell:git --workspace WORKSPACE --as group:developers
+kei access grant create --workspace WORKSPACE --principal user:USER_ID \
+  --target shell:git --ttl 4h --reason TICKET
+```
+
+Use `--deny TARGET` to create a group deny. A deny always takes precedence over
+matching allows and active grants. Check the installed `kei policy -h` and
+`kei access grant create -h` for the current command syntax.
+
+Standing policies and temporary access grants are different resources. Do not
+use a user or agent as the principal for a standing policy. Do not treat a
+connector or installation binding as authorization.
 
 ## Importing from native harness config
 
-Each coding harness has a different native format. `kei policies import` reads
-the harness's native config and creates one Kei policy per entry. The `--from`
-flag selects the harness format (and its default source location):
-
-| Harness | Native location | `--from` value | Translation |
-| --- | --- | --- | --- |
-| Claude Code | `~/.claude/settings.json` → `permissions.allow` | `claude` | Each array entry becomes a `shell:<entry>` permit at priority 100 |
-| Codex | Every `~/.codex/rules/*.rules` file (for example `default.rules`) → `prefix_rule` | `codex` | Each `prefix_rule` entry becomes a `shell:<prefix>` permit at priority 100 |
-| OpenCode | `opencode.json` → `permission.bash` | `opencode` | Each array entry becomes a `shell:<entry>` permit at priority 100 |
+`kei policies import` accepts `--from` values `claude`, `codex`, or `opencode`.
+The installed binary help is the syntax authority; `--src` is required and
+accepts `harness:<kind>` or `harness:*`.
 
 ```sh
-# Preview (dry run by default) Claude Code's existing allow list
-kei policies import --from claude --workspace my-workspace
+# Preview import proposals (dry run is the default)
+kei policies import --from claude --src harness:* --workspace WORKSPACE
 
-# Create the policies (prompts for confirmation)
-kei policies import --from claude --workspace my-workspace --apply
+# Apply the proposals
+kei policies import --from claude --src harness:* --workspace WORKSPACE --apply
 ```
 
-`import` is a **dry run by default**: it prints the policies it would create and
-stops. Pass `--apply` to create them (it prompts `Create N policies? [y/N]`).
-`--file PATH` overrides the source file or directory, `--src PATTERN` overrides
-the source pattern (default `harness:<kind>`), and `--out FILE` writes the
-proposed policy-set JSON to a file. There is no `--dry-run` flag — the default
-is already a dry run.
+Use the console Policies reference for the human-facing explanation of policy
+behavior. Do not assume import proposals or source patterns grant access; review
+the command's preview before applying it.
 
 ## Rendering native config: `kei harness sync` (there is no `policies export`)
 
@@ -550,81 +523,18 @@ What the key facts above leave out:
 - **Bundle reuse.** The runtime reuses the current bundle while policies and
   harnesses are unchanged (up to 6 hours).
 
-## Deny rendering and skipped denies
-
-`kei harness sync` renders denies into the native deny list (Claude Code
-`permissions.deny`, Codex `prefix_rule` with `decision="forbidden"`, OpenCode
-`permission.bash` `deny`). Claude Code applies deny entries before allow
-entries.
-
-**Which sources render.** `*` renders on every harness and `harness:` on the
-harness it names. `user:`, `email:` and `group:` render only when they name
-the bundle **subject**: the installation owner's user ID, email and groups.
-Only `kei.policy-bundle/v2` bundles carry a subject, so on v1 none of these
-sources render. Sync then prints
-`Claude Code: N user:/group: policies not rendered; the v1 policy bundle carries no subject (upgrade the catalog to serve v2)`.
-
-**The skipped-deny rule.** A person-sourced deny that cannot render is
-skipped, but it still comes first in precedence. So sync **withholds** each
-lower-precedence permit whose destination overlaps it, prints one line for each,
-and leaves the harness to ask. **A skipped deny never becomes an allow.**
-
-| Priority | Source | Destination | Effect |
-| ---: | --- | --- | --- |
-| 100 | `group:admins` | `shell:git push --force` | deny |
-| 10 | `*` | `shell:git` | permit |
-
-| Bundle | Sync prints | Claude Code `permissions` | What the user sees |
-| --- | --- | --- | --- |
-| v1, or v2 without a subject, or v2 whose subject is not in `admins` | `not rendered in Claude Code: allow git (a higher-precedence user:/group: deny overlaps it; the harness will ask)` | no `git` entry | Claude Code **asks** before `git push --force` (and every other `git` command) |
-| v2, subject in `admins` | no `not rendered` line | allow `Bash(git:*)`, deny `Bash(git push --force:*)` | Claude Code runs other `git` commands and **denies** `git push --force` natively |
-
-The full captured `--dry-run` output for both cases is in
-[`references/permissions-model.md`](references/permissions-model.md), under
-"Skipped denies withhold overlapping permits".
-A permit that does not overlap the skipped deny still renders. For example,
-`*` `shell:git status` renders `Bash(git status:*)`.
-
-A catch-all `shell:*` deny renders as `Bash(*)` and blocks every permitted
-command. Scope denies to the prefix you mean.
-
 ## Realistic usage boundaries
 
-- **No `/api/cli/*` routes.** The policies and harness commands go through the
-  shared AIP `/api/v1` endpoints — `/api/v1/policies` and
-  `/api/v1/runtime-installations/{installation}/harnesses` — following AIP
-  conventions (ADR-019). There are no private CLI-backend endpoints.
-- **A `harness:` source needs a harness destination.** The catalog rejects
-  `harness:` with a connector, capability, resource or non-harness tool
-  destination on save (`INVALID_ARGUMENT`).
-- **A skipped deny never becomes an allow.** When a person-sourced deny cannot
-  render, sync withholds the permits it overlaps and the harness asks; it does
-  not render those permits as allows.
-- **Policies are created by hand, never seeded — with two exceptions.**
-  `web_search` and `search_wiki` tool permits are seeded when the workspace
-  is created. A `pedro-discord` route pair (agent-bound permit + bind) is
-  seeded when the pedro-discord agent is set up. Deleting the agent-bound
-  permit does not stick until HAI-670 is fixed; the seed row reappears on
-  the next bundle refresh. There is no `kei policies seed` or
-  `--init-defaults` flag for other policies. The first non-seeded policy in a
-  workspace is a conscious authoring act.
-- **There is no report-only enforcement mode.** The report-only hook (HP-C6)
-  only audits; it is not a way to log violations without enforcing them.
-  Preview a change with `kei harness sync --dry-run` or by listing the
-  policies (`kei policies list --workspace WS --json`).
-- **Bash is only governed through `shell:` dst policies.** There is no
-  `dst: bash:*` or `dst: sh:*`. The harness normalises the command to its
-  first token, and only `shell:<prefix>` policies match (e.g. `shell:git`).
-- **Native kinds are unique per installation; `custom` is not.** Each runtime
-  installation (one `KEI_RUNTIME_TOKEN`) allows one harness per native kind
-  (`claude_code`, `codex`, `opencode`). Desktop native kinds are auto-detected
-  by `kei harness sync` — they are NOT registered with `kei harness add`.
-  Multiple `custom` harnesses may be registered on the same installation.
-- **`kei harness sync` rewrites the native config file in place.** It writes
-  to the harness's native location for the matched kind, replacing only the
-  entries its last run wrote and saving `<file>.kei-backup-<timestamp>` first.
-  It keeps only that one backup per file; the next successful sync replaces it.
-- **The hook does not decide.** Even when the report-only hook is active, the
-  harness makes the allow/deny decision from its native config. Kei only
-  observes. For Claude Code it records the outcome Claude Code reports (ran,
-  asked, or neither); it never answers a permission prompt.
+- **Policy model:** standing policies apply to groups or autogroups; time-bound
+  grants provide user or agent access; matching deny wins; bindings are wiring.
+  Use the Policies and Groups reference pages in the Kei console for the
+  human-facing explanation.
+- **Command syntax:** verify it against the installed `kei` and `kei-proxy`
+  help. In particular, `kei policies import` requires `--src`.
+- **Harness rendering:** use `kei harness sync --dry-run` to review changes to
+  native configuration. The harness enforces the rendered configuration for
+  harness commands; the sync output is the evidence for what was rendered.
+- **Tool-call authorization:** this skill covers harness command configuration.
+  For runtime tool-call authorization, use the `kei-proxy` skill.
+- **Report-only hook:** the hook records the harness's native outcome; it does
+  not decide or block commands.
