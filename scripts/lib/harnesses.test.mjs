@@ -13,13 +13,10 @@ const SKILL = 'kei-openai-backends';
 // edits, and the web.
 const FORBIDDEN = ['task', 'bash', 'edit', 'glob', 'grep', 'list', 'webfetch', 'websearch'];
 
-// opencode 1.18 semantics: rules are flattened in config order, `*` matches
-// any characters, and the last matching rule decides. A permission whose last
-// rule is a `*` deny is removed from the model's tool list.
-function rules(permission) {
-  return Object.entries(permission).flatMap(([name, value]) => (typeof value === 'string'
-    ? [{ permission: name, pattern: '*', action: value }]
-    : Object.entries(value).map(([pattern, action]) => ({ permission: name, pattern, action }))));
+// OpenCode v2 semantics: ordered action/resource/effect rules use simple
+// wildcards, with the last matching rule deciding.
+function rules(permissions) {
+  return permissions.map(({ action, resource, effect }) => ({ permission: action, pattern: resource, action: effect }));
 }
 const wildcard = (input, pattern) => new RegExp(`^${pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.')}$`, 's').test(input);
 const decide = (ruleset, permission, pattern) => ruleset.findLast((r) => wildcard(permission, r.permission) && wildcard(pattern, r.pattern))?.action;
@@ -33,7 +30,7 @@ function opencodeEnvFor(cwd) {
 }
 
 test('opencode sandbox hides subagents, search, shell, edit and web tools', () => {
-  const ruleset = rules(opencodeConfig({}, SKILL).permission);
+  const ruleset = rules(opencodeConfig({}, SKILL).permissions);
   for (const tool of [...FORBIDDEN, 'write', 'todowrite', 'question', 'lsp', 'some_future_tool']) {
     const permission = tool === 'write' ? 'edit' : tool;
     assert.equal(hidden(ruleset, permission), true, `${tool} must be hidden`);
@@ -44,7 +41,7 @@ test('opencode sandbox hides subagents, search, shell, edit and web tools', () =
 });
 
 test('opencode sandbox allows only the skill under test and reads inside the skill directory', () => {
-  const ruleset = rules(opencodeConfig({}, SKILL).permission);
+  const ruleset = rules(opencodeConfig({}, SKILL).permissions);
   assert.equal(hidden(ruleset, 'skill'), false);
   assert.equal(hidden(ruleset, 'read'), false);
   assert.equal(decide(ruleset, 'skill', SKILL), 'allow');
@@ -58,7 +55,7 @@ test('opencode sandbox allows only the skill under test and reads inside the ski
 });
 
 test('opencode sandbox denies reads of the eval answer key, even inside the skill directory', () => {
-  const ruleset = rules(opencodeConfig({}, SKILL).permission);
+  const ruleset = rules(opencodeConfig({}, SKILL).permissions);
   for (const file of [`.opencode/skills/${SKILL}/evals/evals.json`,
     `private/var/folders/x/T/skill-eval-a/.opencode/skills/${SKILL}/evals/evals.json`,
     `.opencode/skills/${SKILL}/evals/results/benchmark.json`,
@@ -111,7 +108,14 @@ test('codex runs read-only with web search, subagents and browsing disabled', ()
   assert.ok(disabled.includes('multi_agent'));
 });
 
-// opencode 1.18 puts a model's `options` in the body of every chat completions
+test('opencode run uses its isolated config and subprocess working directory without the unsupported --dir flag', () => {
+  const [cmd, args] = HARNESSES.opencode.command('prompt', 'eval/model', '/tmp/x');
+  assert.equal(cmd, 'opencode');
+  assert.deepEqual(args, ['run', '--standalone', '-m', 'eval/model', 'prompt']);
+  assert.ok(!args.includes('--dir'));
+});
+
+// OpenCode puts a model's `options` in the body of every chat completions
 // request; without them it sends no temperature and the server samples at its
 // default. The profile's sampling and thinking switch must reach that config.
 test('a model profile sends its sampling and thinking switch with every opencode request', () => {
