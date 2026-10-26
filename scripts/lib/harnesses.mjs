@@ -33,14 +33,16 @@ export const CODEX_DISABLED_FEATURES = ['multi_agent', 'apps', 'browser_use', 'i
 
 // OpenCode v2 uses ordered action/resource/effect permission rules. The
 // blanket deny is followed by the only capabilities the eval needs: loading
-// the skill under test and reading its files, excluding eval fixtures.
+// the skill under test and reading the isolated scratch project, excluding
+// eval fixtures. The scratch project contains only the staged skill, so
+// project reads let OpenCode inspect its root and skill references.
 export function opencodePermission(skill) {
   return [
     { action: '*', resource: '*', effect: 'deny' },
     { action: 'skill', resource: skill, effect: 'allow' },
-    { action: 'read', resource: '.opencode/skills/*', effect: 'allow' },
-    { action: 'read', resource: '*/.opencode/skills/*', effect: 'allow' },
+    { action: 'read', resource: '*', effect: 'allow' },
     ...OPENCODE_READ_DENIED.map((resource) => ({ action: 'read', resource, effect: 'deny' })),
+    { action: 'external_directory', resource: '*', effect: 'deny' },
   ];
 }
 
