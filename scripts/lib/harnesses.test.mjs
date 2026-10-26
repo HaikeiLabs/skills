@@ -40,7 +40,7 @@ test('opencode sandbox hides subagents, search, shell, edit and web tools', () =
   assert.equal(decide(ruleset, 'external_directory', '/Users/someone/code/repo/file.go'), 'deny');
 });
 
-test('opencode sandbox allows only the skill under test and reads inside the skill directory', () => {
+test('opencode sandbox allows only the skill under test and project reads', () => {
   const ruleset = rules(opencodeConfig({}, SKILL).permissions);
   assert.equal(hidden(ruleset, 'skill'), false);
   assert.equal(hidden(ruleset, 'read'), false);
@@ -49,9 +49,10 @@ test('opencode sandbox allows only the skill under test and reads inside the ski
   // read is matched against the path relative to the worktree.
   assert.equal(decide(ruleset, 'read', `.opencode/skills/${SKILL}/references/api.md`), 'allow');
   assert.equal(decide(ruleset, 'read', `private/var/folders/x/T/skill-eval-a/.opencode/skills/${SKILL}/SKILL.md`), 'allow');
-  for (const file of ['Users/me/code/haikei/kei/README.md', 'README.md', '.eval-config-home/opencode/opencode.json', '.env']) {
-    assert.equal(decide(ruleset, 'read', file), 'deny', file);
+  for (const file of ['README.md', '.eval-config-home/opencode/opencode.json', '.env']) {
+    assert.equal(decide(ruleset, 'read', file), 'allow', file);
   }
+  assert.equal(decide(ruleset, 'external_directory', '/Users/me/code/haikei/kei/README.md'), 'deny');
 });
 
 test('opencode sandbox denies reads of the eval answer key, even inside the skill directory', () => {
@@ -63,6 +64,13 @@ test('opencode sandbox denies reads of the eval answer key, even inside the skil
     assert.equal(decide(ruleset, 'read', file), 'deny', file);
   }
   assert.equal(decide(ruleset, 'read', `.opencode/skills/${SKILL}/SKILL.md`), 'allow');
+});
+
+test('opencode sandbox permits project reads but denies paths outside the scratch project', () => {
+  const ruleset = rules(opencodeConfig({}, SKILL).permissions);
+  assert.equal(decide(ruleset, 'read', '.'), 'allow');
+  assert.equal(decide(ruleset, 'read', `.opencode/skills/${SKILL}/references/guide.md`), 'allow');
+  assert.equal(decide(ruleset, 'external_directory', '/Users/me/.ssh/id_rsa'), 'deny');
 });
 
 test('opencode runs with_skill and without_skill under the same sandbox, isolated from user config', () => {
