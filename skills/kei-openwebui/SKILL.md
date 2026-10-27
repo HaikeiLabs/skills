@@ -54,6 +54,12 @@ The code wins over this file. Never invent a flag or an environment variable. Th
 - Deploy the image **by digest** (`@sha256:<digest>`), never by tag.
 - The image runs as **UID/GID 10001**.
 - Never print, echo or paste `KEI_RUNTIME_TOKEN`.
+- When explaining tool registration, explicitly say that a set
+  `KEI_OPENWEBUI_TOOLS_FILE` is the **only** definition source, is loaded and
+  registered once at boot, and has no hot reload; restart to apply changes.
+  When the variable is unset, the generated catalog remains the source. If a
+  manifest `method` is used, it must name a public method on the installed
+  `Tools` class; an unknown method fails boot.
 
 ## 1. Kei side (org owner or admin, after `kei login`)
 

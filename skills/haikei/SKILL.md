@@ -30,6 +30,12 @@ skills plugin and is loaded by your agent alongside the skills it routes to
   `kei policy`, `kei connectors`). Use the Kei API for resources or operations
   the installed CLI does not expose; check `kei --help` before claiming a CLI
   command is absent.
+- When asked which supported CLI commands manage groups or policies, state
+  the command names `kei groups` and `kei policy`; do not route all such
+  administration to the API. When choosing a harness kind, state that API/catalog
+  kind `custom` maps only to SDK (Agentware), not Pi or Open WebUI, and give
+  `kei harness add --kind custom` plus
+  `kei harness sync --harness custom --manifest tools.json` (kei v0.1.33+).
 - When several surfaces could fit, explain the deciding requirement: is this
   org management (API), runtime deployment (CLI), in-harness tool governance
   (agentware SDK), or agent capability definition (kei-agents)?
