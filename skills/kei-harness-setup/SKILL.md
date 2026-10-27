@@ -432,7 +432,56 @@ is allowed. A local allow list is stale on deploy and invisible to audit.
 > the runtime boots with the bundle it fetched at bootstrap. `KeiProxyEvaluator`
 > works the same way either way — it asks `kei-proxy` every time.
 
-## 5. Grant access (console)
+## 5. Register tools and wire connectors (CLI first)
+
+Registering and wiring never grant permission. A connector binding is
+**wiring only, never a permission gate** (ADR-038 §4): it records that the
+agent uses that connector, and is never consulted to decide allow or deny.
+What the agent may do is decided by workspace policy — group membership plus
+matching targets — and deny wins. The CLI's own usage line says the same:
+"bindings are wiring only, never a permission gate".
+
+**Register the harness and its tools.** Desktop kinds (`claude_code`,
+`codex`, `opencode`) are auto-discovered by sync; an SDK (Agentware) harness
+registers explicitly and syncs a tool manifest (section 3 above has the
+detail):
+
+```sh
+kei harness sync --harness claude_code                    # desktop kinds: auto-discovered
+kei harness add --kind custom --installation ID --agent ID   # SDK (Agentware) only
+kei harness sync --harness custom --manifest tools.json      # SDK tool manifest
+kei harness list --installation ID --json                    # verify what is registered
+```
+
+**Wire connectors to the agent** with `kei connector-bindings` (AIP routes
+`/api/v1/organizations/{org}/workspaces/{ws}/connector-bindings`):
+
+```sh
+kei connector-bindings list [--workspace WORKSPACE] [--agent AGENT_ID] [--page-size N] [--page-token TOKEN] [--json]
+kei connector-bindings get BINDING_ID [--workspace WORKSPACE] [--json]
+kei connector-bindings create --agent AGENT_ID --connector CONNECTOR_ID [--capabilities A,B] --workspace WORKSPACE [--json]
+kei connector-bindings delete BINDING_ID --workspace WORKSPACE --yes
+```
+
+`--agent` is the agent's UUID (find it with `kei bot agents list
+--installation ID` or in the console); `--connector` takes a connector ID or
+name; `--capabilities` defaults to the connector's declared capabilities;
+`delete` removes the binding immediately, so it needs `--yes`. `create` wires
+and nothing more: if connector calls are still denied after creating a
+binding, the workspace policy has no matching allow — fix the policy, not the
+binding.
+
+`kei connector-bindings` shipped on kei-cli main (kei-cli#228) after the
+v0.2.20 release, so check `kei --version` and `kei help` for the installed
+binary: an older CLI prints `unknown command "connector-bindings"`. There is
+no `kei connectors bind` — the binding command group is
+`kei connector-bindings` (the similar-sounding `kei service-principals bind`
+binds a service principal to an installation, not a connector to an agent).
+Until you run a release that has it, the console can do the same registration
+and wiring, and manages group membership and policies under
+**Agents → Groups**.
+
+### Grant access (console)
 
 A harness-executor tool (for example, an Open WebUI tool pack) needs an exact
 `tool:<name>` permit, a registered tool, and a linked user. It does not need an
@@ -912,6 +961,7 @@ head -3 "$SKILLS_DIR/kei-cli/SKILL.md"                  # frontmatter starts wit
 kei-proxy runtime bootstrap | jq '.workspace_id'        # runtime scoped to a workspace
 kei-proxy authorize --user U --tool T --action A --resource R; echo $?
 kei harness list --installation INSTALLATION_ID --json | jq '.harnesses[].agent_name'   # registered harnesses (kei >v0.1.6)
+kei connector-bindings list --workspace WS --json        # agent↔connector wiring (not a permission gate)
 ```
 
 ## Realistic usage boundaries
@@ -920,6 +970,9 @@ kei harness list --installation INSTALLATION_ID --json | jq '.harnesses[].agent_
   files in a repo, or into the conversation.
 - Installing skills changes what the agent knows, not what it may do. Policy in
   the workspace decides that.
+- A connector binding is wiring only (ADR-038 §4); it never gates permission.
+  Allow/deny comes from workspace policy — group membership and matching
+  targets — so a binding alone proves nothing about access.
 - Agents are created in the console; there is no CLI command for that yet.
 - The explicit Harness resource and short-lived runtime identity in the ADRs
   are planned. Do not present them as available.

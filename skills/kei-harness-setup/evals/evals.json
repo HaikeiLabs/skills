@@ -553,6 +553,122 @@
           ]
         }
       ]
+    },
+    {
+      "id": 17,
+      "prompt": "Our admin wants to wire the GitHub connector in workspace acme-prod to our coding agent from the terminal. What is the exact kei command to create that binding, and how do we see the bindings afterwards? Do not execute anything.",
+      "expected_output": "Use `kei connector-bindings create --agent AGENT_ID --connector CONNECTOR_ID --workspace WORKSPACE` (the agent UUID comes from `kei bot agents list --installation ID` or the console; --connector takes an ID or name; --capabilities defaults to the connector's declared capabilities). Review the wiring with `kei connector-bindings list --workspace WORKSPACE` (or --agent AGENT_ID) and `get BINDING_ID`; remove with `kei connector-bindings delete BINDING_ID --workspace WORKSPACE --yes`. The command shipped on kei-cli main (kei-cli#228) after the v0.2.20 release, so check `kei help` for the installed binary — an older CLI prints `unknown command \"connector-bindings\"`; the console can do the same wiring. A binding is wiring only, never a permission gate: the workspace policy still decides access.",
+      "expectations": [
+        "The response gives `kei connector-bindings create` with --agent and --connector (and --workspace).",
+        "The response shows how to review bindings afterwards with `kei connector-bindings list`.",
+        "The response says to check the installed CLI help/version because the command is newer than the released CLI (older CLIs print `unknown command`).",
+        "The response states the binding is wiring only and the workspace policy still decides access."
+      ],
+      "checks": [
+        {
+          "text": "The response gives `kei connector-bindings create` with --agent and --connector (and --workspace).",
+          "contains_all": [
+            "kei connector-bindings create",
+            "--agent",
+            "--connector",
+            "--workspace"
+          ]
+        },
+        {
+          "text": "The response shows how to review bindings afterwards with `kei connector-bindings list`.",
+          "contains_all": [
+            "kei connector-bindings list"
+          ]
+        },
+        {
+          "text": "The response says to check the installed CLI help/version because the command is newer than the released CLI (older CLIs print `unknown command`).",
+          "contains_any": [
+            "unknown command",
+            "0.2.20",
+            "kei-cli#228",
+            "kei help"
+          ]
+        },
+        {
+          "text": "The response states the binding is wiring only and the workspace policy still decides access.",
+          "regex": "wiring[\\s\\S]{0,400}polic|polic[\\s\\S]{0,400}wiring"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "I created a connector binding from our agent to the Linear connector, but the agent's Linear reads are still denied by Kei. Would deleting and recreating the binding fix the denial? Do not execute anything.",
+      "expected_output": "No. A connector binding is wiring only and never a permission gate (ADR-038 §4): it is never consulted to decide allow or deny. Access comes from the workspace policy — group membership plus a matching allow target, and any matching deny wins — so recreating the binding changes nothing. Check the workspace policies instead (`kei policy list`, or the console under Agents → Groups), fix the policy, and re-prove with the denied call.",
+      "expectations": [
+        "The response does not claim that recreating the binding will fix the denial.",
+        "The response answers the question negatively (recreating the binding will not fix it).",
+        "The response says a connector binding is wiring only, never a permission gate.",
+        "The response points at the workspace policy (policy list / console / group membership) as the thing to check."
+      ],
+      "checks": [
+        {
+          "text": "The response does not claim that recreating the binding will fix the denial.",
+          "not_contains": [
+            "recreating the binding will fix",
+            "re-creating the binding will fix",
+            "recreating the binding fixes",
+            "recreating the binding will grant",
+            "recreating the binding will allow",
+            "recreating the binding will restore",
+            "deleting and recreating will fix",
+            "yes, recreating",
+            "yes, delete and recreate"
+          ]
+        },
+        {
+          "text": "The response answers the question negatively (recreating the binding will not fix it).",
+          "regex": "(\\bno\\b|\\bnot\\b|\\bnever\\b|won't|will not|doesn't|does not|no effect|changes nothing)[\\s\\S]{0,300}(wiring|permission gate|polic)|(wiring|permission gate|polic)[\\s\\S]{0,300}(\\bno\\b|\\bnot\\b|\\bnever\\b)"
+        },
+        {
+          "text": "The response says a connector binding is wiring only, never a permission gate.",
+          "contains_any": [
+            "wiring only",
+            "never a permission gate",
+            "not a permission gate",
+            "wiring, never"
+          ]
+        },
+        {
+          "text": "The response points at the workspace policy (policy list / console / group membership) as the thing to check.",
+          "regex": "polic[\\s\\S]{0,300}(check|list|console|group)|(check|list|console|group)[\\s\\S]{0,300}polic"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "A teammate told me to run `kei connectors bind --agent <uuid> --connector <id> --workspace acme-prod` to wire our agent to a connector. Check that command against the kei CLI and give me the correct way to do it. Do not execute anything.",
+      "expected_output": "There is no `kei connectors bind` subcommand — `kei connectors` covers create/test/list/get/connect/reconnect/delete plus manifests. The binding command is `kei connector-bindings create --agent AGENT_ID --connector CONNECTOR_ID [--capabilities A,B] --workspace WORKSPACE` (plus list/get/delete; delete needs --yes). A binding is wiring only, never a permission gate. Check `kei help` for the installed binary: connector-bindings shipped on kei-cli main (kei-cli#228) after v0.2.20, so an older CLI prints `unknown command \"connector-bindings\"`.",
+      "expectations": [
+        "The response says there is no `kei connectors bind` subcommand (correcting the premise).",
+        "The response gives the real command: `kei connector-bindings create` with --agent and --connector.",
+        "The response tells the user to check the installed CLI help (`kei help`) for the version they have."
+      ],
+      "checks": [
+        {
+          "text": "The response says there is no `kei connectors bind` subcommand (correcting the premise).",
+          "regex": "^(?=[\\s\\S]*connectors bind)(?=[\\s\\S]*(no such|does not exist|doesn't exist|is not a (real |valid )?(sub)?command|isn't a (real |valid )?(sub)?command|not a real|not a valid|there is no))"
+        },
+        {
+          "text": "The response gives the real command: `kei connector-bindings create` with --agent and --connector.",
+          "contains_all": [
+            "kei connector-bindings create",
+            "--agent",
+            "--connector"
+          ]
+        },
+        {
+          "text": "The response tells the user to check the installed CLI help (`kei help`) for the version they have.",
+          "contains_any": [
+            "kei help",
+            "kei --version"
+          ]
+        }
+      ]
     }
   ]
 }
