@@ -13,14 +13,19 @@ sidecar), and the Kei connector. The connector adds:
   ready or there is no Open WebUI user;
 - the **Governor**, which every governed tool call goes through.
 
-Model inference uses the model configured in Open WebUI or its harness; it
-does not go through kei-proxy. Kei governs tool calls, which are checked
-against policy and audited. Anything Kei can't decide is refused: it **fails
-closed**.
+Model inference does not go through kei-proxy. The Open WebUI harness calls
+its configured model endpoint itself; kei-proxy decides governed tool calls
+and can release credentials to tools. Kei checks those calls against policy
+and audits them. Anything Kei can't decide is refused: it **fails closed**.
 
 The user is **Open WebUI's own user id**, whatever SSO is configured. Kei
 links it to an email-keyed Kei user. Until then the user is **unlinked** and
 refused.
+
+**Tool definition invariant:** when `KEI_OPENWEBUI_TOOLS_FILE` is set, that file
+is the **only** definition source. The plugin loads the manifest and registers
+the tools once at boot; there is no hot reload. Restart the container to apply
+file changes.
 
 ## Retrieval sources
 
@@ -149,7 +154,7 @@ tools:
     enabled: true
 ```
 
-The deployment’s CI/CD provides this file. When `KEI_OPENWEBUI_TOOLS_FILE` is set, it is the only definition source: the generated catalog and `tool_definitions` entry points are ignored. When unset, the image uses the generated catalog from contract schemas as before.
+The deployment’s CI/CD provides this file. When `KEI_OPENWEBUI_TOOLS_FILE` is set, it is the only definition source: the generated catalog and `tool_definitions` entry points are ignored. The plugin loads and registers tools once at boot; there is no hot reload, so restart to apply changes. When unset, the image uses the generated catalog from contract schemas as before.
 
 Tool implementations are code, supplied by installed Python packages. Each package exposes its `Tools` class through the `kei_openwebui.tool_implementations` entry-point group, named exactly for the manifest’s `service` (for example, `acme_orders = "acme_orders.tools:Tools"`). Install the package in the image. Boot resolves the service to its installed implementation and seeds the Open WebUI tools. The manifest defines registration; the installed entry point supplies executable code.
 
