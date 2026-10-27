@@ -6,8 +6,8 @@ Eval cases for the kei-api-conventions skill (AIP-style endpoint conventions).
 
 ```bash
 node scripts/run-evals.mjs --skill kei-api-conventions --harness opencode \
-  --model-profile deepseek-v4-flash \
-  --out evals-out/kei-api-conventions-deepseek-$(date +%F) --jobs 1
+  --model-profile glm-5.3-flash \
+  --out evals-out/kei-api-conventions-glm-$(date +%F) --jobs 1
 ```
 
 

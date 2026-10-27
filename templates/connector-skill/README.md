@@ -29,7 +29,7 @@ skill in the Haikei skills repository.
    ```
 5. Run evals with both required model profiles:
    ```bash
-   node scripts/run-evals.mjs --skill <your-connector-name> --model-profile deepseek-v4-flash --jobs 1
+   node scripts/run-evals.mjs --skill <your-connector-name> --model-profile glm-5.3-flash --jobs 1
    node scripts/run-evals.mjs --skill <your-connector-name> --model-profile qwen3.8-27b --jobs 1
    ```
 

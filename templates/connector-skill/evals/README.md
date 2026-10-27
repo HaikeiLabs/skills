@@ -6,8 +6,8 @@ Eval cases for the connector skill template. Replace `CONNECTOR_NAME` with the c
 
 ```bash
 node scripts/run-evals.mjs --skill CONNECTOR_NAME --harness opencode \
-  --model-profile deepseek-v4-flash --jobs 1 \
-  --out evals-out/CONNECTOR_NAME-deepseek-$(date +%F)
+  --model-profile glm-5.3-flash --jobs 1 \
+  --out evals-out/CONNECTOR_NAME-glm-$(date +%F)
 ```
 
 ```bash

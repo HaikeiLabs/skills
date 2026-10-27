@@ -8,7 +8,7 @@ report, and troubleshooting).
 
 ```bash
 node scripts/run-evals.mjs --skill kei-directory-sync \
-  --model-profile deepseek-v4-flash --jobs 1 --repeats 3
+  --model-profile glm-5.3-flash --jobs 1 --repeats 3
 node scripts/run-evals.mjs --skill kei-directory-sync \
   --model-profile qwen3.8-27b --jobs 1 --repeats 3
 ```

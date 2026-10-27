@@ -89,17 +89,27 @@ env:
   # Model profiles and the runner come from the pinned grader commit below, not
   # from this pull request's evals/ or scripts/, so nothing here is global.
   EVAL_GLOBAL_PATHS: ""
-  # HaikeiLabs/skills main after #104: thinking on for both models, DeepSeek at
-  # temperature 0 and Qwen at its thinking-mode sampling (temperature 0.6,
+  # HaikeiLabs/skills main after #104: thinking on for both models, GLM-5.3-Flash
+  # at temperature 0 and Qwen at its thinking-mode sampling (temperature 0.6,
   # top_p 0.95, top_k 20), seed 42, all sent with every request; a skill score
   # of passed runs / total runs; a clean exit with no answer graded as a failed
   # run, not an error; and the profiles' concurrency the gate runs each model at
-  # (deepseek 4, qwen 1).
-  EVAL_RUNNER_REF: "502f873e7627c726444855567cdc25b0e14b60af"
+  # (glm 2, qwen 1).
+  # Pinned to the head of #148: the commit that introduces glm-5.3-flash AND
+  # restores the harness the pinned runner image understands. The probe
+  # resolves base_url_env and concurrency from this pinned file — the pin
+  # before it (502f873e) predates the profile, so every glm shard failed it
+  # with "profile glm-5.3-flash has no EVAL_* base_url_env" (run of
+  # 79b566e). The next pin (79b566e itself) still carried the OpenCode v2
+  # harness, and run 40567540293 died on every shard because opencode
+  # 1.18.32 (the image's version) has no --standalone flag; dc281eb restores
+  # the 1.18-compatible invocation. After merge, re-pin to the merge commit
+  # (squash merges do not keep this SHA an ancestor of main).
+  EVAL_RUNNER_REF: "dc281eb5486b5cc52aff335bab4f338d91c085d0"
   # EDIT-END settings
   EVAL_THRESHOLD: "0.90"
   # EV-C1 §3 profile names; each needs its base_url_env set on the runner.
-  EVAL_PROFILES: '["deepseek-v4-flash", "qwen3.8-27b"]'
+  EVAL_PROFILES: '["glm-5.3-flash", "qwen3.8-27b"]'
   # Runs per case (HAI-521, owner decision 2026-10-13): 1 on a pull request,
   # so the gate stays fast; 3 on the nightly sweep, the averaged record. A
   # suite scores passed runs / total runs, the average over repeats, and
@@ -110,8 +120,9 @@ env:
   # into shards separately for each profile, of about that profile's
   # shard_runs (else this) runs, one eval job per profile per shard, so each
   # job fits the timeout on model hosts shared with other runs (measured ~0.3
-  # to 1 run/min on qwen3.8-27b at 1 slot, so shard_runs 8; ~0.6 to 1.5/min on
-  # deepseek-v4-flash at 4, so 20). A suite with more runs than its shard size
+  # to 1 run/min on qwen3.8-27b at 1 slot, so shard_runs 8; glm-5.3-flash
+  # starts at 8 too until its run rate at concurrency 2 is measured). A suite
+  # with more runs than its shard size
   # is split by repeats across shards; one with more cases than that stays
   # whole (the runner has no case filter).
   EVAL_SHARD_RUNS: "30"
@@ -368,7 +379,8 @@ jobs:
       (needs.scope.outputs.mode == 'changed' || needs.scope.outputs.mode == 'all') &&
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
         github.event.pull_request.head.repo.full_name == github.repository)
-    # DeepSeek runs on kei-agent-evals (EVAL_DEEPSEEK_BASE_URL), Qwen on
+    # GLM-5.3-Flash runs on kei-agent-evals (EVAL_DEEPSEEK_BASE_URL — the
+    # variable name is historical; it now points at the GLM server), Qwen on
     # kei-agent-evals-qwen (EVAL_QWEN_BASE_URL), matching the two scale sets
     # deployed by HaikeiLabs/kei .github/workflows/deploy-agent-evals-runner.yaml.
     runs-on: ${{ matrix.profile == 'qwen3.8-27b' && 'kei-agent-evals-qwen' || 'kei-agent-evals' }}

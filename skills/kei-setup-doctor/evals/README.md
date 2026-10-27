@@ -11,8 +11,8 @@ on the average pass rate (threshold 0.90). To reproduce it locally:
 
 ```bash
 node scripts/run-evals.mjs --skill kei-setup-doctor --harness opencode \
-  --model-profile deepseek-v4-flash --repeats 3 --jobs 1 \
-  --out evals-out/kei-setup-doctor-deepseek-$(date +%F)
+  --model-profile glm-5.3-flash --repeats 3 --jobs 1 \
+  --out evals-out/kei-setup-doctor-glm-$(date +%F)
 node scripts/run-evals.mjs --skill kei-setup-doctor --harness opencode \
   --model-profile qwen3.8-27b --repeats 3 --jobs 1 \
   --out evals-out/kei-setup-doctor-qwen-$(date +%F)

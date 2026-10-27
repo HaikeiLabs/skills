@@ -7,7 +7,7 @@ exactly one EV-C1 check (`contains_all`, `contains_any`, `regex` or
 ## Running
 
 ```bash
-node scripts/run-evals.mjs --skill deploy-agents --model-profile deepseek-v4-flash --jobs 1 --repeats 1
+node scripts/run-evals.mjs --skill deploy-agents --model-profile glm-5.3-flash --jobs 1 --repeats 1
 node scripts/run-evals.mjs --skill deploy-agents --model-profile qwen3.8-27b --jobs 1 --repeats 1
 ```
 

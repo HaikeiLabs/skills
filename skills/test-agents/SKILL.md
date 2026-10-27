@@ -99,11 +99,11 @@ Runs are per **model profile**, from `evals/model-profiles.yaml`:
 
 ```yaml
 profiles:
-  deepseek-v4-flash:
+  glm-5.3-flash:
     backend: vllm
-    model: deepseek-ai/DeepSeek-V4-Flash
-    base_url_env: EVAL_DEEPSEEK_BASE_URL     # the env var NAME; the URL itself is never committed
-    concurrency: 4
+    model: nvidia/GLM-5.3-Flash-FP4-Local
+    base_url_env: EVAL_DEEPSEEK_BASE_URL     # the env var NAME; the URL itself is never committed; name is historical (was DeepSeek)
+    concurrency: 2
   qwen3.8-27b:
     backend: llamacpp
     model: qwen3.8-27b
@@ -119,9 +119,9 @@ CI secrets. Never commit endpoint URLs, private IPs, or hostnames.
 ```bash
 export EVAL_DEEPSEEK_BASE_URL=...        # from your environment, not a file
 PYTHONPATH=<agentware>/python/src python -m evals.main \
-  --suite evals/suites --model-profile deepseek-v4-flash \
+  --suite evals/suites --model-profile glm-5.3-flash \
   --profiles <agentware>/evals/model-profiles.yaml \
-  --out evals-out/deepseek --jobs 1
+  --out evals-out/glm --jobs 1
 ```
 
 - `--suite` takes a file or a directory (repeatable). `--threshold` defaults
@@ -169,9 +169,9 @@ Each check has exactly one of `contains_all`, `contains_any`, `regex`,
 Run from a checkout of `HaikeiLabs/skills`:
 
 ```bash
-node scripts/run-evals.mjs --skill <name> --model-profile deepseek-v4-flash --jobs 1 --repeats 1
+node scripts/run-evals.mjs --skill <name> --model-profile glm-5.3-flash --jobs 1 --repeats 1
 node scripts/run-evals.mjs --skill <name> --model-profile qwen3.8-27b --jobs 1 --repeats 1
-node scripts/run-evals.mjs --skills-dir path/to/other/skills --skill <name> --model-profile deepseek-v4-flash
+node scripts/run-evals.mjs --skills-dir path/to/other/skills --skill <name> --model-profile glm-5.3-flash
 node scripts/run-evals.mjs --grade-only evals-out/<run>      # re-grade saved responses, no model calls
 node scripts/verify-evals.mjs                                # schema check, runs in CI
 ```
@@ -212,7 +212,7 @@ requests never get a runner, and the workflow uses `pull_request`, never
 # Validate a suite without calling a model (strict schema)
 PYTHONPATH=<agentware>/python/src python -c "from evals.suite import load_suites; print([s.name for s in load_suites('evals/suites')])"
 # With no endpoint configured the runner must exit 2, not report 0%
-PYTHONPATH=<agentware>/python/src python -m evals.main --suite evals/suites --model-profile deepseek-v4-flash --out /tmp/x; echo $?
+PYTHONPATH=<agentware>/python/src python -m evals.main --suite evals/suites --model-profile glm-5.3-flash --out /tmp/x; echo $?
 # Skills repo
 node scripts/verify-evals.mjs && node scripts/verify-skills.mjs
 ```

@@ -14,10 +14,23 @@ test('both shipped profiles set an 1800 s run timeout, a fixed seed and thinking
   assert.deepEqual(parseModelProfile(profiles, 'qwen3.8-27b'),
     { model: 'eval/qwen3.8-27b', baseUrlEnv: 'EVAL_QWEN_BASE_URL', runTimeoutSeconds: 1800, temperature: 0.6,
       topP: 0.95, topK: 20, seed: 42, thinking: true });
-  assert.deepEqual(parseModelProfile(profiles, 'deepseek-v4-flash'),
-    { model: 'eval/deepseek-ai/DeepSeek-V4-Flash', baseUrlEnv: 'EVAL_DEEPSEEK_BASE_URL', runTimeoutSeconds: 1800,
+  assert.deepEqual(parseModelProfile(profiles, 'glm-5.3-flash'),
+    { model: 'eval/nvidia/GLM-5.3-Flash-FP4-Local', baseUrlEnv: 'EVAL_DEEPSEEK_BASE_URL', runTimeoutSeconds: 1800,
       temperature: 0, topP: undefined, topK: undefined, seed: 42, thinking: true });
+  // The DeepSeek V4 Flash server was removed; its profile is gone too.
+  assert.equal(parseModelProfile(profiles, 'deepseek-v4-flash'), null);
   assert.equal(parseModelProfile(profiles, 'no-such-profile'), null);
+});
+
+test('the agent-evals gate runs exactly the shipped profiles', () => {
+  const workflow = readFileSync(path.join(ROOT, '.github/workflows/agent-evals.yaml'), 'utf8');
+  const line = workflow.match(/^  EVAL_PROFILES: (.+)$/m)?.[1];
+  assert.ok(line, 'agent-evals.yaml sets EVAL_PROFILES');
+  // YAML single quotes around the flow sequence.
+  const gate = JSON.parse(line.replace(/^'|'$/g, '')).sort();
+  const shipped = [...profiles.matchAll(/^  ([a-z0-9][a-z0-9._-]*):\s*$/gm)].map((m) => m[1]).sort();
+  assert.ok(shipped.length >= 1, 'model-profiles.yaml ships at least one profile');
+  assert.deepEqual(gate, shipped);
 });
 
 test('parses profile fields in any order and stops at the next profile', () => {
