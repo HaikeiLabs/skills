@@ -30,8 +30,9 @@ az acr import --name <your-acr> \
   --image openwebui-kei:<tag>
 ```
 
-Deploy `<your-acr>.azurecr.io/openwebui-kei@sha256:<digest>`. Layer a tool pack
-`FROM` that same digest, then deploy your layer by its own digest.
+Deploy `<your-acr>.azurecr.io/openwebui-kei@sha256:<digest>`. Install the Python
+packages that provide the manifest services’ `tool_implementations` entry points
+in your image layer. The deployment pipeline supplies the manifest file separately.
 
 ## Runtime user
 
@@ -63,7 +64,7 @@ admin signs up. Until then there is no model provider.
 | `KEI_RUNTIME_TOKEN` | yes | Runtime installation credential, from the secret manager. Never printed |
 | `KEI_RUNTIME_CONTROL_PLANE_URL` | yes | Kei control plane base URL, no `/api/v1` |
 | `WEBUI_SECRET_KEY` | yes | Shared by replicas. Missing: `WEBUI_SECRET_KEY is not set; refusing to start` |
-| `KEI_OPENWEBUI_TOOL_PACKS` | with a pack | Comma-separated pack modules |
+| `KEI_OPENWEBUI_TOOLS_FILE` | optional | Path inside the container to a deployment-provided `kei.tool-manifest/v3` file. When set, this is the only definition source |
 | `KEI_PROXY_EGRESS_PROXY` | no | Becomes `HTTPS_PROXY`/`HTTP_PROXY` for kei-proxy processes and `kei-proxy identity link` only; the boot tool sync applies it in its own client. Open WebUI never sees it |
 | `KEI_PROXY_NO_PROXY` | no | Becomes `NO_PROXY` alongside it |
 | `KEI_PROXY_AUDIT` | recommended | Audit spool path; put it on a volume (gap K8) |

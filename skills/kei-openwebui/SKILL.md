@@ -1,6 +1,6 @@
 ---
 name: kei-openwebui
-description: Set up, verify and troubleshoot Open WebUI governed by Kei with the published openwebui-kei image (Open WebUI + the in-container kei-proxy daemon + the Kei connector). Use when someone wants to run Open WebUI with Kei; create the openwebui runtime installation (`kei bot init --platform openwebui`) and deliver KEI_RUNTIME_TOKEN; grant `tool:<name>` permits for governed tools; optionally configure a model profile to pass model credentials; pull or mirror the image by digest (ECR Public, `az acr import`); run it as UID/GID 10001; set KEI_OPENWEBUI_TOOL_PACKS, KEI_PROXY_EGRESS_PROXY or WEBUI_SECRET_KEY; layer a tool pack (plain-data TOOLKITS with `tools`) and the boot tool sync; link Open WebUI users (claim link, or Entra users via kei directory-sync); or debug "tool is not registered in the policy bundle", a container that refuses to start because a pack declares no tools, `identity.unlinked`, audit rows shown "via installation", no models listed, or "left out of the manifest" warnings. Other kei commands are kei-cli; the Entra side is kei-directory-sync.
+description: Set up, verify and troubleshoot Open WebUI governed by Kei with the published openwebui-kei image (Open WebUI + the in-container kei-proxy daemon + the Kei connector). Use when someone wants to run Open WebUI with Kei; create the openwebui runtime installation (`kei bot init --platform openwebui`) and deliver KEI_RUNTIME_TOKEN; grant `tool:<name>` permits for governed tools; optionally configure a model profile to pass model credentials; pull or mirror the image by digest (ECR Public, `az acr import`); run it as UID/GID 10001; set KEI_OPENWEBUI_TOOLS_FILE, KEI_PROXY_EGRESS_PROXY or WEBUI_SECRET_KEY; provide a v3 tool manifest at deployment and use the boot tool sync; link Open WebUI users (claim link, or Entra users via kei directory-sync); or debug "tool is not registered in the policy bundle", a container that refuses to start because a tool manifest or implementation is invalid, `identity.unlinked`, audit rows shown "via installation", no models listed. Other kei commands are kei-cli; the Entra side is kei-directory-sync.
 ---
 
 # Open WebUI with Kei (openwebui-kei)
@@ -27,12 +27,12 @@ refused.
 | Source | How to retrieve | Use for |
 | --- | --- | --- |
 | Setup guide | the `kei-openwebui` repository, `docs/setup.md` | The full walk-through this skill follows |
-| Release and tool-pack contract | `kei-openwebui` `docs/release.md` | `IMAGE_DIGEST.txt`, tool fields, registering tools by hand on v0.1.0 |
+| Tool definitions | `kei-openwebui` `docs/setup.md` section 3 and `docs/design.md` section “Tool specs from a file” | File-based v3 manifest, generated-catalog fallback, implementation entry points, and boot sync |
 | Design | `kei-openwebui` `docs/design.md` | The gate, agent sessions, supervisor order, known gaps |
 | Installed CLI | `kei help` | Exact `kei` flags for this release |
-| In this skill | [references/image-and-env.md](references/image-and-env.md), [references/tool-packs.md](references/tool-packs.md) | Environment table, mirroring, the pack format and boot sync |
+| In this skill | [references/image-and-env.md](references/image-and-env.md), [references/tool-definitions.md](references/tool-definitions.md) | Environment table, mirroring, manifest loading and boot sync |
 
-The code wins over this file. Never invent a flag or an environment variable.
+The code wins over this file. Never invent a flag or an environment variable. The [tool definition reference](references/tool-definitions.md) covers manifest loading and implementation details.
 
 ## What every answer must say
 
@@ -43,9 +43,9 @@ The code wins over this file. Never invent a flag or an environment variable.
   profile. Model profiles are optional and can pass model credentials; model
   inference does not go through kei-proxy. Write a `tool:<name>` permit for
   each governed tool, using its declared name exactly. Show the command.
-- A tool's name matches its `Tools` method as `<method>` or `<prefix>.<method>`
-  (or, from v0.1.3, the declaration's `method`). Say so whenever a tool name or
-  a "left out of the manifest" warning comes up.
+- A policy must target the manifest tool name exactly as `tool:<name>`. When a
+  tool implementation uses an optional `method`, it names the public `Tools`
+  method for that definition.
 - Deploy the image **by digest** (`@sha256:<digest>`), never by tag.
 - The image runs as **UID/GID 10001**.
 - Never print, echo or paste `KEI_RUNTIME_TOKEN`.
@@ -98,7 +98,7 @@ The code wins over this file. Never invent a flag or an environment variable.
      patterns are silently skipped (HAI-673).
    - A write tool runs as soon as a permit allows it.
    - A permit only applies to a **registered** tool (section 3).
-   - A harness-executor tool (an Open WebUI tool pack) needs an exact
+   - A harness-executor tool (an Open WebUI tool implementation) needs an exact
      `tool:<name>` permit, a **registered** tool, and a **linked user**
      (section 4). It does not need an agent-connector binding: agent-connector
      bindings apply only to connector/MCP tools.
@@ -121,60 +121,44 @@ The code wins over this file. Never invent a flag or an environment variable.
 - **Environment:**
   - required: `KEI_RUNTIME_TOKEN`, `KEI_RUNTIME_CONTROL_PLANE_URL`,
     `WEBUI_SECRET_KEY`;
-  - with a pack: `KEI_OPENWEBUI_TOOL_PACKS`;
+  - with a manifest file: `KEI_OPENWEBUI_TOOLS_FILE`;
   - optional: `KEI_PROXY_EGRESS_PROXY` / `KEI_PROXY_NO_PROXY` (kei-proxy and
     the tool sync only, never Open WebUI), and `KEI_PROXY_AUDIT` on a volume.
 
   Full table: [references/image-and-env.md](references/image-and-env.md).
-- **Versions.** The boot tool sync needs v0.1.1 or later. Plain-data `tools`
-  declarations need v0.1.2 or later.
+- **Versions.** The boot tool sync needs image v0.1.1 or later. File-based definitions use the Agentware `kei.tool-manifest/v3` format.
 
-## 3. Tool packs and the boot tool sync
+## 3. Tool definitions and the boot tool sync
 
-A tool pack is a Python package layered on the image **at build time**:
+The plugin can load definitions from a deployment-provided manifest file. Set `KEI_OPENWEBUI_TOOLS_FILE` to the file path inside the container. The deployer’s CI/CD pipeline supplies the file (for example, mounts it read-only); keep it outside the image. The plugin reads it once at boot, so changes take effect after restart. Do not put a runtime token in the generated skill or manifest.
 
-```dockerfile
-FROM public.ecr.aws/o1a1k4g0/openwebui-kei@sha256:<digest>
-USER root
-RUN pip install --no-cache-dir acme-orders==<version>
-USER kei
-ENV KEI_OPENWEBUI_TOOL_PACKS=acme_orders
+Use Agentware’s existing `kei.tool-manifest/v3` shape and `ToolSpec`, not a new Open WebUI-specific schema. The Acme sample at `examples/tools.example.yaml` demonstrates the format. A tool has a `name`, `service`, `source`, `operation_class`, `route.harness_executor` and other v3 ToolSpec fields. For example, `acme.orders.list_orders` can route to the Open WebUI harness executor. The name is the action: policies target the exact `tool:<name>`.
+
+```yaml
+schema: kei.tool-manifest/v3
+tools:
+  - name: acme.orders.list_orders
+    service: acme_orders
+    source: orders_api
+    operation_class: read
+    route:
+      harness_executor:
+        executor: openwebui
+        registration: acme.orders.list_orders
+    description: List recent Acme orders.
+    enabled: true
 ```
 
-Its top-level module declares `TOOLKITS` as plain data, with a `tools` list per
-toolkit. Each tool needs `name` and `access` (`read` or `write`):
+The deployment’s CI/CD provides this file. When `KEI_OPENWEBUI_TOOLS_FILE` is set, it is the only definition source: the generated catalog and `tool_definitions` entry points are ignored. When unset, the image uses the generated catalog from contract schemas as before.
 
-```python
-TOOLKITS = [{"id": "acme_orders", "name": "Acme: orders", "module": "acme_orders.tools",
-             "source": "acme",
-             "tools": [{"name": "acme.orders.list_orders", "access": "read"},
-                       {"name": "acme.orders.cancel_order", "access": "write"}]}]
-```
+Tool implementations are code, supplied by installed Python packages. Each package exposes its `Tools` class through the `kei_openwebui.tool_implementations` entry-point group, named exactly for the manifest’s `service` (for example, `acme_orders = "acme_orders.tools:Tools"`). Install the package in the image. Boot resolves the service to its installed implementation and seeds the Open WebUI tools. The manifest defines registration; the installed entry point supplies executable code.
 
-**The name is the action.** Kei is asked about `tool:<name>`. Name each tool
-`<method>` or `<prefix>.<method>` after the `Tools` method that runs it, and use
-the same name in the policy. From v0.1.3, a tool whose method has another name
-says so in `method` (`"method": "orders_get"`).
+**Boot tool sync.** At boot, the plugin unmarshals the file with Agentware `ToolSpec` and calls `haikeilabs.agentware.kei.tool_sync.sync_tool_manifest`, which registers the manifest with Kei using `PUT /api/v1/runtime/tools` and the runtime token. It is a one-time boot action; updating the file requires a restart. The image’s generated catalog follows the same sync route when the variable is unset.
 
-**Boot tool sync.** At every boot, after kei-proxy is ready and before Open
-WebUI serves, the image PUTs the packs' manifest to
-`$KEI_RUNTIME_CONTROL_PLANE_URL/api/v1/runtime/tools` with the runtime token. It
-**replaces** the installation's tools. It fails closed:
+The file loader fails closed on a missing or unreadable file, invalid YAML or manifest, an empty or duplicate tool list, an unavailable service implementation, or an unknown `method`. It reads exactly one safe YAML document, rejects anchors, aliases, merge keys, custom tags and duplicate mapping keys, and refuses files over 256 KiB. Missing or invalid implementation packages and sync failures also stop startup before Open WebUI serves. The file supports Agentware `kei.tool-manifest/v3`; see the [shared format documentation](https://github.com/HaikeiLabs/agentware/blob/main/docs/tool-manifest-v3.md).
 
-- With no pack configured, it is skipped.
-- With a pack that exports no tools, the container refuses to start: it never
-  sends an empty manifest, which would unregister every tool.
-- When Kei refuses, it retries 5 times, then the container exits.
+When no file is configured, tools are generated from contracts schemas at image build. Definition updates in that mode require rebuilding and redeploying the image.
 
-**"Left out of the manifest" warnings.** Lead with the matching rule: boot
-matches a `Tools` method to the declaration named `<method>` or
-`<prefix>.<method>` (`acme.orders.cancel` matches `cancel`), or from v0.1.3 the
-one whose `method` names it. The warning means no declaration matched. Then:
-diagnostic only if `registered N` is right and the method sends a declared
-name; otherwise Kei refuses it (`tool_not_registered`).
-
-Tools reach kei-proxy on the next bundle poll, about a minute later. Details:
-[references/tool-packs.md](references/tool-packs.md).
 
 ## 4. Linking users
 
@@ -215,8 +199,8 @@ installed. It is read-only and exits 1 on drift.
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |
-| Tool call refused **`tool is not registered in the policy bundle`** (`tool_not_registered`) | Kei hasn't registered the tool: image older than v0.1.1, `KEI_OPENWEBUI_TOOL_PACKS` unset, the name differs from what the method sends, or the bundle hasn't refreshed | Boot log `tool sync: registered N tool(s)`; compare `--export-manifest` names with the refused name; wait a poll, check `policy show` `tool_count`. A permit can't help until the tool is registered |
-| Container won't start: **`tool sync refused: ... manifest has no tools`** | The pack declares no governed tools, or the image is older than v0.1.2 and ignores plain-data `tools`. Boot won't PUT an empty manifest: it would unregister every tool | Add a `tools` list (`name`, `access`) to each toolkit; use v0.1.2 or later |
+| Tool call refused **`tool is not registered in the policy bundle`** (`tool_not_registered`) | Kei hasn't registered the tool: image older than v0.1.1, no generated definition or file-based manifest entry, the implementation is missing, the name differs from what the method sends, or the bundle hasn't refreshed | Boot log `tool sync: registered N tool(s)`; compare `--export-manifest` names with the refused name; wait a poll, check `policy show` `tool_count`. A permit can't help until the tool is registered |
+| Container refuses startup while loading tool definitions | The configured manifest is missing or invalid, has no tools or duplicate names, references an unavailable implementation, or contains an unknown method | Correct the v3 manifest and install the matching `tool_implementations` entry point; restart |
 | Container won't start: `tool sync with Kei failed: ... HTTP 401` | Wrong or rotated runtime token | Put the current credential in the secret manager, restart |
 | Same, `HTTP 404` | `KEI_RUNTIME_CONTROL_PLANE_URL` has a path (e.g. `/api/v1`) or is the wrong host | Use the base URL |
 | Same, `HTTP 409` | The tool name is registered by an admin or another installation | Rename, or remove the other registration |
@@ -226,7 +210,6 @@ installed. It is read-only and exits 1 on drift.
 | Audit rows show the installation's owner **"via installation"**, denied | No session user: the Open WebUI user is unlinked, so the console attributes the row to the installation subject | Link the user; later rows show their own Kei user |
 | **No models** in Open WebUI | Model provider or model configuration in Open WebUI is missing or unavailable | Check Open WebUI's configured model provider, endpoint, credentials, and model name. Kei model profiles are optional credential convenience; inference does not go through kei-proxy. |
 | Denied although a permit exists | User is unlinked, the tool is not registered, the policy does not match, or the bundle is stale | Link the Open WebUI user; confirm exact tool registration and permit target/source, then check `policy_revision`. Harness-executor tools do not require an agent-connector binding. |
-| Boot warns **`tool sync: <toolkit>.<method> is left out of the manifest: ...`** | Boot matches each `Tools` method to the declaration named `<method>` or `<prefix>.<method>` (`acme.orders.cancel_order` → `cancel_order`), or from v0.1.3 the one whose `method` names it. This method matched none: really ungoverned, or its tool's name isn't `<prefix>.<method>`. Kei governs by the name the method sends, never the method name | Name the tool `<prefix>.<method>` after the method (`acme.orders.cancel` for `cancel`), or from v0.1.3 set the declaration's `method`. Until then the warning is diagnostic only if `registered N` is right and each method sends its declared name |
 | Turn fails `Kei governance is unavailable, so this request was not sent` | `kei_guard`: kei-proxy not ready | Check kei-proxy in the container log |
 
 ## Validation commands
