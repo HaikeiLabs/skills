@@ -18,10 +18,13 @@ bundle issuance with the same policy revision when the control plane renews the
 bundle. Compare `policy_revision` to see whether policy content changed;
 `bundle_id` and `bundle_version` identify the issued bundle.
 
-The bundle policy model uses typed principals and targets. Standing policies
-are for groups or autogroups; user and agent access uses time-bound grants;
-matching denies win. No priority field is used. Bindings are configuration
-wiring and do not affect the decision.
+The bundle policy model uses typed targets. Standing policy sources are custom
+groups (`group:<name>` or a bare group name), `autogroup:member`, and
+`autogroup:admin`; owners count as admins. Custom groups may contain users,
+agents, and service principals. Direct subjects receive access only through
+ID-based grants with an expiry, reason, and approver. Never use email addresses
+or org roles as policy sources. Matching denies win, there is no priority, and
+bindings are wiring that does not authorize access.
 
 ## Inspect and refresh
 

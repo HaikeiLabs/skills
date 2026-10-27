@@ -1,6 +1,6 @@
 ---
 name: kei-harness-policy
-description: "Govern harness command execution through Kei policies. Use when creating or testing group policies, importing harness rules, or syncing policies into Claude Code, Codex, or OpenCode native configuration. Standing policies apply to groups and autogroups; user and agent access uses time-bound grants; deny wins and bindings only wire resources."
+description: "Govern harness command execution through Kei policies. Use when creating or testing group policies, reviewing legacy policies, or syncing policies into Claude Code, Codex, or OpenCode native configuration. Policy sources are groups and the member/admin autogroups; direct access uses ID-based time-bound grants; deny wins and bindings only wire resources."
 ---
 
 # Harness command policy
@@ -81,17 +81,22 @@ first. If something is not here, say so. In every answer:
 
 - **Command syntax:** check the installed binary help. When this skill and
   `kei help` disagree, trust the installed help.
-- **Temporary access grant:** for a request to grant a user or agent temporary
-  access, answer directly with the command in **Create, test, and grant access**
-  below, substituting the requested principal, target, and duration. Do not
-  search files or read references for this standard example. Keep the response
-  to the command and a brief explanation.
-- **Import proposals:** when showing or recommending an import, include both
-  required selectors in the command: `--from claude` selects the Claude
-  harness, and `--src harness:*` selects the source pattern. Never give an
-  import command with only `--src`; the exact general form is
-  `kei policies import --from claude --src harness:* --workspace WS`. Say that
-  this previews proposals by default and adding `--apply` creates them.
+- **Policy sources:** standing rules target only a custom group or
+  `autogroup:member` / `autogroup:admin`. Use a bare custom group name or
+  `group:<name>`. Owners are included in `autogroup:admin`; there is no
+  `autogroup:owner` or agent policy source. Never use an email or org role as a
+  policy source.
+- **Direct access:** use `kei access grant` for an individual subject by ID.
+  Every grant must expire and include a reason and approver; the authenticated
+  operator is recorded as approver. Do not put a user, agent, service
+  principal, or email directly in a standing policy.
+- **Policy migration:** use `kei policy migration-report --workspace WS` to
+  review legacy rules. It is a read-only report; create reviewed group rules
+  with `kei policy create --workspace WS --group GROUP --allow|--deny TARGET`.
+  The deprecated native-config import syntax is documented below for legacy
+  questions only; its harness-based sources are not valid in the final model.
+- **Bindings:** say exactly: “Bindings are wiring between resources; they do
+  not authorize access.”
 - **Writing a policy:** use `kei policy create --workspace WS --group GROUP
   --allow TARGET` (or `--deny TARGET`). The older `kei policies` alias is
   deprecated; do not suggest `--name`, `--src-pattern`, or `--dst-pattern`
@@ -152,7 +157,7 @@ first. If something is not here, say so. In every answer:
 | --- | --- | --- |
 | Installed binary | `kei help`, `kei policy -h`, `kei harness -h` | Exact subcommands, flags, and allowed values for the installed version |
 | Policy reference | Policies and Groups reference pages in the Kei console | Human-facing policy model, groups, grants, targets, and examples |
-| Installed CLI | `kei policy -h`, `kei access grant create -h`, `kei policies import -h` | Exact syntax and flags for the installed version |
+| Installed CLI | `kei policy -h`, `kei policy migration-report -h`, `kei access grant create -h` | Exact syntax and flags for the installed version |
 | Harness docs | The harness's own skills documentation | How a particular harness loads native configuration |
 | Permissions model | [`references/permissions-model.md`](references/permissions-model.md) | Harness-specific boundaries for the current policy model |
 | Bundle versioning | [`references/bundle-versioning.md`](references/bundle-versioning.md) | Bundle identity fields (bundle_id, bundle_version, policy_revision), lifecycle, polling/refresh, rollback protection, state machine, troubleshooting |
@@ -165,13 +170,14 @@ first. If something is not here, say so. In every answer:
 | Get a policy | `kei policy get ID --workspace WS` | yes |
 | Create a group allow/deny policy | `kei policy create --workspace WS --group GROUP --allow TARGET` (or `--deny TARGET`) | yes |
 | Test a policy | `kei policy test TARGET --workspace WS --as group:GROUP` | yes |
+| Review legacy policies | `kei policy migration-report --workspace WS` (read-only) | yes |
 | Delete a policy | `kei policy delete ID --workspace WS` | yes |
 | Register a custom/SDK harness | `kei harness add --kind custom [--installation ID] [--agent ID]` | yes |
 | Sync tool registrations | `kei harness sync [--harness KIND] [--manifest PATH] [--dry-run]` | yes |
 | List registered harnesses | `kei harness list --installation ID [--json]` | yes |
 | Remove a harness | `kei harness remove AGENT_ID --installation ID` | yes |
 
-All `policies` and `harness` commands accept `--api-url URL` to override the
+The deprecated `policies` alias and `harness` commands accept `--api-url URL` to override the
 default control-plane URL.
 
 For a custom SDK harness, `kei harness sync --harness custom --manifest
@@ -244,22 +250,30 @@ Every pattern is an exact, case-sensitive match except:
 | --- | --- |
 | `*` | anything |
 | `<scheme>:*` | any non-empty value in exactly that one-segment scheme |
-| `*@<domain>`, `email:*@<domain>` | an email whose part after the last `@` equals `<domain>`, ignoring case (the only case-insensitive form) |
 
 A star anywhere else is a literal. `shell:git*` matches only the literal string
 `git*`.
 
 ### Policy model
 
-Kei uses one policy model:
+Policy sources are limited to custom groups and two autogroups:
 
-- Standing policies apply to groups and autogroups.
-- User and agent access is granted through time-bound access grants.
+- A custom group can contain users, agents, and service principals. Write the
+  source as `group:<name>` or the bare group name; `--group` takes the bare
+  name.
+- `autogroup:member` includes organization members. `autogroup:admin` includes
+  organization admins and owners. The owner counts as an admin; there is no
+  `autogroup:owner` source.
+- An agent is never a standing policy source. Org roles are console roles, not
+  policy sources; the owner is included only through `autogroup:admin`.
+- Never use an email address in a policy. For direct access to an individual,
+  create an access grant for the subject's ID instead.
+- A direct access grant must have an expiry, a reason, and an approver. The
+  grant is created by an authenticated operator, whose identity is recorded as
+  the approver.
 - Any matching deny wins. There is no priority field or priority ordering.
-- Principals and targets are typed; use an explicit target scheme such as
-  `shell:`, `skill:`, or `path:`.
-- For example, `shell:git` is a typed target and `group:developers` is a typed
-  subject. State explicitly: “Bindings are wiring between resources; they do
+- Targets remain typed, such as `shell:git`, `skill:kei-agents`, or
+  `path:/workspace/project`. “Bindings are wiring between resources; they do
   not authorize access.”
 
 For the human-facing explanation and policy examples, direct admins to “the
@@ -268,11 +282,13 @@ CLI syntax and harness-specific behavior.
 
 ### Create, test, and grant access
 
-For an agent that needs four hours to run `shell:git`, use this command as the
-direct answer; replace `AGENT_ID` and `TICKET` with the real values:
+For a direct grant, identify the subject by ID, set a finite lifetime, and give
+a reason. The authenticated operator is recorded as the approver. Do not use an
+email address as a subject. For example, to grant a user four hours to run
+`shell:git`:
 
 ```sh
-kei access grant create --workspace WORKSPACE --principal agent:AGENT_ID \
+kei access grant create --workspace WORKSPACE --principal user:USER_ID \
   --target shell:git --ttl 4h --reason TICKET
 ```
 
@@ -281,7 +297,7 @@ Do not run the command. A grant is time-bound; a matching deny still wins.
 ```sh
 kei policy create --workspace WORKSPACE --group developers --allow shell:git
 kei policy test shell:git --workspace WORKSPACE --as group:developers
-kei access grant create --workspace WORKSPACE --principal user:USER_ID \
+kei access grant create --workspace WORKSPACE --principal agent:AGENT_ID \
   --target shell:git --ttl 4h --reason TICKET
 ```
 
@@ -289,27 +305,46 @@ Use `--deny TARGET` to create a group deny. A deny always takes precedence over
 matching allows and active grants. Check the installed `kei policy -h` and
 `kei access grant create -h` for the current command syntax.
 
-Standing policies and temporary access grants are different resources. Do not
-use a user or agent as the principal for a standing policy. Do not treat a
-connector or installation binding as authorization.
+`kei access grant create` accepts `--principal`, `--target`, `--ttl`, and
+`--reason`. The CLI derives the expiry from `--ttl`; the authenticated operator
+is recorded as approver. Treat reason and approver as required grant data even
+where local CLI help marks `--reason` optional.
 
-## Importing from native harness config
+Standing policies and direct access grants are different resources. Do not use
+a person, agent, service principal, email, or organization role as a standing
+policy source. Do not treat a connector or installation binding as
+authorization.
 
-`kei policies import` accepts `--from` values `claude`, `codex`, or `opencode`.
-The installed binary help is the syntax authority; `--src` is required and
-accepts `harness:<kind>` or `harness:*`.
+## Reviewing legacy policies
+
+Use the read-only migration report to find legacy policy rules that need
+review. It does not apply changes or turn individual identities into standing
+policy sources.
 
 ```sh
-# Preview import proposals (dry run is the default)
-kei policies import --from claude --src harness:* --workspace WORKSPACE
-
-# Apply the proposals
-kei policies import --from claude --src harness:* --workspace WORKSPACE --apply
+kei policy migration-report --workspace WORKSPACE
 ```
 
-Use the console Policies reference for the human-facing explanation of policy
-behavior. Do not assume import proposals or source patterns grant access; review
-the command's preview before applying it.
+Review the report, then create or update supported group policies with
+`kei policy create --workspace WORKSPACE --group GROUP --allow|--deny TARGET`.
+Use the Policies and Groups reference in the Kei console for the human-facing
+explanation of policy behavior.
+
+### Legacy native-config import syntax
+
+The deprecated `kei policies import` compatibility command imports local
+harness rules. If a user specifically asks about this older syntax, explain
+that `--from` selects the harness and required `--src` selects a source
+pattern. Preview is the default; `--apply` creates proposals. The proposal's
+harness-based source is not valid in the final policy model, so do not apply it
+as a current policy. Use `kei policy migration-report --workspace WORKSPACE`
+to review legacy policy rows, then recreate supported rules for groups or
+autogroups.
+
+```sh
+kei policies import --from claude --src harness:* --workspace WORKSPACE
+kei policies import --from claude --src harness:* --workspace WORKSPACE --apply
+```
 
 ## Rendering native config: `kei harness sync` (there is no `policies export`)
 
@@ -525,12 +560,15 @@ What the key facts above leave out:
 
 ## Realistic usage boundaries
 
-- **Policy model:** standing policies apply to groups or autogroups; time-bound
-  grants provide user or agent access; matching deny wins; bindings are wiring.
-  Use the Policies and Groups reference pages in the Kei console for the
-  human-facing explanation.
+- **Policy model:** sources are custom groups, `autogroup:member`, or
+  `autogroup:admin`; owner counts as admin. Custom groups may contain users,
+  agents, and service principals. Direct subjects require ID-based grants with
+  expiry, reason, and approver; never use email as a policy source. Deny wins,
+  there is no priority, and bindings are wiring only. Use the Policies and
+  Groups reference pages in the Kei console for the human-facing explanation.
 - **Command syntax:** verify it against the installed `kei` and `kei-proxy`
-  help. In particular, `kei policies import` requires `--src`.
+  help. Use `kei policy migration-report --workspace WS` for the read-only
+  legacy policy report.
 - **Harness rendering:** use `kei harness sync --dry-run` to review changes to
   native configuration. The harness enforces the rendered configuration for
   harness commands; the sync output is the evidence for what was rendered.

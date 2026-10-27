@@ -6,11 +6,20 @@ only the boundaries relevant to harness command policies.
 
 ## Policy rules
 
-- A standing policy applies to a group or autogroup.
-- A user or agent receives access through a time-bound access grant.
+- Standing policy sources are custom groups and `autogroup:member` or
+  `autogroup:admin`. Use `group:<name>` or a bare group name for a custom
+  group. There is no `autogroup:owner` source.
+- Custom groups can contain users, agents, and service principals. An agent is
+  never a standing policy source by itself.
+- `autogroup:admin` includes organization admins and owners; an owner counts as
+  an admin. Org roles otherwise control console access only and are not policy
+  sources.
+- Never use an email address in a policy. Direct access is an access grant to a
+  subject ID, with an expiry, reason, and approver. The authenticated operator
+  is recorded as approver.
 - Any matching deny wins. The model has no priority field or priority order.
-- Principals and targets are typed. Use a supported target scheme, such as
-  `shell:`, `skill:`, or `path:` for harness commands.
+- Targets are typed. Harness command targets use schemes such as `shell:`,
+  `skill:`, or `path:`.
 - A binding wires an installation to a resource or configuration. It does not
   authorize access.
 
@@ -19,13 +28,15 @@ Use the installed CLI's help for command syntax:
 ```sh
 kei policy create -h
 kei policy test -h
+kei policy migration-report -h
 kei access grant create -h
-kei policies import -h
 ```
 
-An import requires `--src`; supported source patterns are shown by the
-installed CLI. Do not copy legacy `src_pattern`, `dst_pattern`, `priority`, or
-`permit` policy examples into new configurations.
+Create standing rules with `kei policy create --workspace WORKSPACE --group
+GROUP --allow|--deny TARGET`. Review legacy rules with
+`kei policy migration-report --workspace WORKSPACE`; it is a read-only report.
+Do not copy legacy `src_pattern`, `dst_pattern`, `priority`, or `permit` policy
+examples into new configurations.
 
 ## Harness command policies
 

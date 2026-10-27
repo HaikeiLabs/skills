@@ -1,6 +1,6 @@
 ---
 name: kei-cli
-description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade, login, runtime installations, workspaces, groups, users, policies (`kei policy`, with deprecated `kei policies` alias), connectors, harness management, model profiles, credential store, and one-command setup for supported harnesses (`kei connect claude-code|codex|opencode|pi`). Load before running or suggesting any `kei` command. Check the installed binary help for exact syntax. For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
+description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade, login, runtime installations, workspaces, groups, users, policies (`kei policy`, with deprecated `kei policies` alias), connectors, harness management, model profiles, credential store, and one-command setup for supported harnesses (`kei connect claude-code|codex|opencode|pi`). Load before running or suggesting any `kei` command. Policy sources are groups or `autogroup:member` / `autogroup:admin`; direct access uses ID-based grants. Check installed help for exact syntax. For runtime tool-call authorization, use kei-proxy instead."
 ---
 
 # kei CLI
@@ -49,12 +49,20 @@ do not leave it implicit or rely on a link to the reference:
   long-lived service; `kei-proxy authorize` is the fallback when no daemon is
   running. The agent does not use `kei login`; runtime authentication uses
   `KEI_RUNTIME_TOKEN`.
-- **Harness policy model:** include the command forms and state: standing
-  policies apply only to groups and autogroups; targets are typed; any
-  matching deny wins with no priority; “Bindings are wiring between
-  resources; they do not authorize access”; and “See the Policies and Groups
-  reference in the Kei console.” For imports, `--src` is required, preview is
-  the default, and `--apply` creates proposals.
+- **Harness policy model:** state that policies can use only a custom group
+  (`group:<name>` or a bare name), `autogroup:member`, or `autogroup:admin`.
+  Owners count as admins; there is no `autogroup:owner` or agent policy
+  source. Custom groups can hold users, agents, and service principals. Org
+  roles are console-only. Never use email in a policy. Direct access requires
+  an ID-based grant with expiry, reason, and approver. Any matching deny wins;
+  there is no priority; say exactly “Bindings are wiring between resources;
+  they do not authorize access.” Refer to the Policies and Groups reference in
+  the Kei console. Use `kei policy migration-report --workspace WS` to review
+  legacy policy rules; it is read-only. If specifically asked about the
+  deprecated native-config import, explain `--from` selects the harness and
+  required `--src` selects the source pattern; preview is the default and
+  `--apply` creates proposals. Those harness-based sources are not valid in the
+  final model, so do not apply them as current rules.
 
 Your knowledge of `kei` flags and subcommands may be outdated; the CLI is young
 and changes between releases. **Prefer retrieval over this file.**
@@ -261,49 +269,63 @@ not decode the request." Then: upgrade to v0.1.11 or later; until then, use
 the web app.
 
 For current policy commands, use the singular `kei policy` command group. The
-plural `kei policies` remains as a deprecated compatibility alias. Check the
+plural `kei policies` remains a deprecated compatibility alias. Check the
 installed command help for exact syntax. The human-facing policy model and
 examples are in the Policies and Groups reference pages in the Kei console.
 
 ## Policies and access grants
 
-Standing policies apply to groups or autogroups. A user or agent receives
-individual access through a time-bound access grant. Any matching deny wins;
-there is no priority field or priority ordering. Principals and targets are
-typed, and bindings connect resources without granting authorization.
+Standing policies accept only these sources:
 
-For a policy workflow, make the boundaries explicit: a standing rule applies
-to a group or autogroup; a typed target such as `shell:git` can be tested as a
-typed subject such as `group:GROUP`; any matching deny wins and there is no
-priority. State this explicitly: “Bindings are wiring between resources; they
-do not authorize access.” For the human-facing model, direct admins to “the
-Policies and Groups reference in the Kei console.” Import proposals with `kei
-policies import --from claude --src harness:* --workspace WORKSPACE`; `--src`
-is required, preview is the default, and `--apply` creates the proposals.
+- A custom group, written as `group:<name>` or a bare group name. Custom
+  groups can contain users, agents, and service principals.
+- `autogroup:member` or `autogroup:admin`. Owners count as admins. There is no
+  `autogroup:owner` source or standalone agent policy source.
+
+Org roles are for console access, not policy sources. Never use an email address
+in a policy. To give one person or agent direct access, create an access grant
+for its ID; each grant needs an expiry, reason, and approver. Any matching deny
+wins, with no priority. “Bindings are wiring between resources; they do not
+authorize access.” For a human-facing explanation, direct admins to the
+Policies and Groups reference in the Kei console.
 
 Use the installed help as the syntax authority:
 
 ```sh
 kei policy create -h
 kei policy test -h
+kei policy migration-report -h
 kei access grant create -h
-kei policies import -h
 ```
 
 The installed CLI currently documents these forms:
 
 ```sh
 kei policy create --workspace WORKSPACE --group GROUP --allow TARGET
-kei policy test TARGET --workspace WORKSPACE --as group:GROUP
+kei policy create --workspace WORKSPACE --group GROUP --deny TARGET
+kei policy test TARGET --workspace WORKSPACE --as autogroup:admin
 kei access grant create --workspace WORKSPACE --principal user:USER_ID \
-  --target TARGET --ttl 4h
-kei policies import --from claude --src harness:claude_code --workspace WORKSPACE
+  --target TARGET --ttl 4h --reason REASON
+kei policy migration-report --workspace WORKSPACE
 ```
 
-`kei policies import` requires `--src`. Check its help for supported source
-patterns and import options. For human-facing explanation of groups, grants,
-typed targets, and deny behavior, direct admins to the Policies and Groups
-reference pages in the Kei console rather than duplicating the full guide here.
+The grant's `--ttl` sets its expiry. The authenticated operator is recorded as
+approver; include a reason even where local CLI help marks it optional. The
+migration report is read-only. For the human-facing explanation of groups,
+grants, target types, and deny behavior, direct admins to the Policies and
+Groups reference in the Kei console.
+
+The deprecated `kei policies import` compatibility command imports local
+harness rules. If asked about its old syntax, `--from` selects the harness and
+required `--src` selects a source pattern; preview is the default and `--apply`
+creates proposals. Harness-based sources are not valid in the final model, so
+do not apply those proposals as current policy. Use the read-only migration
+report to review legacy policy rows, then write a supported group policy.
+
+```sh
+kei policies import --from claude --src harness:* --workspace WORKSPACE
+kei policies import --from claude --src harness:* --workspace WORKSPACE --apply
+```
 
 ## Key guidelines
 
@@ -383,8 +405,8 @@ reference pages in the Kei console rather than duplicating the full guide here.
 | Get a policy | `kei policy get ID --workspace WS` | yes |
 | Create a group allow/deny policy | `kei policy create --workspace WS --group GROUP --allow TARGET` (or `--deny TARGET`) | yes |
 | Test a policy | `kei policy test TARGET --workspace WS --as SUBJECT` | yes |
-| Create a temporary access grant | `kei access grant create --workspace WS --principal user:ID --target TARGET --ttl 4h` | yes |
-| Import harness policies | `kei policies import --from claude --src harness:claude_code --workspace WS` | yes |
+| Create a temporary access grant | `kei access grant create --workspace WS --principal user:ID --target TARGET --ttl 4h --reason REASON` | yes |
+| Review legacy policy rules | `kei policy migration-report --workspace WS` (read-only) | yes |
 | Delete a policy | `kei policy delete ID --workspace WS` | yes |
 | List data connectors | `kei connectors list [--workspace WS] [--json]` | yes |
 | Create a data connector | `kei connectors create --provider P --name NAME [--account-model M] [--set k=v] [--credential-ref R] [--capabilities a,b] [--workspace WS]` | yes |
@@ -700,8 +722,8 @@ When someone asks what to verify before running a resource command, answer
 with all three (login is a precondition, not one of them):
 
 1. The **exact name** in `kei help`: use singular `kei policy`; `kei policies`
-   is a deprecated compatibility alias. Policy import remains under
-   `kei policies import` and requires `--src`.
+   is a deprecated compatibility alias. Use `kei policy migration-report`
+   for the read-only legacy policy report.
 2. The **installed version**: `kei --version`; for example `kei policies list`
    needs v0.1.11 or later.
 3. The **contract** above: opaque page tokens for `list`, PATCH with an
