@@ -1,14 +1,15 @@
 ---
 name: kei-harness-setup
-description: "Choose and set up Kei harnesses: SDK (Agentware), Claude Code, Codex, Pi, OpenCode, or Open WebUI. Install skills or adapters, pair with a runtime and kei-proxy, pass identity on governed calls, verify setup, and prove calls without matching permits are denied. See `kei-pi-setup` or `kei-openwebui`."
+description: "Choose and set up Kei harnesses: SDK (Agentware), Claude Code, Codex, Pi, OpenCode, Cursor, or Open WebUI. Install skills or adapters, pair with a runtime and kei-proxy, pass identity on governed calls, verify setup, and prove calls without matching permits are denied. See `kei-pi-setup` or `kei-openwebui`."
 ---
 
 # Set up a harness with Kei
 
 For Claude Code, Codex, OpenCode, or Pi, the advertised one-command path is
 `kei connect HARNESS [--workspace NAME] [--yes]` (`HARNESS` is `claude-code`,
-`codex`, `opencode`, or `pi`). Use the manual steps below when you need to
-inspect or customize setup.
+`codex`, `opencode`, or `pi`; `cursor` follows the same pattern once
+kei-cli#233 ships — not released yet, check `kei help`). Use the manual steps
+below when you need to inspect or customize setup.
 
 Kei governs a harness through this chain:
 
@@ -62,8 +63,9 @@ governed tool calls are allowed.
   `kei-openai-backends` (model half).
 - **Stale bundle / "No registered harnesses selected":** stale policy bundle
   (HAI-403); a policy edit forces a refresh, else the 6-hour background
-  refresh. Always add: desktop harnesses (claude_code, codex, opencode) are
-  auto-discovered by sync, so no `kei harness add` is needed.
+  refresh. Always add: desktop harnesses (claude_code, codex, opencode; cursor
+  pending kei-cli#233) are auto-discovered by sync, so no `kei harness add` is
+  needed.
   End with: See also: `kei-harness-policy` `references/bundle-versioning.md`.
 - **Rejected bundle or disabled proxy:** `kei-proxy` fails closed and denies
   every governed call until it is fixed.
@@ -143,6 +145,7 @@ bash skills/kei-harness-setup/scripts/setup-opencode.sh
 | `scripts/setup-claude-code.sh` | Claude Code |
 | `scripts/setup-codex.sh` | Codex |
 | `scripts/setup-opencode.sh` | OpenCode |
+| `scripts/setup-cursor.sh` | Cursor (kei-cli#233 — not released yet) |
 | `scripts/verify.sh <kind>` | All (run after any setup or as a standalone check) |
 
 The scripts are safe to re-run (idempotent) and never print a runtime
@@ -170,6 +173,18 @@ The API/catalog kind `custom` maps only to SDK (Agentware), not Pi or Open WebUI
 - **Codex:** choose this for interactive coding sessions in Codex; desktop sync discovers it automatically.
 - **Pi:** choose this for the Pi coding agent; its `kei-lime-pi` adapter uses the local proxy socket. See `kei-pi-setup`.
 - **OpenCode:** choose this for interactive coding sessions in OpenCode; desktop sync discovers it automatically.
+- **Cursor:** choose this for interactive coding sessions in the Cursor CLI;
+  desktop sync discovers it automatically. Native-first: Kei renders the policy
+  bundle into Cursor's CLI config permissions (`~/.cursor/cli-config.json` —
+  `Shell(base)`, `Read(glob)`, `Write(glob)`, `WebFetch(domain)`,
+  `Mcp(server:tool)`; deny beats allow), with hooks only where the native config
+  cannot express a policy. `kei connect cursor` and
+  `kei harness sync --harness cursor` fail closed — they exit non-zero and write
+  nothing — when the policy set contains a kind Cursor cannot gate, such as
+  `skill:`. Needs a kei-proxy runtime like the other desktop harnesses. Not
+  released yet (kei-cli#233 in review): check `kei help`. Whether the Cursor
+  editor honors `cli-config.json` is undocumented — do not promise editor
+  enforcement. There is no VS Code extension.
 - **Open WebUI:** choose this for a governed chat UI deployment using the `openwebui-kei` image, Python library, and tool packs. See `kei-openwebui`.
 
 The API/catalog kind value `custom` names only the **SDK (Agentware)** type; it
@@ -187,9 +202,6 @@ over the socket with `POST /v1/tools:register` (Python
 `register_tool_specs`, TypeScript `registerToolSpecs`, Go
 `toolsync.SocketRegistrar`). This is an alternative to the operator-managed
 `kei harness sync --harness custom --manifest tools.json` flow.
-
-Cursor has a skills plugin, but it is not one of these six harness types; check
-the current runtime adapter support before promising governed calls.
 
 Any other harness is unsupported and is denied until an adapter is explicitly
 registered. Do not improvise one.
@@ -342,17 +354,17 @@ A harness is keyed by the **agent** (3NF): its identity is
 `(installation_id, agent_id)`, and the console labels these harnesses "agents".
 The agent must already be attached to the installation (`kei bot agents add`).
 
-For desktop harnesses (`claude_code`, `codex`, `opencode`), you skip `add`
-entirely — `sync` auto-discovers them:
+For desktop harnesses (`claude_code`, `codex`, `opencode`; `cursor` once
+kei-cli#233 ships), you skip `add` entirely — `sync` auto-discovers them:
 
 ```sh
 kei harness sync --harness claude_code
 ```
 
 The `custom` API kind is the SDK (Agentware) type. `--kind` accepts
-`claude_code`, `codex`, `opencode`, or `custom`; Pi and Open WebUI have their
-own adapters and are not `custom`. Sync fetches
-the policy bundle and renders the native config for that kind:
+`claude_code`, `codex`, `opencode`, `cursor`, or `custom` (`cursor` pending
+kei-cli#233); Pi and Open WebUI have their own adapters and are not `custom`.
+Sync fetches the policy bundle and renders the native config for that kind:
 
 ```sh
 kei harness sync --harness claude_code
@@ -371,6 +383,28 @@ back by copying it over the native config. The setup scripts
 also keep a one-time `<config-file>.kei.bak` copy from before the first sync.
 See `kei-harness-policy` for removing your own entries so Kei is the only
 source of permissions.
+
+### Cursor (pending kei-cli#233 — not released yet)
+
+Cursor is the seventh harness kind (`cursor`, tool prefix `cursor.`). It is
+governed native-first: Kei renders the policy bundle into Cursor's CLI config
+permissions (`~/.cursor/cli-config.json` → `permissions.allow` /
+`permissions.deny`, with tokens `Shell(base)`, `Read(glob)`, `Write(glob)`,
+`WebFetch(domain)`, and `Mcp(server:tool)`; deny beats allow). Hooks are used
+only where the native config cannot express a policy.
+
+`kei connect cursor` and `kei harness sync --harness cursor` **fail closed**:
+if the policy set contains a kind Cursor cannot gate — for example `skill:` —
+they exit non-zero and write nothing. Fix it by scoping the `skill:` policy to
+harnesses that can gate it (for example a `harness:claude_code` src pattern)
+or removing it. Cursor needs a kei-proxy runtime like the other desktop
+harnesses and is auto-discovered by sync. There is no VS Code extension, and
+whether the Cursor editor honors `cli-config.json` is undocumented — do not
+promise editor enforcement.
+
+These commands are not released yet (kei-cli#233 is in review): a released
+kei-cli (0.2.20 is current) rejects them. Check `kei help` for what your
+installed version accepts.
 
 ## 4. Pass identity on every governed call
 
@@ -511,6 +545,9 @@ cat ~/.claude/settings.json | jq '.permissions.allow'
 
 # OpenCode — check permission.bash
 cat opencode.json | jq '.permission.bash'
+
+# Cursor — check the rendered CLI config permissions (kei-cli#233, not released yet)
+cat ~/.cursor/cli-config.json | jq '.permissions'
 ```
 
 Run a command that should be permitted and one that should be denied:
@@ -546,7 +583,7 @@ the call is decided natively by the harness from the Kei-rendered policy; the
 Then confirm it in the console:
 
 - **Audit Logs** shows the call, recorded with the harness kind
-  (`claude_code`, `codex`, `opencode`, ...).
+  (`claude_code`, `codex`, `opencode`, `cursor`, ...).
 - The installation's card shows the recent activity.
 
 The audit upload needs the runtime service running. Check it with:
