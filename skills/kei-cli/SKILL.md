@@ -5,7 +5,7 @@ description: "The `kei` platform-administration CLI for Kei (run by an org owner
 
 # kei CLI
 
-`kei` 0.2.0 is the current published CLI release. Check `kei --version` and
+`kei` 0.2.20 is the current published CLI release. Check `kei --version` and
 `kei help` for the installed binary before relying on command syntax.
 
 `kei` is the Kei **platform administration** CLI. It authenticates an org
@@ -309,6 +309,7 @@ kei policies delete my-policy-name --workspace my-workspace --yes
 | Sync tool registrations | `kei harness sync [--harness KIND] [--manifest PATH] [--dry-run]` | yes |
 | List registered harnesses | `kei harness list --installation ID [--json]` | yes |
 | Remove a harness | `kei harness remove AGENT_ID --installation ID` | yes |
+| List / wire agent↔connector bindings (merged on main, kei-cli#228; not in releases up to v0.2.20 — check `kei help`) | `kei connector-bindings list [--workspace WS] [--agent AGENT_ID] [--json]` / `get BINDING_ID [--workspace WS] [--json]` / `create --agent AGENT_ID --connector CONNECTOR_ID [--capabilities A,B] --workspace WS [--json]` / `delete BINDING_ID --workspace WS --yes` — wiring only, never a permission gate (ADR-038) | yes |
 | List / get model profiles | `kei model-profiles list [--workspace WS]` / `kei model-profiles get PROFILE [--workspace WS]` | yes |
 | Create a model profile (no credential) | `kei model-profiles create [--workspace WS] --display-name NAME --endpoint URL --default-model MODEL --auth-type none [--workspace-default]` | yes |
 | Create an API-key model profile | `<secret-manager read> \| kei model-profiles create --workspace WS --agent AGENT_ID --display-name NAME --endpoint URL --default-model MODEL --auth-type api_key` | yes |
@@ -587,10 +588,15 @@ connectors, and harnesses (`kei workspaces`, `kei groups`, `kei users`,
 exceptions, all in v0.1.13; `kei users` and `kei groups members` arrived in
 v0.1.16; `kei workspaces create` and `kei groups create|list` arrived in
 v0.1.33; `kei connectors connect` and `kei credential-store get|put --workspace`
-arrived in v0.1.34).
+arrived in v0.1.34). `kei connector-bindings` (agent↔connector wiring,
+ADR-038) is the newest: merged on main as kei-cli#228, not yet in a published
+release (latest is v0.2.20) — it calls
+`/api/v1/organizations/{org}/workspaces/{ws}/connector-bindings`.
 The first resource-oriented commands call the **shared AIP `/api/v1`
 endpoints**, not a private `/api/cli` backend: `kei policies` uses
-`/api/v1/policies`, `kei connectors` uses `/api/v1/data-connectors`, and
+`/api/v1/policies`, `kei connectors` uses `/api/v1/data-connectors`,
+`kei connector-bindings` uses
+`/api/v1/organizations/{org}/workspaces/{ws}/connector-bindings`, and
 `kei model-profiles` uses `/api/v1/organizations/{org}/model-profiles` (with
 `:setDefault`; model-profile update is still `PUT` in the API today).
 Before using or documenting one, confirm it in `kei help`
@@ -641,8 +647,11 @@ kei bot status --installation INSTALLATION_ID
   `kei users` / `kei groups members` are released in v0.1.16,
   `kei workspaces create` / `kei groups create|list` are released in v0.1.33,
   and `kei connectors connect` / `kei credential-store get|put --workspace`
-  are released in v0.1.34. For harness policy workflows, load the
-  `kei-harness-policy` skill.
+  are released in v0.1.34. `kei connector-bindings` (agent↔connector wiring;
+  a binding is wiring only, never a permission gate — ADR-038) is merged on
+  main (kei-cli#228) but not in any release up to v0.2.20: confirm it in
+  `kei help` before presenting it as available. For harness policy workflows,
+  load the `kei-harness-policy` skill.
 - The CLI does not submit tool manifests (the runtime does), create connector
   templates, or grant a connector to a group (that is a policy). `--provider`
   has no `grafana` (or other MCP) value: an MCP server is added with

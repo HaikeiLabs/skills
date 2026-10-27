@@ -1,6 +1,9 @@
 # kei-harness-setup evals
 
-Eval cases for the harness setup skill.
+Eval cases for the harness setup skill. Cases 17-19 cover connector
+bindings (HAI-145): creating one with `kei connector-bindings create`, that a
+binding is wiring and not a permission gate (ADR-038), and correcting a
+nonexistent `kei connectors bind` command.
 
 ## Running
 
