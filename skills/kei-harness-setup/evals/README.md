@@ -13,7 +13,7 @@ that the Cursor commands are not released yet (kei-cli#233).
 ```bash
 EVAL_DEEPSEEK_BASE_URL=<openai-compatible endpoint> \
   node scripts/run-evals.mjs --skill kei-harness-setup \
-  --model-profile deepseek-v4-flash --jobs 2 --repeats 1
+  --model-profile glm-5.3-flash --jobs 2 --repeats 1
 ```
 
 The runner grades each expectation with the deterministic `checks` array

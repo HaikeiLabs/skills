@@ -9,8 +9,8 @@ Eval cases for the kei CLI skill. Case 28 covers the Cursor harness value for
 ```bash
 EVAL_DEEPSEEK_BASE_URL=<openai-compatible endpoint> \
   node scripts/run-evals.mjs --skill kei-cli \
-  --model-profile deepseek-v4-flash \
-  --out evals-out/kei-cli-deepseek-$(date +%F) --jobs 2
+  --model-profile glm-5.3-flash \
+  --out evals-out/kei-cli-glm-$(date +%F) --jobs 2
 ```
 
 The runner gives opencode an empty config home, so a provider from your own

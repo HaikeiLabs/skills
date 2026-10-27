@@ -6,8 +6,8 @@ Eval cases for the Discord connector skill.
 
 ```bash
 node scripts/run-evals.mjs --skill discord-connector --harness opencode \
-  --model-profile deepseek-v4-flash --jobs 1 \
-  --out evals-out/discord-connector-deepseek-$(date +%F)
+  --model-profile glm-5.3-flash --jobs 1 \
+  --out evals-out/discord-connector-glm-$(date +%F)
 ```
 
 ```bash

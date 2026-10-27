@@ -381,7 +381,7 @@ the skill actually changes agent behavior:
 
 ```bash
 node scripts/run-evals.mjs --skill pagerduty-connector \
-  --model-profile deepseek-v4-flash --jobs 1
+  --model-profile glm-5.3-flash --jobs 1
 node scripts/run-evals.mjs --skill pagerduty-connector \
   --model-profile qwen3.8-27b --jobs 1
 ```
@@ -400,7 +400,7 @@ case pass rate.
 | --- | --- | --- |
 | `--skill` | Which skill to test | `pagerduty-connector` |
 | `--harness` | Which harness CLI to use | `opencode`, `claude`, `codex` |
-| `--model-profile` | Named OpenCode model profile | `deepseek-v4-flash`, `qwen3.8-27b` |
+| `--model-profile` | Named OpenCode model profile | `glm-5.3-flash`, `qwen3.8-27b` |
 | `--model` | Explicit OpenCode model override | `provider/model` |
 | `--threshold` | Required with-skill pass rate | `0.9` |
 | `--repeats` | Number of model runs per case and config | `1` |

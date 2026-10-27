@@ -12,8 +12,8 @@ average pass rate (threshold 0.90). To reproduce the nightly run locally:
 
 ```bash
 node scripts/run-evals.mjs --skill kei-runtime-setup --harness opencode \
-  --model-profile deepseek-v4-flash --repeats 3 --jobs 1 \
-  --out evals-out/kei-runtime-setup-deepseek-$(date +%F)
+  --model-profile glm-5.3-flash --repeats 3 --jobs 1 \
+  --out evals-out/kei-runtime-setup-glm-$(date +%F)
 node scripts/run-evals.mjs --skill kei-runtime-setup --harness opencode \
   --model-profile qwen3.8-27b --repeats 3 --jobs 1 \
   --out evals-out/kei-runtime-setup-qwen-$(date +%F)

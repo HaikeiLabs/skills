@@ -253,8 +253,8 @@ node scripts/verify-skills.mjs
 
 # Run the connector's eval suite
 node scripts/run-evals.mjs --skill discord-connector --harness opencode \
-  --model ray/deepseek-ai/DeepSeek-V4-Flash \
-  --out evals-out/discord-connector-deepseek-$(date +%F) --jobs 2
+  --model-profile glm-5.3-flash \
+  --out evals-out/discord-connector-glm-$(date +%F) --jobs 2
 ```
 
 ## Realistic usage boundaries

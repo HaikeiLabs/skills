@@ -6,8 +6,8 @@ Eval cases for the kei-headless-evals skill (deterministic eval harnesses).
 
 ```bash
 node scripts/run-evals.mjs --skill kei-headless-evals --harness opencode \
-  --model-profile deepseek-v4-flash \
-  --out evals-out/kei-headless-evals-deepseek-$(date +%F) --jobs 1
+  --model-profile glm-5.3-flash \
+  --out evals-out/kei-headless-evals-glm-$(date +%F) --jobs 1
 ```
 
 ## Results

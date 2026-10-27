@@ -9,7 +9,7 @@ Run both required profiles using the repository's standard eval runner:
 
 ```sh
 node scripts/run-evals.mjs --skill kei-mcp-connectors \
-  --model-profile deepseek-v4-flash --jobs 1 --repeats 3
+  --model-profile glm-5.3-flash --jobs 1 --repeats 3
 turnlock.sh qwen <worker> node scripts/run-evals.mjs \
   --skill kei-mcp-connectors --model-profile qwen3.8-27b --jobs 1 --repeats 3
 ```
@@ -30,5 +30,5 @@ benchmark results.
 
 | Profile | Pass rate | Errors |
 | --- | --- | --- |
-| `deepseek-v4-flash` | — | Not run |
+| `glm-5.3-flash` | — | Not run |
 | `qwen3.8-27b` | — | Not run |

@@ -84,10 +84,10 @@ These run in CI as well (Node 22, Python yamllint), on pull requests and pushes 
    removing it runs the gate:
 
 ```bash
-node scripts/run-evals.mjs --skill <name> --model-profile deepseek-v4-flash --jobs 1 --repeats 3
+node scripts/run-evals.mjs --skill <name> --model-profile glm-5.3-flash --jobs 1 --repeats 3
 node scripts/run-evals.mjs --skill <name> --model-profile qwen3.8-27b --jobs 1 --repeats 3
 node scripts/run-evals.mjs --skills-dir ~/code/haikei/ev-wt/sk-int-kei/skills \
-  --skill kei-api-gateway --harness opencode --model-profile deepseek-v4-flash --jobs 1
+  --skill kei-api-gateway --harness opencode --model-profile glm-5.3-flash --jobs 1
 ```
 
 `--skills-dir` defaults to this repository's `skills/`; point it at another
@@ -103,10 +103,11 @@ eval's `checks` array; there is no LLM grader. Each repeat is one run, and a
 skill's pass rate is passed runs / total runs. A model profile's `temperature`,
 `top_p`, `top_k` and `seed` are sent with every request when set. Both shipped
 profiles set `thinking: true`, which the runner sends as `chat_template_kwargs`
-with `enable_thinking` (Qwen's template) and `thinking` (DeepSeek V4's), so a
-run doesn't depend on the server's default. DeepSeek samples at temperature 0;
-Qwen uses its recommended thinking-mode sampling (temperature 0.6, top_p 0.95,
-top_k 20), since greedy sampling makes it loop with thinking on. Results go to `evals-out/` (ignored by git), including
+under both spellings (`enable_thinking` and `thinking`), so a run doesn't
+depend on the server's default whichever key the template reads. GLM samples
+at temperature 0; Qwen uses its recommended thinking-mode sampling
+(temperature 0.6, top_p 0.95, top_k 20), since greedy sampling makes it loop
+with thinking on. Results go to `evals-out/` (ignored by git), including
 `benchmark.json` and `benchmark.md`, for your own tuning. Don't commit them
 under `evals/results/`: the agent-evals CI gate and its sticky pull request
 comment are the record. The default threshold is 0.9. The profiles
@@ -116,8 +117,8 @@ can select an explicit model, and `--repeats N` controls response repetitions
 
 Each harness run is killed after a timeout, set by `--run-timeout <seconds>`,
 then the profile's `run_timeout_seconds` in `evals/model-profiles.yaml`, then
-600 seconds. `qwen3.8-27b` uses 1800 because opencode runs on the shared GPU
-can exceed 600; `deepseek-v4-flash` uses the default. A run that hits the
+600 seconds. `glm-5.3-flash` and `qwen3.8-27b` use 1800 because opencode runs
+on the shared GPU hosts can exceed 600. A run that hits the
 timeout gets `"timed_out": true` in its `timing.json`. It counts as a benchmark
 error with reason `timeout`, and the runner prints
 `N runs timed out after Xs`. If a whole sweep times out, raise

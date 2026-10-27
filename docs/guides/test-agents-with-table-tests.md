@@ -80,7 +80,7 @@ Every case can also check the final reply: `contains_all`, `contains_any`,
 `regex`, `not_contains`, all case-insensitive. And `"repeats": 3` means each
 case runs three times, and the suite scores **passed runs / total runs**: the
 average over repeats, which is what the threshold checks. The model profiles
-fix the sampling and `seed` (DeepSeek at `temperature: 0`; Qwen at its
+fix the sampling and `seed` (GLM at `temperature: 0`; Qwen at its
 recommended thinking-mode sampling, which greedy decoding would make loop),
 so repeats measure the variance that is left.
 
@@ -96,11 +96,11 @@ You run a suite against a named **model profile**, not a URL:
 
 ```yaml
 profiles:
-  deepseek-v4-flash:
+  glm-5.3-flash:
     backend: vllm
-    model: deepseek-ai/DeepSeek-V4-Flash
-    base_url_env: EVAL_DEEPSEEK_BASE_URL
-    concurrency: 4
+    model: nvidia/GLM-5.3-Flash-FP4-Local
+    base_url_env: EVAL_DEEPSEEK_BASE_URL   # historical name; now serves GLM
+    concurrency: 2
   qwen3.8-27b:
     backend: llamacpp
     model: qwen3.8-27b
@@ -119,8 +119,8 @@ The canonical runner is agentware's Python eval package:
 ```bash
 export EVAL_DEEPSEEK_BASE_URL=...      # your OpenAI-compatible /v1 endpoint
 PYTHONPATH=agentware/python/src python -m evals.main \
-  --suite evals/suites --model-profile deepseek-v4-flash \
-  --out evals-out/deepseek --jobs 1
+  --suite evals/suites --model-profile glm-5.3-flash \
+  --out evals-out/glm --jobs 1
 ```
 
 Then run it again with `--model-profile qwen3.8-27b`. A suite that passes on
@@ -164,7 +164,7 @@ baseline that shows what the skill actually teaches. The answer key never
 goes into the sandbox.
 
 ```bash
-node scripts/run-evals.mjs --skill my-skill --model-profile deepseek-v4-flash --jobs 1 --repeats 1
+node scripts/run-evals.mjs --skill my-skill --model-profile glm-5.3-flash --jobs 1 --repeats 1
 node scripts/run-evals.mjs --skill my-skill --model-profile qwen3.8-27b --jobs 1 --repeats 1
 ```
 

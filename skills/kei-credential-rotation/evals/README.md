@@ -6,8 +6,8 @@ Eval cases for the kei-credential-rotation skill (runtime credential rotation).
 
 ```bash
 node scripts/run-evals.mjs --skill kei-credential-rotation --harness opencode \
-  --model-profile deepseek-v4-flash \
-  --out evals-out/kei-credential-rotation-deepseek-$(date +%F) --jobs 1
+  --model-profile glm-5.3-flash \
+  --out evals-out/kei-credential-rotation-glm-$(date +%F) --jobs 1
 ```
 
 ## Results

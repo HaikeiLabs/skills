@@ -6,8 +6,8 @@ Eval cases for the Google Drive connector skill.
 
 ```bash
 node scripts/run-evals.mjs --skill google-drive-connector --harness opencode \
-  --model-profile deepseek-v4-flash --jobs 1 \
-  --out evals-out/google-drive-connector-deepseek-$(date +%F)
+  --model-profile glm-5.3-flash --jobs 1 \
+  --out evals-out/google-drive-connector-glm-$(date +%F)
 ```
 
 ```bash

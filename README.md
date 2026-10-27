@@ -208,16 +208,21 @@ node scripts/run-evals.mjs --grade-only evals-out/<run>     # re-grade saved ans
 
 ### Eval results (owned skills)
 
-Latest pass rates on DeepSeek V4 Flash and Qwen 3.8-27b (3 repeats, deterministic checks):
+Latest pass rates on Qwen 3.8-27b (3 repeats, deterministic checks):
 
-| Skill | DeepSeek V4 Flash | Qwen 3.8-27b |
-|---|---|---|
-| agentware-sdk | 100% | 100% |
-| haikei | 100% | 100% |
-| kei-agents | 50% | 100% |
-| kei-api | 50% | — |
-| kei-service-ops | 100% | 100% |
-| kei-setup-doctor | 20% | — |
+| Skill | Qwen 3.8-27b |
+|---|---|
+| agentware-sdk | 100% |
+| haikei | 100% |
+| kei-agents | 100% |
+| kei-api | — |
+| kei-service-ops | 100% |
+| kei-setup-doctor | — |
+
+DeepSeek V4 Flash was removed from the CI eval gate (2026-10); its last
+committed pass rates are kept in
+[benchmark-results/deepseek-v4-flash.md](benchmark-results/deepseek-v4-flash.md).
+GLM-5.3-Flash replaces it in the gate (see `evals/model-profiles.yaml`).
 
 Because the web app renders `skills/` at build time (D-015), a failure here is a
 docs build failure too. When adding a skill, also confirm it is listed in the
