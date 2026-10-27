@@ -1,7 +1,7 @@
 #!/bin/sh
 # verify.sh — post-setup verification for a Kei-governed harness
 # Usage: verify.sh <kind>
-#   kind  one of: claude_code, codex, opencode, pi, custom
+#   kind  one of: claude_code, codex, opencode, cursor, pi, custom
 #
 # Exits 0 on success, 1 on verification failure.
 # POSIX sh, idempotent, safe to re-run.
@@ -52,7 +52,7 @@ fi
 
 if [ -z "$KIND" ]; then
   echo "Usage: verify.sh <kind>" >&2
-  echo "  kind: claude_code, codex, opencode, pi, custom" >&2
+  echo "  kind: claude_code, codex, opencode, cursor, pi, custom" >&2
   echo "  also: --self-test" >&2
   exit 2
 fi
@@ -126,6 +126,9 @@ case "$KIND" in
     ;;
   opencode)
     NATIVE_CONFIG="${OPENCODE_CONFIG_DIR:-${HOME}/.config/opencode}/opencode.json"
+    ;;
+  cursor)
+    NATIVE_CONFIG="${HOME}/.cursor/cli-config.json"
     ;;
   *)
     NATIVE_CONFIG=""

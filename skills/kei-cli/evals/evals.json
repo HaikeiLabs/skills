@@ -930,7 +930,7 @@
     {
       "id": 27,
       "prompt": "What exact harness values does `kei connect` accept, and is singular `kei policy` available?",
-      "expected_output": "`kei connect` accepts claude-code, codex, opencode, and pi. The installed CLI includes singular `kei policy`; `kei policies` is a deprecated alias.",
+      "expected_output": "`kei connect` accepts claude-code, codex, opencode, and pi; cursor is the seventh value but is not released yet (kei-cli#233 in review) \u2014 check `kei help`. The installed CLI includes singular `kei policy`; `kei policies` is a deprecated alias.",
       "expectations": [
         "supported factual terms",
         "reject stale guidance"
@@ -943,6 +943,7 @@
             "codex",
             "opencode",
             "pi",
+            "cursor",
             "kei policy"
           ]
         },
@@ -952,6 +953,38 @@
             "kei connect cli",
             "kei connect openwebui",
             "no kei policy"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "prompt": "Does `kei connect` support the Cursor harness? What harness values does it accept? Do not execute anything.",
+      "expected_output": "kei connect accepts claude-code, codex, opencode, and pi. cursor is the seventh value but it is not released yet (kei-cli#233 in review): a released kei-cli (0.2.20 is current) rejects it. Once it ships, Cursor is governed native-first via ~/.cursor/cli-config.json permissions. cli and openwebui are not accepted harness values. Check kei help for what your installed version accepts.",
+      "expectations": [
+        "The response lists the released harness values.",
+        "The response says cursor is not released yet (kei-cli#233).",
+        "The response points at kei help for the installed version."
+      ],
+      "checks": [
+        {
+          "text": "The response lists the released harness values.",
+          "contains_all": [
+            "claude-code",
+            "codex",
+            "opencode",
+            "pi"
+          ]
+        },
+        {
+          "text": "The response says cursor is not released yet (kei-cli#233).",
+          "regex": "cursor[\\s\\S]{0,300}(#233|not released|not yet released|isn't released|pending)|(#233|not released|not yet released|isn't released|pending)[\\s\\S]{0,300}cursor"
+        },
+        {
+          "text": "The response points at kei help for the installed version.",
+          "contains_any": [
+            "kei help",
+            "kei --version"
           ]
         }
       ]

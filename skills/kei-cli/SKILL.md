@@ -1,6 +1,6 @@
 ---
 name: kei-cli
-description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade, login, runtime installations, workspaces, groups, users, policies (`kei policy`, with deprecated `kei policies` alias), connectors, harness management, model profiles, credential store, and one-command setup for supported harnesses (`kei connect claude-code|codex|opencode|pi`). Load before running or suggesting any `kei` command. Check the installed binary help for exact syntax. For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
+description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade, login, runtime installations, workspaces, groups, users, policies (`kei policy`, with deprecated `kei policies` alias), connectors, harness management, model profiles, credential store, and one-command setup for supported harnesses (`kei connect claude-code|codex|opencode|pi`; `cursor` pending kei-cli#233). Load before running or suggesting any `kei` command. Check the installed binary help for exact syntax. For how an agent's tool calls are allowed or denied at run time, use kei-proxy instead."
 ---
 
 # kei CLI
@@ -336,8 +336,9 @@ URL). `bot bind` works but is not listed in `kei help`.
 is a property of an installation-agent assignment, so `add` is for custom/SDK
 harnesses (`--kind custom`) and requires `--agent` (the agent must already be
 attached to the installation via `kei bot agents add`). Desktop harnesses
-(`claude_code`, `codex`, `opencode`) are **auto-discovered** by `kei harness
-sync` — do NOT use `add` for them. `--installation` and `--agent` are optional
+(`claude_code`, `codex`, `opencode`; `cursor` pending kei-cli#233) are
+**auto-discovered** by `kei harness sync` — do NOT use `add` for them.
+`--installation` and `--agent` are optional
 with defaults (single installation, default agent). `remove`/`sync` are
 addressed by the agent. There is no `--display-name`/`--name` flag. The console
 labels these harnesses "agents". For the full harness-command-policy workflow,
@@ -529,6 +530,13 @@ kei connect pi [--workspace NAME] [--yes]
 
 Harness values come from the installed help: `claude-code`, `codex`,
 `opencode`, and `pi`. Values such as `cli` and `openwebui` are not accepted.
+`cursor` is the seventh value, but it is **not released yet** (kei-cli#233 in
+review): a released kei-cli (0.2.20 is current) rejects it. Cursor is governed
+native-first — Kei renders policy into Cursor's CLI config permissions
+(`~/.cursor/cli-config.json`); sync fails closed (exit non-zero, nothing
+written) when a policy kind cannot be gated, e.g. `skill:` — and it needs a
+kei-proxy runtime like the other desktop harnesses. Check `kei help` for what
+your installed version accepts.
 
 - `HARNESS` is one of the supported harness values listed above.
 - `--workspace` scopes the installation to a workspace (name or ID). If

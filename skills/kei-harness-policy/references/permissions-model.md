@@ -30,7 +30,7 @@ sources; `harness:` is optional and narrower:
 | `*` | Everyone in the workspace, on every harness |
 | `user:<id>`, `email:<address>`, `group:<name>` | A person or group, whichever harness they use |
 | `agent:<id>` | An agent by its ID |
-| `harness:<kind>` | Everyone using that harness kind (`claude_code`, `codex`, `opencode`, `custom`) |
+| `harness:<kind>` | Everyone using that harness kind (`claude_code`, `codex`, `opencode`, `cursor`, `custom`) |
 | `harness:<id>` | Everyone using that harness or installation |
 
 A `harness:` source is only for harness destinations (`shell:`, `skill:`,
@@ -69,11 +69,15 @@ policies into the harness's native config format:
 | Claude Code | `~/.claude/settings.json` | `permissions.allow` entries, e.g. `Bash(git:*)` | `permissions.deny` entries, e.g. `Bash(git push --force:*)` |
 | Codex | `~/.codex/rules/kei.rules` | `prefix_rule` allow entries | `prefix_rule` `forbidden` entries |
 | OpenCode | `opencode.json` | `permission.bash` allow entries | `permission.bash` deny entries |
+| Cursor | `~/.cursor/cli-config.json` | `permissions.allow` entries, e.g. `Shell(base)` | `permissions.deny` entries |
 
-`shell:` policies render on all three. Claude Code and OpenCode also render
+`shell:` policies render on all four desktop kinds. Claude Code and OpenCode also render
 `skill:` policies, and OpenCode renders `path:` policies. Codex expresses only
 argv prefix rules; sync prints `not enforceable in Codex: <policy>` for each
-policy it cannot express.
+policy it cannot express. Cursor (pending kei-cli#233, not released yet) has
+no `skill:` token — when the policy set contains a `skill:` policy in scope
+for the Cursor harness, sync fails closed: it exits non-zero and writes
+nothing.
 
 ### Skipped denies withhold overlapping permits
 
@@ -339,7 +343,7 @@ console, or file an issue in the
 
 | Item | How to get it |
 | --- | --- |
-| Harness kind | `claude_code`, `codex`, `opencode`, or `custom` |
+| Harness kind | `claude_code`, `codex`, `opencode`, `cursor`, or `custom` |
 | `kei --version` | `kei --version` |
 | `kei-proxy --version` | `kei-proxy --version` |
 | Proxy policy state | `kei-proxy policy show` (includes state, version, digest, revision) |
