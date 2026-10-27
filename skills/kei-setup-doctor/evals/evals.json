@@ -467,6 +467,89 @@
           "regex": "(not|n.t|without|no|drop|remove|omit)[^.\\n]{0,40}/api/v1|gateway base"
         }
       ]
+    },
+    {
+      "id": 17,
+      "prompt": "Our console's Agents card shows no active sessions even though Claude Code and Codex run on that machine all day, and kei doctor prints: WARN  heartbeat: last heartbeat time is not recorded locally. Diagnose it for the ticket. Do not execute anything — just explain in text what to check and why, read-only.",
+      "expected_output": "Keep it read-only: kei doctor, kei runtime service status, kei bot status --installation ID, and read the heartbeat lines in kei-runtime.log and kei-proxy-serve.log (the Logs directory, ~/Library/Logs on macOS) without printing tokens. Three causes cover the logs: the credential is rejected (runtime identity request returned 401 — kei login again and re-check the installation with kei bot status; rotation is a kei-credential-rotation change the owner approves); runtime heartbeat refused: another kei-proxy process owns the runtime state directory (kei-proxy serve already reports heartbeats, so only one process may own the state directory — do not kill processes without the owner's consent); or the audit collector logs flush returned status 400 with a growing spool (hook events never become console sessions). Every harness line in kei doctor must read PASS with Kei hook installed. Sessions reappear once kei doctor passes the heartbeat, hook and policy-bundle checks. Name kei-setup-doctor for the diagnosis and kei-harness-setup for the full fix.",
+      "expectations": [
+        "The response keeps the diagnosis read-only and names kei doctor, kei runtime service status and kei bot status.",
+        "The response reads the heartbeat lines in kei-runtime.log and kei-proxy-serve.log without printing tokens.",
+        "The response names the 401 cause, runtime identity request returned 401, with kei login as the first fix and kei-credential-rotation gated on the owner's approval.",
+        "The response names the state-directory conflict, another kei-proxy process owns the runtime state directory, says kei-proxy serve already reports heartbeats, and forbids killing processes without the owner's consent.",
+        "The response names the audit collector cause, flush returned status 400, with a growing spool.",
+        "The response requires every harness hook line to show PASS with Kei hook installed.",
+        "The response names kei-setup-doctor for the diagnosis and kei-harness-setup for the full fix."
+      ],
+      "checks": [
+        {
+          "text": "The response keeps the diagnosis read-only and names kei doctor, kei runtime service status and kei bot status.",
+          "regex": "(?=[\\s\\S]*read[-\u2011 ]only)(?=[\\s\\S]*kei doctor)(?=[\\s\\S]*kei runtime service status)(?=[\\s\\S]*kei bot status)"
+        },
+        {
+          "text": "The response reads the heartbeat lines in kei-runtime.log and kei-proxy-serve.log without printing tokens.",
+          "regex": "(?=[\\s\\S]*kei-runtime\\.log)(?=[\\s\\S]*kei-proxy-serve\\.log)(?=[\\s\\S]*(token|secret|credential))"
+        },
+        {
+          "text": "The response names the 401 cause, runtime identity request returned 401, with kei login as the first fix and kei-credential-rotation gated on the owner's approval.",
+          "regex": "(?=[\\s\\S]*runtime identity request returned 401)(?=[\\s\\S]*kei login)(?=[\\s\\S]*kei-credential-rotation)(?=[\\s\\S]*(approv|consent|agree|owner))"
+        },
+        {
+          "text": "The response names the state-directory conflict, another kei-proxy process owns the runtime state directory, says kei-proxy serve already reports heartbeats, and forbids killing processes without the owner's consent.",
+          "regex": "(?=[\\s\\S]*another kei-proxy process owns the runtime state directory)(?=[\\s\\S]*kei-proxy serve)(?=[\\s\\S]*heartbeat)(?=[\\s\\S]*(kill|consent|owner))"
+        },
+        {
+          "text": "The response names the audit collector cause, flush returned status 400, with a growing spool.",
+          "contains_all": ["flush returned status 400", "spool"]
+        },
+        {
+          "text": "The response requires every harness hook line to show PASS with Kei hook installed.",
+          "regex": "(?=[\\s\\S]*PASS)(?=[\\s\\S]*hook)"
+        },
+        {
+          "text": "The response names kei-setup-doctor for the diagnosis and kei-harness-setup for the full fix.",
+          "contains_all": ["kei-setup-doctor", "kei-harness-setup"]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "I ran kei login --no-browser on our remote build server; it printed a URL and a verification code and is waiting. My colleague opened the URL on her phone, finished the provider sign-in, but then the browser landed on an error page saying invalid OAuth state, and the CLI is still polling. What went wrong, what should she do now, and how do we report it if it keeps happening? Do not execute anything — just explain in text.",
+      "expected_output": "invalid OAuth state means the state cookie was lost between sign-in and callback: the provider app took over the flow, an in-app browser or private mode dropped it, tracking prevention blocked the cookie, or the page was reloaded or opened in a second tab. kei login --no-browser prints a URL and a verification code to approve on another device; have her close all tabs and use one normal tab in the phone's default browser end to end — decline the provider app prompt, do not reload or go back — then open the CLI activation link in that same tab. If it keeps failing, file a bug report with kei feedback --description \"...\": description only, and attach a transcript only if the owner asks, because transcripts are redacted before upload.",
+      "expectations": [
+        "The response explains invalid OAuth state as the state cookie being lost between sign-in and callback.",
+        "The response lists the phone-context causes: provider app, in-app browser or private mode, and a reloaded or second tab.",
+        "The response says to use one normal tab in the phone's default browser end to end, declining the provider app prompt.",
+        "The response explains that kei login --no-browser prints a URL and a verification code to approve on another device.",
+        "The response files the bug report with kei feedback --description.",
+        "The response says transcripts are attached only if the owner asks and are redacted before upload."
+      ],
+      "checks": [
+        {
+          "text": "The response explains invalid OAuth state as the state cookie being lost between sign-in and callback.",
+          "regex": "(?=[\\s\\S]*invalid OAuth state)(?=[\\s\\S]*cookie)"
+        },
+        {
+          "text": "The response lists the phone-context causes: provider app, in-app browser or private mode, and a reloaded or second tab.",
+          "regex": "(?=[\\s\\S]*(in-app|provider app))(?=[\\s\\S]*(private|reload|second tab|tracking))"
+        },
+        {
+          "text": "The response says to use one normal tab in the phone's default browser end to end, declining the provider app prompt.",
+          "contains_any": ["one normal tab", "same tab", "single tab", "one tab"]
+        },
+        {
+          "text": "The response explains that kei login --no-browser prints a URL and a verification code to approve on another device.",
+          "regex": "(?=[\\s\\S]*--no-browser)(?=[\\s\\S]*(verification code|code))"
+        },
+        {
+          "text": "The response files the bug report with kei feedback --description.",
+          "contains_all": ["kei feedback", "--description"]
+        },
+        {
+          "text": "The response says transcripts are attached only if the owner asks and are redacted before upload.",
+          "regex": "(?=[\\s\\S]*redact)(?=[\\s\\S]*(owner|ask))"
+        }
+      ]
     }
   ]
 }
