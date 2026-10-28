@@ -177,6 +177,66 @@ CI currently runs `verify-evals` non-strict while
 skill eval fixtures migrate. Use `node scripts/verify-evals.mjs --strict` to
 require one check per expectation.
 
+## Running the eval gate locally
+
+The agent-evals gate runs [`scripts/run-evals.mjs`](scripts/run-evals.mjs)
+against the two model profiles in
+[`evals/model-profiles.yaml`](evals/model-profiles.yaml). You can run the
+same thing locally to tune a skill before opening a pull request.
+
+**Prerequisites.** The `opencode` harness CLI on PATH, version 1.x — the
+runner calls `opencode run --dir`, which opencode 2.x no longer supports.
+Install a pinned 1.x release into a scratch directory and put it on PATH:
+
+```bash
+mkdir -p /tmp/eval-tools
+cd /tmp/eval-tools
+npm i opencode-ai@1.19.5
+export PATH="$PWD/node_modules/.bin:$PATH"
+```
+
+**Model server URLs.** Each profile reads its server URL from the
+environment variable named by its `base_url_env`, and the runner refuses to
+start without it:
+
+```bash
+# glm-5.3-flash — EVAL_DEEPSEEK_BASE_URL is a historical name; it now
+# points at the GLM server.
+export EVAL_DEEPSEEK_BASE_URL=http://spark-f5ea:8000/v1
+# qwen3.8-27b
+export EVAL_QWEN_BASE_URL=http://pedrogpt:8000/v1
+```
+
+**A worked run.** One skill against the GLM profile, three repeats, no
+without-skill baseline, cases 1–8 only:
+
+```bash
+node scripts/run-evals.mjs --skills-dir ./skills --skill <name> \
+  --model-profile glm-5.3-flash --repeats 3 --no-baseline --cases 1-8
+```
+
+`--skills-dir` defaults to this repository's `skills/`; point it at another
+repo's `skills/` or a `.agents/skills` directory to run an internal skill.
+`--model-profile` requires the default `--harness opencode`. The full flag
+list is in the [run-evals section above](#adding-or-changing-a-skill).
+
+**Where results land.** Everything goes to
+`evals-out/<harness>-<timestamp>/` (git-ignored; override with `--out`):
+`benchmark.json` and `benchmark.md` at the top, and per case
+`eval-N-<skill>-<id>/<config>/run-N/` with `response.md`, `grading.json`
+and `timing.json`. **Do not commit local results** — the agent-evals CI
+gate and its sticky pull request comment are the record (see the Evals
+section of [AGENTS.md](AGENTS.md)).
+
+**The Qwen box runs one model at a time.** `qwen3.8-27b` is served by a
+single shared GPU at concurrency 1, so run the Qwen profile at `--jobs 1`
+and through the Qwen lock, and not while the CI gate or another worker is
+using the box (AGENTS.md, Evals rule 6).
+
+Exit codes: 0 every suite at or above `--threshold` (default 0.9), 1 a
+suite below it, 2 a run that did not complete (harness failure, timeout,
+usage error).
+
 ## Licensing and naming
 
 This repository is `HaikeiLabs/skills`, public, under the **MIT** licence. Do
