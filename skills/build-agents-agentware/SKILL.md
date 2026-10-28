@@ -121,6 +121,11 @@ asyncio.run(main())
 Python exposes the `PolicyEvaluator` interface; it does not include a local
 `Policy`, `Rule`, or `SimplePolicyEvaluator` implementation. Use the proxy
 evaluator above or implement the interface for an external policy engine.
+When answering a Python policy question, state plainly that Python has no local
+policy engine and use `KeiProxyEvaluator` to ask Kei for decisions.
+
+The published Python distribution is `haikeilabs-agentware`, imported as
+`haikeilabs.agentware`. The TypeScript package is `@haikeilabs/agentware`.
 
 ### Let Kei decide: `KeiProxyEvaluator`
 
