@@ -53,7 +53,10 @@ test('records repeat count and scores a skill by passed runs over total runs', (
     { skill: 's', id: 2, config: 'with_skill', repeat: 2, casePassed: true },
     { skill: 's', id: 1, config: 'without_skill', repeat: 1, casePassed: true },
   ], { harness: 'opencode', modelProfile: 'deepseek-v4-flash', model: 'eval/model', repeats: 2, gitSha: 'abc123', createdAt: '2026-01-01T00:00:00Z' });
-  assert.deepEqual(Object.keys(benchmark), ['schema', 'harness', 'model_profile', 'model', 'created_at', 'git_sha', 'repeats', 'results']);
+  // case_filter is the additive v1 field (HAI-659) that records --cases: null
+  // when every case ran, the canonical range when a shard ran a subset.
+  assert.deepEqual(Object.keys(benchmark), ['schema', 'harness', 'model_profile', 'model', 'created_at', 'git_sha', 'case_filter', 'repeats', 'results']);
+  assert.equal(benchmark.case_filter, null);
   assert.equal(benchmark.repeats, 2);
   assert.deepEqual(Object.keys(benchmark.results[0]), ['suite', 'kind', 'passed', 'failed', 'errors', 'total', 'pass_rate', 'cases']);
   assert.equal(benchmark.schema, 'haikei.eval-benchmark.v1');

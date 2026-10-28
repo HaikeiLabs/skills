@@ -115,6 +115,18 @@ resolve their OpenCode model names from `evals/model-profiles.yaml`; `--model`
 can select an explicit model, and `--repeats N` controls response repetitions
 (default 1).
 
+`--cases <spec>` runs only some of a skill's cases, by eval id rather than
+position: a list and/or an inclusive range, such as `--cases 1-8`,
+`--cases 3,7` or `--cases 1-5,9`. The filter is applied before repeats are
+counted, so a selection of 10 cases at `--repeats 3` is 30 runs. That is how a
+suite with more cases than one eval shard fits can be split by case range: each
+shard runs its range, and `benchmark.json` records the canonical selection as
+`case_filter` (null when every case ran). To merge the shards, sum each
+suite's `passed`, `failed`, `errors` and `total` and check that their `cases`
+ids do not overlap. The spec applies to every skill in the run, so an id a
+selected skill does not have is an error: the runner exits 2 instead of running
+a partial or empty selection. `--cases` is for a fresh run, not `--grade-only`.
+
 Each harness run is killed after a timeout, set by `--run-timeout <seconds>`,
 then the profile's `run_timeout_seconds` in `evals/model-profiles.yaml`, then
 600 seconds. `glm-5.3-flash` and `qwen3.8-27b` use 1800 because opencode runs
