@@ -30,10 +30,18 @@
  * profile's run_timeout_seconds, else 600). A killed run is recorded as
  * timed_out in its timing.json and counted as a benchmark error "timeout".
  *
+ * --cases selects which cases run: eval ids, not positions, as a list and/or
+ * an inclusive range ("1-8", "3,7", "1-5,9"). The filter is applied before
+ * repeats are counted, so N selected cases at R repeats are N x R runs; a
+ * suite too big for one eval job can be split by case range and each shard's
+ * benchmark.json merged. The canonical selection is written to benchmark.json
+ * as case_filter. An unknown id, an empty or malformed spec, or a spec that
+ * selects nothing is an error.
+ *
  * Usage:
  *   node scripts/run-evals.mjs [--skill NAME ...] [--harness claude|codex|opencode]
  *                              [--skills-dir DIR] [--out DIR] [--no-baseline]
- *                              [--jobs N] [--model M]
+ *                              [--jobs N] [--model M] [--cases SPEC]
  *                              [--model-profile NAME] [--threshold N] [--repeats N]
  *                              [--run-timeout SECONDS]
  *   node scripts/run-evals.mjs --grade-only DIR    # (re)grade existing DIR/<eval>/<config>/outputs/response.md
@@ -43,6 +51,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { formatCaseIds, parseCaseSpec, selectCases } from './lib/cases.mjs';
 import { gradeChecks, hasChecks, MISSING_CHECKS, missingChecksSummary } from './lib/checks.mjs';
 import { makeBenchmark, belowThreshold } from './lib/benchmark.mjs';
 import { resolveSkillsDir } from './lib/paths.mjs';
@@ -53,7 +62,7 @@ import { noAnswer, parseModelProfile, resolveRunTimeoutSeconds, runCommand, runE
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 function parseArgs(argv) {
-  const opts = { skills: [], skillsDir: null, harness: 'opencode', out: null, baseline: true, jobs: 4, model: null, modelProfile: null, threshold: 0.9, repeats: 1, repeatsProvided: false, gradeOnly: null, runTimeout: null };
+  const opts = { skills: [], skillsDir: null, harness: 'opencode', out: null, baseline: true, jobs: 4, model: null, modelProfile: null, threshold: 0.9, repeats: 1, repeatsProvided: false, gradeOnly: null, runTimeout: null, cases: null, caseFilter: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--skill') opts.skills.push(argv[++i]);
@@ -68,7 +77,10 @@ function parseArgs(argv) {
     else if (a === '--repeats') { opts.repeats = Number(argv[++i]); opts.repeatsProvided = true; }
     else if (a === '--grade-only') opts.gradeOnly = argv[++i];
     else if (a === '--run-timeout') opts.runTimeout = argv[++i];
-    else if (a === '-h' || a === '--help') {
+    else if (a === '--cases') {
+      opts.cases = argv[++i];
+      if (opts.cases === undefined) throw new Error('--cases needs a case list such as 1-8 or 3,7');
+    } else if (a === '-h' || a === '--help') {
       console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('*/')[0]);
       process.exit(0);
     } else throw new Error(`unknown argument ${a}`);
@@ -90,6 +102,10 @@ function parseArgs(argv) {
     opts.topK = profile.topK;
     opts.seed = profile.seed;
     opts.thinking = profile.thinking;
+  }
+  if (opts.cases !== null) {
+    opts.caseFilter = formatCaseIds(parseCaseSpec(opts.cases));
+    if (opts.gradeOnly) throw new Error('--cases applies to a fresh run, not --grade-only');
   }
   opts.runTimeoutSeconds = resolveRunTimeoutSeconds({ flag: opts.runTimeout, profile: profile?.runTimeoutSeconds });
   return opts;
@@ -202,12 +218,13 @@ async function gradeExisting(dir, opts) {
 function report(results, out, opts) {
   const errors = results.filter((r) => r.error);
   const benchmark = makeBenchmark(results, { harness: opts.harness, modelProfile: opts.modelProfile,
-    model: opts.model, repeats: opts.repeats,
+    model: opts.model, repeats: opts.repeats, caseFilter: opts.caseFilter,
     gitSha: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim() });
   fs.writeFileSync(path.join(out, 'benchmark.json'), JSON.stringify(benchmark, null, 2));
 
   const lines = [`# Skill eval benchmark (${opts.modelProfile ?? opts.model ?? opts.harness})`, '',
-    `Model: ${opts.model ?? 'unspecified'} · Repeats: ${benchmark.repeats} · Threshold: ${opts.threshold}`, '',
+    `Model: ${opts.model ?? 'unspecified'} · Repeats: ${benchmark.repeats} · Threshold: ${opts.threshold}`
+      + (benchmark.case_filter ? ` · Cases: ${benchmark.case_filter}` : ''), '',
     'Counts are runs (cases × repeats); the pass rate is passed runs / total runs.', '',
     '| Skill | Pass rate | Passed | Failed | Errors | Total |', '| --- | ---: | ---: | ---: | ---: | ---: |'];
   for (const result of benchmark.results) {
@@ -254,6 +271,7 @@ async function main() {
   const out = path.resolve(opts.out ?? path.join(ROOT, 'evals-out', `${opts.harness}-${stamp}`));
   const configs = opts.baseline ? ['with_skill', 'without_skill'] : ['with_skill'];
   process.stderr.write(`run timeout: ${opts.runTimeoutSeconds}s per harness run\n`);
+  if (opts.caseFilter) process.stderr.write(`case filter: ${opts.caseFilter}\n`);
 
   const tasks = [];
   let n = 0;
@@ -263,7 +281,17 @@ async function main() {
       throw new Error(`${skill}: missing evals/evals.json under ${opts.skillsDir}`);
     }
     const { evals } = JSON.parse(fs.readFileSync(path.join(skillPath, 'evals', 'evals.json'), 'utf8'));
-    for (const ev of evals) {
+    // --cases filters the cases before repeats are counted, so a shard runs
+    // every repeat of its range only.
+    let selected = evals;
+    if (opts.cases !== null) {
+      try {
+        selected = selectCases(evals, opts.cases);
+      } catch (err) {
+        throw new Error(`${skill}: ${err.message}`);
+      }
+    }
+    for (const ev of selected) {
       const evalDir = path.join(out, `eval-${++n}-${skill}-${ev.id}`);
       fs.mkdirSync(evalDir, { recursive: true });
       fs.writeFileSync(path.join(evalDir, 'eval_metadata.json'), JSON.stringify({
