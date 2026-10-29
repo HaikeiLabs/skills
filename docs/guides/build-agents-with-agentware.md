@@ -14,8 +14,8 @@ open-source HaikeiLabs packages:
   the answer is allow.
 
 The rule underneath everything: **the model never decides what it is allowed to
-do.** A line in the prompt saying "don't touch the CRM" is a suggestion. A
-policy check in front of the CRM tool is a control.
+do.** A line in the prompt saying "don't touch the billing data" is a suggestion. A
+policy check in front of the billing tool is a control.
 
 ## Three layers, three owners
 
@@ -45,7 +45,7 @@ and Go developers can `go get github.com/soypete/pedro-agentware/go`.
 ## Step 1: start from a prebuilt agent
 
 kei-agents ships ready-made agents. Pedro is the Discord agent: it files bugs,
-searches the wiki and the web, and, for admins, reads and writes GitHub, CRM,
+searches the wiki and the web, and, for admins, reads and writes GitHub,
 Linear, and Drive. The PDE search agent is a read-only search agent over Drive,
 Notion, Gmail, and Tito. Each one is an `AgentDefinition`: a name, a harness, a
 set of permissions, a list of tools, and a system prompt shipped inside the
@@ -68,8 +68,8 @@ You now have Pedro's prompt and 29 tools in OpenAI function-tool format, ready
 for any OpenAI-compatible client. `render_tools` also renders Anthropic and
 Ollama formats, or picks the format from a model name.
 
-kei-agents also ships seven workflows (bug to Linear, CRM follow-up, finance,
-fundraising, GitHub PR review, leads, support), each with its own prompt and
+kei-agents also ships four workflows (bug to Linear, Drive publish, GitHub PR
+review, support), each with its own prompt and
 tool list:
 
 ```python
@@ -77,7 +77,7 @@ from importlib import resources
 from agents import ModelFormat, get_tool_by_name, render_tools
 from agents.evals.targets import WORKFLOW_TARGETS
 
-target = next(t for t in WORKFLOW_TARGETS if t.name == "crm_linear_followup")
+target = next(t for t in WORKFLOW_TARGETS if t.name == "bug_to_linear_pr")
 prompt = resources.files("agents").joinpath(target.prompt_file).read_text(encoding="utf-8")
 tools = render_tools([get_tool_by_name(n) for n in target.tools], ModelFormat.OPENAI)
 ```
@@ -118,7 +118,7 @@ async def main():
                          user_id="discord:42", channel_id="chan-1", guild_id=None,
                          func=file_bug, caller=caller)
     try:
-        await client.Execute("crm_list_leads", {}, user_id="discord:42", channel_id="chan-1",
+        await client.Execute("drive.get_file", {"file_id": "f-1"}, user_id="discord:42", channel_id="chan-1",
                              guild_id=None, func=lambda **a: [], caller=caller)
     except PermissionError as exc:
         print(exc)
@@ -128,7 +128,7 @@ async def main():
 asyncio.run(main())
 ```
 
-The bug gets filed. The CRM call raises `PermissionError` ("no matching rules
+The bug gets filed. The Drive call raises `PermissionError` ("no matching rules
 and default deny is enabled") — and it still shows up in the audit records,
 because a denial is an outcome worth recording. Rules match first-wins; they
 can also check argument or caller conditions, rate-limit, or redact fields.
@@ -185,8 +185,7 @@ Three rules follow from Semantics:
 
 1. **A child resource's arguments include its parent's id.** A Linear issue
    lives in a team, so creating one takes `team_id`. A Drive document lives in
-   a folder, so creating one takes `folder_id`. A CRM follow-up belongs to a
-   lead, so it takes `lead_id`.
+   a folder, so creating one takes `folder_id`.
 2. **Enum values come from the data model.** Severity is
    `critical | high | medium | low`, not free text.
 3. **Scope is never an argument.** Tenant, organization, workspace,
