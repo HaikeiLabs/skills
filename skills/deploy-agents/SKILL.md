@@ -195,8 +195,9 @@ kei connectors reconnect CONNECTOR_ID --workspace WS                            
 kei connectors list --workspace WS
 ```
 
-Providers: `gmail`, `google_drive`, `linear`, `github` (OAuth), `tito`, `crm`
-(shared secret, read from stdin, never a flag). For a **per-user** connector
+Providers: `gmail`, `google_drive`, `linear`, `github` (OAuth), `tito`, and
+`http_api` for any other API (shared secret, read from stdin, never a flag).
+For a **per-user** connector
 there is nothing for the admin to connect — `kei` prints "users connect their
 own accounts through their chat harness". The first time a user's call needs
 it, authorize denies with a `connect` block (`url`, `provider`,
