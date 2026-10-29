@@ -19,6 +19,10 @@
  * With --model-profile, the profile's sampling (EV-C1 §3: temperature, and
  * top_p, top_k and seed when set) and its `thinking` switch are sent with
  * every model request.
+ * Profiles with `base_url_env` are preflighted with GET <base>/models before
+ * evals run; the served id (the model id without its leading `eval/` provider)
+ * must be advertised. Use --no-preflight for scripted or fake harnesses that
+ * do not have a live model endpoint.
  *
  * Unlike the verify-* scripts this calls models, so it is not run in CI.
  * It needs the harness CLI on PATH and logged in.
@@ -43,7 +47,7 @@
  *                              [--skills-dir DIR] [--out DIR] [--no-baseline]
  *                              [--jobs N] [--model M] [--cases SPEC]
  *                              [--model-profile NAME] [--threshold N] [--repeats N]
- *                              [--run-timeout SECONDS]
+ *                              [--run-timeout SECONDS] [--no-preflight]
  *   node scripts/run-evals.mjs --grade-only DIR    # (re)grade existing DIR/<eval>/<config>/outputs/response.md
  */
 import { execFileSync } from 'node:child_process';
@@ -51,6 +55,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { preflightModel } from './lib/preflight.mjs';
 import { formatCaseIds, parseCaseSpec, selectCases } from './lib/cases.mjs';
 import { gradeChecks, hasChecks, MISSING_CHECKS, missingChecksSummary } from './lib/checks.mjs';
 import { makeBenchmark, belowThreshold } from './lib/benchmark.mjs';
@@ -62,7 +67,7 @@ import { noAnswer, parseModelProfile, resolveRunTimeoutSeconds, runCommand, runE
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 function parseArgs(argv) {
-  const opts = { skills: [], skillsDir: null, harness: 'opencode', out: null, baseline: true, jobs: 4, model: null, modelProfile: null, threshold: 0.9, repeats: 1, repeatsProvided: false, gradeOnly: null, runTimeout: null, cases: null, caseFilter: null };
+  const opts = { skills: [], skillsDir: null, harness: 'opencode', out: null, baseline: true, jobs: 4, model: null, modelProfile: null, threshold: 0.9, repeats: 1, repeatsProvided: false, gradeOnly: null, runTimeout: null, cases: null, caseFilter: null, preflight: true };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--skill') opts.skills.push(argv[++i]);
@@ -70,6 +75,7 @@ function parseArgs(argv) {
     else if (a === '--harness') opts.harness = argv[++i];
     else if (a === '--out') opts.out = argv[++i];
     else if (a === '--no-baseline') opts.baseline = false;
+    else if (a === '--no-preflight') opts.preflight = false;
     else if (a === '--jobs') opts.jobs = Number(argv[++i]);
     else if (a === '--model') opts.model = argv[++i];
     else if (a === '--model-profile') opts.modelProfile = argv[++i];
@@ -260,6 +266,9 @@ async function main() {
     if (!opts.repeatsProvided) opts.repeats = Math.max(1, ...results.map((result) => result.repeat ?? 1));
     report(results, dir, opts);
     return;
+  }
+  if (opts.preflight && opts.modelProfile && opts.baseUrlEnv) {
+    await preflightModel({ model: opts.model, baseUrl: process.env[opts.baseUrlEnv] });
   }
   if (!fs.existsSync(opts.skillsDir) || !fs.statSync(opts.skillsDir).isDirectory()) {
     throw new Error(`skills directory does not exist: ${opts.skillsDir}`);
