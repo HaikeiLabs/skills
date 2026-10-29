@@ -43,7 +43,7 @@
  * selects nothing is an error.
  *
  * Usage:
- *   node scripts/run-evals.mjs [--skill NAME ...] [--harness claude|codex|opencode]
+ *   node scripts/run-evals.mjs [--skill NAME ...] [--harness claude|codex|opencode|pi]
  *                              [--skills-dir DIR] [--out DIR] [--no-baseline]
  *                              [--jobs N] [--model M] [--cases SPEC]
  *                              [--model-profile NAME] [--threshold N] [--repeats N]
@@ -96,7 +96,7 @@ function parseArgs(argv) {
   if (!Number.isFinite(opts.threshold) || opts.threshold < 0 || opts.threshold > 1) throw new Error('--threshold must be between 0 and 1');
   if (!Number.isInteger(opts.repeats) || opts.repeats < 1) throw new Error('--repeats must be a positive integer');
   if (opts.model && opts.modelProfile) throw new Error('use either --model or --model-profile');
-  if (opts.modelProfile && opts.harness !== 'opencode') throw new Error('--model-profile requires --harness opencode');
+  if (opts.modelProfile && !['opencode', 'pi'].includes(opts.harness)) throw new Error('--model-profile requires --harness opencode or pi');
   let profile = null;
   if (opts.modelProfile) {
     profile = parseModelProfile(fs.readFileSync(path.join(ROOT, 'evals/model-profiles.yaml'), 'utf8'), opts.modelProfile);
@@ -130,7 +130,7 @@ function scratchProject(skill, skillSource, withSkill, harness) {
 async function answer(skill, prompt, withSkill, opts, runDir) {
   const cwd = scratchProject(skill, path.join(opts.skillsDir, skill), withSkill, opts.harness);
   const outFile = path.join(cwd, 'last-message.md');
-  const [cmd, args] = HARNESSES[opts.harness].command(prompt, opts.model, cwd, outFile);
+  const [cmd, args] = HARNESSES[opts.harness].command(prompt, opts.model, cwd, outFile, { ...opts, skill });
   const res = await runCommand(cmd, args, { cwd, timeoutMs: opts.runTimeoutSeconds * 1000,
     env: HARNESSES[opts.harness].env?.(opts, { cwd, skill }) ?? {} });
   let response = res.stdout;
