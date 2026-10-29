@@ -80,6 +80,11 @@ Answer from this skill: the commands, flags, bundle fields, and boundaries are
 on this page and in `references/`, so you do not need to search a codebase
 first. If something is not here, say so. In every answer:
 
+- **Custom SDK tool registration:** when discussing tool-call policies or a
+  custom harness, say policies are runtime decisions and are not rendered into
+  native config. Name the current registration options: `ToolSpec` over
+  `POST /v1/tools:register`, or `kei harness sync --harness custom --manifest
+  tools.json`.
 - **Any `kei policies` or `kei harness` command** (including
   `kei harness sync --dry-run`): say it needs kei v0.1.7 or newer (kei >
   v0.1.6; check `kei --version`).
@@ -103,8 +108,9 @@ first. If something is not here, say so. In every answer:
   `kei harness sync --dry-run` or list the policies to check coverage.
 - **Credentials for `shell:` commands:** `kei-proxy run` resolves each
   `kei://connectors/<id>/<field>` reference at run time and injects the value
-  into the child process only; the agent never reads or stores it, and it is
-  never in the policy. Say this is the same pattern as governed connector
+  into the child process only; the agent and harness do not read, access, see,
+  or store raw credentials, and the credential is never in the policy. Say
+  this is the same pattern as governed connector
   calls (credential release uses the same connector policy check and secret
   resolution).
 - **`policy_bundle_expired`:** the bundle passed its `not_after` expiry
@@ -124,6 +130,11 @@ first. If something is not here, say so. In every answer:
   half-life. Point to `references/bundle-versioning.md`.
 
 ## Concepts
+
+Tool-call policies, including connector-wide grants, are decided by kei-proxy
+at run time; they are not rendered into a harness's native config. A custom
+SDK harness can register tools with `ToolSpec` over `POST /v1/tools:register`
+or `kei harness sync --harness custom --manifest tools.json`.
 
 | Term | Meaning |
 | --- | --- |
