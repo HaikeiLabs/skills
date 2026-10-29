@@ -204,6 +204,7 @@ CLI logged in; not run in CI):
 node scripts/run-evals.mjs --skill kei-cli                  # one skill, Claude Code
 node scripts/run-evals.mjs --skill kei-cli --cases 1-8      # one case range (sharding)
 node scripts/run-evals.mjs --harness codex                  # every skill, Codex
+node scripts/run-evals.mjs --harness pi --skill kei-cli --model-profile glm-5.3-flash
 node scripts/run-evals.mjs --grade-only evals-out/<run>     # re-grade saved answers
 ```
 

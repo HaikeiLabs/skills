@@ -169,6 +169,12 @@ configuration lives in `scripts/lib/harnesses.mjs` and is covered by
   apps, browsing, computer use and image generation disabled. Codex has no
   per-path read rule and loads skills through its read-only shell, so it can
   still read other files on disk.
+- **Pi:** `--print` with only the `read` tool enabled; extensions, MCP, prompt
+  templates, themes and context-file discovery are disabled. The staged skill
+  is passed explicitly and Pi can read its `SKILL.md` from the scratch project;
+  model-profile runs get a generated custom-provider `models.json` under an
+  isolated `PI_CODING_AGENT_DIR`, with a temporary `HOME` so user skills and
+  settings do not load. Shell, editing, web, and other tools are unavailable.
 
 If a skill needs a tool to answer, that's a finding about the skill, not a
 reason to widen the sandbox.

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, statSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { CLAUDE_SETTINGS, CLAUDE_TOOLS, CODEX_DISABLED_FEATURES, HARNESSES, opencodeConfig } from './harnesses.mjs';
@@ -97,6 +97,42 @@ test('opencode runs with_skill and without_skill under the same sandbox, isolate
       assert.equal(env.OPENCODE_DISABLE_CLAUDE_CODE_SKILLS, '1');
     }
   } finally {
+    for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('pi explicitly loads the staged skill headlessly with only read and an isolated model config', () => {
+  const dirs = [mkdtempSync(path.join(tmpdir(), 'pi-eval-a-')), mkdtempSync(path.join(tmpdir(), 'pi-eval-b-'))];
+  const saved = process.env.EVAL_DEEPSEEK_BASE_URL;
+  process.env.EVAL_DEEPSEEK_BASE_URL = 'http://model.invalid/v1';
+  try {
+    const skillDir = path.join(dirs[0], '.agents/skills', SKILL);
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(path.join(skillDir, 'SKILL.md'), '---\nname: test\ndescription: test\n---\n');
+    const argsA = HARNESSES.pi.command('prompt', 'eval/nvidia/GLM-5.3-Flash-FP4-Local', dirs[0],
+      path.join(dirs[0], 'out.md'), { skill: SKILL, thinking: true })[1];
+    assert.deepEqual(argsA, ['--no-session', '--tools', 'read', '--no-extensions', '--no-mcp',
+      '--no-prompt-templates', '--no-themes', '--no-context-files', '--thinking', 'high',
+      '--model', 'eval/nvidia/GLM-5.3-Flash-FP4-Local', '--skill', path.join(dirs[0], '.agents/skills', SKILL),
+      '--print', '--', 'prompt']);
+    assert.equal(argsA[argsA.indexOf('--skill') + 1], path.join(dirs[0], '.agents/skills', SKILL));
+    assert.equal(argsA[argsA.indexOf('--tools') + 1], 'read');
+    assert.ok(!argsA.includes('--no-tools'), 'Pi needs read to load the skill instructions');
+    assert.ok(!argsA.includes('--no-skills'), 'explicit --skill loading must not be disabled');
+    const opts = { modelProfile: 'glm-5.3-flash', model: 'eval/nvidia/GLM-5.3-Flash-FP4-Local',
+      baseUrlEnv: 'EVAL_DEEPSEEK_BASE_URL', temperature: 0, seed: 42, thinking: true };
+    const envA = HARNESSES.pi.env(opts, { cwd: dirs[0], skill: SKILL });
+    const envB = HARNESSES.pi.env(opts, { cwd: dirs[1], skill: SKILL });
+    assert.notEqual(envA.PI_CODING_AGENT_DIR, envB.PI_CODING_AGENT_DIR);
+    const config = JSON.parse(readFileSync(path.join(envA.PI_CODING_AGENT_DIR, 'models.json'), 'utf8'));
+    assert.deepEqual(config.providers.eval, { baseUrl: 'http://model.invalid/v1', api: 'openai-completions', apiKey: 'none',
+      models: [{ id: 'nvidia/GLM-5.3-Flash-FP4-Local', name: 'nvidia/GLM-5.3-Flash-FP4-Local', reasoning: true,
+        samplingParams: { temperature: 0, seed: 42 } }] });
+    assert.throws(() => HARNESSES.pi.env({ ...opts, baseUrlEnv: 'MISSING_EVAL_URL' }, { cwd: dirs[0], skill: SKILL }),
+      /model profile requires MISSING_EVAL_URL/);
+  } finally {
+    if (saved === undefined) delete process.env.EVAL_DEEPSEEK_BASE_URL;
+    else process.env.EVAL_DEEPSEEK_BASE_URL = saved;
     for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
   }
 });
