@@ -14,7 +14,8 @@ export async function preflightModel({ model, baseUrl, timeoutMs = DEFAULT_PREFL
     found = Array.isArray(body?.data)
       ? body.data.map((entry) => entry?.id).filter((id) => typeof id === 'string')
       : [];
-    if (found.includes(wanted)) return;
+    const servedModel = wanted.replace(/^eval\//, '');
+    if (found.includes(wanted) || found.includes(servedModel)) return;
     detail = 'requested model is not served';
   } catch (error) {
     detail = error?.name === 'TimeoutError' || error?.name === 'AbortError'

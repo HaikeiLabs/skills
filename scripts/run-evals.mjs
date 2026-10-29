@@ -20,8 +20,9 @@
  * top_p, top_k and seed when set) and its `thinking` switch are sent with
  * every model request.
  * Profiles with `base_url_env` are preflighted with GET <base>/models before
- * evals run; the profile model id must be advertised. Use --no-preflight for
- * scripted or fake harnesses that do not have a live model endpoint.
+ * evals run; the served id (the model id without its leading `eval/` provider)
+ * must be advertised. Use --no-preflight for scripted or fake harnesses that
+ * do not have a live model endpoint.
  *
  * Unlike the verify-* scripts this calls models, so it is not run in CI.
  * It needs the harness CLI on PATH and logged in.
