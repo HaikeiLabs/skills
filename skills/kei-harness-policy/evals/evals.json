@@ -3,627 +3,141 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "I have a Claude Code project with an existing settings.json that has permissions.allow rules. I want to import those rules into Kei so they become governed policies. What commands would you use, what kei version do I need, and what should you be careful about? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
-      "expected_output": "Use `kei policies import --from claude --apply` to read permissions.allow into Kei policies (dry run by default; --apply creates them). Desktop harnesses like Claude Code are auto-discovered \u2014 no `kei harness add` needed; just run `kei harness sync --harness claude_code` to render the native config from the policy bundle. The commands need kei v0.1.7 or newer, the first release with kei policies and kei harness, so any supported kei release has them. `kei harness sync` replaces only the entries Kei wrote and keeps your own, and it saves the existing native config as `settings.json.kei-backup-<timestamp>` before changing it.",
+      "prompt": "Using the installed Kei CLI, show how to create a standing allow policy for the developers group to run shell:git, and how to test it for that group. Explain that standing policies apply to groups and autogroups. Do not execute anything.",
+      "expected_output": "Use kei policy create --workspace WORKSPACE --group developers --allow shell:git. Test the target with kei policy test shell:git --workspace WORKSPACE --as group:developers. Standing policies target groups, including autogroups.",
       "expectations": [
-        "mentions `kei policies import --from claude`",
-        "mentions `kei harness sync --harness claude_code` instead of `kei harness add` for the desktop harness",
-        "clarifies that desktop harnesses are auto-discovered, no `add` needed",
-        "notes the commands need kei v0.1.7 or newer (any supported release)",
-        "notes how the existing native config is protected (only Kei-managed entries change, a kei-backup copy is saved)"
+        "Creates a group standing policy with the current command",
+        "Tests a target as the group with the current command",
+        "States standing policies apply to groups and autogroups"
       ],
       "checks": [
         {
-          "text": "mentions `kei policies import --from claude`",
-          "contains_all": [
-            "kei policies import --from claude",
-            "policies",
-            "import"
-          ]
-        },
-        {
-          "text": "mentions `kei harness sync --harness claude_code` instead of `kei harness add` for the desktop harness",
-          "contains_any": [
-            "kei harness sync",
-            "--harness claude_code"
-          ]
-        },
-        {
-          "text": "clarifies that desktop harnesses are auto-discovered, no `add` needed",
-          "contains_any": [
-            "auto-discovered",
-            "add"
-          ]
-        },
-        {
-          "text": "notes the commands need kei v0.1.7 or newer (any supported release)",
-          "regex": ">\\s*v?0\\.1\\.6|\\bv?0\\.1\\.([7-9]|[1-9]\\d)\\b|(?:any|every) (?:supported|current) (?:kei|release)"
-        },
-        {
-          "text": "notes how the existing native config is protected (only Kei-managed entries change, a kei-backup copy is saved)",
-          "contains_any": [
-            "existing",
-            "native",
-            "config"
-          ]
-        }
-      ]
-    },
-    {
-      "id": 2,
-      "prompt": "Using the installed Kei CLI, how do I create a group, allow shell:git for it, and test the policy? Do not execute anything.",
-      "expected_output": "Create the group with kei groups create --name GROUP --workspace WORKSPACE. Then use kei policy create --workspace WORKSPACE --group GROUP --allow shell:git, and test with kei policy test --workspace WORKSPACE --as group:GROUP shell:git. The old kei policies command is deprecated; do not use --name, --src-pattern, --dst-pattern, or --effect flags.",
-      "expectations": [
-        "group creation syntax",
-        "singular policy syntax",
-        "policy test syntax",
-        "avoid legacy flags"
-      ],
-      "checks": [
-        {
-          "text": "group creation syntax",
-          "contains_all": [
-            "kei groups create",
-            "--name",
-            "--workspace"
-          ]
-        },
-        {
-          "text": "singular policy syntax",
+          "text": "Creates a group standing policy with the current command",
           "contains_all": [
             "kei policy create",
+            "--workspace",
             "--group",
             "--allow",
             "shell:git"
           ]
         },
         {
-          "text": "policy test syntax",
+          "text": "Tests a target as the group with the current command",
           "contains_all": [
             "kei policy test",
+            "shell:git",
+            "--workspace",
             "--as",
             "group:"
           ]
         },
         {
-          "text": "avoid legacy flags",
-          "not_contains": [
-            "--src-pattern",
-            "--dst-pattern",
-            "--effect"
+          "text": "States standing policies apply to groups and autogroups",
+          "contains_all": [
+            "standing",
+            "group",
+            "autogroup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "An agent needs temporary access to run shell:git in workspace WORKSPACE. Using the installed Kei CLI, show the command to grant access for four hours. Do not execute anything.",
+      "expected_output": "Use kei access grant create --workspace WORKSPACE --principal agent:AGENT_ID --target shell:git --ttl 4h. Access grants are time-bound; use user:ID or agent:ID as the principal.",
+      "expectations": [
+        "Creates a time-bound grant for an agent with the current command"
+      ],
+      "checks": [
+        {
+          "text": "Creates a time-bound grant for an agent with the current command",
+          "contains_all": [
+            "kei access grant create",
+            "--workspace",
+            "--principal",
+            "agent:",
+            "--target",
+            "shell:git",
+            "--ttl",
+            "4h"
           ]
         }
       ]
     },
     {
       "id": 3,
-      "prompt": "Before I run `kei harness sync` for the first time, I want to preview what it will write to my native config file. Is there a dry-run option, and what kei version do I need for it? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
-      "expected_output": "Yes, use `kei harness sync --harness claude_code --dry-run` (the --harness flag takes a kind, not an ID). This renders the policy bundle to stdout without overwriting the native config file. Review the output before running the real sync. `kei harness sync` and its --dry-run flag have shipped since kei v0.1.7, so any supported kei release has them.",
+      "prompt": "The installed help lists both --from and --src for importing Claude Code policies. Which flag is required, what source pattern does it take, and what are the preview and apply command forms? Explain that --from selects the harness while --src selects the source pattern. Do not execute anything.",
+      "expected_output": "Use kei policies import --from claude --src harness:* --workspace WORKSPACE to preview; preview is the default. Add --apply to create the proposals. The --src flag is required and selects harness:<kind> or harness:*.",
       "expectations": [
-        "mentions `--dry-run` flag on `kei harness sync`",
-        "explains dry-run renders to stdout without overwriting",
-        "notes kei v0.1.7 or newer (any supported release)"
+        "Uses the import command and requires --src with a harness source",
+        "Explains preview is the default and --apply creates proposals"
       ],
       "checks": [
         {
-          "text": "mentions `--dry-run` flag on `kei harness sync`",
+          "text": "Uses the import command and requires --src with a harness source",
           "contains_all": [
-            "--dry-run",
-            "kei harness sync",
-            "harness"
+            "kei policies import",
+            "--from claude",
+            "--src",
+            "harness:",
+            "--workspace"
           ]
         },
         {
-          "text": "explains dry-run renders to stdout without overwriting",
-          "contains_any": [
-            "dry-run",
-            "renders",
-            "stdout"
+          "text": "Explains preview is the default and --apply creates proposals",
+          "contains_all": [
+            "--apply",
+            "preview"
           ]
-        },
-        {
-          "text": "notes kei v0.1.7 or newer (any supported release)",
-          "regex": ">\\s*v?0\\.1\\.6|\\bv?0\\.1\\.([7-9]|[1-9]\\d)\\b|(?:any|every) (?:supported|current) (?:kei|release)"
         }
       ]
     },
     {
       "id": 4,
-      "prompt": "All my governed tool calls started failing with reason_code: policy_bundle_expired. What happened and how do I fix it? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
-      "expected_output": "The policy bundle fetched at bootstrap has a not_after expiry that has passed. Run `kei-proxy policy sync` (or `kei-proxy runtime bootstrap`) to force a fresh bundle fetch from the control plane, then run `kei harness sync --harness KIND` to re-render the native config from the fresh bundle. If the runtime has been offline longer than the validity window, restore connectivity first; the bundle fetch will fail without it. While `kei-proxy serve` runs, a background refresher keeps the bundle current automatically.",
+      "prompt": "Explain the current Kei policy model to a workspace admin: who can receive standing policies, how users and agents receive temporary access, how typed targets work, what happens when allow and deny both match, whether priority is used, and what bindings mean. Point to the human-facing reference for details.",
+      "expected_output": "Standing policies apply to groups and autogroups. User and agent access is temporary and granted with time-bound access grants. Targets are typed, such as shell:git or connector:linear. Any matching deny wins; there is no priority. Bindings wire resources or configuration and do not authorize access. Refer admins to the Policies reference in the Kei console.",
       "expectations": [
-        "explains the bundle has a `not_after` expiry (ADR-026 \u00a74)",
-        "mentions forcing a fresh bundle fetch (kei-proxy policy sync or runtime bootstrap)",
-        "mentions `kei harness sync` to re-render native config from the fresh bundle",
-        "notes that offline runtimes cannot fetch new bundles until connectivity is restored",
-        "explains that bundle refresh is normally automatic (background refresher in serve)"
+        "Limits standing policies to groups and autogroups",
+        "Uses time-bound grants for user and agent access",
+        "Describes typed targets with an example",
+        "Says deny wins without priority",
+        "Explains bindings are wiring and do not authorize access",
+        "Routes details to the console Policies reference"
       ],
       "checks": [
         {
-          "text": "explains the bundle has a `not_after` expiry (ADR-026 \u00a74)",
-          "contains_any": [
-            "not_after",
-            "bundle",
-            "expiry"
-          ]
-        },
-        {
-          "text": "mentions forcing a fresh bundle fetch (kei-proxy policy sync or runtime bootstrap)",
+          "text": "Limits standing policies to groups and autogroups",
           "contains_all": [
-            "fresh",
-            "bundle",
-            "fetch"
+            "standing",
+            "group",
+            "autogroup"
           ]
         },
         {
-          "text": "mentions `kei harness sync` to re-render native config from the fresh bundle",
+          "text": "Uses time-bound grants for user and agent access",
+          "regex": "(?=[\\s\\S]*user)(?=[\\s\\S]*agent)(?=[\\s\\S]*grant)(?=[\\s\\S]*(?:time[- ]bound|temporary|expires))"
+        },
+        {
+          "text": "Describes typed targets with an example",
           "contains_all": [
-            "kei harness sync",
-            "harness",
-            "re-render"
+            "target",
+            "shell:git"
           ]
         },
         {
-          "text": "notes that offline runtimes cannot fetch new bundles until connectivity is restored",
-          "contains_any": [
-            "offline",
-            "fetch",
-            "connectivity"
-          ]
-        },
-        {
-          "text": "explains that bundle refresh is normally automatic (background refresher in serve)",
-          "contains_any": [
-            "bundle",
-            "refresh",
-            "automatic"
-          ]
-        }
-      ]
-    },
-    {
-      "id": 5,
-      "prompt": "I want to set up a report-only mode where policy violations are logged but not enforced. Can kei-harness-policy do that? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
-      "expected_output": "No. Kei has no report-only enforcement mode: there is no --policy-mode report-only flag and no setting that logs policy violations without enforcing them. Rendered policies are always enforced natively by the harness, and unmatched commands fall through to the harness's own permission mode. HP-C6 in ADR-029 is the report-only audit hook, and it is implemented: kei harness sync installs kei-proxy hook, which records each call and the harness's native decision in the audit trail and never blocks or decides. To preview the effect of policies, run kei harness sync --harness <kind> --dry-run or list them with kei policies list --workspace WS --json; there is no kei policies verify command.",
-      "expectations": [
-        "states there is no report-only enforcement mode (violations cannot be logged without being enforced)",
-        "mentions HP-C6 or the report-only hook in ADR-029",
-        "explains the report-only hook only audits calls and never blocks them",
-        "does not offer a non-existent `kei policies verify` command; suggests listing policies to check coverage"
-      ],
-      "checks": [
-        {
-          "text": "states there is no report-only enforcement mode (violations cannot be logged without being enforced)",
-          "regex": "\\b(?:no|not|isn't|doesn't|cannot|can't)\\b[^.\\n]{0,60}(?:report-only (?:enforcement )?mode|enforcement mode|--policy-mode|log(?:s|ging)? (?:policy )?violations)"
-        },
-        {
-          "text": "mentions HP-C6 or the report-only hook in ADR-029",
-          "regex": "HP-C6|ADR-029"
-        },
-        {
-          "text": "explains the report-only hook only audits calls and never blocks them",
-          "contains_any": [
-            "audit",
-            "records",
-            "never block"
-          ]
-        },
-        {
-          "text": "does not offer a non-existent `kei policies verify` command; suggests listing policies to check coverage",
-          "contains_any": [
-            "kei policies verify",
-            "policies"
-          ]
-        }
-      ]
-    },
-    {
-      "id": 6,
-      "prompt": "My agent needs to run a bash command through a harness command policy that requires a credential (like a GitHub token). How does credential resolution work for shell: dst commands, and does the agent ever see or store the raw credential? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
-      "expected_output": "A harness command policy never carries a credential. The agent runs the command through kei-proxy run with an environment variable set to a reference, e.g. GH_TOKEN=kei://connectors/<connector-id>/token kei-proxy run -- git push. kei-proxy resolves each kei://connectors/<id>/<field> reference through the runtime credential path, the same connector policy check and secret resolution that credential release uses for governed connector calls; a denied or unresolvable reference means the command is not started. The value is injected only into the child process environment and masked in its output, so the agent never reads or stores the raw credential, and the run is audited without values. The shell: policy decides whether the command may run; the connector policy decides whether the credential may be used.",
-      "expectations": [
-        "explains credentials are resolved through kei-proxy, not embedded in policies",
-        "mentions kei:// reference syntax for credential references",
-        "states the agent never reads or stores raw credentials",
-        "notes this follows the same pattern as governed connector calls"
-      ],
-      "checks": [
-        {
-          "text": "explains credentials are resolved through kei-proxy, not embedded in policies",
-          "regex": "credentials?[\\s\\S]{0,120}resolv[\\s\\S]{0,100}kei[\\s`-]*proxy|kei[\\s`-]*proxy[\\s\\S]{0,100}resolv[\\s\\S]{0,100}credentials?"
-        },
-        {
-          "text": "mentions kei:// reference syntax for credential references",
-          "regex": "kei://[\\s\\S]{0,100}(?:credential|reference)|(?:credential|reference)[\\s\\S]{0,100}kei://"
-        },
-        {
-          "text": "states the agent never reads or stores raw credentials",
-          "regex": "(?:agent|harness)[\\s\\S]{0,120}(?:never|does not|doesn.t|do not|don.t|cannot|can.t)[\\s\\S]{0,100}(?:read|access|see|store|retain|hold)[\\s\\S]{0,100}(?:raw|actual|plain[ -]?text)?[\\s-]*credentials?"
-        },
-        {
-          "text": "notes this follows the same pattern as governed connector calls",
-          "contains_any": [
-            "pattern",
-            "governed",
-            "connector"
-          ]
-        }
-      ]
-    },
-    {
-      "id": 7,
-      "prompt": "My kei-proxy policy show says the bundle state is STALE_BUT_VALID. What does this mean and is it a problem? How do I fix it? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
-      "expected_output": "STALE_BUT_VALID means the bundle is still within its not_after window but the background refresher has not received a successful polling response within stale_after_seconds (default 300 s, configured in the bundle's refresh.stale_after_seconds). The bundle is still enforced, but connectivity to the control plane may be impaired. Fix by checking network connectivity to the control-plane URL and the runtime token, then run `kei-proxy policy sync` to force an immediate fetch. If sync succeeds, the state returns to ACTIVE on the next refresh cycle.",
-      "expectations": [
-        "explains STALE_BUT_VALID means refresh overdue but bundle still valid",
-        "mentions stale_after_seconds and not_after",
-        "suggests checking connectivity and runtime token",
-        "recommends `kei-proxy policy sync` to force a fresh fetch"
-      ],
-      "checks": [
-        {
-          "text": "explains STALE_BUT_VALID means refresh overdue but bundle still valid",
-          "contains_any": [
-            "STALE_BUT_VALID",
-            "means",
-            "refresh"
-          ]
-        },
-        {
-          "text": "mentions stale_after_seconds and not_after",
+          "text": "Says deny wins without priority",
           "contains_all": [
-            "stale_after_seconds",
-            "not_after"
-          ]
-        },
-        {
-          "text": "suggests checking connectivity and runtime token",
-          "contains_all": [
-            "connectivity",
-            "runtime",
-            "token"
-          ]
-        },
-        {
-          "text": "recommends `kei-proxy policy sync` to force a fresh fetch",
-          "contains_all": [
-            "kei-proxy policy sync",
-            "kei-proxy",
-            "policy"
-          ]
-        }
-      ]
-    },
-    {
-      "id": 8,
-      "prompt": "I see that kei-proxy has bundle version 42 persisted but the catalog tried to serve version 41. What happened and what does the proxy do? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
-      "expected_output": "The proxy has rollback protection: it persists the highest bundle_version ever activated and rejects any candidate with bundle_version <= that value. Version 41 is a rollback from 42 \u2014 the proxy discards it, logs a rollback rejection, and continues enforcing with version 42. Check whether the installation credential targets the correct workspace and run `kei-proxy policy sync` to force a fresh issuance from the catalog.",
-      "expectations": [
-        "explains rollback protection (monotonic bundle_version per installation)",
-        "states the proxy rejects bundle_version <= max_activated_version",
-        "suggests checking the credential workspace and running kei-proxy policy sync"
-      ],
-      "checks": [
-        {
-          "text": "explains rollback protection (monotonic bundle_version per installation)",
-          "regex": "^(?=[\\s\\S]*rollback)(?=[\\s\\S]*(bundle_version|bundle version|max_activated_version|monoton))"
-        },
-        {
-          "text": "states the proxy rejects bundle_version <= max_activated_version",
-          "contains_any": [
-            "proxy",
-            "rejects",
-            "bundle_version"
-          ]
-        },
-        {
-          "text": "suggests checking the credential workspace and running kei-proxy policy sync",
-          "contains_any": [
-            "credential",
-            "workspace",
-            "kei-proxy"
-          ]
-        }
-      ]
-    },
-    {
-      "id": 9,
-      "prompt": "What is the difference between bundle_id, bundle_version, and policy_revision in a Kei policy bundle? When does each one change? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
-      "expected_output": "bundle_id is a random UUID, unique per issuance \u2014 every mint gets a new one, even a re-issue with the same policies. bundle_version is a strictly increasing counter per runtime installation, bumped on every issuance (even re-issue at half-life without policy changes). policy_revision is a workspace-wide counter that increases only on policy-affecting changes (create, update, delete, reorder). Two bundles can share the same policy_revision (same policy content) but have different bundle_id/bundle_version if the first was re-issued at the half-life mark. The catalog reuses a stored bundle when revision is unchanged, the bundle is unexpired, and it was issued within 6 hours.",
-      "expectations": [
-        "explains bundle_id is a UUID unique per issuance",
-        "explains bundle_version is per-installation monotonic counter bumped on every issuance",
-        "explains policy_revision is workspace-wide bumped only on policy changes",
-        "mentions the catalog's 6-hour reuse window and re-issue at half-life"
-      ],
-      "checks": [
-        {
-          "text": "explains bundle_id is a UUID unique per issuance",
-          "regex": "(?=[\\s\\S]*bundle_id)(?=[\\s\\S]*UUID)(?=[\\s\\S]*(?:unique|(?:new|fresh|different)[^.\\n]{0,40}(?:issu|mint|bundle)|(?:every|each|per) (?:issuance|mint|re-issue)[^.\\n]{0,40}(?:new|fresh|different)))"
-        },
-        {
-          "text": "explains bundle_version is per-installation monotonic counter bumped on every issuance",
-          "contains_any": [
-            "bundle_version",
-            "counter",
-            "bumped"
-          ]
-        },
-        {
-          "text": "explains policy_revision is workspace-wide bumped only on policy changes",
-          "contains_any": [
-            "policy_revision",
-            "workspace-wide",
-            "bumped"
-          ]
-        },
-        {
-          "text": "mentions the catalog's 6-hour reuse window and re-issue at half-life",
-          "contains_all": [
-            "reuse",
-            "re-issue",
-            "half-life"
-          ]
-        }
-      ]
-    },
-    {
-      "id": 10,
-      "prompt": "If Claude runs a command with no matching policy (permit or deny), what does Kei's permissions model allow? Does it deny the command or let it through? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
-      "expected_output": "The command falls through to the harness's own native permission logic. If the command has no matching entry in the native config (neither allow nor deny), the harness uses its built-in default behavior, which is usually `ask` (prompt the user). Kei does not deny it \u2014 the harness's own entries and permission mode decide. For custom harnesses and governed connectors, unmatched commands are denied (fail-closed by kei-proxy).",
-      "expectations": [
-        "explains that unmatched commands fall through to harness native permissions",
-        "mentions the harness's default permission mode (usually ask)",
-        "clarifies that Kei does not deny unmatched commands for native harnesses",
-        "notes that custom harnesses and connectors deny by default"
-      ],
-      "checks": [
-        {
-          "text": "explains that unmatched commands fall through to harness native permissions",
-          "contains_any": [
-            "unmatched",
-            "commands",
-            "harness"
-          ]
-        },
-        {
-          "text": "mentions the harness's default permission mode (usually ask)",
-          "contains_any": [
-            "harness's",
-            "default",
-            "permission"
-          ]
-        },
-        {
-          "text": "clarifies that Kei does not deny unmatched commands for native harnesses",
-          "regex": "(do(es)?\\s?n[o']t|never|not|no|isn'?t)\\s+(auto[- ]?)?den(y|ies|ied)|falls? through"
-        },
-        {
-          "text": "notes that custom harnesses and connectors deny by default",
-          "contains_all": [
-            "custom",
-            "harnesses",
-            "connectors"
-          ]
-        }
-      ]
-    },
-    {
-      "id": 11,
-      "prompt": "I want Kei to be the only source of permissions for my Claude Code harness. How do I remove my own allow/deny entries without breaking things, and what does sync change on disk? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
-      "expected_output": "First preview with `kei harness sync --harness claude_code --dry-run` to see what Kei will write. Then run the real sync to establish Kei's entries. Remove your own allow/deny entries from `~/.claude/settings.json` by hand (Kei only edits entries it owns, which it records in its sync ledger). Keep the harness in its default permission mode (usually `ask`), not `allow-all`. Run sync again to confirm only Kei-managed entries remain. Kei saves `settings.json.kei-backup-<timestamp>` before each write and keeps only that one backup, from before the latest successful sync \u2014 copy it over settings.json if something goes wrong.",
-      "expectations": [
-        "mentions `kei harness sync --dry-run` to preview",
-        "explains Kei only edits entries it owns (hand-written entries must be removed manually)",
-        "advises keeping harness in default ask mode",
-        "mentions the kei-backup file Kei creates before each write"
-      ],
-      "checks": [
-        {
-          "text": "mentions `kei harness sync --dry-run` to preview",
-          "contains_any": [
-            "harness",
-            "--dry-run",
-            "preview"
-          ]
-        },
-        {
-          "text": "explains Kei only edits entries it owns (hand-written entries must be removed manually)",
-          "contains_any": [
-            "Kei",
-            "edits",
-            "entries"
-          ]
-        },
-        {
-          "text": "advises keeping harness in default ask mode",
-          "regex": "^(?=[\\s\\S]*harness)(?=[\\s\\S]*(default|(keep|leave)[^.\\n]{0,40}\\bask\\b|\\bask\\b[^.\\n]{0,20}mode|falls? (through|back) to\\W{0,3}ask))"
-        },
-        {
-          "text": "mentions the kei-backup file Kei creates before each write",
-          "regex": "kei-backup[\\s\\S]{0,200}(before|creat|sav|writ)|(before|creat|sav|writ)\\w*[\\s\\S]{0,120}kei-backup"
-        }
-      ]
-    },
-    {
-      "id": 12,
-      "prompt": "I installed Codex next to Claude Code on the same machine with one runtime installation. Do I need to run `kei harness add` for Codex? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
-      "expected_output": "No. Desktop coding harnesses (Claude Code, Codex, OpenCode) are sessions of one runtime installation per machine. They are auto-discovered by `kei harness sync` \u2014 no separate `kei harness add` needed. Installing Codex next to Claude Code on the same machine means both are sessions of the same runtime installation; run `kei harness sync` and both are detected automatically. `kei harness add` is only for custom/SDK harnesses (`--kind custom`).",
-      "expectations": [
-        "states that desktop harnesses are auto-discovered by sync, no add needed",
-        "explains that both Codex and Claude Code on the same machine share one installation \u2014 no new registration",
-        "mentions `kei harness sync` as the correct command",
-        "clarifies that `kei harness add` is only for custom/SDK harnesses"
-      ],
-      "checks": [
-        {
-          "text": "states that desktop harnesses are auto-discovered by sync, no add needed",
-          "contains_all": [
-            "sync",
-            "add"
-          ]
-        },
-        {
-          "text": "explains that both Codex and Claude Code on the same machine share one installation \u2014 no new registration",
-          "regex": "^(?=[\\s\\S]*codex)(?=[\\s\\S]*claude code)(?=[\\s\\S]*(same|one|single|shared?|the) (runtime )?installation)"
-        },
-        {
-          "text": "mentions `kei harness sync` as the correct command",
-          "contains_all": [
-            "sync"
-          ]
-        },
-        {
-          "text": "clarifies that `kei harness add` is only for custom/SDK harnesses",
-          "contains_any": [
-            "custom",
-            "SDK",
-            "kei",
-            "harness",
-            "add",
-            "harnesses"
-          ]
-        }
-      ]
-    },
-    {
-      "id": 13,
-      "prompt": "Our audit log shows native_decision unknown on every Claude Code pre event, so we can't tell which commands Claude Code allowed, denied or asked about. Where do we read the native decision, what Claude Code version do we need, and does the hook decide or block anything? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
-      "expected_output": "pre is only the pairing anchor and stays native_decision unknown, because Claude Code's PreToolUse runs before its permission check. The hook observes what Claude Code did and writes a separate decision event per call with allow, deny or ask; post events carry an optional failed flag, and asked calls get a permission_reply of approved or denied. Read the decision event, not pre. The hook still never decides. This needs kei-proxy 0.2.5 or newer, Claude Code 2.1.119 or newer and kei v0.1.24 or newer; on older Claude Code versions kei harness sync renders only PreToolUse and PostToolUse and prints a warning, so upgrade Claude Code and re-run kei harness sync.",
-      "expectations": [
-        "says the native decision is recorded in a separate decision event, not on pre",
-        "names the allow, deny and ask outcomes",
-        "states Claude Code 2.1.119 or newer is required",
-        "says older Claude Code keeps only PreToolUse/PostToolUse and sync warns",
-        "says the hook never decides or blocks"
-      ],
-      "checks": [
-        {
-          "text": "says the native decision is recorded in a separate decision event, not on pre",
-          "regex": "decision\\W{0,3}(?:event|phase)"
-        },
-        {
-          "text": "names the allow, deny and ask outcomes",
-          "contains_all": [
-            "allow",
             "deny",
-            "ask"
+            "no priority"
           ]
         },
         {
-          "text": "states Claude Code 2.1.119 or newer is required",
-          "contains_all": [
-            "2.1.119"
-          ]
+          "text": "Explains bindings are wiring and do not authorize access",
+          "regex": "(?=[\\s\\S]*binding)(?=[\\s\\S]*wiring)(?=[\\s\\S]*(?:not authorization|no authorization|(?:do not|don't|does not) (?:authorize|grant) access))"
         },
         {
-          "text": "says older Claude Code keeps only PreToolUse/PostToolUse and sync warns",
-          "regex": "(?=[\\s\\S]*(?:PostToolUse|two (?:previous |legacy )?hooks|previous (?:two )?hooks))(?=[\\s\\S]*warn)"
-        },
-        {
-          "text": "says the hook never decides or blocks",
-          "regex": "(?:never|does ?n[o']t|not) (?:decide|block|allow or deny|answer)|report-only|only (?:observes|records|reports)"
-        }
-      ]
-    },
-    {
-      "prompt": "I've run `kei harness sync --harness claude_code` a dozen times over the past month. How many kei-backup files should I expect next to ~/.claude/settings.json, what happens to them on the next sync (including if that sync fails), and how do I roll back to the config I had before the last sync? Do not execute anything \u2014 just explain in text. If you don't know something, just say so.",
-      "expected_output": "With kei 0.1.31 or later, kei harness sync keeps one backup per managed file: `~/.claude/settings.json.kei-backup-<timestamp>`, holding the config from before the most recent successful sync. The next successful sync makes a new backup and removes the older one (leftover backups from older kei versions are pruned to the newest; `--dry-run` prints `Would remove earlier Kei backup <path>`). A failed sync restores the original file and leaves the previous backup untouched. To roll back by hand, copy the backup over the native config: `cp ~/.claude/settings.json.kei-backup-<timestamp> ~/.claude/settings.json`. Copy it elsewhere first if you want to keep it past the next sync.",
-      "expectations": [
-        "says only one backup is kept per file",
-        "says the next successful sync replaces or removes the older backup",
-        "says a failed sync restores the file and leaves the previous backup alone",
-        "says to roll back by copying the kei-backup file over settings.json"
-      ],
-      "checks": [
-        {
-          "text": "says only one backup is kept per file",
-          "regex": "(?:only|just|exactly|at most) (?:one|a single|1)\\b[^.\\n]{0,40}backup|(?:one|a single|1) (?:kei[- ])?backup (?:per|for each|for every)|keeps? (?:only )?(?:the )?(?:latest|newest|most recent)[^.\\n]{0,30}backup|single backup"
-        },
-        {
-          "text": "says the next successful sync replaces or removes the older backup",
-          "regex": "(?:next|later|subsequent|following)[^.\\n]{0,60}sync[^.\\n]{0,80}(?:remov|delet|prune|replac|overwrit)|(?:remov|delet|prune|replac|overwrit)\\w*[^.\\n]{0,80}(?:next|later|subsequent|following)[^.\\n]{0,30}sync|(?:older|earlier|previous) (?:kei )?backups?[^.\\n]{0,60}(?:remov|delet|prun)"
-        },
-        {
-          "text": "says a failed sync restores the file and leaves the previous backup alone",
-          "regex": "fail\\w*[\\s\\S]{0,250}(?:restor|roll\\w* back|untouched|left alone|leaves? (?:the )?(?:previous|earlier|existing))"
-        },
-        {
-          "text": "says to roll back by copying the kei-backup file over settings.json",
-          "regex": "(?:cp|copy|copies|copying)\\b[^\\n]{0,120}kei-backup|kei-backup[^\\n]{0,120}(?:over|onto|back to|to replace)[^\\n]{0,40}(?:settings\\.json|native config|config)"
-        }
-      ],
-      "id": 14
-    },
-    {
-      "id": 15,
-      "prompt": "I created a Kei policy with --src-pattern \"*\" for a tool permit, but the tool calls are still denied. Does src * not work?",
-      "expected_output": "* grants nothing for tool:/capability: dst policies from the CLI because the CLI does not establish a bundle subject (HAI-673). The row is skipped with non_person_principal. Use user:<id> or group:<name> instead. * works only for harness command policies (shell:/skill:/path:) where kei harness sync renders it against every harness.",
-      "expectations": [
-        "The response says * grants nothing for tool dst from CLI.",
-        "The response says to use user: or group: instead.",
-        "The response says * works only for harness command policies."
-      ],
-      "checks": [
-        {
-          "text": "The response says * grants nothing for tool dst from CLI.",
-          "regex": "\\*[^.]{0,100}(?:grants nothing|does nothing|not (?:work|grant)|skip|silently)[^.]{0,80}(?:tool|CLI)"
-        },
-        {
-          "text": "The response says to use user: or group: instead.",
-          "regex": "(?:user:|group:)[^.]{0,80}(?:instead|not|rather than|not.*\\*)"
-        },
-        {
-          "text": "The response says * works only for harness command policies.",
-          "regex": "\\*[^.]{0,80}(?:work|render|applies?|used?)[^.]{0,60}(?:harness|shell:|skill:|path:)"
-        }
-      ]
-    },
-    {
-      "id": 16,
-      "prompt": "I deleted the seeded web_search permit from our workspace policies but it came back after the next bundle refresh. How do I make the deletion stick?",
-      "expected_output": "The seeded web_search/search_wiki permits are re-seeded on every bundle refresh until HAI-670 is fixed. Deleting the agent-bound pair does not stick. The workaround is to create a higher-priority deny that overrides the seeded permit, or wait for HAI-670. The pedro-discord route pair has the same limitation.",
-      "expectations": [
-        "The response says seeded permits are re-seeded on bundle refresh.",
-        "The response says deletion does not stick until HAI-670.",
-        "The response offers a workaround (higher-priority deny)."
-      ],
-      "checks": [
-        {
-          "text": "The response says seeded permits are re-seeded on bundle refresh.",
-          "regex": "(?:seed|re.seed|reappear|come.?back|re.create)[^.]{0,100}(?:bundle refresh|refresh|HAI-670)"
-        },
-        {
-          "text": "The response says deletion does not stick until HAI-670.",
-          "regex": "(?:does not stick|won't stick|wont stick|not stick|until HAI-670|HAI-670.{0,40}(?:fix|resolv|address))"
-        },
-        {
-          "text": "The response offers a workaround (higher-priority deny).",
-          "regex": "(?:higher.priority|override|workaround|deny.*permit|permit.*deny)"
-        }
-      ]
-    },
-    {
-      "id": 17,
-      "prompt": "For a custom SDK harness that runs `kei-proxy serve` beside it, who decides tool-call policies such as a connector-wide grant at run time, and are they rendered into the harness's native config like command policies? Do not execute anything \u2014 just explain in text.",
-      "expected_output": "Tool-call policies are not rendered: kei-proxy decides them at run time \u2014 the kei-proxy serve socket (POST /v1/authorize in a session, through the agentware socket client), with the kei-proxy authorize CLI as the fallback when no daemon runs; the runtime PDP decides from the bundle. Only harness command policies are rendered by kei harness sync. Choose either Agentware ToolSpec registration over POST /v1/tools:register or the operator command kei harness sync --harness custom --manifest tools.json with kei >= 0.1.33.",
-      "expectations": [
-        "says kei-proxy decides tool-call policies at run time over the socket",
-        "says tool-call policies are not rendered into native config",
-        "mentions a current tool registration option for custom harnesses"
-      ],
-      "checks": [
-        {
-          "regex": "kei-proxy serve|/v1/authorize|socket",
-          "text": "says kei-proxy decides tool-call policies at run time over the socket"
-        },
-        {
-          "regex": "not (be )?rendered|aren't rendered|are never rendered|never rendered|not render",
-          "text": "says tool-call policies are not rendered into native config"
-        },
-        {
-          "text": "mentions a current tool registration option for custom harnesses",
-          "regex": "Tool[\\s-]*Spec|/v1/tools\\s*:\\s*register|--manifest[\\s`]*tools\\.json|custom[\\s\\S]{0,100}(?:manifest|register tools|tools? registration)|(?:manifest|register tools)[\\s\\S]{0,100}custom"
+          "text": "Routes details to the console Policies reference",
+          "regex": "(?=[\\s\\S]*Policies and Groups reference)(?=[\\s\\S]*Kei console)"
         }
       ]
     }
