@@ -140,7 +140,7 @@ skill.
 | [kei-runtime-setup](skills/kei-runtime-setup/SKILL.md) | Stand up a customer-hosted runtime end to end: login, installation, credential to secret manager, `KEI_RUNTIME_*` env, `kei-proxy runtime bootstrap`/`heartbeat`, bind, and a fail-closed check |
 | [kei-credential-rotation](skills/kei-credential-rotation/SKILL.md) | Rotate or revoke a runtime installation credential (`kei bot credential --rotate`, immediate cutover) and the console-only agent-key rotation |
 | [kei-directory-sync](skills/kei-directory-sync/SKILL.md) | Per-org Entra directory sync for customer admins: app roles → Kei groups, users created as org members, the sync app's Graph permissions and federated credential (no secret), `kei directory-sync get\|set\|enable\|disable\|report`, dry run first, and troubleshooting |
-| [kei-openwebui](skills/kei-openwebui/SKILL.md) | Open WebUI governed by Kei with the published `openwebui-kei` image: the `openwebui` installation, credential, model profile and `model:invoke` / `tool:<name>` permits, the image by digest and UID 10001, tool packs and the boot tool sync, user linking, verification, and troubleshooting |
+| [kei-openwebui](skills/kei-openwebui/SKILL.md) | Open WebUI governed by Kei with the published `openwebui-kei` image: the `openwebui` installation, credential, model profile and `model:invoke` / `tool:<name>` permits, the image by digest and UID 10001, deployment-provided v3 tool manifest, generated-catalog fallback, installed implementations and boot sync, user linking, verification, and troubleshooting |
 | [kei-audit-encryption](skills/kei-audit-encryption/SKILL.md) | Opt-in, customer-held age (X25519) encryption of audit tool-call arguments: `kei audit keys create\|list\|disable`, `kei audit decrypt`, the audit-encryption-keys AIP resource, the keyed `args_digest`, rotation (add-new-then-disable-old), and the escrow setting (off by default). `kei audit` ships in the next kei release |
 | [kei-harness-setup](skills/kei-harness-setup/SKILL.md) | Connect Claude Code, Codex, OpenCode, or Cursor to Kei: install these skills, pair with a runtime, pass agent identity to `kei-proxy authorize`, prove denials |
 | [kei-pi-setup](skills/kei-pi-setup/SKILL.md) | Install the Pi adapter and skills packages, use local `shell:` policies for Pi Bash, understand digest-only audit behavior, and verify fail-closed tool calls |
@@ -202,22 +202,29 @@ CLI logged in; not run in CI):
 
 ```bash
 node scripts/run-evals.mjs --skill kei-cli                  # one skill, Claude Code
+node scripts/run-evals.mjs --skill kei-cli --cases 1-8      # one case range (sharding)
 node scripts/run-evals.mjs --harness codex                  # every skill, Codex
+node scripts/run-evals.mjs --harness pi --skill kei-cli --model-profile glm-5.3-flash
 node scripts/run-evals.mjs --grade-only evals-out/<run>     # re-grade saved answers
 ```
 
 ### Eval results (owned skills)
 
-Latest pass rates on DeepSeek V4 Flash and Qwen 3.8-27b (3 repeats, deterministic checks):
+Latest pass rates on Qwen 3.8-27b (3 repeats, deterministic checks):
 
-| Skill | DeepSeek V4 Flash | Qwen 3.8-27b |
-|---|---|---|
-| agentware-sdk | 100% | 100% |
-| haikei | 100% | 100% |
-| kei-agents | 50% | 100% |
-| kei-api | 50% | — |
-| kei-service-ops | 100% | 100% |
-| kei-setup-doctor | 20% | — |
+| Skill | Qwen 3.8-27b |
+|---|---|
+| agentware-sdk | 100% |
+| haikei | 100% |
+| kei-agents | 100% |
+| kei-api | — |
+| kei-service-ops | 100% |
+| kei-setup-doctor | — |
+
+DeepSeek V4 Flash was removed from the CI eval gate (2026-10); its last
+committed pass rates are kept in
+[benchmark-results/deepseek-v4-flash.md](benchmark-results/deepseek-v4-flash.md).
+GLM-5.3-Flash replaces it in the gate (see `evals/model-profiles.yaml`).
 
 Because the web app renders `skills/` at build time (D-015), a failure here is a
 docs build failure too. When adding a skill, also confirm it is listed in the

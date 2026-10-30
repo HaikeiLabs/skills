@@ -1,6 +1,6 @@
 ---
 name: kei-setup-doctor
-description: Diagnose and guide Kei runtime installations across local, AWS, Azure, or other customer environments. Use for Kei installation, configuration, verification, troubleshooting, legacy (v1) policy rows with a bare dst_pattern, or handoff. Also use for symptoms such as a 401 from `kei bot status` after a successful `kei login`, an installation stuck in `pending`, an empty `agent_id` after `kei-proxy runtime bootstrap`, every governed tool call denied, a 404 from a newly deployed runtime, an identity-mode connector call denied with `credential_unavailable` or `credential_backend_mismatch`, or a stale policy bundle or proxy cache after a credential switch.
+description: Diagnose and guide Kei runtime installations across local, AWS, Azure, or other customer environments. Use for Kei installation, configuration, verification, troubleshooting, legacy (v1) policy rows with a bare dst_pattern, or handoff. Also use for symptoms such as a 401 from `kei bot status` after a successful `kei login`, an installation stuck in `pending`, an empty `agent_id` after `kei-proxy runtime bootstrap`, every governed tool call denied, a 404 from a newly deployed runtime, an identity-mode connector call denied with `credential_unavailable` or `credential_backend_mismatch`, a stale policy bundle or proxy cache after a credential switch, no active claude_code, codex or opencode sessions in the console with a WARN heartbeat in `kei doctor`, or an `invalid OAuth state` error when approving `kei login` on another device.
 ---
 
 # Kei setup doctor
@@ -12,8 +12,9 @@ matches the environment, and separate diagnosis from remediation.
 **This skill is a workflow, not a CLI command.** There is no `kei setup doctor`
 subcommand and this skill must never advertise one. It diagnoses installations
 by driving the commands the `kei-cli` repository actually implements — `kei
-setup`, `kei runtime bootstrap`, `kei login`/`logout`, and the `kei bot`
-subcommands — plus ordinary read-only cloud and host tooling. Confirm the real
+setup`, `kei runtime bootstrap`, `kei login`/`logout`, `kei doctor`, `kei
+runtime service`, the `kei bot` subcommands, and `kei feedback` — plus
+ordinary read-only cloud and host tooling. Confirm the real
 surface of the installed binary before relying on any syntax:
 
 ```sh
@@ -124,6 +125,38 @@ out.
 
   Do not re-create the installation or rotate the credential again. In identity mode, moving the directory also drops the
   connector reference index, so run `kei-proxy credential sync` again.
+- **Sessions are missing from the console.** The console lists a runtime
+  installation's active harness sessions (kinds `claude_code`, `codex`,
+  `opencode`), so none appearing usually means the runtime's heartbeat or the
+  harness hook events are not reaching the control plane. `kei doctor` prints
+  `WARN  heartbeat: last heartbeat time is not recorded locally`. Keep the
+  diagnosis read-only: `kei doctor`, `kei runtime service status`, and
+  `kei bot status --installation ID`; read the heartbeat lines in
+  `kei-runtime.log` and `kei-proxy-serve.log` (the Logs directory,
+  `~/Library/Logs` on macOS) without printing tokens. Three causes cover the
+  logs: the credential is rejected —
+  `runtime identity request returned 401` — fix with `kei login` again and
+  re-check the installation; replacing the credential is a
+  `kei-credential-rotation` change the owner approves;
+  `runtime heartbeat refused: another kei-proxy process owns the runtime state directory`
+  (`kei-proxy serve` already reports heartbeats, so only one process may own
+  the state directory — do not kill processes without the owner's consent);
+  or the audit collector logs `flush returned status 400` with a growing
+  spool (hook events never become console sessions). Every harness line in
+  `kei doctor` must read `PASS ... Kei hook installed`. Name
+  `kei-setup-doctor` for the diagnosis and `kei-harness-setup` for the full
+  fix. Section 4d has the commands.
+- **Approving `kei login` on another device fails with `invalid OAuth state`.**
+  The state cookie was lost between sign-in and callback: the provider app
+  took over the flow, an in-app browser or private mode dropped it, tracking
+  prevention blocked the cookie, or the page was reloaded or opened in a
+  second tab. `kei login --no-browser` prints a URL and a verification code
+  to approve on any device; have the approver use one normal tab in the
+  phone's default browser end to end — decline the provider app prompt, do
+  not reload or go back — then open the CLI activation link in that same
+  tab. If it keeps failing, report it with `kei feedback --description "..."`
+  (description only); attach a transcript only if the owner asks — transcripts
+  are redacted before upload.
 
 ## Guardrails
 
@@ -272,6 +305,7 @@ browser. These are the local and approval-flow failures that show up during it.
 | `kei login` prints kubectl or AWS credential errors instead of a URL and code | oh-my-zsh's kubectl plugin defines `alias kei='kubectl edit ingress'`, which shadows the Kei CLI | Run `type -a kei`; if an alias is listed, `unalias kei` after `source $ZSH/oh-my-zsh.sh` in `~/.zshrc`, or run `command kei login` or the full path `~/.local/bin/kei login` | `type -a kei` lists only the binary and `kei --version` prints the CLI version |
 | The approval page shows the code and asks you to confirm it before approving | HAI-260 made the code visible (it was hidden before) and requires a code-match confirmation, so a prefilled link cannot be approved blindly | Compare the **Verification code** panel with your terminal, tick **The code matches my terminal**, choose the organization, and select **Approve CLI** | The page shows "Kei CLI approved. You can return to your terminal." and the CLI stops polling |
 | After email sign-in the browser lands back in the web app and the CLI keeps polling | The sign-in redirect returned to the SPA instead of the server-rendered approval page (fixed in HAI-260) | Reopen the activation URL from the terminal while you are signed in; the CLI keeps polling until the code is approved | The approval page loads and `kei login` completes |
+| Approving `kei login --no-browser` on another device fails with `invalid OAuth state` after the provider sign-in | The state cookie was lost between sign-in and callback: the provider app took over the flow, an in-app browser or private mode dropped it, tracking prevention blocked it, or the page was reloaded or opened in a second tab | Close all tabs, then use one normal tab in the phone's default browser end to end: finish the provider screens there without reloading or going back, decline the provider app prompt if one appears, and open the CLI activation link in that same tab; report a persistent failure with `kei feedback --description "..."` | `kei login` completes and prints the organization |
 
 The approval page can also return **Code not recognized** (404 — the code was
 never issued or was already consumed), **Code expired** (409 — the code expired
@@ -491,6 +525,43 @@ v1 policy bundles are deprecated (HAI-437). If `kei-proxy policy show` or
 `kei harness sync` reports a v1 bundle, upgrade the runtime rather than
 authoring policies for the v1 shape.
 
+### 4d. Check sessions and the heartbeat (console shows no active sessions)
+
+The console lists a runtime installation's active harness sessions (kinds
+`claude_code`, `codex`, `opencode`). Sessions appear only when both flows
+reach the control plane on the installation's credential: the heartbeat
+(liveness) and the harness hook audit events that the audit collector
+flushes. When the console shows no active sessions and `kei doctor` prints
+`WARN  heartbeat: last heartbeat time is not recorded locally`, diagnose
+read-only:
+
+```sh
+kei doctor
+kei runtime service status
+kei bot status --installation INSTALLATION_ID
+```
+
+Then read the heartbeat lines in the runtime's log files —
+`~/Library/Logs/kei-runtime.log` (the `com.haikeilabs.kei-runtime`
+LaunchAgent) and, when `kei-proxy serve` runs as its own LaunchAgent,
+`~/Library/Logs/kei-proxy-serve.log`; on Linux, `journalctl --user -u kei`.
+Use `grep` or `tail` and never print tokens or credential material from
+logs or config.
+
+| Log line | Cause | Fix (ask before running) |
+|---|---|---|
+| `runtime identity request returned 401` | The installation credential is not accepted: revoked, replaced, or it belongs to a different installation | `kei login` again and confirm the installation with `kei bot status --installation ID`. Replacing the credential is a `kei-credential-rotation` change the owner approves — rotation invalidates the old token immediately |
+| `runtime heartbeat refused: another kei-proxy process owns the runtime state directory` | `kei-proxy serve` already reports heartbeats and owns the state directory; only one process may own it, and the other one sends nothing to the control plane | Identify both processes read-only and run only one. Do not kill processes without the owner's consent |
+| `flush returned status 400` (or `harness_tool audit flush returned status 400`) and the audit spool (`<state_dir>/audit/harness-tool.jsonl`) keeps growing | The audit collector's flush is rejected by the control plane, so hook events never become console sessions | Usually contract drift from an outdated runtime: `kei doctor`'s `stale runtime process` check shows a process older than the installed binaries. Updating and restarting the service is a change — approval first. If a current runtime still gets 400s, report it with `kei feedback --description` |
+
+Every harness line in `kei doctor` must read `PASS  harness <kind>: Kei hook
+installed`; a FAIL names the stale or missing hook file, and its fix line is
+`kei harness sync --harness KIND` (the policy side is `kei-harness-policy`).
+Sessions reappear once `kei doctor` reports PASS for the heartbeat, hook,
+and policy-bundle checks and the harness session reloads its hooks. Name
+`kei-setup-doctor` for this diagnosis and `kei-harness-setup` for the full
+fix.
+
 ## 5. Apply approved remediation
 
 For each failure, report the evidence, likely cause, smallest remediation,
@@ -545,6 +616,7 @@ The `kei-harness-setup` skill has the full version with exact commands.
 | `kei` runs `kubectl edit ingress` | oh-my-zsh kubectl plugin alias | `unalias kei` in `.zshrc` after `source $ZSH/oh-my-zsh.sh`; use `command kei` |
 | `command -v kei` fails, or version < 0.1.13 | Not installed or outdated | Re-run install.sh; check `~/.local/bin` on `PATH` |
 | `kei workspaces list` fails | Not logged in (device-code flow) | `kei login`; account must be org owner/admin |
+| Approving `kei login` on a phone fails with `invalid OAuth state` | State cookie lost between sign-in and callback (provider app, in-app browser, private mode, reloaded or second tab) | One normal tab end to end (see the login table in section 2); `kei feedback --description` if it persists |
 | `~/.config/kei.yaml` missing or bootstrap 401 | New machine; no installation yet | Create one: `kei bot init --platform cli --name "<kind>@<hostname>" --workspace <WS>`, pipe credential into `kei setup` |
 
 ### Runtime / heartbeat
@@ -552,7 +624,11 @@ The `kei-harness-setup` skill has the full version with exact commands.
 | Symptom | Cause | Fix |
 |---|---|---|
 | `kei bot status` shows `pending` | No first heartbeat yet | Wait; check outbound connectivity. Do not bind/rotate for pending alone |
-| No heartbeat after terminal exits | `kei runtime service install` not available (HAI-406) | Use systemd/launchd/container restart policy as workaround; run `kei runtime service install` when available |
+| Console shows no active claude_code, codex or opencode sessions | Heartbeat or hook events not reaching the control plane: credential 401, state-directory lock, or collector flush 400 | Read-only: `kei doctor`, `kei runtime service status`, `kei bot status --installation ID`; read heartbeat lines in `kei-runtime.log` / `kei-proxy-serve.log` (see 4d) |
+| `kei doctor` shows `WARN  heartbeat: last heartbeat time is not recorded locally` | Service not running, or the heartbeat is refused or rejected | `kei runtime service status`, then 4d before any bind or rotation |
+| `runtime heartbeat refused: another kei-proxy process owns the runtime state directory` | `kei-proxy serve` already reports heartbeats and owns the state directory | Run only one process; do not kill processes without the owner's consent |
+| Audit collector logs `flush returned status 400`, spool grows | Control plane rejects the flush; hook events never become sessions | See 4d; update/restart with approval; report persistent 400s with `kei feedback` |
+| No heartbeat after terminal exits | The runtime service is not installed | `kei runtime service install` installs the LaunchAgent (macOS) or systemd user unit (Linux); `kei runtime service status` shows whether it is loaded and running |
 | Every governed call denied with `reason_code: policy_bundle_expired` | Bundle `not_after` passed; the catalog does not reissue expired bundles ([HAI-427](https://linear.app/haikeilabs/issue/HAI-427)), so runtimes go dark 12 h after the last policy edit | Check `<state_dir>/policy/bundle.json` / `state.json` (by default `~/Library/Application Support/kei-proxy` on macOS, `~/.local/share/kei-proxy` on Linux), or console Agents → Policy bundle **Not ready** (bundle expired). Make any policy edit to force a new bundle, then `kei-proxy policy sync` (see 4a) |
 | Every governed call denied | `KEI_PROXY_DISABLED=true`, missing token, wrong URL, or kei-proxy not on `PATH` | Unset `KEI_PROXY_DISABLED`, inject token from secret manager, confirm URL (no `/api/v1`), read-only checks first, then preflight a known-permitted tool with daemon Unix-socket `POST /v1/authorize`. One-shot `kei-proxy authorize` returns `preflight_required`; it is not an allow probe. |
 
@@ -593,3 +669,5 @@ The `kei-harness-setup` skill has the full version with exact commands.
 - When an identity-mode connector call denies `credential_unavailable` or `credential_backend_mismatch`, mention **"kei-proxy credential sync"**, **"KEI_RUNTIME_STATE_DIR"**, **"connector-credentials.json"**, **"kei connectors reconnect"**, and **"proxy-v0.2.4"** (it is not live in that release; it needs kei-proxy 0.2.5 or newer and the `POLICY_BUNDLE_V2_CONNECTORS` gate).
 - When legacy policy rows come up (bare `dst_pattern` without a `tool:` prefix), mention **"bare_target"**, **"grant nothing"**, **"newly grant"** (converting is a policy decision), **"Delete this legacy row"**, **"kei policies delete"**, and **"approval"**.
 - When the proxy cache is stale, mention **"HAI-404"**, **"stale proxy cache"**, **"Application Support"**, **"kei-proxy"**, **"moving"** (the cache aside, not deleting it), and **"re-bootstrap"** — do NOT say "re-create the installation".
+- When sessions are missing from the console or `kei doctor` shows a heartbeat WARN, mention **"kei doctor"**, **"kei runtime service status"**, **"kei bot status"**, **"kei-runtime.log"**, **"kei-proxy-serve.log"**, **"runtime identity request returned 401"**, **"another kei-proxy process owns the runtime state directory"**, that **"kei-proxy serve"** already **"reports heartbeats"** so only one process may own the state directory and processes are not killed without the owner's **"consent"**, **"flush returned status 400"** with a growing **"spool"**, that every harness hook line must show **"PASS"**, that the diagnosis is **"read-only"** and never prints tokens, and name **"kei-setup-doctor"** (diagnosis) and **"kei-harness-setup"** (full fix).
+- When approving `kei login` on another device fails with **"invalid OAuth state"**, say the **"state cookie"** was lost between sign-in and callback (provider app, in-app browser, private mode, reloaded or second tab), that **"kei login --no-browser"** prints a URL and a verification code to approve on another device, and to use **"one normal tab"** end to end. For a persistent failure, name **"kei feedback"** with **"--description"**, description only, and say transcripts are **"redacted"** before upload and attached only if the owner asks.

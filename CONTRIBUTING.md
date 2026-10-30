@@ -84,10 +84,10 @@ These run in CI as well (Node 22, Python yamllint), on pull requests and pushes 
    removing it runs the gate:
 
 ```bash
-node scripts/run-evals.mjs --skill <name> --model-profile deepseek-v4-flash --jobs 1 --repeats 3
+node scripts/run-evals.mjs --skill <name> --model-profile glm-5.3-flash --jobs 1 --repeats 3
 node scripts/run-evals.mjs --skill <name> --model-profile qwen3.8-27b --jobs 1 --repeats 3
 node scripts/run-evals.mjs --skills-dir ~/code/haikei/ev-wt/sk-int-kei/skills \
-  --skill kei-api-gateway --harness opencode --model-profile deepseek-v4-flash --jobs 1
+  --skill kei-api-gateway --harness opencode --model-profile glm-5.3-flash --jobs 1
 ```
 
 `--skills-dir` defaults to this repository's `skills/`; point it at another
@@ -103,10 +103,11 @@ eval's `checks` array; there is no LLM grader. Each repeat is one run, and a
 skill's pass rate is passed runs / total runs. A model profile's `temperature`,
 `top_p`, `top_k` and `seed` are sent with every request when set. Both shipped
 profiles set `thinking: true`, which the runner sends as `chat_template_kwargs`
-with `enable_thinking` (Qwen's template) and `thinking` (DeepSeek V4's), so a
-run doesn't depend on the server's default. DeepSeek samples at temperature 0;
-Qwen uses its recommended thinking-mode sampling (temperature 0.6, top_p 0.95,
-top_k 20), since greedy sampling makes it loop with thinking on. Results go to `evals-out/` (ignored by git), including
+under both spellings (`enable_thinking` and `thinking`), so a run doesn't
+depend on the server's default whichever key the template reads. GLM samples
+at temperature 0; Qwen uses its recommended thinking-mode sampling
+(temperature 0.6, top_p 0.95, top_k 20), since greedy sampling makes it loop
+with thinking on. Results go to `evals-out/` (ignored by git), including
 `benchmark.json` and `benchmark.md`, for your own tuning. Don't commit them
 under `evals/results/`: the agent-evals CI gate and its sticky pull request
 comment are the record. The default threshold is 0.9. The profiles
@@ -114,10 +115,22 @@ resolve their OpenCode model names from `evals/model-profiles.yaml`; `--model`
 can select an explicit model, and `--repeats N` controls response repetitions
 (default 1).
 
+`--cases <spec>` runs only some of a skill's cases, by eval id rather than
+position: a list and/or an inclusive range, such as `--cases 1-8`,
+`--cases 3,7` or `--cases 1-5,9`. The filter is applied before repeats are
+counted, so a selection of 10 cases at `--repeats 3` is 30 runs. That is how a
+suite with more cases than one eval shard fits can be split by case range: each
+shard runs its range, and `benchmark.json` records the canonical selection as
+`case_filter` (null when every case ran). To merge the shards, sum each
+suite's `passed`, `failed`, `errors` and `total` and check that their `cases`
+ids do not overlap. The spec applies to every skill in the run, so an id a
+selected skill does not have is an error: the runner exits 2 instead of running
+a partial or empty selection. `--cases` is for a fresh run, not `--grade-only`.
+
 Each harness run is killed after a timeout, set by `--run-timeout <seconds>`,
 then the profile's `run_timeout_seconds` in `evals/model-profiles.yaml`, then
-600 seconds. `qwen3.8-27b` uses 1800 because opencode runs on the shared GPU
-can exceed 600; `deepseek-v4-flash` uses the default. A run that hits the
+600 seconds. `glm-5.3-flash` and `qwen3.8-27b` use 1800 because opencode runs
+on the shared GPU hosts can exceed 600. A run that hits the
 timeout gets `"timed_out": true` in its `timing.json`. It counts as a benchmark
 error with reason `timeout`, and the runner prints
 `N runs timed out after Xs`. If a whole sweep times out, raise
@@ -156,6 +169,12 @@ configuration lives in `scripts/lib/harnesses.mjs` and is covered by
   apps, browsing, computer use and image generation disabled. Codex has no
   per-path read rule and loads skills through its read-only shell, so it can
   still read other files on disk.
+- **Pi:** `--print` with only the `read` tool enabled; extensions, MCP, prompt
+  templates, themes and context-file discovery are disabled. The staged skill
+  is passed explicitly and Pi can read its `SKILL.md` from the scratch project;
+  model-profile runs get a generated custom-provider `models.json` under an
+  isolated `PI_CODING_AGENT_DIR`, with a temporary `HOME` so user skills and
+  settings do not load. Shell, editing, web, and other tools are unavailable.
 
 If a skill needs a tool to answer, that's a finding about the skill, not a
 reason to widen the sandbox.
@@ -163,6 +182,66 @@ reason to widen the sandbox.
 CI currently runs `verify-evals` non-strict while
 skill eval fixtures migrate. Use `node scripts/verify-evals.mjs --strict` to
 require one check per expectation.
+
+## Running the eval gate locally
+
+The agent-evals gate runs [`scripts/run-evals.mjs`](scripts/run-evals.mjs)
+against the two model profiles in
+[`evals/model-profiles.yaml`](evals/model-profiles.yaml). You can run the
+same thing locally to tune a skill before opening a pull request.
+
+**Prerequisites.** The `opencode` harness CLI on PATH, version 1.x — the
+runner calls `opencode run --dir`, which opencode 2.x no longer supports.
+Install a pinned 1.x release into a scratch directory and put it on PATH:
+
+```bash
+mkdir -p /tmp/eval-tools
+cd /tmp/eval-tools
+npm i opencode-ai@1.19.5
+export PATH="$PWD/node_modules/.bin:$PATH"
+```
+
+**Model server URLs.** Each profile reads its server URL from the
+environment variable named by its `base_url_env`, and the runner refuses to
+start without it:
+
+```bash
+# glm-5.3-flash — EVAL_DEEPSEEK_BASE_URL is a historical name; it now
+# points at the GLM server.
+export EVAL_DEEPSEEK_BASE_URL=http://spark-f5ea:8000/v1
+# qwen3.8-27b
+export EVAL_QWEN_BASE_URL=http://pedrogpt:8000/v1
+```
+
+**A worked run.** One skill against the GLM profile, three repeats, no
+without-skill baseline, cases 1–8 only:
+
+```bash
+node scripts/run-evals.mjs --skills-dir ./skills --skill <name> \
+  --model-profile glm-5.3-flash --repeats 3 --no-baseline --cases 1-8
+```
+
+`--skills-dir` defaults to this repository's `skills/`; point it at another
+repo's `skills/` or a `.agents/skills` directory to run an internal skill.
+`--model-profile` requires the default `--harness opencode`. The full flag
+list is in the [run-evals section above](#adding-or-changing-a-skill).
+
+**Where results land.** Everything goes to
+`evals-out/<harness>-<timestamp>/` (git-ignored; override with `--out`):
+`benchmark.json` and `benchmark.md` at the top, and per case
+`eval-N-<skill>-<id>/<config>/run-N/` with `response.md`, `grading.json`
+and `timing.json`. **Do not commit local results** — the agent-evals CI
+gate and its sticky pull request comment are the record (see the Evals
+section of [AGENTS.md](AGENTS.md)).
+
+**The Qwen box runs one model at a time.** `qwen3.8-27b` is served by a
+single shared GPU at concurrency 1, so run the Qwen profile at `--jobs 1`
+and through the Qwen lock, and not while the CI gate or another worker is
+using the box (AGENTS.md, Evals rule 6).
+
+Exit codes: 0 every suite at or above `--threshold` (default 0.9), 1 a
+suite below it, 2 a run that did not complete (harness failure, timeout,
+usage error).
 
 ## Licensing and naming
 

@@ -6,8 +6,8 @@ Eval cases for the kei-teams-ingress skill (Microsoft Teams and Bot Framework in
 
 ```bash
 node scripts/run-evals.mjs --skill kei-teams-ingress --harness opencode \
-  --model-profile deepseek-v4-flash \
-  --out evals-out/kei-teams-ingress-deepseek-$(date +%F) --jobs 1
+  --model-profile glm-5.3-flash \
+  --out evals-out/kei-teams-ingress-glm-$(date +%F) --jobs 1
 ```
 
 ## Results

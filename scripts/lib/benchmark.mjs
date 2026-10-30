@@ -4,7 +4,10 @@
 // over repeats that tool-call evals use. With one repeat a run is a case.
 // cases[].passed is true only when every run passed; cases[].runs and
 // cases[].passed_runs are additive v1 fields.
-export function makeBenchmark(results, { harness, modelProfile = null, model = null, repeats = 1, gitSha, createdAt = new Date().toISOString() }) {
+// case_filter records the --cases spec this run covered (null when every case
+// ran), so a report merge can tell the shards of a suite apart and check that
+// together they covered every case.
+export function makeBenchmark(results, { harness, modelProfile = null, model = null, repeats = 1, caseFilter = null, gitSha, createdAt = new Date().toISOString() }) {
   const grouped = {};
   for (const row of results) {
     if (row.config !== 'with_skill') continue;
@@ -34,7 +37,7 @@ export function makeBenchmark(results, { harness, modelProfile = null, model = n
       total: counts.total, pass_rate: counts.total ? counts.passed / counts.total : 0, cases: counts.cases };
   });
   return { schema: 'haikei.eval-benchmark.v1', harness, model_profile: modelProfile,
-    model, created_at: createdAt, git_sha: gitSha, repeats, results: skillResults };
+    model, created_at: createdAt, git_sha: gitSha, case_filter: caseFilter, repeats, results: skillResults };
 }
 
 export function belowThreshold(benchmark, threshold) {

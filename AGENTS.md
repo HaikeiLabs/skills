@@ -14,7 +14,7 @@ whichever harness you work in (Claude Code, Codex, opencode).
    tuning, and their output stays in `evals-out/`, which git ignores.
 2. **Thinking on, fixed sampling, repeats averaged.** The model profiles in
    `evals/model-profiles.yaml` set `thinking: true` and a fixed `seed` for
-   every model. DeepSeek samples at `temperature: 0`; Qwen uses its
+   every model. GLM samples at `temperature: 0`; Qwen uses its
    recommended thinking-mode sampling (`temperature: 0.6`, `top_p: 0.95`,
    `top_k: 20`), because greedy sampling makes it loop with thinking on (owner
    decision 2026-10-13). Both runners send these with every request. Run each case 2-3 times
@@ -22,7 +22,7 @@ whichever harness you work in (Claude Code, Codex, opencode).
    way as tool-call evals, so one miss isn't a regression. Check whether the
    same case fails across runs.
 3. **90% per suite per model.** The gate fails when any suite is below 90% on
-   either model profile, `deepseek-v4-flash` or `qwen3.8-27b`. Reach at least
+   either model profile, `glm-5.3-flash` or `qwen3.8-27b`. Reach at least
    90% locally on both before you open a pull request.
 4. **Who authors pull requests.** Every worker commit, push and PR is
    AgentPedro's (see the `kei-worker-git-identity` skill), never the owner's.

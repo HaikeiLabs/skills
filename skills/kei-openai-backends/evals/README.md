@@ -6,8 +6,8 @@ Eval cases for the kei-openai-backends skill (OpenAI-compatible LLM backend inte
 
 ```bash
 node scripts/run-evals.mjs --skill kei-openai-backends --harness opencode \
-  --model-profile deepseek-v4-flash \
-  --out evals-out/kei-openai-backends-deepseek-$(date +%F) --jobs 1
+  --model-profile glm-5.3-flash \
+  --out evals-out/kei-openai-backends-glm-$(date +%F) --jobs 1
 ```
 
 ## Results

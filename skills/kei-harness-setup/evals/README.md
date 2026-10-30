@@ -1,13 +1,19 @@
 # kei-harness-setup evals
 
-Eval cases for the harness setup skill.
+Eval cases for the harness setup skill. Cases 17-19 cover connector
+bindings (HAI-145): creating one with `kei connector-bindings create`, that a
+binding is wiring and not a permission gate (ADR-038), and correcting a
+nonexistent `kei connectors bind` command. Cases 20-21 cover the Cursor
+harness (HAI-882): native-first rendering into `~/.cursor/cli-config.json`
+permissions with fail-closed sync on kinds Cursor cannot gate (`skill:`), and
+that the Cursor commands are not released yet (kei-cli#233).
 
 ## Running
 
 ```bash
 EVAL_DEEPSEEK_BASE_URL=<openai-compatible endpoint> \
   node scripts/run-evals.mjs --skill kei-harness-setup \
-  --model-profile deepseek-v4-flash --jobs 2 --repeats 1
+  --model-profile glm-5.3-flash --jobs 2 --repeats 1
 ```
 
 The runner grades each expectation with the deterministic `checks` array

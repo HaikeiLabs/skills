@@ -9,7 +9,7 @@ KeiProxyEvaluator construction in Python.
 
 ```bash
 node scripts/run-evals.mjs --skill agentware-sdk --harness opencode \
-  --model ray/deepseek-ai/DeepSeek-V4-Flash --jobs 2
+  --model-profile glm-5.3-flash --jobs 2
 ```
 
 ## Results

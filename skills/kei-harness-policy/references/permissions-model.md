@@ -49,6 +49,14 @@ renders applicable policy into the harness configuration; use
 - `skill:<name>` describes a skill.
 - `path:<pattern>` describes a path target.
 
+Renderers per kind: Claude Code (`~/.claude/settings.json` →
+`permissions.allow`/`permissions.deny`), Codex (`~/.codex/rules/kei.rules` →
+`prefix_rule` entries), OpenCode (`opencode.json` → `permission.bash`), and
+Cursor (`~/.cursor/cli-config.json` → `permissions.allow`/`permissions.deny`).
+Cursor is pending kei-cli#233 and not released yet. It has no `skill:` token —
+when the policy set contains a `skill:` policy in scope for the Cursor
+harness, sync fails closed: it exits non-zero and writes nothing.
+
 A successful sync is not proof that the policy model is correct. Check the
 matching group policy in the console and review the dry-run output. Harnesses
 continue to apply their own native behavior to requests that are not represented

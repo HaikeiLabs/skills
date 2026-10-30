@@ -31,22 +31,31 @@ export const OPENCODE_READ_DENIED = ['*/evals/*', 'evals/*'];
 export const CODEX_DISABLED_FEATURES = ['multi_agent', 'apps', 'browser_use', 'in_app_browser',
   'computer_use', 'image_generation'];
 
-// OpenCode v2 uses ordered action/resource/effect permission rules. The
-// blanket deny is followed by the only capabilities the eval needs: loading
-// the skill under test and reading the isolated scratch project, excluding
-// eval fixtures. The scratch project contains only the staged skill, so
-// project reads let OpenCode inspect its root and skill references.
+// opencode 1.18 permission config (keys from https://opencode.ai/config.json).
+// The last matching rule wins, so the blanket deny comes first. A permission
+// whose last rule is a `*` deny is removed from the model's tool list, so
+// task (subagents), bash, edit/write/patch, glob, grep, web and the rest are
+// not offered at all. `read` is matched against the path relative to the
+// worktree: `.opencode/skills/...` inside a git checkout, or the absolute path
+// without its leading slash otherwise, so both forms are allowed.
+export const OPENCODE_SKILL_READ_PATTERNS = ['.opencode/skills/*', '*/.opencode/skills/*'];
+export const OPENCODE_DENIED = ['task', 'bash', 'edit', 'glob', 'grep', 'list', 'lsp', 'webfetch',
+  'websearch', 'todowrite', 'question', 'external_directory', 'doom_loop'];
+
+// `skill` allows only the skill under test, so a built-in or stray skill
+// cannot stand in for it (the without_skill run has the same rule; the skill
+// is simply not installed there).
 export function opencodePermission(skill) {
-  return [
-    { action: '*', resource: '*', effect: 'deny' },
-    { action: 'skill', resource: skill, effect: 'allow' },
-    { action: 'read', resource: '*', effect: 'allow' },
-    ...OPENCODE_READ_DENIED.map((resource) => ({ action: 'read', resource, effect: 'deny' })),
-    { action: 'external_directory', resource: '*', effect: 'deny' },
-  ];
+  return {
+    '*': 'deny',
+    ...Object.fromEntries(OPENCODE_DENIED.map((name) => [name, 'deny'])),
+    skill: { '*': 'deny', [skill]: 'allow' },
+    read: { '*': 'deny', ...Object.fromEntries(OPENCODE_SKILL_READ_PATTERNS.map((p) => [p, 'allow'])),
+      ...Object.fromEntries(OPENCODE_READ_DENIED.map((p) => [p, 'deny'])) },
+  };
 }
 
-// The profile's sampling settings (EV-C1 §3). OpenCode sends a model's
+// The profile's sampling settings (EV-C1 §3). opencode 1.18 sends a model's
 // `options` in the body of every chat completions request, and otherwise sends
 // no temperature at all, so the server would sample at its own default.
 //
@@ -69,7 +78,7 @@ export function samplingOptions(opts) {
 }
 
 export function opencodeConfig(opts, skill, baseURL) {
-  const config = { permissions: opencodePermission(skill) };
+  const config = { permission: opencodePermission(skill) };
   if (opts.modelProfile) {
     const [, ...modelParts] = opts.model.split('/');
     const modelId = modelParts.join('/');
@@ -102,6 +111,20 @@ export function opencodeEnv(config, cwd) {
   };
 }
 
+export function piModelConfig(opts, baseURL) {
+  const [, ...modelParts] = opts.model.split('/');
+  const modelId = modelParts.join('/');
+  const samplingParams = {};
+  if (opts.temperature !== undefined) samplingParams.temperature = opts.temperature;
+  if (opts.topP !== undefined) samplingParams.top_p = opts.topP;
+  if (opts.topK !== undefined) samplingParams.top_k = opts.topK;
+  if (opts.seed !== undefined) samplingParams.seed = opts.seed;
+  return { providers: { eval: { baseUrl: baseURL, api: 'openai-completions', apiKey: 'none', models: [
+    { id: modelId, name: modelId, reasoning: true,
+      ...(Object.keys(samplingParams).length ? { samplingParams } : {}) },
+  ] } } };
+}
+
 export const HARNESSES = {
   claude: {
     skillDir: '.claude/skills',
@@ -126,7 +149,7 @@ export const HARNESSES = {
   },
   opencode: {
     skillDir: '.opencode/skills',
-    command: (prompt, model) => ['opencode', ['run', '--standalone',
+    command: (prompt, model, cwd) => ['opencode', ['run', '--dir', cwd,
       ...(model ? ['-m', model] : []), prompt]],
     // `opencode run` has no tool flags; the sandbox is inline config.
     // The run also ignores the user's opencode setup: an empty config home
@@ -139,6 +162,33 @@ export const HARNESSES = {
       const baseURL = envName ? process.env[envName] : null;
       if (envName && !baseURL) throw new Error(`model profile requires ${envName}`);
       return opencodeEnv(opencodeConfig(opts, skill, baseURL), cwd);
+    },
+  },
+  pi: {
+    skillDir: '.agents/skills',
+    command: (prompt, model, cwd, _outFile, opts = {}) => {
+      const skillsRoot = path.join(cwd, '.agents/skills');
+      const skill = path.join(skillsRoot, opts.skill ?? '');
+      const skillArgs = opts.skill && fs.existsSync(path.join(skill, 'SKILL.md')) ? ['--skill', skill] : [];
+      return ['pi', ['--no-session', '--tools', 'read', '--no-extensions', '--no-mcp',
+        '--no-prompt-templates', '--no-themes', '--no-context-files',
+        '--thinking', opts.thinking === false ? 'off' : 'high', ...(model ? ['--model', model] : []), ...skillArgs,
+        '--print', '--', prompt]];
+    },
+    env: (opts, { cwd }) => {
+      const envName = opts.baseUrlEnv;
+      const baseURL = envName ? process.env[envName] : null;
+      if (envName && !baseURL) throw new Error(`model profile requires ${envName}`);
+      const agentDir = path.join(cwd, '.eval-pi-agent');
+      const home = path.join(cwd, '.eval-home');
+      fs.mkdirSync(agentDir, { recursive: true });
+      fs.mkdirSync(home, { recursive: true });
+      if (opts.modelProfile) {
+        fs.writeFileSync(path.join(agentDir, 'models.json'), JSON.stringify(piModelConfig(opts, baseURL), null, 2));
+      }
+      return { HOME: home, PI_CODING_AGENT_DIR: agentDir,
+        PI_CODING_AGENT_SESSION_DIR: path.join(cwd, '.eval-pi-sessions'),
+        PI_TELEMETRY: '0' };
     },
   },
 };

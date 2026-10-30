@@ -406,23 +406,24 @@
     },
     {
       "id": 12,
-      "prompt": "I am choosing a Kei harness. List all six user-facing harness types and say when to choose each. Explain which type the API/catalog calls kind custom, give its registration command, and show the manifest sync command and minimum kei version. Do not execute anything.",
-      "expected_output": "Names SDK (Agentware), Claude Code, Codex, Pi, OpenCode, and Open WebUI, with a brief selection use for each. States API/catalog kind custom maps only to SDK (Agentware), not Pi or Open WebUI. Gives kei harness add --kind custom and kei harness sync --harness custom --manifest tools.json, with kei >= 0.1.33.",
+      "prompt": "I am choosing a Kei harness. List all seven user-facing harness types and say when to choose each. Explain which type the API/catalog calls kind custom, give its registration command, and show the manifest sync command and minimum kei version. Do not execute anything.",
+      "expected_output": "Names SDK (Agentware), Claude Code, Codex, Pi, OpenCode, Cursor, and Open WebUI, with a brief selection use for each, noting Cursor's commands are pending kei-cli#233 (not released yet). States API/catalog kind custom maps only to SDK (Agentware), not Pi or Open WebUI. Gives kei harness add --kind custom and kei harness sync --harness custom --manifest tools.json, with kei >= 0.1.33.",
       "expectations": [
-        "The response names the six harness types.",
+        "The response names the seven harness types.",
         "The response maps kind custom to SDK (Agentware).",
         "The response does not describe Open WebUI or Pi as custom or SDK.",
         "The response gives the exact registration and manifest sync commands and the minimum kei version."
       ],
       "checks": [
         {
-          "text": "The response names the six harness types.",
+          "text": "The response names the seven harness types.",
           "contains_all": [
             "SDK (Agentware)",
             "Claude Code",
             "Codex",
             "Pi",
             "OpenCode",
+            "Cursor",
             "Open WebUI"
           ]
         },
@@ -550,6 +551,204 @@
           "text": "gives the published Go module install command",
           "contains_all": [
             "go get github.com/haikeilabs/agentware/go"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "Our admin wants to wire the GitHub connector in workspace acme-prod to our coding agent from the terminal. What is the exact kei command to create that binding, and how do we see the bindings afterwards? Do not execute anything.",
+      "expected_output": "Use `kei connector-bindings create --agent AGENT_ID --connector CONNECTOR_ID --workspace WORKSPACE` (the agent UUID comes from `kei bot agents list --installation ID` or the console; --connector takes an ID or name; --capabilities defaults to the connector's declared capabilities). Review the wiring with `kei connector-bindings list --workspace WORKSPACE` (or --agent AGENT_ID) and `get BINDING_ID`; remove with `kei connector-bindings delete BINDING_ID --workspace WORKSPACE --yes`. The command shipped on kei-cli main (kei-cli#228) after the v0.2.20 release, so check `kei help` for the installed binary — an older CLI prints `unknown command \"connector-bindings\"`; the console can do the same wiring. A binding is wiring only, never a permission gate: the workspace policy still decides access.",
+      "expectations": [
+        "The response gives `kei connector-bindings create` with --agent and --connector (and --workspace).",
+        "The response shows how to review bindings afterwards with `kei connector-bindings list`.",
+        "The response says to check the installed CLI help/version because the command is newer than the released CLI (older CLIs print `unknown command`).",
+        "The response states the binding is wiring only and the workspace policy still decides access."
+      ],
+      "checks": [
+        {
+          "text": "The response gives `kei connector-bindings create` with --agent and --connector (and --workspace).",
+          "contains_all": [
+            "kei connector-bindings create",
+            "--agent",
+            "--connector",
+            "--workspace"
+          ]
+        },
+        {
+          "text": "The response shows how to review bindings afterwards with `kei connector-bindings list`.",
+          "contains_all": [
+            "kei connector-bindings list"
+          ]
+        },
+        {
+          "text": "The response says to check the installed CLI help/version because the command is newer than the released CLI (older CLIs print `unknown command`).",
+          "contains_any": [
+            "unknown command",
+            "0.2.20",
+            "kei-cli#228",
+            "kei help"
+          ]
+        },
+        {
+          "text": "The response states the binding is wiring only and the workspace policy still decides access.",
+          "regex": "wiring[\\s\\S]{0,400}polic|polic[\\s\\S]{0,400}wiring"
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "I created a connector binding from our agent to the Linear connector, but the agent's Linear reads are still denied by Kei. Would deleting and recreating the binding fix the denial? Do not execute anything.",
+      "expected_output": "No. A connector binding is wiring only and never a permission gate (ADR-038 §4): it is never consulted to decide allow or deny. Access comes from the workspace policy — group membership plus a matching allow target, and any matching deny wins — so recreating the binding changes nothing. Check the workspace policies instead (`kei policy list`, or the console under Agents → Groups), fix the policy, and re-prove with the denied call.",
+      "expectations": [
+        "The response does not claim that recreating the binding will fix the denial.",
+        "The response answers the question negatively (recreating the binding will not fix it).",
+        "The response says a connector binding is wiring only, never a permission gate.",
+        "The response points at the workspace policy (policy list / console / group membership) as the thing to check."
+      ],
+      "checks": [
+        {
+          "text": "The response does not claim that recreating the binding will fix the denial.",
+          "not_contains": [
+            "recreating the binding will fix",
+            "re-creating the binding will fix",
+            "recreating the binding fixes",
+            "recreating the binding will grant",
+            "recreating the binding will allow",
+            "recreating the binding will restore",
+            "deleting and recreating will fix",
+            "yes, recreating",
+            "yes, delete and recreate"
+          ]
+        },
+        {
+          "text": "The response answers the question negatively (recreating the binding will not fix it).",
+          "regex": "(\\bno\\b|\\bnot\\b|\\bnever\\b|won't|will not|doesn't|does not|no effect|changes nothing)[\\s\\S]{0,300}(wiring|permission gate|polic)|(wiring|permission gate|polic)[\\s\\S]{0,300}(\\bno\\b|\\bnot\\b|\\bnever\\b)"
+        },
+        {
+          "text": "The response says a connector binding is wiring only, never a permission gate.",
+          "contains_any": [
+            "wiring only",
+            "never a permission gate",
+            "not a permission gate",
+            "wiring, never"
+          ]
+        },
+        {
+          "text": "The response points at the workspace policy (policy list / console / group membership) as the thing to check.",
+          "regex": "polic[\\s\\S]{0,300}(check|list|console|group)|(check|list|console|group)[\\s\\S]{0,300}polic"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "A teammate told me to run `kei connectors bind --agent <uuid> --connector <id> --workspace acme-prod` to wire our agent to a connector. Check that command against the kei CLI and give me the correct way to do it. Do not execute anything.",
+      "expected_output": "There is no `kei connectors bind` subcommand — `kei connectors` covers create/test/list/get/connect/reconnect/delete plus manifests. The binding command is `kei connector-bindings create --agent AGENT_ID --connector CONNECTOR_ID [--capabilities A,B] --workspace WORKSPACE` (plus list/get/delete; delete needs --yes). A binding is wiring only, never a permission gate. Check `kei help` for the installed binary: connector-bindings shipped on kei-cli main (kei-cli#228) after v0.2.20, so an older CLI prints `unknown command \"connector-bindings\"`.",
+      "expectations": [
+        "The response says there is no `kei connectors bind` subcommand (correcting the premise).",
+        "The response gives the real command: `kei connector-bindings create` with --agent and --connector.",
+        "The response tells the user to check the installed CLI help (`kei help`) for the version they have."
+      ],
+      "checks": [
+        {
+          "text": "The response says there is no `kei connectors bind` subcommand (correcting the premise).",
+          "regex": "^(?=[\\s\\S]*connectors bind)(?=[\\s\\S]*(no such|does not exist|doesn't exist|is not a (real |valid )?(sub)?command|isn't a (real |valid )?(sub)?command|not a real|not a valid|there is no))"
+        },
+        {
+          "text": "The response gives the real command: `kei connector-bindings create` with --agent and --connector.",
+          "contains_all": [
+            "kei connector-bindings create",
+            "--agent",
+            "--connector"
+          ]
+        },
+        {
+          "text": "The response tells the user to check the installed CLI help (`kei help`) for the version they have.",
+          "contains_any": [
+            "kei help",
+            "kei --version"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "prompt": "We want our Cursor agents governed by Kei. Where does Kei put its policy for Cursor, and what happens to `kei harness sync --harness cursor` if the policy set also contains a `skill:` policy in scope for the Cursor harness? Do not execute anything.",
+      "expected_output": "Kei renders natively first: the policy bundle becomes Cursor CLI config permissions in ~/.cursor/cli-config.json — permissions.allow / permissions.deny with tokens like Shell(base), Read(glob), Write(glob), WebFetch(domain), Mcp(server:tool); deny beats allow. Hooks are used only where the native config cannot express a policy. Cursor has no skill: token, so sync fails closed: it exits non-zero and writes nothing when a skill: policy is in scope — fix it by scoping the skill: policy to harnesses that can gate it (e.g. a harness:claude_code src pattern) or removing it.",
+      "expectations": [
+        "The response says Kei renders policy into Cursor's native CLI config (~/.cursor/cli-config.json permissions).",
+        "The response names the native permission tokens.",
+        "The response says sync fails closed on skill: policies.",
+        "The response says the failed sync writes nothing."
+      ],
+      "checks": [
+        {
+          "text": "The response says Kei renders policy into Cursor's native CLI config (~/.cursor/cli-config.json permissions).",
+          "contains_all": [
+            "~/.cursor/cli-config.json",
+            "permissions"
+          ]
+        },
+        {
+          "text": "The response names the native permission tokens.",
+          "contains_all": [
+            "Shell",
+            "WebFetch",
+            "Mcp"
+          ]
+        },
+        {
+          "text": "The response says sync fails closed on skill: policies.",
+          "regex": "fail[sS]? closed[\\s\\S]{0,400}skill:|skill:[\\s\\S]{0,400}fail[sS]? closed"
+        },
+        {
+          "text": "The response says the failed sync writes nothing.",
+          "contains_any": [
+            "writes nothing",
+            "write nothing",
+            "nothing is written",
+            "no changes are written",
+            "without writing"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "prompt": "Is `kei connect cursor` available in the released kei CLI today? I want to connect our Cursor setup to Kei. Do not execute anything.",
+      "expected_output": "No. Cursor support is not released yet: kei-cli#233 is in review. On a released kei-cli (0.2.20 is current), `kei connect cursor` and `kei harness sync --harness cursor` are rejected — they fail closed (exit non-zero, nothing written) rather than half-configure anything. Check `kei help` for what your installed version accepts.",
+      "expectations": [
+        "The response says Cursor support is not released yet.",
+        "The response names kei-cli#233 as the pending change.",
+        "The response tells the user to check the installed CLI help."
+      ],
+      "checks": [
+        {
+          "text": "The response says Cursor support is not released yet.",
+          "contains_any": [
+            "not released",
+            "not yet released",
+            "isn't released",
+            "not shipped",
+            "hasn't shipped",
+            "not available yet"
+          ]
+        },
+        {
+          "text": "The response names kei-cli#233 as the pending change.",
+          "contains_any": [
+            "#233",
+            "PR 233",
+            "pr 233",
+            "kei-cli 233"
+          ]
+        },
+        {
+          "text": "The response tells the user to check the installed CLI help.",
+          "contains_any": [
+            "kei help",
+            "kei --version",
+            "installed CLI help"
           ]
         }
       ]

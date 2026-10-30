@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { makeBenchmark } from './benchmark.mjs';
@@ -14,10 +15,23 @@ test('both shipped profiles set an 1800 s run timeout, a fixed seed and thinking
   assert.deepEqual(parseModelProfile(profiles, 'qwen3.8-27b'),
     { model: 'eval/qwen3.8-27b', baseUrlEnv: 'EVAL_QWEN_BASE_URL', runTimeoutSeconds: 1800, temperature: 0.6,
       topP: 0.95, topK: 20, seed: 42, thinking: true });
-  assert.deepEqual(parseModelProfile(profiles, 'deepseek-v4-flash'),
-    { model: 'eval/deepseek-ai/DeepSeek-V4-Flash', baseUrlEnv: 'EVAL_DEEPSEEK_BASE_URL', runTimeoutSeconds: 1800,
+  assert.deepEqual(parseModelProfile(profiles, 'glm-5.3-flash'),
+    { model: 'eval/nvidia/GLM-5.3-Flash-FP4-Local', baseUrlEnv: 'EVAL_DEEPSEEK_BASE_URL', runTimeoutSeconds: 1800,
       temperature: 0, topP: undefined, topK: undefined, seed: 42, thinking: true });
+  // The DeepSeek V4 Flash server was removed; its profile is gone too.
+  assert.equal(parseModelProfile(profiles, 'deepseek-v4-flash'), null);
   assert.equal(parseModelProfile(profiles, 'no-such-profile'), null);
+});
+
+test('the agent-evals gate runs exactly the shipped profiles', () => {
+  const workflow = readFileSync(path.join(ROOT, '.github/workflows/agent-evals.yaml'), 'utf8');
+  const line = workflow.match(/^  EVAL_PROFILES: (.+)$/m)?.[1];
+  assert.ok(line, 'agent-evals.yaml sets EVAL_PROFILES');
+  // YAML single quotes around the flow sequence.
+  const gate = JSON.parse(line.replace(/^'|'$/g, '')).sort();
+  const shipped = [...profiles.matchAll(/^  ([a-z0-9][a-z0-9._-]*):\s*$/gm)].map((m) => m[1]).sort();
+  assert.ok(shipped.length >= 1, 'model-profiles.yaml ships at least one profile');
+  assert.deepEqual(gate, shipped);
 });
 
 test('parses profile fields in any order and stops at the next profile', () => {
@@ -80,6 +94,63 @@ test('the timeout also ends subprocesses that hold the output pipe open', async 
   const res = await runCommand('/bin/sh', ['-c', 'sleep 30'], { cwd: ROOT, timeoutMs: 200 });
   assert.equal(res.timedOut, true);
   assert.ok(res.ms < 5_000, `run lasted ${res.ms} ms after a 200 ms timeout`);
+});
+
+// HAI-573: a stalled harness can hold an eval slot for hours. The timeout must
+// end the harness AND the processes it started, and the run must be reported as
+// a timeout error rather than hanging the job.
+test('the timeout kills the harness process tree, not just the harness process', async () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'skill-eval-tree-'));
+  const pidFile = path.join(dir, 'worker.pid');
+  // A harness that starts a worker process and then hangs. Killing only the
+  // harness process would leave the worker running.
+  const harness = `
+    const { spawn } = require('node:child_process');
+    const fs = require('node:fs');
+    const worker = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 30_000)'], { stdio: 'ignore' });
+    fs.writeFileSync(process.argv[1], String(worker.pid));
+    setTimeout(() => {}, 30_000);
+  `;
+  try {
+    const res = await runCommand(process.execPath, ['-e', harness, pidFile], { cwd: ROOT, timeoutMs: 300 });
+    assert.equal(res.timedOut, true);
+    assert.equal(runError(res), 'timeout');
+    assert.deepEqual({ ...timingRecord(res, 0.3), total_duration_seconds: undefined },
+      { total_duration_seconds: undefined, exit_code: null, timed_out: true, timeout_seconds: 0.3 });
+    const pid = Number(readFileSync(pidFile, 'utf8'));
+    assert.ok(pid > 0, 'the harness recorded its worker pid');
+    // The worker gets the group's SIGTERM too; allow a moment for it to be reaped.
+    const gone = async () => {
+      for (let i = 0; i < 40; i++) {
+        try {
+          process.kill(pid, 0);
+        } catch {
+          return true;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      return false;
+    };
+    assert.equal(await gone(), true, `worker process ${pid} survived the run timeout`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// HAI-573: the timeout is per harness run, not per job. A second hung run must
+// get its own full timeout instead of inheriting the first run's deadline.
+test('the timeout applies per run, so a second hung run is still killed', async () => {
+  const started = Date.now();
+  const first = await runCommand(process.execPath, ['-e', 'setTimeout(() => {}, 30_000)'], { cwd: ROOT, timeoutMs: 200 });
+  const second = await runCommand(process.execPath, ['-e', 'setTimeout(() => {}, 30_000)'], { cwd: ROOT, timeoutMs: 200 });
+  const elapsed = Date.now() - started;
+  assert.equal(first.timedOut, true);
+  assert.equal(second.timedOut, true);
+  assert.equal(runError(first), 'timeout');
+  assert.equal(runError(second), 'timeout');
+  // A per-job timeout would have killed only the first run and left the second
+  // hanging for 30 s.
+  assert.ok(elapsed < 5_000, `two runs took ${elapsed} ms, so the timeout was not per run`);
 });
 
 test('a run that finishes in time is not marked timed out', async () => {

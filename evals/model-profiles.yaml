@@ -1,21 +1,24 @@
 profiles:
-  deepseek-v4-flash:
-    opencode_model: eval/deepseek-ai/DeepSeek-V4-Flash
+  glm-5.3-flash:
+    opencode_model: eval/nvidia/GLM-5.3-Flash-FP4-Local
+    # Historical name: EVAL_DEEPSEEK_BASE_URL now points at the GLM server
+    # (DeepSeek V4 Flash was removed). Renaming the variable is a runner-env
+    # change outside this repository.
     base_url_env: EVAL_DEEPSEEK_BASE_URL
     # Slot count (EV-C1 §3): the CI gate runs this many evals at once.
-    concurrency: 4
+    concurrency: 2
     # Sandboxed harness runs can exceed 600 s on complex prompts.
     run_timeout_seconds: 1800
-    # Runs (cases x repeats) per CI eval job: 20 runs at ~0.6 to 1.5 runs/min
-    # fits the 30-minute pull request timeout. Optional; the agent-evals
-    # workflow's EVAL_SHARD_RUNS applies when a profile has none.
-    shard_runs: 20
+    # Runs (cases x repeats) per CI eval job: starting value, sized like
+    # qwen3.8-27b's shard; retune once the GLM server's run rate is measured.
+    shard_runs: 8
     # Greedy sampling with a fixed seed (EV-C1 §3), so a rerun of an unchanged
     # skill asks the model the same question the same way.
     temperature: 0
     seed: 42
-    # Thinking on (owner decision 2026-10-13): with it off, DeepSeek fell to
-    # 44-72% on several skills.
+    # Thinking on (EV-C1 §3, repo convention): the runner sends both
+    # chat_template_kwargs spellings (enable_thinking and thinking), so the
+    # GLM template's own switch is covered whichever it reads.
     thinking: true
   qwen3.8-27b:
     opencode_model: eval/qwen3.8-27b

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, statSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { CLAUDE_SETTINGS, CLAUDE_TOOLS, CODEX_DISABLED_FEATURES, HARNESSES, opencodeConfig } from './harnesses.mjs';
@@ -13,10 +13,13 @@ const SKILL = 'kei-openai-backends';
 // edits, and the web.
 const FORBIDDEN = ['task', 'bash', 'edit', 'glob', 'grep', 'list', 'webfetch', 'websearch'];
 
-// OpenCode v2 semantics: ordered action/resource/effect rules use simple
-// wildcards, with the last matching rule deciding.
-function rules(permissions) {
-  return permissions.map(({ action, resource, effect }) => ({ permission: action, pattern: resource, action: effect }));
+// opencode 1.18 semantics: rules are flattened in config order, `*` matches
+// any characters, and the last matching rule decides. A permission whose last
+// rule is a `*` deny is removed from the model's tool list.
+function rules(permission) {
+  return Object.entries(permission).flatMap(([name, value]) => (typeof value === 'string'
+    ? [{ permission: name, pattern: '*', action: value }]
+    : Object.entries(value).map(([pattern, action]) => ({ permission: name, pattern, action }))));
 }
 const wildcard = (input, pattern) => new RegExp(`^${pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.')}$`, 's').test(input);
 const decide = (ruleset, permission, pattern) => ruleset.findLast((r) => wildcard(permission, r.permission) && wildcard(pattern, r.pattern))?.action;
@@ -30,7 +33,7 @@ function opencodeEnvFor(cwd) {
 }
 
 test('opencode sandbox hides subagents, search, shell, edit and web tools', () => {
-  const ruleset = rules(opencodeConfig({}, SKILL).permissions);
+  const ruleset = rules(opencodeConfig({}, SKILL).permission);
   for (const tool of [...FORBIDDEN, 'write', 'todowrite', 'question', 'lsp', 'some_future_tool']) {
     const permission = tool === 'write' ? 'edit' : tool;
     assert.equal(hidden(ruleset, permission), true, `${tool} must be hidden`);
@@ -40,8 +43,8 @@ test('opencode sandbox hides subagents, search, shell, edit and web tools', () =
   assert.equal(decide(ruleset, 'external_directory', '/Users/someone/code/repo/file.go'), 'deny');
 });
 
-test('opencode sandbox allows only the skill under test and project reads', () => {
-  const ruleset = rules(opencodeConfig({}, SKILL).permissions);
+test('opencode sandbox allows only the skill under test and reads inside the skill directory', () => {
+  const ruleset = rules(opencodeConfig({}, SKILL).permission);
   assert.equal(hidden(ruleset, 'skill'), false);
   assert.equal(hidden(ruleset, 'read'), false);
   assert.equal(decide(ruleset, 'skill', SKILL), 'allow');
@@ -49,14 +52,13 @@ test('opencode sandbox allows only the skill under test and project reads', () =
   // read is matched against the path relative to the worktree.
   assert.equal(decide(ruleset, 'read', `.opencode/skills/${SKILL}/references/api.md`), 'allow');
   assert.equal(decide(ruleset, 'read', `private/var/folders/x/T/skill-eval-a/.opencode/skills/${SKILL}/SKILL.md`), 'allow');
-  for (const file of ['README.md', '.eval-config-home/opencode/opencode.json', '.env']) {
-    assert.equal(decide(ruleset, 'read', file), 'allow', file);
+  for (const file of ['Users/me/code/haikei/kei/README.md', 'README.md', '.eval-config-home/opencode/opencode.json', '.env']) {
+    assert.equal(decide(ruleset, 'read', file), 'deny', file);
   }
-  assert.equal(decide(ruleset, 'external_directory', '/Users/me/code/haikei/kei/README.md'), 'deny');
 });
 
 test('opencode sandbox denies reads of the eval answer key, even inside the skill directory', () => {
-  const ruleset = rules(opencodeConfig({}, SKILL).permissions);
+  const ruleset = rules(opencodeConfig({}, SKILL).permission);
   for (const file of [`.opencode/skills/${SKILL}/evals/evals.json`,
     `private/var/folders/x/T/skill-eval-a/.opencode/skills/${SKILL}/evals/evals.json`,
     `.opencode/skills/${SKILL}/evals/results/benchmark.json`,
@@ -66,11 +68,15 @@ test('opencode sandbox denies reads of the eval answer key, even inside the skil
   assert.equal(decide(ruleset, 'read', `.opencode/skills/${SKILL}/SKILL.md`), 'allow');
 });
 
-test('opencode sandbox permits project reads but denies paths outside the scratch project', () => {
-  const ruleset = rules(opencodeConfig({}, SKILL).permissions);
-  assert.equal(decide(ruleset, 'read', '.'), 'allow');
-  assert.equal(decide(ruleset, 'read', `.opencode/skills/${SKILL}/references/guide.md`), 'allow');
-  assert.equal(decide(ruleset, 'external_directory', '/Users/me/.ssh/id_rsa'), 'deny');
+// The runner image (kei/github-actions-runner:agent-evals-1.0.0) installs
+// opencode-ai@1.18.32: `run` supports --dir but has no --standalone flag, and
+// passing one makes yargs print the usage table to stderr and exit 1. The
+// argv must stay within what that pinned build parses.
+test('opencode runs in the subprocess working directory with --dir, a flag the pinned 1.18.32 build accepts', () => {
+  const [cmd, args] = HARNESSES.opencode.command('prompt', 'eval/model', '/tmp/x');
+  assert.equal(cmd, 'opencode');
+  assert.deepEqual(args, ['run', '--dir', '/tmp/x', '-m', 'eval/model', 'prompt']);
+  assert.ok(!args.includes('--standalone'));
 });
 
 test('opencode runs with_skill and without_skill under the same sandbox, isolated from user config', () => {
@@ -91,6 +97,42 @@ test('opencode runs with_skill and without_skill under the same sandbox, isolate
       assert.equal(env.OPENCODE_DISABLE_CLAUDE_CODE_SKILLS, '1');
     }
   } finally {
+    for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('pi explicitly loads the staged skill headlessly with only read and an isolated model config', () => {
+  const dirs = [mkdtempSync(path.join(tmpdir(), 'pi-eval-a-')), mkdtempSync(path.join(tmpdir(), 'pi-eval-b-'))];
+  const saved = process.env.EVAL_DEEPSEEK_BASE_URL;
+  process.env.EVAL_DEEPSEEK_BASE_URL = 'http://model.invalid/v1';
+  try {
+    const skillDir = path.join(dirs[0], '.agents/skills', SKILL);
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(path.join(skillDir, 'SKILL.md'), '---\nname: test\ndescription: test\n---\n');
+    const argsA = HARNESSES.pi.command('prompt', 'eval/nvidia/GLM-5.3-Flash-FP4-Local', dirs[0],
+      path.join(dirs[0], 'out.md'), { skill: SKILL, thinking: true })[1];
+    assert.deepEqual(argsA, ['--no-session', '--tools', 'read', '--no-extensions', '--no-mcp',
+      '--no-prompt-templates', '--no-themes', '--no-context-files', '--thinking', 'high',
+      '--model', 'eval/nvidia/GLM-5.3-Flash-FP4-Local', '--skill', path.join(dirs[0], '.agents/skills', SKILL),
+      '--print', '--', 'prompt']);
+    assert.equal(argsA[argsA.indexOf('--skill') + 1], path.join(dirs[0], '.agents/skills', SKILL));
+    assert.equal(argsA[argsA.indexOf('--tools') + 1], 'read');
+    assert.ok(!argsA.includes('--no-tools'), 'Pi needs read to load the skill instructions');
+    assert.ok(!argsA.includes('--no-skills'), 'explicit --skill loading must not be disabled');
+    const opts = { modelProfile: 'glm-5.3-flash', model: 'eval/nvidia/GLM-5.3-Flash-FP4-Local',
+      baseUrlEnv: 'EVAL_DEEPSEEK_BASE_URL', temperature: 0, seed: 42, thinking: true };
+    const envA = HARNESSES.pi.env(opts, { cwd: dirs[0], skill: SKILL });
+    const envB = HARNESSES.pi.env(opts, { cwd: dirs[1], skill: SKILL });
+    assert.notEqual(envA.PI_CODING_AGENT_DIR, envB.PI_CODING_AGENT_DIR);
+    const config = JSON.parse(readFileSync(path.join(envA.PI_CODING_AGENT_DIR, 'models.json'), 'utf8'));
+    assert.deepEqual(config.providers.eval, { baseUrl: 'http://model.invalid/v1', api: 'openai-completions', apiKey: 'none',
+      models: [{ id: 'nvidia/GLM-5.3-Flash-FP4-Local', name: 'nvidia/GLM-5.3-Flash-FP4-Local', reasoning: true,
+        samplingParams: { temperature: 0, seed: 42 } }] });
+    assert.throws(() => HARNESSES.pi.env({ ...opts, baseUrlEnv: 'MISSING_EVAL_URL' }, { cwd: dirs[0], skill: SKILL }),
+      /model profile requires MISSING_EVAL_URL/);
+  } finally {
+    if (saved === undefined) delete process.env.EVAL_DEEPSEEK_BASE_URL;
+    else process.env.EVAL_DEEPSEEK_BASE_URL = saved;
     for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
   }
 });
@@ -116,14 +158,7 @@ test('codex runs read-only with web search, subagents and browsing disabled', ()
   assert.ok(disabled.includes('multi_agent'));
 });
 
-test('opencode run uses its isolated config and subprocess working directory without the unsupported --dir flag', () => {
-  const [cmd, args] = HARNESSES.opencode.command('prompt', 'eval/model', '/tmp/x');
-  assert.equal(cmd, 'opencode');
-  assert.deepEqual(args, ['run', '--standalone', '-m', 'eval/model', 'prompt']);
-  assert.ok(!args.includes('--dir'));
-});
-
-// OpenCode puts a model's `options` in the body of every chat completions
+// opencode 1.18 puts a model's `options` in the body of every chat completions
 // request; without them it sends no temperature and the server samples at its
 // default. The profile's sampling and thinking switch must reach that config.
 test('a model profile sends its sampling and thinking switch with every opencode request', () => {
@@ -134,7 +169,7 @@ test('a model profile sends its sampling and thinking switch with every opencode
   process.env.EVAL_DEEPSEEK_BASE_URL = 'http://model.invalid/v1';
   const configs = {};
   try {
-    for (const name of ['deepseek-v4-flash', 'qwen3.8-27b']) {
+    for (const name of ['glm-5.3-flash', 'qwen3.8-27b']) {
       const profile = parseModelProfile(yaml, name);
       const opts = { modelProfile: name, model: profile.model, baseUrlEnv: 'EVAL_DEEPSEEK_BASE_URL',
         temperature: profile.temperature, topP: profile.topP, topK: profile.topK, seed: profile.seed,
@@ -145,7 +180,7 @@ test('a model profile sends its sampling and thinking switch with every opencode
       configs[name] = config.provider.eval.models[modelId];
     }
     const thinkingOn = { enable_thinking: true, thinking: true };
-    assert.deepEqual(configs['deepseek-v4-flash'], { name: 'deepseek-ai/DeepSeek-V4-Flash', options: { temperature: 0, seed: 42,
+    assert.deepEqual(configs['glm-5.3-flash'], { name: 'nvidia/GLM-5.3-Flash-FP4-Local', options: { temperature: 0, seed: 42,
       chat_template_kwargs: thinkingOn } });
     assert.deepEqual(configs['qwen3.8-27b'], { name: 'qwen3.8-27b', options: { temperature: 0.6, top_p: 0.95, top_k: 20,
       seed: 42, chat_template_kwargs: thinkingOn } });
