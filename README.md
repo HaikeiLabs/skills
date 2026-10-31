@@ -7,6 +7,21 @@ organization management, the **kei CLI** for customer-hosted bot runtimes, the
 for agent definitions and tool schemas, and the **kei-setup-doctor** for
 diagnosing and guiding Kei runtime installation across environments.
 
+## Build an agent or harness
+
+For a custom agent, typed tools, local model integration, or guardrails, install
+the router and Agentware SDK guidance for Codex:
+
+```sh
+npx skills add HaikeiLabs/skills --skill haikei --skill agentware-sdk -a codex -y
+```
+
+Replace `codex` with `claude-code`, `cursor`, `opencode`, or `pi` for your
+coding agent. Ask it, for example: “Help me build a local research agent with
+typed tools and tests using Agentware.” Skills guide the assistant; they do not
+install SDKs, configure Kei, or grant permissions. See the
+[Agentware examples](https://github.com/HaikeiLabs/agentware#start-building).
+
 ## Source of truth
 
 `HaikeiLabs/skills` is the single canonical repository for these skills
@@ -35,7 +50,7 @@ Install the Haikei router skill together with the area skill you need. Replace
 npx skills add HaikeiLabs/skills --skill haikei --skill <area-skill> -a codex -y
 ```
 
-Use the matching agent ID for your harness: `claude-code`, `codex`, `opencode`,
+Use the matching agent ID for your harness: `claude-code`, `codex`, `cursor`, `opencode`,
 or `pi`. For example, Pi:
 
 ```sh
