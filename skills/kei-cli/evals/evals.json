@@ -959,6 +959,96 @@
     },
     {
       "id": 28,
+      "prompt": "Using the current installed Kei CLI, give command forms to create and test a group standing policy and create a temporary access grant for a user. State the current policy model, including autogroups, typed targets, deny behavior, priority, and bindings. Import proposals from Claude Code and state the required source flag. Do not invent flags.",
+      "expected_output": "Create a standing rule with kei policy create --workspace WS --group GROUP --allow shell:git, then test with kei policy test shell:git --workspace WS --as group:GROUP. Create temporary individual access with kei access grant create --workspace WS --principal user:ID --target shell:git --ttl 4h. Import with kei policies import --from claude --src harness:* --workspace WS; preview is the default and --apply creates proposals. Standing policies apply only to groups and autogroups. Targets are typed. Any matching deny wins and there is no priority. Bindings wire resources and do not authorize access. Refer admins to the console Policies reference for the full model.",
+      "expectations": [
+        "creates a group standing policy with current flags",
+        "tests a typed target as the group",
+        "creates a time-bound user access grant with current flags",
+        "imports proposals with required --src and explicit --apply behavior",
+        "states standing policies apply to groups and autogroups only",
+        "states deny wins without priority",
+        "explains bindings are wiring and not authorization",
+        "routes human-facing detail to the console Policies reference",
+        "does not use legacy grant flags"
+      ],
+      "checks": [
+        {
+          "text": "creates a group standing policy with current flags",
+          "contains_all": [
+            "kei policy create",
+            "--workspace",
+            "--group",
+            "--allow",
+            "shell:git"
+          ]
+        },
+        {
+          "text": "tests a typed target as the group",
+          "contains_all": [
+            "kei policy test",
+            "shell:git",
+            "--workspace",
+            "--as",
+            "group:"
+          ]
+        },
+        {
+          "text": "creates a time-bound user access grant with current flags",
+          "contains_all": [
+            "kei access grant create",
+            "--workspace",
+            "--principal",
+            "user:",
+            "--target",
+            "shell:git",
+            "--ttl"
+          ]
+        },
+        {
+          "text": "imports proposals with required --src and explicit --apply behavior",
+          "contains_all": [
+            "kei policies import",
+            "--from claude",
+            "--src",
+            "harness:",
+            "--apply"
+          ]
+        },
+        {
+          "text": "states standing policies apply to groups and autogroups only",
+          "contains_all": [
+            "standing",
+            "group",
+            "autogroup"
+          ]
+        },
+        {
+          "text": "states deny wins without priority",
+          "contains_all": [
+            "deny wins",
+            "no priority"
+          ]
+        },
+        {
+          "text": "explains bindings are wiring and not authorization",
+          "regex": "(?=[\\s\\S]*binding)(?=[\\s\\S]*wiring)(?=[\\s\\S]*(?:not authorization|no authorization|(?:do not|don't|does not) (?:authorize|grant) access))"
+        },
+        {
+          "text": "routes human-facing detail to the console Policies reference",
+          "regex": "(?=[\\s\\S]*Policies and Groups reference)(?=[\\s\\S]*Kei console)"
+        },
+        {
+          "text": "does not use legacy grant flags",
+          "not_contains": [
+            "--user",
+            "--for"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 29,
       "prompt": "Does `kei connect` support the Cursor harness? What harness values does it accept? Do not execute anything.",
       "expected_output": "kei connect accepts claude-code, codex, opencode, and pi. cursor is the seventh value but it is not released yet (kei-cli#233 in review): a released kei-cli (0.2.20 is current) rejects it. Once it ships, Cursor is governed native-first via ~/.cursor/cli-config.json permissions. cli and openwebui are not accepted harness values. Check kei help for what your installed version accepts.",
       "expectations": [

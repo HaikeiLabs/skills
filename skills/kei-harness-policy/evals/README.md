@@ -1,64 +1,26 @@
 # kei-harness-policy evals
 
-Eval cases for the harness command policy skill.
+Deterministic cases cover group standing policies, time-bound access grants,
+typed targets, deny precedence, bindings as wiring, and the console Policies
+reference. Review the cases against the current policy model before treating
+legacy identity-source or import expectations as current guidance.
 
-## Running
+DeepSeek is no longer an eval model. Use local-only profile copies for GLM-5.3
+and Qwen at temperature 0; keep those copies and all results out of git. For
+example, after adding a local `glm-5.3` profile:
 
-```bash
-node scripts/run-evals.mjs --skill kei-harness-policy --harness opencode \
-  --model-profile glm-5.3-flash --jobs 2
+```sh
+node scripts/run-evals.mjs --skill kei-harness-policy \
+  --model-profile glm-5.3 --jobs 4 --repeats 3
 ```
 
-## Cases
+Run Qwen serially with `--jobs 1`, one suite at a time, through the available
+Qwen lock. If the lock is unavailable, confirm the shared model host is idle
+before running and note that in the PR body:
 
-- Eval 13 covers where Claude Code native decisions are recorded (the `decision` event) and the kei-proxy 0.2.5 and Claude Code 2.1.119 minimums.
+```sh
+node scripts/run-evals.mjs --skill kei-harness-policy \
+  --model-profile qwen3.8-27b --jobs 1 --repeats 3
+```
 
-## Results
-
-| Config | Pass rate | Errors |
-| --- | --- | --- |
-| with_skill | 84% (21/25) | 0 |
-| without_skill | 0% (0/25) | 0 |
-
-See `results/2026-10-02-opencode-deepseek-v4-flash/` for detailed outputs.
-
-### 2026-10-07 (new/changed evals from #51)
-
-| Config | Pass rate | Errors |
-| --- | --- | --- |
-| with_skill | 67% (6/9) | 0 |
-| without_skill | 0% (0/9) | 0 |
-
-Ran the new/changed evals (IDs 1, 12) that were modified by PR #51 (harness-add
-clarifications). without_skill scored 0% — the model does not know Harness
-Command Policy details without the skill.
-
-See `results/2026-10-07-opencode-deepseek-v4-flash/` for detailed outputs.
-
-### 2026-10-07 (full benchmark)
-
-| Config | Pass rate | Errors |
-| --- | --- | --- |
-| with_skill | 82% (40/49) | 0 |
-| without_skill | — | — |
-
-Full benchmark of all 12 eval cases. Run with `--no-baseline` so no without_skill
-data was collected. The runner now treats harness permission-rejection errors as
-completed (failing) runs instead of infrastructure errors.
-
-See `results/2026-10-07-opencode-deepseek-v4-flash/` for detailed outputs.
-
-### 2026-10-08 (deterministic grading, full benchmark)
-
-| Config | Pass rate | Errors |
-| --- | --- | --- |
-| with_skill | 63% (31/49) | 0 |
-| without_skill | 2% (1/49) | 0 |
-
-Full benchmark of all 12 eval cases using deterministic checks (no LLM grader).
-with_skill dropped from 82% to 63% — the LLM grader was more lenient; deterministic
-checks require exact content matches. without_skill baseline is near-zero as
-expected.
-
-See `results/2026-10-08-opencode-deepseek-v4-flash/` for detailed outputs.
-
+Results stay in ignored `evals-out/`; do not commit benchmark output.
