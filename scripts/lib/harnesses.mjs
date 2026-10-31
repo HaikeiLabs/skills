@@ -111,6 +111,20 @@ export function opencodeEnv(config, cwd) {
   };
 }
 
+export function piModelConfig(opts, baseURL) {
+  const [, ...modelParts] = opts.model.split('/');
+  const modelId = modelParts.join('/');
+  const samplingParams = {};
+  if (opts.temperature !== undefined) samplingParams.temperature = opts.temperature;
+  if (opts.topP !== undefined) samplingParams.top_p = opts.topP;
+  if (opts.topK !== undefined) samplingParams.top_k = opts.topK;
+  if (opts.seed !== undefined) samplingParams.seed = opts.seed;
+  return { providers: { eval: { baseUrl: baseURL, api: 'openai-completions', apiKey: 'none', models: [
+    { id: modelId, name: modelId, reasoning: true,
+      ...(Object.keys(samplingParams).length ? { samplingParams } : {}) },
+  ] } } };
+}
+
 export const HARNESSES = {
   claude: {
     skillDir: '.claude/skills',
@@ -148,6 +162,33 @@ export const HARNESSES = {
       const baseURL = envName ? process.env[envName] : null;
       if (envName && !baseURL) throw new Error(`model profile requires ${envName}`);
       return opencodeEnv(opencodeConfig(opts, skill, baseURL), cwd);
+    },
+  },
+  pi: {
+    skillDir: '.agents/skills',
+    command: (prompt, model, cwd, _outFile, opts = {}) => {
+      const skillsRoot = path.join(cwd, '.agents/skills');
+      const skill = path.join(skillsRoot, opts.skill ?? '');
+      const skillArgs = opts.skill && fs.existsSync(path.join(skill, 'SKILL.md')) ? ['--skill', skill] : [];
+      return ['pi', ['--no-session', '--tools', 'read', '--no-extensions', '--no-mcp',
+        '--no-prompt-templates', '--no-themes', '--no-context-files',
+        '--thinking', opts.thinking === false ? 'off' : 'high', ...(model ? ['--model', model] : []), ...skillArgs,
+        '--print', '--', prompt]];
+    },
+    env: (opts, { cwd }) => {
+      const envName = opts.baseUrlEnv;
+      const baseURL = envName ? process.env[envName] : null;
+      if (envName && !baseURL) throw new Error(`model profile requires ${envName}`);
+      const agentDir = path.join(cwd, '.eval-pi-agent');
+      const home = path.join(cwd, '.eval-home');
+      fs.mkdirSync(agentDir, { recursive: true });
+      fs.mkdirSync(home, { recursive: true });
+      if (opts.modelProfile) {
+        fs.writeFileSync(path.join(agentDir, 'models.json'), JSON.stringify(piModelConfig(opts, baseURL), null, 2));
+      }
+      return { HOME: home, PI_CODING_AGENT_DIR: agentDir,
+        PI_CODING_AGENT_SESSION_DIR: path.join(cwd, '.eval-pi-sessions'),
+        PI_TELEMETRY: '0' };
     },
   },
 };
