@@ -1,6 +1,6 @@
 ---
 name: build-agents-agentware
-description: Build a governed AI agent end to end with the open-source kei-agents package and the agentware SDK — compose a prebuilt agent or workflow (Pedro, the PDE search agent, bug_to_linear_pr, crm_linear_followup, …) from its system prompt and rendered tools, wrap every tool call with AuditedToolClient so it is decided by policy, audited, and attributed to the invoking human, use KeiProxyEvaluator to let Kei decide, and design tool arguments with the Lexicon/Pragmatics/Semantics rule (relationship arguments carry the parent id; proxy-delegated scope is never an argument). Use when someone asks how to build, compose, or wire up an agent with agentware or kei-agents, how to govern or audit an agent's tool calls, what a tool's arguments should be, or how a subagent keeps the human's identity. For testing the agent load test-agents; for shipping it load deploy-agents.
+description: Build a governed AI agent end to end with the open-source kei-agents package and the agentware SDK — compose a prebuilt agent or workflow (Pedro, the PDE search agent, bug_to_linear_pr, github_pr_review, …) from its system prompt and rendered tools, wrap every tool call with AuditedToolClient so it is decided by policy, audited, and attributed to the invoking human, use KeiProxyEvaluator to let Kei decide, and design tool arguments with the Lexicon/Pragmatics/Semantics rule (relationship arguments carry the parent id; proxy-delegated scope is never an argument). Use when someone asks how to build, compose, or wire up an agent with agentware or kei-agents, how to govern or audit an agent's tool calls, what a tool's arguments should be, or how a subagent keeps the human's identity. For testing the agent load test-agents; for shipping it load deploy-agents.
 ---
 
 # Build agents with the agentware SDK
@@ -54,8 +54,8 @@ tools = render_tools(get_agent_tools(PEDRO_AGENT), ModelFormat.OPENAI)
 model name to auto-detect the format. Pass `system_prompt` and `tools` to
 whatever model client your harness uses; nothing here calls a model.
 
-**Workflows** (`bug_to_linear_pr`, `crm_linear_followup`, `finance`,
-`fundraising`, `github_pr_review`, `leads`, `support`) ship a prompt under
+**Workflows** (`bug_to_linear_pr`, `drive_publish`, `github_pr_review`,
+`support`) ship a prompt under
 `prompts/workflows/` and a list of catalog tools. The eval targets are the
 easiest place to read both from:
 
@@ -64,10 +64,10 @@ from importlib import resources
 from agents import ModelFormat, get_tool_by_name, render_tools
 from agents.evals.targets import WORKFLOW_TARGETS
 
-target = next(t for t in WORKFLOW_TARGETS if t.name == "crm_linear_followup")
+target = next(t for t in WORKFLOW_TARGETS if t.name == "bug_to_linear_pr")
 prompt = resources.files("agents").joinpath(target.prompt_file).read_text(encoding="utf-8")
 tools = render_tools([get_tool_by_name(n) for n in target.tools], ModelFormat.OPENAI)
-# tools: crm_lookup_lead, linear.create_followup_task
+# tools: () -- Kei infers the runtime tools at call time
 ```
 
 To define your own agent, build an `AgentDefinition(name=..., harness=...,
@@ -108,7 +108,7 @@ async def main():
                          user_id="discord:42", channel_id="chan-1", guild_id=None,
                          func=file_bug, caller=caller)              # allowed
     try:
-        await client.Execute("crm_list_leads", {}, user_id="discord:42", channel_id="chan-1",
+        await client.Execute("drive.get_file", {"file_id": "f-1"}, user_id="discord:42", channel_id="chan-1",
                              guild_id=None, func=lambda **a: [], caller=caller)
     except PermissionError as exc:                                  # denied, and audited
         print(exc)   # denied by policy: no matching rules and default deny is enabled
@@ -208,7 +208,7 @@ The Semantics rule:
 1. **A child resource's arguments include its parent's identifier.** A Linear
    issue is created in a team, so the tool takes `team_id` (or `team_key`,
    as `file_bug` does). A Drive document is created in a folder, so it takes
-   `folder_id`. A CRM follow-up task takes `lead_id`.
+   `folder_id`.
 2. **Enum values come from the Semantics key-fields table** — `severity`:
    `critical|high|medium|low`, not free text.
 3. **Proxy-delegated scope is never an argument.** `tenant_id`, `org_id`,
@@ -274,7 +274,7 @@ KEI_RUNTIME_SOCKET_PATH=/tmp/no-daemon.sock python your_harness.py   # expect "p
   allowed. The allow/deny is the workspace policy, at run time.
 - Middleware decides and audits; it does not run the agent loop. Your harness
   (or `middleware/inference.py`) owns the loop.
-- Writes (GitHub, CRM, Linear) are agent action tools executed by the harness,
+- Writes (GitHub, Linear) are agent action tools executed by the harness,
   not connector capabilities.
 
 ## Related skills

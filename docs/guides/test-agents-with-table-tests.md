@@ -51,10 +51,10 @@ cases. Here are three cases for Pedro, the agent from Part 1:
                   "required_arg_keys": ["title", "description"],
                   "forbidden_arg_keys": ["tenant_id", "org_id", "workspace", "workspace_id", "repository"] } },
     { "id": "greeting-no-tool", "prompt": "Hi Pedro, how are you?", "expect": { "tool": null } },
-    { "id": "member-denied-crm", "prompt": "List every lead in the CRM.",
+    { "id": "member-denied-drive", "prompt": "List every file in the company Drive.",
       "context": { "role": "member", "groups": ["default"],
                    "allowed_tools": ["file_bug", "search_wiki", "web_search"] },
-      "expect": { "deny": true, "content": { "not_contains": ["here are the leads"] } } }
+      "expect": { "deny": true, "content": { "not_contains": ["here are the files"] } } }
   ]
 }
 ```
@@ -67,7 +67,7 @@ Read them as sentences:
    part enforces the "scope is never an argument" rule from Part 1.
 2. When someone says hello, **no tool is called at all** (`"tool": null`).
    Leaving `tool` out entirely would mean "don't check the first tool".
-3. When a member of the default group asks for CRM data, the policy **denies**
+3. When a member of the default group asks for Drive files, the policy **denies**
    it and the reply doesn't pretend otherwise.
 
 That third case is worth a closer look. `allowed_tools` isn't a hint to the
