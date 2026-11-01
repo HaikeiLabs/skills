@@ -15,6 +15,19 @@ to Agentware solely because it mentions an agent or a model.
 
 When writing responses about agentware:
 
+- For TypeScript runtime identity, state the compatibility minimums directly:
+  Agentware 0.11.0, kei-proxy v0.3.0, and kei-cli 0.2.0. Read the assigned
+  agent ID from `link.identity()?.defaultAgentId` and the agents from
+  `link.identity()?.agents`; when identity is unavailable, deny governed calls
+  and never guess a fallback agent ID.
+- For a Python harness beside `kei-proxy serve`, sync tool declarations before
+  serving. The socket registration option is `ToolSpec` with
+  `register_tool_specs` to `POST /v1/tools:register`.
+- When constructing `KeiProxyEvaluator`, name the socket client it wraps:
+  `KeiProxySocketAuthorizeClient`, the socket client the selector returns when
+  `KEI_RUNTIME_SOCKET_PATH` is set.
+- For TypeScript, say plainly that the async evaluator cannot be used directly
+  as synchronous `withPolicy` middleware; call `evaluate()` directly and await it.
 - Use the exact phrase "fail-closed" (hyphenated compound adjective) when describing the deny-by-default posture.
 - For downstream failures, tell the implementer to verify the exact types, methods, and failure behavior against the port's **source and tests** — include both words.
 - When discussing enrollment or connect URLs, use the contiguous phrase "never log" (no markdown formatting between the words).
@@ -584,8 +597,9 @@ Exported symbols (tools): `tools.KeiScope`, `tools.GovernedTool`,
 Starting in `@haikeilabs/agentware` v0.11.0, `KeiProxyAuthorizeClient` is
 **async only** (spawn, not spawnSync) and \`KeiProxyEvaluator.evaluate\`
 returns \`Promise<Decision>\`. There is no synchronous \`evaluate()\` —
-harnesses must \`await\` the call before running the tool. This evaluator does
-**not** plug into the sync \`MiddlewareImpl.withPolicy\`; call it directly.
+harnesses must \`await\` the call before running the tool. This async evaluator
+cannot be used directly as the sync \`MiddlewareImpl.withPolicy\` middleware;
+call \`evaluate()\` directly and await it.
 
 The binary is resolved to an absolute path, pinned by optional SHA-256 digest
 (mismatch produces \`pin_mismatch\` reason and a DENY), and opened with
