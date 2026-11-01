@@ -550,6 +550,99 @@
           "regex": "(?=[\\s\\S]*redact)(?=[\\s\\S]*(owner|ask))"
         }
       ]
+    },
+    {
+      "id": 19,
+      "prompt": "Our runtime on EKS logs `model profile credential unavailable` when the harness runs `kei-proxy model profile`. The profile's auth_type is api_key. What's wrong and how do we fix it?",
+      "expected_output": "The runtime's cloud identity (IRSA role) can't read the profile's secret_ref. Check it has secretsmanager:GetSecretValue on kei/model-profiles/<profile_id>-*, that it is the right account and region (the region comes from the ref), and kms:Decrypt if the secret uses a customer-managed KMS key. In the same account no credential sync is needed. Don't put the key in an env var or values file.",
+      "expectations": [
+        "The response says the runtime identity can't read the secret_ref.",
+        "The response names GetSecretValue.",
+        "The response mentions the account or region.",
+        "The response mentions kms:Decrypt.",
+        "The response does not tell the user to put the key in an env var, a values file or static AWS keys."
+      ],
+      "checks": [
+        {
+          "text": "The response says the runtime identity can't read the secret_ref.",
+          "contains_all": [
+            "secret_ref"
+          ]
+        },
+        {
+          "text": "The response names GetSecretValue.",
+          "contains_all": [
+            "GetSecretValue"
+          ]
+        },
+        {
+          "text": "The response mentions the account or region.",
+          "contains_any": [
+            "account",
+            "region"
+          ]
+        },
+        {
+          "text": "The response mentions kms:Decrypt.",
+          "contains_any": [
+            "kms:Decrypt"
+          ]
+        },
+        {
+          "text": "The response does not tell the user to put the key in an env var, a values file or static AWS keys.",
+          "not_contains": [
+            "OPENAI_API_KEY=sk",
+            "OPENAI_API_KEY: sk",
+            "api_key: sk",
+            "\"sk-",
+            "'sk-",
+            "=sk-",
+            "AWS_SECRET_ACCESS_KEY="
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "prompt": "kei-proxy model profile fails on our runtime with \"runtime has no active model profile assigned to its default agent\". We already created the profile and set it as the workspace default. What do we do?",
+      "expected_output": "kei-proxy resolves only the profile assigned to the runtime's default agent, never an org or workspace default. Check with kei model-profiles assignment --workspace WS --agent AGENT_ID and assign it with kei model-profiles assign PROFILE --workspace WS --agent AGENT_ID (with approval); check the installation has a default agent.",
+      "expectations": [
+        "The response says to assign the profile with kei model-profiles assign.",
+        "The response says the runtime uses the profile assigned to its agent, not a default.",
+        "The response passes --agent."
+      ],
+      "checks": [
+        {
+          "text": "The response says to assign the profile with kei model-profiles assign.",
+          "contains_all": [
+            "kei model-profiles assign"
+          ]
+        },
+        {
+          "text": "The response says the runtime uses the profile assigned to its agent, not a default.",
+          "contains_any": [
+            "not a default",
+            "not the default",
+            "never an org",
+            "never the org",
+            "not an org",
+            "not the workspace default",
+            "never a default",
+            "not use the default",
+            "doesn't use the default",
+            "does not use the default",
+            "ignores the default",
+            "not the org",
+            "default agent"
+          ]
+        },
+        {
+          "text": "The response passes --agent.",
+          "contains_all": [
+            "--agent"
+          ]
+        }
+      ]
     }
   ]
 }

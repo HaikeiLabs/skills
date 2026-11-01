@@ -545,6 +545,9 @@ this order: (1) the credential store must exist first, created with
 (plus `--workspace`/`--agent` for scope); (3) check it with
 `kei model-profiles readiness`.
 
+How a deployed runtime then uses the profile (same-account read of `secret_ref`
+versus credential sync) is in `kei-runtime-setup`.
+
 **Workspace overrides (v0.1.34+).** `kei credential-store get --workspace WS`
 and `kei credential-store put --workspace WS` read or write a workspace-level
 credential store override, separate from the organization-level store. Without

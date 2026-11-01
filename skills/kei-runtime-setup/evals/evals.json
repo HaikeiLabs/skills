@@ -349,6 +349,110 @@
           ]
         }
       ]
+    },
+    {
+      "id": 11,
+      "prompt": "Our analytics server runs on EKS in the same AWS account as our Kei credential store. Its harness needs to call the model in a Kei model profile with auth_type api_key. What IAM does the runtime's role need to get the key?",
+      "expected_output": "Kei returns profile metadata only (endpoint, default_model, secret_backend, secret_ref); kei-proxy reads the key itself from secret_ref with the pod's IRSA role. In the same account the role needs only secretsmanager:GetSecretValue on kei/model-profiles/<profile_id>-*, read only, no write and no credential sync. A customer-managed KMS key also needs kms:Decrypt; the default AWS-managed key needs nothing.",
+      "expectations": [
+        "The response names secretsmanager:GetSecretValue.",
+        "The response scopes the grant to the profile's secret under kei/model-profiles.",
+        "The response says kei-proxy reads the key itself from secret_ref.",
+        "The response mentions kms:Decrypt for a customer-managed key.",
+        "The response does not prescribe the credential-sync key pair or a secret write permission."
+      ],
+      "checks": [
+        {
+          "text": "The response names secretsmanager:GetSecretValue.",
+          "contains_all": [
+            "GetSecretValue"
+          ]
+        },
+        {
+          "text": "The response scopes the grant to the profile's secret under kei/model-profiles.",
+          "contains_any": [
+            "kei/model-profiles/"
+          ]
+        },
+        {
+          "text": "The response says kei-proxy reads the key itself from secret_ref.",
+          "contains_all": [
+            "secret_ref"
+          ]
+        },
+        {
+          "text": "The response mentions kms:Decrypt for a customer-managed key.",
+          "contains_any": [
+            "kms:Decrypt"
+          ]
+        },
+        {
+          "text": "The response does not prescribe the credential-sync key pair or a secret write permission.",
+          "not_contains": [
+            "openssl genpkey",
+            "PutSecretValue",
+            "secretsmanager:CreateSecret",
+            "KEI_CREDENTIAL_SYNC_PRIVATE_KEY=",
+            "kei-proxy credential sync |"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "I'm writing the harness for our deployed Kei runtime. How should it get the model endpoint, model name and API key from the Kei model profile at run time, and what should it do if the profile can't be resolved?",
+      "expected_output": "Call `kei-proxy model profile` (or GET /v1/model-config on the kei-proxy serve socket). It resolves the profile assigned to the runtime's default agent (kei model-profiles assign PROFILE --workspace W --agent ID), never an org default. Refresh periodically (e.g. every 300 s), fail closed when the profile is required, check the endpoint host resolves, and never hardcode the endpoint or key or put the key in an env var or values file.",
+      "expectations": [
+        "The response says to call kei-proxy model profile or GET /v1/model-config.",
+        "The response says it resolves the profile assigned to the runtime's agent.",
+        "The response says to refresh the profile periodically.",
+        "The response says to fail closed.",
+        "The response does not hardcode a provider key in an env var or values file."
+      ],
+      "checks": [
+        {
+          "text": "The response says to call kei-proxy model profile or GET /v1/model-config.",
+          "contains_any": [
+            "kei-proxy model profile",
+            "/v1/model-config"
+          ]
+        },
+        {
+          "text": "The response says it resolves the profile assigned to the runtime's agent.",
+          "contains_any": [
+            "assigned",
+            "assign"
+          ]
+        },
+        {
+          "text": "The response says to refresh the profile periodically.",
+          "contains_any": [
+            "refresh",
+            "re-resolve",
+            "poll"
+          ]
+        },
+        {
+          "text": "The response says to fail closed.",
+          "contains_any": [
+            "fail closed",
+            "fails closed",
+            "fail-closed",
+            "fail close"
+          ]
+        },
+        {
+          "text": "The response does not hardcode a provider key in an env var or values file.",
+          "not_contains": [
+            "OPENAI_API_KEY=sk",
+            "OPENAI_API_KEY: sk",
+            "api_key: sk",
+            "\"sk-",
+            "'sk-",
+            "=sk-"
+          ]
+        }
+      ]
     }
   ]
 }

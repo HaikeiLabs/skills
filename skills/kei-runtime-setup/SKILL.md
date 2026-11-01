@@ -1,6 +1,6 @@
 ---
 name: kei-runtime-setup
-description: Stand up a customer-hosted Kei runtime end to end — create the runtime installation, deliver its credential (shown once) to a secret manager, configure `kei-proxy` beside the harness, bootstrap, keep heartbeats running, and bind. Use whenever someone is installing, configuring, containerizing, bootstrapping, or first-activating a Kei runtime, kei-proxy, or kei-connector-runtime, or asks what KEI_RUNTIME_* variables to set, or about credential sync, KEI_CREDENTIAL_SYNC_KEY_ID, Azure Key Vault or managed identity for the runtime, even if they only say "get the bot talking to Kei" or "set up the proxy". For diagnosing an installation that already exists and is misbehaving, use kei-setup-doctor instead.
+description: Stand up a customer-hosted Kei runtime end to end — create the runtime installation, deliver its credential (shown once) to a secret manager, configure `kei-proxy` beside the harness, bootstrap, keep heartbeats running, and bind. Use whenever someone is installing, configuring, containerizing, bootstrapping, or first-activating a Kei runtime, kei-proxy, or kei-connector-runtime, or asks what KEI_RUNTIME_* variables to set, or about credential sync, KEI_CREDENTIAL_SYNC_KEY_ID, Azure Key Vault or managed identity for the runtime, or how a deployed runtime and its harness use a Kei model profile (IAM to read its secret_ref, `kei-proxy model profile`), even if they only say "get the bot talking to Kei" or "set up the proxy". For diagnosing an installation that already exists and is misbehaving, use kei-setup-doctor instead.
 ---
 
 # Set up a Kei runtime
@@ -325,10 +325,62 @@ the governed authorize and session routes are **socket-only** (the TCP
 listener returns 404 for them). See `docs/unix-socket.md` in the
 kei-connector-runtime repo for the full socket contract.
 
+#### Use a model profile from a deployed runtime
+
+Kei returns profile **metadata** only: `endpoint`, `default_model`,
+`auth_type`, `secret_backend` and `secret_ref` (for example
+`aws-secrets-manager://us-east-1/kei/model-profiles/<profile_id>`). The key
+never passes through Kei (ADR-011). With `auth_type: api_key`, kei-proxy reads
+the key **itself** from `secret_ref`, using the runtime's cloud identity (IRSA,
+an instance role, a managed identity). The region comes from the ref, so no
+extra environment is needed.
+
+Which path applies:
+
+| Runtime | What it needs |
+|---|---|
+| Same cloud account as the credential store | **Read on that one secret.** No sync key, no delivery, no write. |
+| Its own, different store | Credential sync (next section) to deliver a new or rotated key into that store. |
+
+The AWS statement for the same-account case (read only, one secret):
+
+```json
+{
+  "Effect": "Allow",
+  "Action": "secretsmanager:GetSecretValue",
+  "Resource": "arn:aws:secretsmanager:<region>:<account>:secret:kei/model-profiles/<profile_id>-*"
+}
+```
+
+The default AWS-managed KMS key needs no grant; a customer-managed key also
+needs `kms:Decrypt` on that key.
+
+**Harness pattern.** Never hardcode the endpoint or the key, and never put the
+key in an env var, values file or image. Ask kei-proxy at run time:
+
+- `kei-proxy model profile` (JSON on stdout), or `GET /v1/model-config` on the
+  `kei-proxy serve` socket. Both resolve the profile **assigned to the
+  runtime's default agent**, never an org default. Assign it with
+  `kei model-profiles assign PROFILE --workspace WS --agent AGENT_ID`.
+- Refresh periodically (the Pedro harness uses 300 s) so a reassignment or
+  rotation is picked up.
+- Fail closed when the profile is required: no profile, no model call. Don't
+  fall back to a hardcoded model.
+- Check that the endpoint host resolves before swapping in a new config. An
+  endpoint on a tailnet (for example
+  `https://spark-f5ea.<tailnet>.ts.net/v1`) needs network egress from the
+  runtime to that tailnet.
+
+Inference does not go through kei-proxy; the harness calls the provider
+directly. If kei-proxy says `model profile credential unavailable` or the
+profile is not assigned, see `kei-setup-doctor`.
+
 #### Credential store and credential sync
 
-Model-profile API keys and connector secrets reach a customer runtime through
-credential sync. Everything stays in your environment:
+Credential sync **delivers** a new or rotated model-profile key or connector
+secret into a runtime's **own** store. A runtime in the same cloud account as
+the credential store doesn't need it (see above). Everything stays in your
+environment:
 1. When an admin sets or rotates a key, the control plane seals it to the
    runtime's public sync key and queues a delivery.
 2. `kei-proxy credential sync` claims the delivery, opens it with the private
@@ -649,6 +701,14 @@ kei connectors list --workspace WS           # the connector is active once its 
   `KEI_CREDENTIAL_STORE_INSTALLATION_ID`, `KEI_CREDENTIAL_SYNC_KEY_ID` and
   `KEI_CREDENTIAL_SYNC_PRIVATE_KEY` are all set, and say sync must be run (one
   delivery per run) because supervisors don't run it.
+- Whenever an answer covers a deployed runtime using a model profile, YOU
+  MUST say which path applies: a runtime in the **same account** as the
+  credential store needs only **`secretsmanager:GetSecretValue`** (AWS) on
+  `kei/model-profiles/<profile_id>-*`, with **no credential sync** and no
+  write; credential sync is only for delivering a key into a runtime's own,
+  different store. Say the harness calls **`kei-proxy model profile`** (or
+  `GET /v1/model-config`) for the profile **assigned** to the runtime's agent,
+  refreshes it, and **fails closed**; never hardcode the endpoint or key.
 - Whenever someone asks whether a supervisor or entrypoint (such as the
   openwebui-kei image) runs credential sync, YOU MUST start the answer with
   "No: it does not run credential sync", say to run `kei-proxy credential
