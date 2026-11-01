@@ -19,6 +19,7 @@ contract; do not infer support from a policy or tool row alone.
   named tool and a policy does not create its Pi-side executor. Do not call a
   provider directly as a fallback; fail closed. Do not answer only that a
   policy is insufficient; state the missing implementation plainly.
+- The raw command text is not stored or logged.
 - Pi Bash uses existing `shell:` policies, not a broad `tool:pi.bash` grant. If
   asked whether to grant `tool:pi.bash`, explicitly say no: use a `shell:` rule
   instead. It requires `kei-proxy` 0.2.4 or later. Compound or unsupported

@@ -23,13 +23,17 @@ production changes.
    Review it, then approve it with `kei connectors manifests approve`.
 6. Run `kei harness sync`; follow its notes, including Codex `/hooks` trust.
 
-Older connectors need an `admins` group permit added by an admin. Production
-policy changes are the admin's decision; never create one yourself. For
-`no_matching_policy`, check if the connector is an older one that needs an
-`admins` group permit added by an admin. For `connector_has_no_tools`, connect
-first as a workspace admin, then make the first harness tool-list call to
-create the manifest. This reason means the connector has no available tools;
-a policy change is not its remedy.
+Older connectors may need an `admins` group permit added by an admin. For
+`no_matching_policy`, state explicitly: production policy changes are the
+admin's decision, and an older connector may need the `admins` group permit
+added by an admin. Say plainly: "Production policy changes are the admin's
+decision. An older connector may need an `admins` group permit added by an
+admin." The admin decides whether to add it. Never create or widen a policy
+yourself. Use the
+workspace name, not its UUID, for `--workspace`. For
+`connector_has_no_tools`, connect first as a workspace admin, then make the
+first harness tool-list call to create the manifest. This reason means the
+connector has no available tools; a policy change is not its remedy.
 Have the user complete per-user OAuth in the browser. For organization OAuth
 registration errors, ask the platform owner to arrange registration. Never ask
 for, accept, print, or store OAuth tokens, client secrets, or other credentials.
@@ -83,13 +87,13 @@ user connection, tool manifest review, and harness setup are complete.
    ```
 
    This opens the per-user OAuth flow for the admin running the command. An
-   admin can connect even before the MCP server has tools listed. After the
-   bridge auto-registration change (HAI-804) is deployed, the bridge registers
-   with the MCP server automatically. This behavior is version-dependent. If
-   the CLI says `no OAuth registration in this organization is for the
-   resource's authorization server`, ask the platform owner to arrange the
-   organization OAuth registration required by the older deployment. Do not
-   request OAuth client secrets.
+   admin can connect even before the MCP server has tools listed. State that
+   OAuth auto-registration is version-dependent and depends on the deployed
+   bridge. Before the bridge auto-registration change (HAI-804) is deployed,
+   the platform owner must arrange the organization OAuth registration
+   required by the older deployment. If the CLI says `no OAuth registration
+   in this organization is for the resource's authorization server`, use
+   that same owner path. Never request or accept an OAuth client secret.
 6. **Make the first tool-list call from a harness.** Ask the connected harness
    to list the server's tools. That first tool-list call causes the runtime to
    submit a candidate tool manifest. Running `kei connectors connect` alone
