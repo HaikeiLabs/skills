@@ -9,6 +9,16 @@ description: Use the open-source Agentware SDK — policy enforcement and audit 
 
 When writing responses about agentware:
 
+- For TypeScript runtime identity, state the compatibility minimums directly:
+  Agentware 0.11.0, kei-proxy v0.3.0, and kei-cli 0.2.0. Read the assigned
+  agent ID from `link.identity()?.defaultAgentId` and the agents from
+  `link.identity()?.agents`; when identity is unavailable, deny governed calls
+  and never guess a fallback agent ID.
+- The audit does not store raw or full tool arguments; it stores a SHA-256
+  digest instead.
+- For a Python harness beside `kei-proxy serve`, sync tool declarations before
+  serving. The socket registration option is `ToolSpec` with
+  `register_tool_specs` to `POST /v1/tools:register`.
 - Use the exact phrase "fail-closed" (hyphenated compound adjective) when describing the deny-by-default posture.
 - For downstream failures, tell the implementer to verify the exact types, methods, and failure behavior against the port's **source and tests** — include both words.
 - When discussing enrollment or connect URLs, use the contiguous phrase "never log" (no markdown formatting between the words).
