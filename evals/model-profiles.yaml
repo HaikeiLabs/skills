@@ -9,9 +9,10 @@ profiles:
     concurrency: 2
     # Sandboxed harness runs can exceed 600 s on complex prompts.
     run_timeout_seconds: 1800
-    # Runs (cases x repeats) per CI eval job: starting value, sized like
-    # qwen3.8-27b's shard; retune once the GLM server's run rate is measured.
-    shard_runs: 8
+    # Runs (cases x repeats) per CI eval job: 8 hit the 30-minute pull request
+    # job at the measured ~0.3 runs/min (a shard ran 30m17s, HAI-791), so 4,
+    # about 15 minutes at that rate.
+    shard_runs: 4
     # Greedy sampling with a fixed seed (EV-C1 §3), so a rerun of an unchanged
     # skill asks the model the same question the same way.
     temperature: 0
@@ -29,10 +30,10 @@ profiles:
     concurrency: 1
     # opencode runs on the shared 5090 can exceed the 600 s default.
     run_timeout_seconds: 1800
-    # Runs per CI eval job: at ~0.3 to 1 run/min, 8 runs fit the 30-minute
-    # pull request timeout (owner decision 2026-10-14: smaller shards, same
-    # timeout).
-    shard_runs: 8
+    # Runs per CI eval job: 8 runs were cancelled at the 30-minute pull
+    # request timeout when the shared GPU slowed the rate below ~0.3 runs/min
+    # (HAI-791), so 4, about 15 minutes at the worst measured rate.
+    shard_runs: 4
     # Qwen's recommended thinking-mode sampling (owner decision 2026-10-13):
     # with thinking on, greedy sampling makes it loop. The seed still fixes
     # the sample.

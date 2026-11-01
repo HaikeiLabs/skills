@@ -119,17 +119,19 @@ env:
   # the repository's evals/model-profiles.yaml. scope packs the selected suites
   # into shards separately for each profile, of about that profile's
   # shard_runs (else this) runs, one eval job per profile per shard, so each
-  # job fits the timeout on model hosts shared with other runs (measured ~0.3
-  # to 1 run/min on qwen3.8-27b at 1 slot, so shard_runs 8; glm-5.3-flash
-  # starts at 8 too until its run rate at concurrency 2 is measured). A suite
+  # job fits the timeout on model hosts shared with other runs. Both profiles
+  # set shard_runs 4 (HAI-791): at the worst measured rates (glm-5.3-flash
+  # ~0.3 runs/min at concurrency 2, a shard ran 30m17s; qwen3.8-27b shards
+  # cancelled at 30 min at 1 slot) 8 runs exceed the 30-minute pull request
+  # job, and 4 keeps each shard to about 15 minutes. A suite
   # with more runs than its shard size
   # is split by repeats across shards; one with more cases than that stays
   # whole (the runner has no case filter).
   EVAL_SHARD_RUNS: "30"
-  # shard_runs is sized for the 30-minute pull request job. The nightly job
-  # gets 110 minutes, so its shards are this many times larger; that keeps the
-  # nightly matrix (every suite x 3 repeats x profiles) well under GitHub's
-  # 256 jobs.
+  # shard_runs is sized for the 30-minute pull request job (about 15 minutes
+  # of runs per shard, HAI-791). The nightly job gets 110 minutes, so its
+  # shards are this many times larger; that keeps the nightly matrix (every
+  # suite x 3 repeats x profiles, about 160 jobs) under GitHub's 256 jobs.
   EVAL_SHARD_SCALE: ${{ github.event_name == 'pull_request' && '1' || '3' }}
 
 jobs:
