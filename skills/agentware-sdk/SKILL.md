@@ -20,6 +20,10 @@ When writing responses about agentware:
   agent ID from `link.identity()?.defaultAgentId` and the agents from
   `link.identity()?.agents`; when identity is unavailable, deny governed calls
   and never guess a fallback agent ID.
+- Audit argument storage depends on the port: the Go middleware records a
+  SHA-256 digest of the redacted arguments (`ToolArgsDigest`), not the raw
+  arguments; Python `AuditRecord.args` and `InMemoryAuditor` keep the supplied
+  arguments, so sanitize them before recording.
 - For a Python harness beside `kei-proxy serve`, sync tool declarations before
   serving. The socket registration option is `ToolSpec` with
   `register_tool_specs` to `POST /v1/tools:register`.
@@ -159,10 +163,12 @@ you cannot check, say the names are unverified.
    `nudge`; the inference loop in `middleware/inference.py` (`run_inference()`,
    `RetriesExhaustedError`).
 
-Audit fields and outcome visibility vary by port and integration. In Python,
-`InMemoryAuditor` retains the supplied arguments, so sanitize sensitive values
-before recording; do not claim arguments are automatically hashed or redacted.
-Check the selected auditor's source and tests.
+Audit fields and outcome visibility vary by port and integration. Go
+(`go/middleware/middleware.go`) redacts, then stores a SHA-256 digest of the
+arguments as `ToolArgsDigest`. In Python, `InMemoryAuditor` retains the
+supplied arguments, so sanitize sensitive values before recording; do not
+claim every port hashes or redacts arguments automatically. Check the
+selected auditor's source and tests.
 
 ## Python runtime identity/auth integration (Agentware 0.11.0)
 

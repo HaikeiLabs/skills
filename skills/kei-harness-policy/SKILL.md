@@ -97,6 +97,11 @@ first. If something is not here, say so. In every answer:
   questions only; its harness-based sources are not valid in the final model.
 - **Bindings:** say exactly: “Bindings are wiring between resources; they do
   not authorize access.”
+- **Custom SDK tool registration:** when discussing tool-call policies or a
+  custom harness, say policies are runtime decisions and are not rendered into
+  native config. Name the current registration options: `ToolSpec` over
+  `POST /v1/tools:register`, or `kei harness sync --harness custom --manifest
+  tools.json`.
 - **Writing a policy:** use `kei policy create --workspace WS --group GROUP
   --allow TARGET` (or `--deny TARGET`). The older `kei policies` alias is
   deprecated; do not suggest `--name`, `--src-pattern`, or `--dst-pattern`
@@ -117,8 +122,9 @@ first. If something is not here, say so. In every answer:
   `kei harness sync --dry-run` or list the policies to check coverage.
 - **Credentials for `shell:` commands:** `kei-proxy run` resolves each
   `kei://connectors/<id>/<field>` reference at run time and injects the value
-  into the child process only; the agent never reads or stores it, and it is
-  never in the policy. Say this is the same pattern as governed connector
+  into the child process only; the agent and harness do not read, access, see,
+  or store raw credentials, and the credential is never in the policy. Say
+  this is the same pattern as governed connector
   calls (credential release uses the same connector policy check and secret
   resolution).
 - **`policy_bundle_expired`:** the bundle passed its `not_after` expiry
@@ -138,6 +144,11 @@ first. If something is not here, say so. In every answer:
   allowed.
 
 ## Concepts
+
+Tool-call policies, including connector-wide grants, are decided by kei-proxy
+at run time; they are not rendered into a harness's native config. A custom
+SDK harness can register tools with `ToolSpec` over `POST /v1/tools:register`
+or `kei harness sync --harness custom --manifest tools.json`.
 
 | Term | Meaning |
 | --- | --- |
