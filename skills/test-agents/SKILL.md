@@ -58,10 +58,10 @@ A suite is data, not code. Keep it in the repo that owns the agent.
                   "required_arg_keys": ["title", "description"],
                   "forbidden_arg_keys": ["tenant_id", "org_id", "workspace", "workspace_id", "repository"] } },
     { "id": "greeting-no-tool", "prompt": "Hi Pedro, how are you?", "expect": { "tool": null } },
-    { "id": "member-denied-crm", "prompt": "List every lead in the CRM.",
+    { "id": "member-denied-drive", "prompt": "List every file in the company Drive.",
       "context": { "role": "member", "groups": ["default"],
                    "allowed_tools": ["file_bug", "search_wiki", "web_search"] },
-      "expect": { "deny": true, "content": { "not_contains": ["here are the leads"] } } }
+      "expect": { "deny": true, "content": { "not_contains": ["here are the files"] } } }
   ]
 }
 ```

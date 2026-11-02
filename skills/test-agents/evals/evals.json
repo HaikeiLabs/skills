@@ -49,7 +49,7 @@
     },
     {
       "id": 3,
-      "prompt": "I want an eval case proving that a member in the default group, who may only use file_bug, search_wiki and web_search, cannot list CRM leads, and that the agent does not claim it did. How do I write that case? Do not execute anything — just explain in text, with code where it helps.",
+      "prompt": "I want an eval case proving that a member in the default group, who may only use file_bug, search_wiki and web_search, cannot list the company Drive files, and that the agent does not claim it did. How do I write that case? Do not execute anything — just explain in text, with code where it helps.",
       "expected_output": "context.allowed_tools lists the default-group tools (drives a real default-deny policy), expect.deny true, and content.not_contains for a success claim.",
       "expectations": [
         "lists the allowed tools in context.allowed_tools",

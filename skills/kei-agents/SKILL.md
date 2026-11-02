@@ -73,7 +73,7 @@ Also exported: `ALL_TOOL_DEFINITIONS`, per-connector read collections
 `render_openai_tools`, `render_anthropic_tools`, `render_ollama_tools`,
 `detect_model_format`, `get_tool_by_name`, `get_tools_by_category`,
 `get_tools_by_permission`, `get_tools_for_model`, `validate_tool_definitions`,
-plus the policy module and CRM/GitHub adapters.
+plus the policy module and GitHub adapters.
 
 ## Core types
 
@@ -81,9 +81,9 @@ plus the policy module and CRM/GitHub adapters.
   infers the format from a model name. An unsupported format raises an error.
   See `model_format.py` for the exact enum values and detection logic.
 - `Permission` — the permission scopes that gate tools: `search_wiki`, `web_search`,
-  `schedule_meetings`, `github_read`, `github_write`, `crm_read`, `crm_write`,
+  `schedule_meetings`, `github_read`, `github_write`,
   `linear_read`, `drive_read`, `s3_read`, `http_api_read`.
-- `ToolCategory` — `search`, `productivity`, `github`, `crm`, `entertainment`,
+- `ToolCategory` — `search`, `productivity`, `github`, `entertainment`,
   `linear`, `drive`, `s3`, `http_api`.
 - `ToolParameter` — name, type, description, required, enum, default.
 - `ToolBinding` — **non-secret routing metadata**: `connector_id` references
@@ -219,7 +219,7 @@ python -c "from agents import validate_tool_definitions, ALL_TOOL_DEFINITIONS; p
 - **Do not** invent tool schemas or permissions that are not in `src/agents/`. The code
   wins over any description here.
 - **Do not** add write capabilities to governed connector schemas. Reads are the only
-  connector capabilities; GitHub/CRM/Linear writes are agent action tools executed by the
+  connector capabilities; GitHub/Linear writes are agent action tools executed by the
   agent harness, not ABAC connector capabilities.
 - **Do not** let an agent supply `delegated_context` fields or tenant identifiers as tool
   parameters; that is a validation failure.
