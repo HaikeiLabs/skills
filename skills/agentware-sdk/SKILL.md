@@ -1,9 +1,15 @@
 ---
 name: agentware-sdk
-description: Use the open-source Agentware SDK — policy enforcement and audit middleware for agent tool calls, in Go, Python, and TypeScript. Use when working with middleware policy/audit, AuditedToolClient, ToolExecutor, CallerContext, Action ALLOW/DENY/FILTER, rate limits, guardrails (response validator, step enforcer, error tracker, nudge), KEI_RUNTIME_TOKEN, OpaqueTokenProvider/JWTTokenProvider, HarnessManifest, KeiProxyEvaluator, kei-proxy, the kei-proxy serve socket client (KeiProxySocketAuthorizeClient, runtimesocket, select_authorization_client, sync_tool_manifest / toolsync), the haikeilabs.agentware import, delegation, KeiScope, GovernedTool, tool-manifest export, the third-party harness contract, or the action-tool/connector boundary. This is generic agentware guidance; the tool-adapter/governor lane pattern lives in the assistant's developer skills, and no invented APIs are allowed — the code and docs in the repo are the source of truth.
+description: Use for requests to build a custom AI agent or harness with Agentware, typed tools, local models, or agent-loop guardrails; route unrelated tasks only when they match the product scope below. Use the open-source Agentware SDK — policy enforcement and audit middleware for agent tool calls, in Go, Python, and TypeScript. Use when working with middleware policy/audit, AuditedToolClient, ToolExecutor, CallerContext, Action ALLOW/DENY/FILTER, rate limits, guardrails (response validator, step enforcer, error tracker, nudge), KEI_RUNTIME_TOKEN, OpaqueTokenProvider/JWTTokenProvider, HarnessManifest, KeiProxyEvaluator, kei-proxy, the kei-proxy serve socket client (KeiProxySocketAuthorizeClient, runtimesocket, select_authorization_client, sync_tool_manifest / toolsync), the haikeilabs.agentware import, delegation, KeiScope, GovernedTool, tool-manifest export, the third-party harness contract, or the action-tool/connector boundary. This is generic agentware guidance; the tool-adapter/governor lane pattern lives in the assistant's developer skills, and no invented APIs are allowed — the code and docs in the repo are the source of truth.
 ---
 
 # Open-source Agentware SDK
+
+For an Agentware build, start with the user’s desired outcome and a runnable local
+example. Kei is optional for local work. Skills guide the assistant; they do not
+install SDKs, configure Kei, or grant permissions. Verify APIs in the relevant
+language source and tests. Do not route a generic unrelated programming task
+to Agentware solely because it mentions an agent or a model.
 
 ## Response requirements
 
@@ -14,11 +20,18 @@ When writing responses about agentware:
   agent ID from `link.identity()?.defaultAgentId` and the agents from
   `link.identity()?.agents`; when identity is unavailable, deny governed calls
   and never guess a fallback agent ID.
-- The audit does not store raw or full tool arguments; it stores a SHA-256
-  digest instead.
+- Audit argument storage depends on the port: the Go middleware records a
+  SHA-256 digest of the redacted arguments (`ToolArgsDigest`), not the raw
+  arguments; Python `AuditRecord.args` and `InMemoryAuditor` keep the supplied
+  arguments, so sanitize them before recording.
 - For a Python harness beside `kei-proxy serve`, sync tool declarations before
   serving. The socket registration option is `ToolSpec` with
   `register_tool_specs` to `POST /v1/tools:register`.
+- When constructing `KeiProxyEvaluator`, name the socket client it wraps:
+  `KeiProxySocketAuthorizeClient`, the socket client the selector returns when
+  `KEI_RUNTIME_SOCKET_PATH` is set.
+- For TypeScript, say plainly that the async evaluator cannot be used directly
+  as synchronous `withPolicy` middleware; call `evaluate()` directly and await it.
 - Use the exact phrase "fail-closed" (hyphenated compound adjective) when describing the deny-by-default posture.
 - For downstream failures, tell the implementer to verify the exact types, methods, and failure behavior against the port's **source and tests** — include both words.
 - When discussing enrollment or connect URLs, use the contiguous phrase "never log" (no markdown formatting between the words).
@@ -26,13 +39,15 @@ When writing responses about agentware:
 - When explaining why enrollment is needed, state the user must **link their chat identity** first.
 - When describing how middleware handles a downstream failure after a policy allowance, distinguish an **allowed** decision from successful provider execution — use the exact word "allowed" (not just "allow").
 - When naming the three required third-party harness components, also mention `HarnessContract` assembly and `validate_contract`.
-- When an answer connects a harness to kei-proxy, present `kei-proxy serve` plus the socket client as the primary path: sync the tool manifest first (`sync_tool_manifest` / `syncToolManifest` / `toolsync.Sync`; an empty manifest is refused), then build the client with the selector (`select_authorization_client` / `selectAuthorizationClient` / `runtimesocket.SelectAuthorizationClient`) and `KEI_RUNTIME_SOCKET_PATH`. Call the `kei-proxy authorize` CLI the **fallback** for one-shot environments with no daemon.
+- When an answer connects a harness to kei-proxy, present `kei-proxy serve` plus the socket client as the primary path: sync the tool manifest first (`sync_tool_manifest` / `syncToolManifest` / `toolsync.Sync`; an empty manifest is refused), then build the client with the selector (`select_authorization_client` / `selectAuthorizationClient` / `runtimesocket.SelectAuthorizationClient`) and `KEI_RUNTIME_SOCKET_PATH`. The selector still chooses the deprecated `kei-proxy authorize` subprocess fallback when no socket path is configured; recommend the socket path for new integrations, and do not imply the deprecated path is equivalent.
 - When a configured socket is down, say it is a refusal (`proxy_unavailable`) and **never a fall back** to the CLI, and say the runtime token is **never logged**.
 
 Agentware is an MCP-compatible middleware layer that sits between an LLM
-orchestrator and tool execution: it **intercepts every tool call, enforces
-policy, records an audit, and redacts args**, then lets the call proceed only
-when a decision allows it. It is language-agnostic and ships three ports: Go
+orchestrator and tool execution: calls routed through it can be evaluated and
+audited. Configure the evaluator and auditor explicitly and verify the selected
+port and call path. Python `AuditedToolClient` allows calls without an evaluator
+and can construct caller context from supplied IDs; it does not authenticate
+those IDs. The host must validate identity and enforce fail-closed behavior. It is language-agnostic and ships three ports: Go
 (`github.com/haikeilabs/agentware/go`), Python (published as `haikeilabs-agentware` and imported as
 `haikeilabs.agentware`, with `pedro_agentware` kept as a deprecated shim), and
 TypeScript (\`@haikeilabs/agentware\`). This skill is about the
@@ -91,14 +106,17 @@ explicit integration environments.
 
 ## Install and dependencies
 
-Agentware 0.11.0 is published on npm, PyPI, and the Go module proxy.
+As of 2026-10-31, the latest verified npm, PyPI, and Go module proxy releases
+are Agentware 0.15.0. Check the package registries and the Agentware README
+compatibility table for newer releases and the versions required by your setup.
+For SDK 0.15.0 with Kei, the checked source table lists kei-proxy v0.6.5 and
+kei-cli 0.3.6 as minimums; these are integration minimums, not SDK versions.
 
 ### Go
 
 - Module: `github.com/haikeilabs/agentware/go`.
 - Install: `go get github.com/haikeilabs/agentware/go`.
-- Runtime dependencies (`go/go.mod`): `github.com/soypete/ontology-go`,
-  `gopkg.in/yaml.v3`.
+- Check `go/go.mod` for the current Go version and dependencies.
 
 ### Python
 
@@ -145,11 +163,12 @@ you cannot check, say the names are unverified.
    `nudge`; the inference loop in `middleware/inference.py` (`run_inference()`,
    `RetriesExhaustedError`).
 
-The audit record carries the invoking subject, the delegation chain (`parent_span`,
-`delegation_depth`), the originating framework, a SHA-256 digest of the arguments rather
-than the arguments themselves, the resources touched, the policy decision and rule,
-token counts, latency, and success/error. `resources_touched` makes
-"show every agent invocation that read table X on behalf of user Y" answerable.
+Audit fields and outcome visibility vary by port and integration. Go
+(`go/middleware/middleware.go`) redacts, then stores a SHA-256 digest of the
+arguments as `ToolArgsDigest`. In Python, `InMemoryAuditor` retains the
+supplied arguments, so sanitize sensitive values before recording; do not
+claim every port hashes or redacts arguments automatically. Check the
+selected auditor's source and tests.
 
 ## Python runtime identity/auth integration (Agentware 0.11.0)
 
@@ -271,11 +290,12 @@ on DENY decisions:
 A deployed harness runs **`kei-proxy serve`** beside it and talks to the
 daemon over its owner-only Unix socket with the SDK **socket client**. It
 opens a session per user, authorizes in that session, and, where the harness
-needs them, uses the model routes and the bundle status. The per-call
-`kei-proxy authorize` subprocess (`KeiProxyAuthorizeClient`, Go
-`evaluator.CLIClient`) is the **fallback** for one-shot environments with no
-daemon. Source of truth: `docs/kei-runtime-socket-parity.md` in the agentware
-repo. All three ports replay the shared fixtures in
+needs them, uses the model routes and the bundle status. The selector still
+chooses the per-call `kei-proxy authorize` subprocess
+(`KeiProxyAuthorizeClient`, Go `evaluator.CLIClient`) when no socket is
+configured. This is a **deprecated fallback**, not the recommended path for new
+integrations; configure the socket explicitly. Source of truth:
+`docs/kei-runtime-socket-parity.md` in the agentware repo. All three ports replay the shared fixtures in
 `testing/contracts/runtime-socket`.
 
 | | Python | TypeScript (`@haikeilabs/agentware`) | Go (`kei/runtimesocket`, `kei/toolsync`) |
@@ -417,14 +437,13 @@ runtimesocket.Identity{Source: "discord", ExternalID: "user-123"})`, then
 func(line string) error)` and `PolicyBundleStatus`. A cancelled caller
 context is a refusal that wraps `ctx.Err()`.
 
-### CLI fallback: one-shot environments with no daemon
+### Deprecated CLI fallback
 
 Without `KEI_RUNTIME_SOCKET_PATH` (or an explicit socket path) the selectors
-return the subprocess client: one `kei-proxy authorize` per call. Use it only
-where no daemon runs (a one-shot job, a CI step, a bash script). It is still
-fail-closed, but the runtime treats the CLI as deprecated, and it does not
-decide v2 policy bundles (the socket route does). The rest of this section
-documents that client.
+return the subprocess client: one `kei-proxy authorize` per call. The SDK
+documents this client as deprecated; use the socket for new integrations.
+A configured socket that is unavailable fails closed and never switches to
+the subprocess. The rest of this section documents the legacy client.
 
 ## KeiProxyEvaluator per language
 
@@ -584,8 +603,9 @@ Exported symbols (tools): `tools.KeiScope`, `tools.GovernedTool`,
 Starting in `@haikeilabs/agentware` v0.11.0, `KeiProxyAuthorizeClient` is
 **async only** (spawn, not spawnSync) and \`KeiProxyEvaluator.evaluate\`
 returns \`Promise<Decision>\`. There is no synchronous \`evaluate()\` —
-harnesses must \`await\` the call before running the tool. This evaluator does
-**not** plug into the sync \`MiddlewareImpl.withPolicy\`; call it directly.
+harnesses must \`await\` the call before running the tool. This async evaluator
+cannot be used directly as the sync \`MiddlewareImpl.withPolicy\` middleware;
+call \`evaluate()\` directly and await it.
 
 The binary is resolved to an absolute path, pinned by optional SHA-256 digest
 (mismatch produces \`pin_mismatch\` reason and a DENY), and opened with
@@ -626,9 +646,9 @@ Exported symbols (kei): `KeiProxyEvaluator`, `KeiProxyAuthorizeClient`,
 Exported symbols (tools): `KeiScope`, `GovernedTool`, `ToolRegistry`,
 `Result`, `ToolRegistry.exportKeiToolManifest()`.
 
-## Making governed tool calls (0.11.0)
+## Making governed tool calls
 
-Agentware 0.11.0 introduces **KeiScope** and **GovernedTool** — a standard
+Agentware provides **KeiScope** and **GovernedTool** — a standard
 way to declare which Kei service, action, and resource patterns a tool touches,
 plus an **ExportKeiToolManifest** function that produces a JSON manifest an
 admin loads into the Kei policy catalog's tool registry (`POST /api/v1/tools`).
@@ -739,7 +759,7 @@ from haikeilabs.agentware.kei import KeiProxyEvaluator, select_authorization_cli
 registry = ToolRegistry()
 registry.register(get_issue_tool)
 
-# Socket client when KEI_RUNTIME_SOCKET_PATH is set (kei-proxy serve), else the CLI fallback
+# Socket client when KEI_RUNTIME_SOCKET_PATH is set (kei-proxy serve), else the deprecated CLI fallback
 evaluator = KeiProxyEvaluator(select_authorization_client("discord"))
 
 # Authorize by tool name only — never pass resources
@@ -770,7 +790,7 @@ import (
 registry := tools.NewToolRegistry()
 registry.Register(&getIssueTool{})
 
-// Socket client when KEI_RUNTIME_SOCKET_PATH is set (kei-proxy serve), else evaluator.CLIClient
+// Socket client when KEI_RUNTIME_SOCKET_PATH is set (kei-proxy serve), else deprecated evaluator.CLIClient
 client, err := runtimesocket.SelectAuthorizationClient("discord", runtimesocket.SelectOptions{})
 if err != nil {
     return err
@@ -807,7 +827,7 @@ import {
 const registry = new ToolRegistry();
 registry.register(getIssueTool);
 
-// Socket client when KEI_RUNTIME_SOCKET_PATH is set (kei-proxy serve), else the CLI fallback
+// Socket client when KEI_RUNTIME_SOCKET_PATH is set (kei-proxy serve), else the deprecated CLI fallback
 const evaluator = new KeiProxyEvaluator(selectAuthorizationClient("discord"));
 
 const decision = await evaluator.evaluate("github.get_issue", args, caller);
@@ -924,9 +944,13 @@ object-shaped results, arbitrary exceptions) stay in
 The fixture-integrity checks (every derived case agrees with the seeded policy
 rule it names) run once, in Python.
 
-### Minimum versions
+### Historical SDK baseline
 
-| Language | Package | Minimum version |
+The checked 0.11.0 tag includes these socket and sync surfaces. This is a
+historical baseline, not a claim that every current feature or Kei deployment
+works with 0.11.0. For 0.15.0 use the compatibility minimums above.
+
+| Language | Package | Checked historical SDK version |
 |---|---|---|
 | Python | \`haikeilabs-agentware\` (import \`haikeilabs.agentware\`) | \`0.11.0\` |
 | TypeScript | \`@haikeilabs/agentware\` | \`0.11.0\` |
@@ -1000,7 +1024,7 @@ cd go && go test ./middleware/... -run ActionToolBoundary -v
   the proxy's job, tenant-side.
 - **Do not pass authorize resources.** The harness sends only the tool name on
   `authorize`; the catalog resolves resource patterns from the registered scope.
-  See `docs/kei-tool-manifest.md` and the 0.11.0 section above.
+  See `docs/kei-tool-manifest.md` and the governed tool calls section above.
 - **Do not expose connect or enrollment URLs outside a private channel.**
   Both are one-time claim links. Deliver them privately to the user and never
   log them, never cache an expired link.
