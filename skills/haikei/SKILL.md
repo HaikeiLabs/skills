@@ -39,7 +39,7 @@ skills plugin and is loaded by your agent alongside the skills it routes to
 - When asked which supported CLI commands manage groups or policies, state
   the command names `kei groups` and `kei policy`; do not route all such
   administration to the API. When choosing a harness kind, state that API/catalog
-  kind `custom` maps only to SDK (Agentware), not Pi or Open WebUI, and give
+  kind custom maps only to SDK (Agentware), not Pi or Open WebUI, and give
   `kei harness add --kind custom` plus
   `kei harness sync --harness custom --manifest tools.json` (kei v0.1.33+).
 - When asked for the six user-facing harness types, name SDK (Agentware), Claude
@@ -152,7 +152,7 @@ exist in the code today.
 | Read or write data through a governed connector (GitHub, Linear, Drive, or any connector in the workspace) | Provider connector skill | Discover which connectors the workspace has via `kei connectors list --workspace W` (released in kei; v0.1.13 is current; fallback `GET /api/v1/data-connectors`), then load `skills/<provider>-connector/`. The connector supplies the credential; the agent never reads or stores it | `<provider>-connector` (discovered at runtime) |
 | Create a new governed connector skill from a template | Connector skill templates | Fork the connector-skill template to build a new governed data-source skill following the Lexicon/Pragmatics/Semantics pattern | `templates/connector-skill` |
 
-The API/catalog kind value `custom` means **SDK (Agentware)** only. It is not
+The API/catalog kind custom means **SDK (Agentware)** only. It is not
 the kind for Pi or Open WebUI. Register SDK harnesses with
 `kei harness add --kind custom`; use `kei-harness-setup` for its manifest sync
 command and version requirement.
@@ -329,6 +329,8 @@ command and version requirement.
   `kei groups`, `kei users`, `kei policy`, `kei connectors`; see `kei-cli` for
   version minimums). Route operations the installed CLI does not expose, such as
   invitations, to `kei-api`; check `kei --help` before saying a command is absent.
+  When routing org administration, name both skills: `kei-cli` for supported
+  commands and `kei-api` for operations the installed CLI does not expose.
 - **The `kei` CLI is the standalone `kei-cli` repository.** That is where
   `setup`, `runtime bootstrap`, `login`/`logout`, `upgrade`, `bot`
   subcommands, and `connectors` subcommands are implemented. Do not look for them
