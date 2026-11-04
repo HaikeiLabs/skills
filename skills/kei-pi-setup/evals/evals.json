@@ -75,6 +75,40 @@
         {"text":"The answer says compound syntax is denied.","contains_any":["compound","only one simple command","only simple commands"]},
         {"text":"The answer says denial happens before execution.","contains_any":["before execution","before Bash executes"]}
       ]
+    },
+    {
+      "id": 6,
+      "prompt": "I'm a Kei admin about to set up Pi with Kei on my laptop. Before we install anything, what starter policies do you recommend so Pi isn't blocked on every call, and how would you create them?",
+      "expected_output": "Present the starter set for the user to accept or drop before creating anything: shell:kei and shell:kei-proxy (broad; Kei server-side authz bounds kei calls), read-only shell basics such as shell:git status, shell:git diff, shell:git log, shell:ls, shell:rg, shell:cat, and tool:pi.read. Create accepted rows with kei policy create --workspace WS --group GROUP --allow TARGET. Warn that the kei login token in the OS keychain lets the agent run kei writes, including policy changes, without a prompt.",
+      "expectations": [
+        "The answer recommends shell:kei and shell:kei-proxy.",
+        "The answer includes read-only shell basics such as git status.",
+        "The answer asks the user to accept the set before creating policies.",
+        "The answer uses the current kei policy create syntax.",
+        "The answer warns that the kei session lets the agent run write commands without a prompt."
+      ],
+      "checks": [
+        {"text":"The answer recommends shell:kei and shell:kei-proxy.","contains_all":["shell:kei","shell:kei-proxy"]},
+        {"text":"The answer includes read-only shell basics such as git status.","contains_any":["shell:git status","shell:git diff","shell:ls"]},
+        {"text":"The answer asks the user to accept the set before creating policies.","contains_any":["accept","which of these","which ones","confirm","approve"]},
+        {"text":"The answer uses the current kei policy create syntax.","contains_all":["kei policy create","--allow"]},
+        {"text":"The answer warns that the kei session lets the agent run write commands without a prompt.","contains_any":["keychain","your session","user's session","without a prompt"]}
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "For Pi with Kei, can I just add shell:* or tool:pi.bash so Pi Bash works, and should I use a path: rule to let Pi's read tool open my workspace files?",
+      "expected_output": "No. shell:* and tool:pi.bash never permit a shell call; only a literal shell: argv prefix does. Pi's read tool is decided by tool name, so permit tool:pi.read (with the pi.read registration from tool-manifest.v4.json); a path: policy does not permit Pi's file tools.",
+      "expectations": [
+        "The answer says shell:* and tool:pi.bash never permit shell calls.",
+        "The answer recommends literal shell: prefixes instead.",
+        "The answer says Pi read is permitted with tool:pi.read, not a path: rule."
+      ],
+      "checks": [
+        {"text":"The answer says shell:* and tool:pi.bash never permit shell calls.","regex":"(?=.*shell:\\*)(?=.*tool:pi\\.bash)(?=.*(?:never|not|no|cannot|can't|doesn't|don't|won't))"},
+        {"text":"The answer recommends literal shell: prefixes instead.","contains_any":["shell:git","shell:ls","literal","argv prefix","argv-prefix","prefix"]},
+        {"text":"The answer says Pi read is permitted with tool:pi.read, not a path: rule.","contains_all":["tool:pi.read","path:"]}
+      ]
     }
   ]
 }
