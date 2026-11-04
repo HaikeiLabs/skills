@@ -1,6 +1,6 @@
 ---
 name: kei-pi-setup
-description: "Install and configure Kei's Pi adapter (`kei-lime-pi`), connect Pi to the local `kei-proxy` Unix socket, use existing `shell:` policies for Pi Bash, and verify fail-closed behavior. Use when setting up or updating Pi for Kei, installing the Pi package, checking whether Pi calls use the daemon, or asking about Pi Bash policy and audit behavior. For generic Claude Code/Codex/OpenCode setup use `kei-harness-setup`; for creating or bootstrapping the runtime use `kei-runtime-setup`."
+description: "Install and configure Kei's Pi adapter (`kei-lime-pi`), connect Pi to the local `kei-proxy` Unix socket, recommend a starter policy set (`shell:kei`, `shell:kei-proxy`, read-only shell basics, `tool:pi.read`) and create only the rows the user accepts, use existing `shell:` policies for Pi Bash, and verify fail-closed behavior. Use when setting up or updating Pi for Kei, choosing Pi's first policies, installing the Pi package, checking whether Pi calls use the daemon, or asking about Pi Bash policy and audit behavior. For generic Claude Code/Codex/OpenCode setup use `kei-harness-setup`; for creating or bootstrapping the runtime use `kei-runtime-setup`."
 ---
 
 # Set up Pi with Kei
@@ -26,6 +26,68 @@ contract; do not infer support from a policy or tool row alone.
   syntax is denied before execution. State explicitly that raw command text is
   **not stored or logged** in the audit; the audit retains the SHA-256 argument
   digest. Do not rely on saying only that a digest is retained.
+- Before setting Pi up, show the user the recommended starter policies below
+  and ask which to create. Create only the ones they accept.
+
+## Recommend starter policies before setup
+
+Pi's Kei gate permits only what a policy allows, so a fresh setup without
+policies blocks almost every call. Before you install or configure anything,
+show the user this starter set, explain each row, and ask which rows to create.
+The user may drop any row. Do not create a policy the user has not accepted,
+and do not add rows of your own.
+
+| Target | Why |
+| --- | --- |
+| `shell:kei` | Lets Pi run the `kei` admin CLI. |
+| `shell:kei-proxy` | Lets Pi check the runtime (`kei-proxy policy show`). |
+| `shell:git status`, `shell:git diff`, `shell:git log` | Read-only Git. |
+| `shell:ls`, `shell:rg`, `shell:cat`, `shell:pwd` | Read-only basics. |
+| `tool:pi.read` | Lets Pi's `read` tool open files. |
+
+Tell the user these things when you present the set:
+
+- **`shell:kei` and `shell:kei-proxy` are broad on purpose.** They permit every
+  subcommand. The user is an admin, and Kei's server-side authorization still
+  limits what any `kei` call can do.
+- **`kei` acts with the user's own session, without a prompt.** The `kei` login
+  token is in the OS keychain of the same OS user that runs Pi. Any `kei`
+  command the agent runs uses the user's session, including write commands
+  such as `kei policy create` and `kei policy delete`. Accepting `shell:kei`
+  lets the agent change policies, including its own.
+- **A `shell:` row is an argv prefix.** `shell:git status` permits
+  `git status --short` but not `git push`. `shell:cat` reads any file the OS
+  user can read. One simple command is evaluated at a time.
+- **`shell:*` and `tool:pi.bash` never permit a shell call.** Only a literal
+  `shell:` prefix can, so do not offer either one as a shortcut.
+- **`tool:pi.read` is decided by tool name.** The runtime records the file's
+  canonical path in the audit, but it does not match the path against policy,
+  so this row permits reads of any path, and a `path:` policy does not permit
+  Pi's file tools. It also needs the `pi.read` registration from the adapter's
+  `tool-manifest.v4.json` (see "Local filesystem tools"). Leave out
+  `tool:pi.write` and `tool:pi.edit` unless the user asks for them.
+- **These rules are not limited to Pi.** A standing policy names a group, not a
+  harness: `harness:` sources and harness conditions are retired. The rules
+  apply to every member of the group, and `kei harness sync` also renders the
+  `shell:` rows into Claude Code, Codex and OpenCode settings.
+
+Ask which group the rules apply to. A group the user belongs to keeps them
+narrow; `autogroup:admin` reaches every admin and owner in the workspace. List
+groups with `kei groups list --workspace WORKSPACE`; create one only if the
+user asks. Then create each accepted row with its own command:
+
+```sh
+kei policy create --workspace WORKSPACE --group GROUP --allow shell:kei
+kei policy create --workspace WORKSPACE --group GROUP --allow shell:kei-proxy
+kei policy create --workspace WORKSPACE --group GROUP --allow "shell:git status"
+kei policy create --workspace WORKSPACE --group GROUP --allow tool:pi.read
+```
+
+Quote a target that has a space. Check `kei policy create -h` first, and use
+the `kei-harness-policy` skill for the policy model. The older
+`kei policies create` command and its `--src-pattern`/`--dst-pattern` flags are
+deprecated; do not use them. Confirm a rule with
+`kei policy test "shell:git status" --workspace WORKSPACE --as group:GROUP`.
 
 ## Separate the two Pi packages
 
@@ -201,6 +263,9 @@ kei-proxy policy show
   arbitrary Pi extensions remain outside the gate.
 - Policy and runtime registration determine what is allowed; package
   installation does not grant permission.
+- The starter set is a recommendation, not a default: nothing is created until
+  the user accepts it. Standing policies cannot be limited to Pi, and the
+  current runtime cannot narrow `tool:pi.read` to a path.
 - Pi receives connector credentials only via the release step and calls the
   provider directly only with the released credential, never as an ungated
   fallback.
