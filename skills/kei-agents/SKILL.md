@@ -30,7 +30,7 @@ YOU MUST INCLUDE the following exact strings as written (case-sensitive, substri
 - **`connector_id` values and binding config**: when describing a `ToolBinding`, say that binding config holds only `connector_id` placeholders (references to `abac.connection_presets.id`), never endpoints or credentials; the tenant-side runtime resolves the real preset, endpoint, and credentials at invocation time.
 - **What to run before exposing tools**: `validation` — the word "validation", not just the function name "validate_tool_definitions"
 - **What constant to pass to validation**: `ALL_TOOL_DEFINITIONS`
-- **How permission gates are expressed on governed read schemas**: `ABAC` (the acronym must appear)
+- **How permission gates are expressed on protected read schemas**: `ABAC` (the acronym must appear)
 - **Which field carries tenant-side parameter names for the proxy to supply**: `delegated_context` (underscored, lowercase — not "Delegated context")
 - **Where to find exact API names**: whenever an answer names a class, function, or constant, YOU MUST say the `package source` and `docs` are the authority for exact API names — also name the file `model_format.py` when describing render format detection
 - **What stays out of definitions**: whenever an answer covers what kei-agents contains or where provider calls and credentials live, YOU MUST say provider execution and credentials stay out of kei-agents `tool definitions` (the tenant-side proxy executes the call)
@@ -111,14 +111,14 @@ Full list is in `src/agents/tool_definitions.py`. GitHub mutations
 (`create_issue`, `create_pull_request`) are **action tools gated by
 `Permission.GITHUB_WRITE`** — they are never Kei connector capabilities.
 
-## Governed connector read schemas
+## Connector read schemas for connectors Kei checks
 
 Provider-neutral, schema-only **read** capabilities. Each schema expresses:
 
 1. **Capability binding** — a `Permission` gate (e.g. `linear_read`) and a `ToolCategory`.
 2. **Resource binding** — `ToolBinding.config.resource` names the bound resource type
-   (`repository`, `issues`, `objects`, `records`, ...). The resource scope is governed
-   routing metadata, not an agent parameter.
+   (`repository`, `issues`, `objects`, `records`, ...). The resource scope is routing
+   metadata that Kei checks, not an agent parameter.
 3. **Action binding** — tool `name`/`description` are the action (list/get). Reads only;
    writes stay agent action tools.
 4. **Delegated context** — `ToolBinding.delegated_context` lists non-secret field names
@@ -172,12 +172,12 @@ Call `validate_tool_definitions(ALL_TOOL_DEFINITIONS)` to catch issues including
 - **No provider credentials** — binding config keys/values that look like secrets are rejected.
 - **No arbitrary URLs** — binding config keys that look like endpoints (`url`, `endpoint`,
   `base_url`, `host`, ...) and any string value containing `://` are rejected. Endpoints
-  resolve from the governed connection preset, never embedded.
+  resolve from the connection preset Kei checks, never embedded.
 - **No tenant IDs chosen by the agent** — a parameter that collides with a
   `delegated_context` field, or that looks like a tenant identifier (`tenant_id`,
-  `account_id`, `customer_id`, `organization_id`, `org_id`), is rejected on governed
+  `account_id`, `customer_id`, `organization_id`, `org_id`), is rejected on protected
   connector read tools.
-- **No direct provider calls** — governed connector read tools (a `*_read` permission with
+- **No direct provider calls** — protected connector read tools (a `*_read` permission with
   a binding) must not declare a `handler`; execution is delegated to the tenant-side proxy.
   They must also declare a `service`.
 - **delegated_context misconfigurations** — fields listed in `delegated_context` that collide
@@ -218,7 +218,7 @@ python -c "from agents import validate_tool_definitions, ALL_TOOL_DEFINITIONS; p
   docs-only repo; that is a hard rule in `AGENTS.md`.
 - **Do not** invent tool schemas or permissions that are not in `src/agents/`. The code
   wins over any description here.
-- **Do not** add write capabilities to governed connector schemas. Reads are the only
+- **Do not** add write capabilities to protected connector schemas. Reads are the only
   connector capabilities; GitHub/Linear writes are agent action tools executed by the
   agent harness, not ABAC connector capabilities.
 - **Do not** let an agent supply `delegated_context` fields or tenant identifiers as tool

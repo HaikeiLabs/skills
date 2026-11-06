@@ -75,11 +75,11 @@ out.
   later), agentware older than 0.4.0 (recommend upgrading agentware to 0.4.0
   or later), or no agent attached to the
   installation (attach one in the console or with `kei bot agents add`).
-  Until an agent identity exists, the harness must deny governed calls; never
+  Until an agent identity exists, the harness must deny protected calls; never
   guess or supply a fallback agent ID.
-- **Every governed call is denied.** Before blaming a policy change, rule out
+- **Every protected call is denied.** Before blaming a policy change, rule out
   a disabled, missing, or misconfigured kei-proxy. A disabled, missing, or
-  misconfigured proxy denies every governed call and never permits one
+  misconfigured proxy denies every protected call and never permits one
   (fail-closed): `KEI_PROXY_DISABLED=true`, kei-proxy not on `PATH`, a
   missing `KEI_RUNTIME_TOKEN`, or a wrong `KEI_RUNTIME_CONTROL_PLANE_URL`.
   The diagnosis is read-only environment checks (is `KEI_PROXY_DISABLED`
@@ -389,13 +389,13 @@ installation, or the versions are too old to report agent identity.
 | `agent_id` is empty / `agents` is `[]` with all versions current | No agent has been attached to the installation | In the console, attach an agent to the installation, or run `kei bot agents add --installation ID --agent AGENT_ID --default` |
 | Agent and model: 0 ready in `kei bot status` | Agent assigned but not yet initialized; model profile not resolved | Wait for agent initialization (poll `kei bot status`); if stuck, check agent configuration in console |
 
-If agent identity is unavailable, the harness must deny governed calls at the
+If agent identity is unavailable, the harness must deny protected calls at the
 SDK boundary — never guess or supply a fallback agent ID.
 
-If **every** governed tool call is denied, check whether kei-proxy is disabled
+If **every** protected tool call is denied, check whether kei-proxy is disabled
 or misconfigured before assuming a policy problem. `KEI_PROXY_DISABLED=true`
 turns permits off, so a disabled, missing, or misconfigured proxy denies every
-governed call (fail-closed, HAI-249) — it never permits one. The diagnosis
+protected call (fail-closed, HAI-249) — it never permits one. The diagnosis
 is read-only checks plus a daemon socket preflight. Read-only checks: confirm
 the harness environment has `KEI_PROXY_DISABLED` unset (or `false`) and that
 `KEI_RUNTIME_TOKEN` and `KEI_RUNTIME_CONTROL_PLANE_URL` are present, then use
@@ -406,15 +406,15 @@ Do not use one-shot `kei-proxy authorize` as an allow probe; v2 returns
 ### 4a. Check bundle expiry (harness command policies)
 
 Every policy bundle carries a `not_after` expiry (ADR-026 §4). When the bundle
-expires, `kei-proxy` denies every governed call with
+expires, `kei-proxy` denies every protected call with
 `reason_code: policy_bundle_expired`. Harness command policies (shell:/skill:/path:)
 expire at the same time.
 
 | Symptom | Likely cause | Check | Fix |
 |---------|-------------|-------|-----|
-| All governed calls denied with `policy_bundle_expired` | Bundle `not_after` has passed | `kei-proxy policy show` (offline bundle state) or check the runtime logs for `bundle_expired` | Re-establish connectivity and run `kei-proxy policy sync` (or `kei-proxy runtime bootstrap`) to force a fresh bundle fetch; then `kei harness sync --harness KIND --dry-run` to preview the re-rendered native config. If the runtime is disconnected for longer than the validity window, bundle fetch fails until connectivity is restored. |
+| All protected calls denied with `policy_bundle_expired` | Bundle `not_after` has passed | `kei-proxy policy show` (offline bundle state) or check the runtime logs for `bundle_expired` | Re-establish connectivity and run `kei-proxy policy sync` (or `kei-proxy runtime bootstrap`) to force a fresh bundle fetch; then `kei harness sync --harness KIND --dry-run` to preview the re-rendered native config. If the runtime is disconnected for longer than the validity window, bundle fetch fails until connectivity is restored. |
 | Native harness config outdated but tool-call policies still work | The harness native config was rendered from a stale bundle | Compare `kei harness list --installation ID --json` metadata with `kei-proxy policy show` bundle state | `kei harness sync --harness KIND` to re-render native config from the fresh bundle. Requires kei >v0.1.6. |
-| All governed calls denied with `policy_bundle_expired` (`deny_source: runtime_state`) while the runtime is online, and `kei-proxy policy sync` still leaves the bundle expired | The catalog does not reissue a bundle when it expires ([HAI-427](https://linear.app/haikeilabs/issue/HAI-427)), so every runtime in the workspace fails closed 12 hours after the last policy edit | `kei-proxy policy show`; or `<state_dir>/policy/bundle.json` (`not_after`) and `state.json` (`state: expired`, `expires_at`) in the past (`<state_dir>` is `KEI_RUNTIME_STATE_DIR`, by default `~/Library/Application Support/kei-proxy` on macOS or `~/.local/share/kei-proxy` on Linux). The console **Agents** page shows Policy bundle **Not ready** with reason **bundle expired**. | Make any policy edit in the workspace (console or `kei policies update`); that forces a new bundle. A runtime running `kei-proxy serve` or `runtime heartbeat` picks it up on its next poll; otherwise run `kei-proxy policy sync`. Confirm with `kei-proxy policy show`. Repeat after each 12-hour quiet period until [HAI-427](https://linear.app/haikeilabs/issue/HAI-427) ships. |
+| All protected calls denied with `policy_bundle_expired` (`deny_source: runtime_state`) while the runtime is online, and `kei-proxy policy sync` still leaves the bundle expired | The catalog does not reissue a bundle when it expires ([HAI-427](https://linear.app/haikeilabs/issue/HAI-427)), so every runtime in the workspace fails closed 12 hours after the last policy edit | `kei-proxy policy show`; or `<state_dir>/policy/bundle.json` (`not_after`) and `state.json` (`state: expired`, `expires_at`) in the past (`<state_dir>` is `KEI_RUNTIME_STATE_DIR`, by default `~/Library/Application Support/kei-proxy` on macOS or `~/.local/share/kei-proxy` on Linux). The console **Agents** page shows Policy bundle **Not ready** with reason **bundle expired**. | Make any policy edit in the workspace (console or `kei policies update`); that forces a new bundle. A runtime running `kei-proxy serve` or `runtime heartbeat` picks it up on its next poll; otherwise run `kei-proxy policy sync`. Confirm with `kei-proxy policy show`. Repeat after each 12-hour quiet period until [HAI-427](https://linear.app/haikeilabs/issue/HAI-427) ships. |
 | `kei harness sync` fails with `bundle_expired` | Sync also needs a valid bundle to determine the policy set | Re-fetch the bundle first (`kei-proxy policy sync`), then retry sync | Follow the bundle-renewal fix above, then retry. Retrying sync without refreshing the bundle will not help. |
 
 While `kei-proxy serve` runs, a background refresher polls the current bundle
@@ -629,8 +629,8 @@ The `kei-harness-setup` skill has the full version with exact commands.
 | `runtime heartbeat refused: another kei-proxy process owns the runtime state directory` | `kei-proxy serve` already reports heartbeats and owns the state directory | Run only one process; do not kill processes without the owner's consent |
 | Audit collector logs `flush returned status 400`, spool grows | Control plane rejects the flush; hook events never become sessions | See 4d; update/restart with approval; report persistent 400s with `kei feedback` |
 | No heartbeat after terminal exits | The runtime service is not installed | `kei runtime service install` installs the LaunchAgent (macOS) or systemd user unit (Linux); `kei runtime service status` shows whether it is loaded and running |
-| Every governed call denied with `reason_code: policy_bundle_expired` | Bundle `not_after` passed; the catalog does not reissue expired bundles ([HAI-427](https://linear.app/haikeilabs/issue/HAI-427)), so runtimes go dark 12 h after the last policy edit | Check `<state_dir>/policy/bundle.json` / `state.json` (by default `~/Library/Application Support/kei-proxy` on macOS, `~/.local/share/kei-proxy` on Linux), or console Agents → Policy bundle **Not ready** (bundle expired). Make any policy edit to force a new bundle, then `kei-proxy policy sync` (see 4a) |
-| Every governed call denied | `KEI_PROXY_DISABLED=true`, missing token, wrong URL, or kei-proxy not on `PATH` | Unset `KEI_PROXY_DISABLED`, inject token from secret manager, confirm URL (no `/api/v1`), read-only checks first, then preflight a known-permitted tool with daemon Unix-socket `POST /v1/authorize`. One-shot `kei-proxy authorize` returns `preflight_required`; it is not an allow probe. |
+| Every protected call denied with `reason_code: policy_bundle_expired` | Bundle `not_after` passed; the catalog does not reissue expired bundles ([HAI-427](https://linear.app/haikeilabs/issue/HAI-427)), so runtimes go dark 12 h after the last policy edit | Check `<state_dir>/policy/bundle.json` / `state.json` (by default `~/Library/Application Support/kei-proxy` on macOS, `~/.local/share/kei-proxy` on Linux), or console Agents → Policy bundle **Not ready** (bundle expired). Make any policy edit to force a new bundle, then `kei-proxy policy sync` (see 4a) |
+| Every protected call denied | `KEI_PROXY_DISABLED=true`, missing token, wrong URL, or kei-proxy not on `PATH` | Unset `KEI_PROXY_DISABLED`, inject token from secret manager, confirm URL (no `/api/v1`), read-only checks first, then preflight a known-permitted tool with daemon Unix-socket `POST /v1/authorize`. One-shot `kei-proxy authorize` returns `preflight_required`; it is not an allow probe. |
 
 ### Harness registration / sync
 
@@ -665,8 +665,8 @@ The `kei-harness-setup` skill has the full version with exact commands.
 - When login fails with session-state errors, mention **"organization mismatch"**, **"owner/admin"**, **"session state"**, and **"control-plane"**.
 - When a credential is lost, mention **"hash"**, **"cannot be recovered"**, **"rotation"** (not just "rotate"), **"approval"** (the exact word "approval", not "approve"), and **"piping"** (the new credential is piped to its destination).
 - When CA certificate is missing, mention **"ca-certificates"**, **"Docker"**, **"final stage"**, **"earlier build stage"**, **"carry over"**, **"apt-get"**, and **"docker run"**.
-- When diagnosing agent-ID mismatch, mention **"kei-proxy"** **"0.1.11"**, **"agentware"** **"0.4.0"**, **"upgrading"** (for both), **"attach"**, **"agent"**, **"installation"**, and that the harness must **"deny governed calls"** rather than guess an ID.
-- When all governed calls are denied, mention **"KEI_PROXY_DISABLED"**, **"fail-closed"**, and that a disabled, missing, or misconfigured proxy **"denies"** every **"governed call"** and never permits one; rule the proxy out before blaming a **"policy change"**; and say the diagnosis is **"read-only"** environment checks plus a daemon Unix-socket **"POST /v1/authorize"** preflight. Do not recommend one-shot `kei-proxy authorize` as an allow probe.
+- When diagnosing agent-ID mismatch, mention **"kei-proxy"** **"0.1.11"**, **"agentware"** **"0.4.0"**, **"upgrading"** (for both), **"attach"**, **"agent"**, **"installation"**, and that the harness must **"deny protected calls"** rather than guess an ID.
+- When all protected calls are denied, mention **"KEI_PROXY_DISABLED"**, **"fail-closed"**, and that a disabled, missing, or misconfigured proxy **"denies"** every **"protected call"** and never permits one; rule the proxy out before blaming a **"policy change"**; and say the diagnosis is **"read-only"** environment checks plus a daemon Unix-socket **"POST /v1/authorize"** preflight. Do not recommend one-shot `kei-proxy authorize` as an allow probe.
 - When the policy bundle is stale, mention **"HAI-403"**, **"stale policy bundle"**, **"retrying sync"**, **"bundle refresh"**, **"policy edit"**, **"background refresh"**, and that **"desktop"** harnesses are **"auto-discovered"**.
 - When an identity-mode connector call denies `credential_unavailable` or `credential_backend_mismatch`, mention **"kei-proxy credential sync"**, **"KEI_RUNTIME_STATE_DIR"**, **"connector-credentials.json"**, **"kei connectors reconnect"**, and **"proxy-v0.2.4"** (it is not live in that release; it needs kei-proxy 0.2.5 or newer and the `POLICY_BUNDLE_V2_CONNECTORS` gate).
 - When kei-proxy reports **"model profile credential unavailable"**, say the runtime's cloud identity cannot read the profile's **"secret_ref"**: check **"GetSecretValue"** on that one secret, the **"account"** and **"region"**, and **"kms:Decrypt"** for a customer-managed key. Say a same-account runtime needs **no credential sync**, and never tell the user to put the key in an env var or values file. For "not found" or "not assigned" errors, the fix is **"kei model-profiles assign"** to the runtime's agent.

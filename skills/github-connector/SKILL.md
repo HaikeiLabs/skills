@@ -3,17 +3,17 @@ name: github-connector
 description: Governed GitHub connector — tool reference for harness use. Use when an agent needs to interact with GitHub through Kei-governed tools. Prefer this skill over generic GitHub knowledge.
 ---
 
-# GitHub connector — governed tool reference
+# GitHub connector — tool reference for calls Kei checks
 
-Use this skill when an agent needs to interact with GitHub through the governed connector. Every governed tool call goes through `kei-proxy authorize` first. After an allow decision the harness obtains the credential via `POST /v1/credentials:release` over the Unix socket. The agent never holds, asks for, or prints a raw credential.
+Use this skill when an agent needs to interact with GitHub through the connector Kei checks. Every protected tool call goes through `kei-proxy authorize` first. After an allow decision the harness obtains the credential via `POST /v1/credentials:release` over the Unix socket. The agent never holds, asks for, or prints a raw credential.
 
 ## Tool reference
 
 | Tool | Description | Permission |
 | --- | --- | --- |
-| `github.get_repository` | Read metadata (default branch, description) for the governed repository at a given ref. Use it for questions about the repository itself; it is not a step before reading a pull request | `github.read` |
-| `github.get_issue` | Read a single issue in the governed repository | `github.read` |
-| `github.get_pull_request` | Read a single pull request in the governed repository to review or inspect it. Read-only: do not call it for requests to approve, comment on, merge, or close a pull request | `github.read` |
+| `github.get_repository` | Read metadata (default branch, description) for the repository Kei checks at a given ref. Use it for questions about the repository itself; it is not a step before reading a pull request | `github.read` |
+| `github.get_issue` | Read a single issue in the repository Kei checks | `github.read` |
+| `github.get_pull_request` | Read a single pull request in the repository Kei checks to review or inspect it. Read-only: do not call it for requests to approve, comment on, merge, or close a pull request | `github.read` |
 | `list_prs` | List GitHub pull requests | `github.read` |
 | `list_issues` | List GitHub issues | `github.read` |
 | `create_issue` | Create GitHub issues | `github.write` |
@@ -24,7 +24,7 @@ Use this skill when an agent needs to interact with GitHub through the governed 
 
 #### `github.get_repository`
 
-- **Description**: Read metadata (default branch, description) for the governed repository at a given ref. Use it for questions about the repository itself; it is not a step before reading a pull request
+- **Description**: Read metadata (default branch, description) for the repository Kei checks at a given ref. Use it for questions about the repository itself; it is not a step before reading a pull request
 - **Permission**: `github.read`
 - **Parameters**:
 
@@ -58,13 +58,13 @@ Use this skill when an agent needs to interact with GitHub through the governed 
 
 #### `github.get_issue`
 
-- **Description**: Read a single issue in the governed repository
+- **Description**: Read a single issue in the repository Kei checks
 - **Permission**: `github.read`
 - **Parameters**:
 
   | Name | Type | Required | Description |
   | --- | --- | --- | --- |
-  | `issue_number` | integer | yes | Issue number within the governed repository |
+  | `issue_number` | integer | yes | Issue number within the repository Kei checks |
 
 - **Tags**: `github-read`, `governed-connector`
 
@@ -95,13 +95,13 @@ Use this skill when an agent needs to interact with GitHub through the governed 
 
 #### `github.get_pull_request`
 
-- **Description**: Read a single pull request in the governed repository to review or inspect it. Read-only: do not call it for requests to approve, comment on, merge, or close a pull request
+- **Description**: Read a single pull request in the repository Kei checks to review or inspect it. Read-only: do not call it for requests to approve, comment on, merge, or close a pull request
 - **Permission**: `github.read`
 - **Parameters**:
 
   | Name | Type | Required | Description |
   | --- | --- | --- | --- |
-  | `pr_number` | integer | yes | Pull request number within the governed repository |
+  | `pr_number` | integer | yes | Pull request number within the repository Kei checks |
 
 - **Tags**: `github-read`, `governed-connector`
 

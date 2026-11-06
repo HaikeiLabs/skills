@@ -1,4 +1,4 @@
-# Build governed AI agents with the agentware SDK
+# Build AI agents with Kei policies using the agentware SDK
 
 *Part 1 of 3: build, test, deploy.*
 
@@ -22,7 +22,7 @@ policy check in front of the billing tool is a control.
 | Layer | What it is | Where it lives |
 | --- | --- | --- |
 | Definition | System prompt, tool schemas, permissions | kei-agents |
-| Governance | Each call decided, audited, and attributed to a person | agentware (Python, Go, TypeScript) |
+| Guardrails | Each call decided, audited, and attributed to a person | agentware (Python, Go, TypeScript) |
 | Runtime decision | The live allow or deny from your workspace policy | kei-proxy, reached through agentware's `KeiProxyEvaluator` |
 
 Keeping these apart is what lets you swap a model, a harness, or a policy

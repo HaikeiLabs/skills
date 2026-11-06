@@ -1,4 +1,4 @@
-# Contributing to the Haikei skills repo
+# Contributing to the Haikei Skills repo
 
 Keep skills small: help agents find the right product and the right documentation
 instead of maintaining another copy of it.
@@ -29,8 +29,8 @@ instead of maintaining another copy of it.
 
 ## Adding or changing a skill
 
-For **governed connector skills** (skills that wrap a third-party API or CLI
-for use with governed credential release), start from the connector-skill
+For **connector skills** (skills that wrap a third-party API or CLI
+for use with Kei-checked credential release), start from the connector-skill
 template. The [`templates/connector-skill/TUTORIAL.md`](templates/connector-skill/TUTORIAL.md)
 walks through every step: fork the template, fill in Lexicon/Pragmatics/Semantics,
 write evals, run verification, and open a PR.

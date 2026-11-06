@@ -17,7 +17,7 @@ tool).
 >   not configured" until it is.
 >
 > Writes: the runtime runs `issue.create` and `comment.create` (with an
-> idempotency key, see the skill's *Governed capabilities*). `issue.update` is
+> idempotency key, see the skill's *Tool reference*). `issue.update` is
 > defined but denied with `capability_not_supported`. `comment.create` needs a
 > `kei` release built on kei-connector-contracts v0.8.0 or later.
 >

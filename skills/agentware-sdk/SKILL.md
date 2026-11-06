@@ -18,7 +18,7 @@ When writing responses about agentware:
 - For TypeScript runtime identity, state the compatibility minimums directly:
   Agentware 0.16.0, kei-proxy v0.6.5, and kei-cli 0.3.6. Read the assigned
   agent ID from `link.identity()?.defaultAgentId` and the agents from
-  `link.identity()?.agents`; when identity is unavailable, deny governed calls
+  `link.identity()?.agents`; when identity is unavailable, deny protected calls
   and never guess a fallback agent ID.
 - Audit argument storage depends on the port: the Go middleware records a
   SHA-256 digest of the redacted arguments (`ToolArgsDigest`), not the raw
@@ -35,7 +35,7 @@ When writing responses about agentware:
 - Use the exact phrase "fail-closed" (hyphenated compound adjective) when describing the deny-by-default posture.
 - For downstream failures, tell the implementer to verify the exact types, methods, and failure behavior against the port's **source and tests** — include both words.
 - When discussing enrollment or connect URLs, use the contiguous phrase "never log" (no markdown formatting between the words).
-- When explaining enrollment, state that the user must visit the URL to **link their chat identity** before governed tools work.
+- When explaining enrollment, state that the user must visit the URL to **link their chat identity** before protected tools work.
 - When explaining why enrollment is needed, state the user must **link their chat identity** first.
 - When describing how middleware handles a downstream failure after a policy allowance, distinguish an **allowed** decision from successful provider execution — use the exact word "allowed" (not just "allow").
 - When naming the three required third-party harness components, also mention `HarnessContract` assembly and `validate_contract`.
@@ -249,11 +249,11 @@ agents := identity.Agents                 // []Agent
 
 If `identity` is `None`/`undefined`/`nil` — because the runtime hasn't
 bootstrapped yet, `kei-proxy` is older than 0.1.11, or agentware is older than
-0.4.0 — **deny governed calls**. Never guess a fallback agent ID.
+0.4.0 — **deny protected calls**. Never guess a fallback agent ID.
 
 ## Third-party harness contract
 
-`docs/harness-contract.md` defines how a third-party harness is governed by
+`docs/harness-contract.md` defines how a third-party harness gets guardrails from
 agentware without depending on an agent framework. A harness provides three
 required components:
 
@@ -458,7 +458,7 @@ reason classes.
 
 ### Decision table
 
-The shared parity table (\`fixtures/kei/authorize-cases.v1.json\`) governs every
+The shared parity table (\`fixtures/kei/authorize-cases.v1.json\`) is authoritative for every
 port. Every reason reads \`kei-proxy <class>\` or \`kei-proxy <class>: <detail>\`.
 \`rule\` is the output's \`policy_id\` (or \`policy\`) when present, else \`kei-proxy\`.
 
@@ -646,7 +646,7 @@ Exported symbols (kei): `KeiProxyEvaluator`, `KeiProxyAuthorizeClient`,
 Exported symbols (tools): `KeiScope`, `GovernedTool`, `ToolRegistry`,
 `Result`, `ToolRegistry.exportKeiToolManifest()`.
 
-## Making governed tool calls
+## Making protected tool calls
 
 Agentware provides **KeiScope** and **GovernedTool** — a standard
 way to declare which Kei service, action, and resource patterns a tool touches,
@@ -668,7 +668,7 @@ The harness **never passes an authorize resource** (`--resource` /
 `authorize_resource`). The catalog is authoritative for resource patterns from
 the registered scope.
 
-### 1. Declare a governed tool
+### 1. Declare a protected tool
 
 Each language defines `KeiScope` and `GovernedTool` so existing tools compile
 unchanged — only tools that explicitly declare a scope appear in the manifest.
@@ -846,7 +846,7 @@ if (decision.action === Action.ALLOW) {
 
 ### 3. Export the tool manifest
 
-Export governed tools to a JSON manifest that an admin loads into the Kei
+Export protected tools to a JSON manifest that an admin loads into the Kei
 policy catalog. Only tools implementing `GovernedTool` appear in the output.
 The manifest is deterministic (sorted by tool name).
 
@@ -913,7 +913,7 @@ name. The harness sends only the tool name (`--tool`) on authorize.
   Registration runs before the harness serves and refuses an empty manifest.
 - **Harnesses never pass an authorize resource.** The `authorize` call sends
   the tool name only; the catalog resolves resources from the declared scope.
-- **Non-governed tools are excluded.** Tools that do not implement
+- **Local tools are excluded.** Tools that do not implement
   `GovernedTool` / `kei_scope()` / `keiScope()` are silently omitted from the
   manifest. They continue to work locally but are not registered in the catalog.
 - **Deterministic output.** Entries are sorted by tool name so the manifest can
@@ -922,7 +922,7 @@ name. The harness sends only the tool name (`--tool`) on authorize.
   declare a `KeiScope` appear in the manifest.
 
 See the shared fixture at `fixtures/kei/tool-manifest.v1.json` for a complete
-example with five governed tools across GitHub, Linear, email, and Slack.
+example with five protected tools across GitHub, Linear, email, and Slack.
 
 ### Testing with the shared fixture table
 
@@ -968,7 +968,7 @@ Authoritative sources: `docs/tenant-proxy-reference.md` and
 - `tool_bindings` (tool → connector routing) and `secret_refs` (opaque reference
   identifiers) are **non-secret metadata**. They never grant permissions and are never
   resolved to credentials by the library.
-- The **proxy is the enforcement boundary** for governed external operations: it
+- The **proxy is the enforcement boundary** for external operations Kei allows or denies: it
   resolves bindings and auth, invokes provider adapters, and returns data only inside
   the tenant runtime.
 - **Never in Kei**: provider payloads and results, customer content, credentials,
@@ -1024,7 +1024,7 @@ cd go && go test ./middleware/... -run ActionToolBoundary -v
   the proxy's job, tenant-side.
 - **Do not pass authorize resources.** The harness sends only the tool name on
   `authorize`; the catalog resolves resource patterns from the registered scope.
-  See `docs/kei-tool-manifest.md` and the governed tool calls section above.
+  See `docs/kei-tool-manifest.md` and the protected tool calls section above.
 - **Do not expose connect or enrollment URLs outside a private channel.**
   Both are one-time claim links. Deliver them privately to the user and never
   log them, never cache an expired link.
@@ -1037,7 +1037,7 @@ cd go && go test ./middleware/... -run ActionToolBoundary -v
 
 ## Related skills
 
-- `kei-agents` — agent definitions and governed connector read schemas that the harness
+- `kei-agents` — agent definitions and connector read schemas for connectors Kei checks that the harness
   renders; provider-neutral and schema-only.
 - `kei-api` — the control-plane API that mints harness keys and decides
   metadata-only policy, including `POST /api/v1/tools` where an admin loads the

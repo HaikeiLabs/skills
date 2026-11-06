@@ -240,5 +240,5 @@ discussion.
 
 - `kei-headless-evals` — the eval harnesses that use these backends.
 - `kei-agents` — `render_tools()` and `ModelFormat` for per-model tool schemas.
-- `kei-proxy` — the governed decision a harness asks for before each tool call.
+- `kei-proxy` — the allow/deny decision a harness asks for before each tool call.
 - `agentware-sdk` — the middleware and KEI auth/proxy modules a harness integrates with.

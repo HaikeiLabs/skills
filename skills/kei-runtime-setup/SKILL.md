@@ -31,7 +31,7 @@ The order, start to finish (sections 0–8 below have the commands):
 
 - **Harness** — software that lets an LLM act as an agent (for example Claude
   Code, OpenCode, or a custom bot).
-- **Kei-enabled harness** — a harness governed by Kei through a **runtime
+- **Kei-enabled harness** — a harness with Kei policies through a **runtime
   installation**.
 - **Runtime installation** — Kei's record for the one runtime deployed beside
   that harness (one harness : one runtime installation : one credential,
@@ -63,7 +63,7 @@ user.
 | Binary | Role | Who runs it | Auth | What it does |
 | --- | --- | --- | --- | --- |
 | `kei` | Platform admin | An org owner/admin, on their workstation | `kei login` (browser device flow) | Logs in, creates installation metadata, emits the runtime credential, writes local runtime config, binds |
-| `kei-proxy` | Runtime for agent interaction | The harness, as a subprocess, inside the runtime | `KEI_RUNTIME_TOKEN` env | Bootstraps the installation, sends heartbeats, authorizes each governed tool call |
+| `kei-proxy` | Runtime for agent interaction | The harness, as a subprocess, inside the runtime | `KEI_RUNTIME_TOKEN` env | Bootstraps the installation, sends heartbeats, authorizes each protected tool call |
 
 Steps 0–3 and 7 below are admin work with `kei`. Steps 4–6 configure and
 bootstrap the runtime: on a workstation with `kei setup` + `kei runtime
@@ -71,7 +71,7 @@ bootstrap` (which drive the bundled `kei-proxy` for you), in a deployed runtime
 with `kei-proxy` directly. Step 7 is the runtime answering real calls. The
 runtime never needs `kei login`.
 
-Governed tool calls are decided on the same host as the harness. `kei-proxy`
+Protected tool calls are decided on the same host as the harness. `kei-proxy`
 supports two modes:
 
 - **One-shot CLI** — the runtime invokes `kei-proxy authorize` as part of its
@@ -84,7 +84,7 @@ supports two modes:
   container. The socket default is `$TMPDIR/kei-proxy/runtime.sock` on macOS
   and `/run/kei-proxy/runtime.sock` on Linux (`KEI_RUNTIME_SOCKET_PATH`
   overrides both). The daemon serves readiness (`/healthz`, `/readyz`) and
-  governed `POST /v1/authorize` plus `PUT`/`DELETE /v1/session` routes on the owner-only
+  protected `POST /v1/authorize` plus `PUT`/`DELETE /v1/session` routes on the owner-only
   socket. Use its `POST /v1/authorize` route to preflight whether a tool call
   is allowed. The decision is made **locally** by the runtime PDP against the
   synced policy bundle (no per-call catalog round trip), and a background
@@ -93,7 +93,7 @@ supports two modes:
 
 See the `kei-proxy` skill for the full CLI/daemon comparison and the socket
 contract (`docs/unix-socket.md` in the kei-connector-runtime repo). Do not
-design a network-exposed listener or bind a port for governed calls outside of
+design a network-exposed listener or bind a port for protected calls outside of
 the validated daemon contract.
 
 ## Before you start
@@ -221,7 +221,7 @@ verified and heartbeating); they differ in where the runtime settings live.
 | Get `kei-proxy` | Comes with `kei`: since kei-cli v0.1.4 the release installer also installs a pinned `kei-proxy` next to `kei` | Build `kei-proxy:local` from the Kei repo (below) or copy the bundled binary into the image | Same as one-shot CLI; the daemon is the same binary invoked via `kei-proxy serve` |
 | Settings live in | `~/.config/kei.yaml` (mode `0600`), written by `kei setup` | Harness process environment, from the secret manager | Harness process environment; daemon inherits `KEI_RUNTIME_SOCKET_PATH` |
 | Bootstrap with | `kei runtime bootstrap` | `kei-proxy runtime bootstrap` | `kei-proxy runtime bootstrap` before starting `serve` |
-| Check whether a governed call is allowed | `POST /v1/authorize` over daemon Unix socket | `POST /v1/authorize` over daemon Unix socket | `POST /v1/authorize` over daemon Unix socket (local PDP) |
+| Check whether a protected call is allowed | `POST /v1/authorize` over daemon Unix socket | `POST /v1/authorize` over daemon Unix socket | `POST /v1/authorize` over daemon Unix socket (local PDP) |
 
 ### Path A: workstation — `kei setup` then `kei runtime bootstrap`
 
@@ -308,7 +308,7 @@ socket file mode is `0600` — both must run as the same UID.
 kei-proxy serve
 ```
 
-The daemon serves readiness (`/healthz`, `/readyz`), and a governed
+The daemon serves readiness (`/healthz`, `/readyz`), and a protected
 `POST /v1/authorize` plus `PUT`/`DELETE /v1/session` on the owner-only socket.
 Model inference does not go through kei-proxy. The authorize
 decision is made **locally** by the runtime PDP against the synced policy
@@ -321,7 +321,7 @@ policy sync` forces an immediate fetch.
 
 The daemon also accepts `KEI_PROXY_LISTEN_ADDR` (TCP, default `:8085`) for
 existing same-container OpenWebUI deployments that cannot use a Unix socket;
-the governed authorize and session routes are **socket-only** (the TCP
+the protected authorize and session routes are **socket-only** (the TCP
 listener returns 404 for them). See `docs/unix-socket.md` in the
 kei-connector-runtime repo for the full socket contract.
 
@@ -561,7 +561,7 @@ words "fail closed". Include this sentence: "Run `kei bot status
 2. How to see it: `kei bot status --installation INSTALLATION_ID` shows the
    status (`pending` until the first heartbeat).
 3. Failure mode: if heartbeats stop and the policy bundle is missing,
-   revoked, or expired, governed calls fail closed (every call is denied).
+   revoked, or expired, protected calls fail closed (every call is denied).
 
 Ongoing liveness is the runtime's job, run under the same supervisor as the
 harness:
@@ -590,7 +590,7 @@ Failure modes: a transient catalog failure (unreachable, timeout, 5xx) is
 retried once within the tick and the loop carries on; a `429` stretches the
 next tick to its `Retry-After`. A revoked or rotated-away token is terminal:
 the runtime removes its policy bundle and denies; re-mint the credential.
-Losing heartbeats never widens access. Governed calls **fail closed**: once
+Losing heartbeats never widens access. Protected calls **fail closed**: once
 the policy bundle is missing, revoked, or past its `not_after`, every call is
 denied, with no fallback to an older bundle or a built-in allow.
 

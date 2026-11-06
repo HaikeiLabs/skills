@@ -112,5 +112,5 @@ enrollment → idempotency reserve → lane routing / SSO card / handoff / diagn
 ## Related skills
 
 - `kei-teams-ingress` — Microsoft Teams and Bot Framework mechanics.
-- `kei-tool-adapters` — the governed tool-lane pattern a verified grant is delivered to.
+- `kei-tool-adapters` — the protected tool-lane pattern a verified grant is delivered to.
 - `agentware-sdk` — generic middleware policy/audit guidance for harnesses.

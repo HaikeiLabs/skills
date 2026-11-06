@@ -58,3 +58,7 @@ jobs:
         run: node scripts/check-internal-links.mjs
       - name: Fail on retired in-console docs URLs
         run: node scripts/check-stale-console-docs.mjs
+      - name: Fail on stale Agentware version pins
+        run: node scripts/check-agentware-pins.mjs
+      - name: Fail on banned wording in markdown bodies
+        run: node scripts/check-language.mjs

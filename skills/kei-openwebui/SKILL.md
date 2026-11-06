@@ -11,10 +11,10 @@ sidecar), and the Kei connector. The connector adds:
 - the **Kei Pipe**, Open WebUI's only model provider;
 - **`kei_guard`**, a global filter that refuses a turn when kei-proxy isn't
   ready or there is no Open WebUI user;
-- the **Governor**, which every governed tool call goes through.
+- the **Governor**, which every protected tool call goes through.
 
 Model inference does not go through kei-proxy. The Open WebUI harness calls
-its configured model endpoint itself; kei-proxy decides governed tool calls
+its configured model endpoint itself; kei-proxy decides protected tool calls
 and can release credentials to tools. Kei checks those calls against policy
 and audits them. Anything Kei can't decide is refused: it **fails closed**.
 
@@ -47,7 +47,7 @@ The code wins over this file. Never invent a flag or an environment variable. Th
 - The model configured in Open WebUI or its harness works without a Kei model
   profile. Model profiles are optional and can pass model credentials; model
   inference does not go through kei-proxy. Write a `tool:<name>` permit for
-  each governed tool, using its declared name exactly. Show the command.
+  each protected tool, using its declared name exactly. Show the command.
 - A policy must target the manifest tool name exactly as `tool:<name>`. When a
   tool implementation uses an optional `method`, it names the public `Tools`
   method for that definition.
@@ -95,7 +95,7 @@ The code wins over this file. Never invent a flag or an environment variable. Th
 
    `--auth-type api_key` reads the key from stdin and needs a runtime with a
    credential-sync key (`kei-runtime-setup`).
-5. **Policies** for governed tools:
+5. **Policies** for protected tools:
 
    ```sh
    kei policies create --workspace <ws> --name chat-list-orders \
@@ -173,7 +173,7 @@ When no file is configured, tools are generated from contracts schemas at image 
 
 ## 4. Linking users
 
-- **Claim link (any SSO).** An unlinked user's governed tool call is refused
+- **Claim link (any SSO).** An unlinked user's protected tool call is refused
   `identity.unlinked`, and the tool body never runs. The connector shows that
   user, and only that user, a one-time claim link as an **Open WebUI
   notification**. It is never in the chat, the model's context or a log. They

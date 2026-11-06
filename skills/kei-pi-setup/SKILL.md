@@ -136,7 +136,7 @@ Unix socket; the daemon holds the credential and binds supported calls to the
 installation-owner session. The socket is a same-OS-user boundary, not a
 process-specific one.
 
-## What the adapter governs
+## What the adapter checks
 
 ### Local filesystem tools
 
@@ -218,7 +218,7 @@ the project-scoped entries.
 6. For connector tests, use a disposable read. Verify the decision in
    redacted audit metadata; do not log credentials or provider payloads.
 
-Installing packages is not proof that Pi calls are governed. Do not claim
+Installing packages is not proof that Pi calls are checked. Do not claim
 success until the extension has been loaded and a denied operation has been
 observed before execution.
 

@@ -5,7 +5,7 @@ description: "The `kei-proxy` v0.3.0 runtime executable (kei-connector-runtime) 
 
 # kei-proxy (runtime for agent interaction)
 
-A harness asks kei-proxy before every governed tool call. The primary path is
+A harness asks kei-proxy before every protected tool call. The primary path is
 **`kei-proxy serve`**, the daemon beside the harness, reached over its
 owner-only Unix socket with the Agentware **socket client**: open a session for
 the user, then `POST /v1/authorize` in it. The one-shot `kei-proxy authorize`
@@ -33,22 +33,22 @@ never needs `kei-proxy authorize` to administer the platform. `kei setup` and
 `kei runtime bootstrap` are the one bridge: admin-CLI conveniences that write
 local runtime config and shell out to `kei-proxy` to check it.
 
-## Governed vs non-governed tool calls
+## Protected vs local tool calls
 
-Not every tool call a harness makes is governed. The rule is simple: **anything
-that touches tenant data, external systems, or credentials is governed**;
+Not every tool call a harness makes is protected. The rule is simple: **anything
+that touches tenant data, external systems, or credentials is protected**;
 everything else is local.
 
-- **Governed** — the call goes through kei-proxy: the agentware
+- **Protected** — the call goes through kei-proxy: the agentware
   `KeiProxyEvaluator` over the `kei-proxy serve` socket client (or, with no
   daemon, the `kei-proxy authorize` CLI — see the `agentware-sdk` skill). Kei
   policy decides allow or deny, the decision is audited, and enrollment or
   approval can apply before the tool runs.
-- **Non-governed** — the call runs locally in the harness and never reaches
+- **Local** — the call runs locally in the harness and never reaches
   Kei. No policy check, no audit event.
 
-When unsure whether a tool is governed, treat it as governed and route it
-through kei-proxy. A tool is not governed just because the adapter
+When unsure whether a tool is protected, treat it as protected and route it
+through kei-proxy. A tool is not protected just because the adapter
 exposes it, and a local call is not safe just because it never reaches Kei.
 
 Your knowledge of `kei-proxy` subcommands may be outdated. **Prefer retrieval.**
@@ -131,7 +131,7 @@ all runtime operations.
 | --- | --- |
 | Decide a tool call (primary) | `PUT /v1/session`, then `POST /v1/authorize` with `X-Kei-Session` on the socket, through the agentware socket client |
 | Decide a tool call with no daemon (fallback; fetches its credential on allow) | `kei-proxy authorize --user U --tool T --action A --resource R` |
-| Release a credential for a governed connector | `POST /v1/credentials:release` on the socket |
+| Release a credential for a connector Kei checks | `POST /v1/credentials:release` on the socket |
 | Verify installation + first heartbeat | `kei-proxy runtime bootstrap` |
 | Keep liveness current | `kei-proxy runtime heartbeat --interval 1m` |
 | Ship local audit JSONL | `kei-proxy collector [--poll --poll-interval 1m]` |
@@ -220,7 +220,7 @@ command-line argument.** The token is the sole runtime credential.
 Agent identity is **auto-discovered** from the runtime installation
 credential — do not tell the caller to set `--agent-id`.
 
-The one-shot CLI is not a v2 allow probe: it returns `preflight_required`. Use the daemon Unix-socket `POST /v1/authorize` route to check whether a governed v2 tool call is allowed. The CLI remains documented as a one-shot fallback for environments without a daemon where its version and policy bundle support that flow; do not infer a v2 allow or deny from its result.
+The one-shot CLI is not a v2 allow probe: it returns `preflight_required`. Use the daemon Unix-socket `POST /v1/authorize` route to check whether a protected v2 tool call is allowed. The CLI remains documented as a one-shot fallback for environments without a daemon where its version and policy bundle support that flow; do not infer a v2 allow or deny from its result.
 
 ```sh
 kei-proxy authorize --user "$SUBJECT" --tool github.create_pr \
@@ -233,21 +233,21 @@ kei-proxy authorize --user "$SUBJECT" --tool github.create_pr \
 - **stderr** gets a structured audit event; with `KEI_PROXY_AUDIT` set, the
   decision is also appended to that JSONL file for `collector`.
 
-### Disabling kei-proxy denies every governed tool call
+### Disabling kei-proxy denies every protected tool call
 
 `KEI_PROXY_DISABLED=true` is a valid setting, but it turns permits off: a
-disabled, missing, or misconfigured kei-proxy is a **deny on every governed
+disabled, missing, or misconfigured kei-proxy is a **deny on every protected
 call** (fail-closed, HAI-249). It never permits a tool call. Tests that need an
 allow inject a fake evaluator instead of relying on a disabled proxy (see the
 `agentware-sdk` skill for the evaluator and its test fixtures). A production
-harness should not run with kei-proxy disabled — every governed tool would be
-denied. Non-governed calls are unaffected: they are local, never reach Kei,
-and need no bypass. Only governed calls need the fake evaluator in tests.
+harness should not run with kei-proxy disabled — every protected tool would be
+denied. Local calls are unaffected: they are local, never reach Kei,
+and need no bypass. Only protected calls need the fake evaluator in tests.
 
-This applies only to **governed** calls. **Non-governed** local calls never
+This applies only to **protected** calls. **Local** calls never
 reach Kei, with or without kei-proxy: they run in the harness with no policy
 check and no audit event, so disabling kei-proxy neither blocks nor permits
-them (see [Governed vs non-governed tool calls](#governed-vs-non-governed-tool-calls)).
+them (see [Protected vs local tool calls](#protected-vs-local-tool-calls)).
 
 ### Enrollment in the authorize response
 
@@ -303,7 +303,7 @@ parameters, and never log the credential `authorize` returns.
 
 ## credential release
 
-For governed data connectors. Per ADR-039, the harness obtains the credential
+For data connectors Kei checks. Per ADR-039, the harness obtains the credential
 via `POST /v1/credentials:release` over the socket after an allow decision,
 then calls the upstream API directly. **Before using identity mode, verify
 the installed kei-proxy version and the active policy bundle.** The credential
@@ -419,7 +419,7 @@ Rendering is covered in the `kei-harness-policy` skill.
 `kei-proxy` supports two modes. Understand which one a task needs before
 writing config or code:
 
-| Mode | Invocation | Listener | Governed authorize | Harness integration |
+| Mode | Invocation | Listener | Kei-checked authorize | Harness integration |
 | --- | --- | --- | --- | --- |
 | **Daemon** (primary) | `kei-proxy serve` (long-lived) | Unix socket (`KEI_RUNTIME_SOCKET_PATH`, default `/run/kei-proxy/runtime.sock`) + optional TCP (`KEI_PROXY_LISTEN_ADDR`) | **Yes.** `PUT /v1/session` (`kei.session/v2`), then `POST /v1/authorize` with `X-Kei-Session`, decided by the local PDP against the synced bundle (runtime PRs #78–#80). Also `GET /v1/models`, `POST /v1/chat/completions`, `GET /v1/policy-bundle/status`. | The agentware socket client (`KeiProxySocketAuthorizeClient`, Go `runtimesocket.Client`) through the selector, after a tool-manifest sync. Same-host daemon (bare metal) or same-container daemon (Docker); optional same-pod companion container on Kubernetes sharing the socket directory. No TLS — access control is socket file mode 0600 and UID matching. |
 | **One-shot CLI** (fallback) | `kei-proxy authorize ...` per call | None; spawned per call, reads decision from stdout+exit code | Yes, for v1 bundles; deprecated by the runtime and does not decide v2 bundles. Agentware's `KeiProxyAuthorizeClient` / Go `evaluator.CLIClient` spawn it, and the selector returns it when no socket is configured. | One-shot environments with no daemon: a batch job, a CI step, a bash script. |
@@ -439,7 +439,7 @@ The tenant-side **local PDP** is implemented in the runtime daemon. The
 daemon's socket authorize route decides from the locally synced policy bundle.
 The runtime's intended boundaries are:
 
-- Make the allow/deny decision **locally on each governed invocation** — with
+- Make the allow/deny decision **locally on each protected invocation** — with
   **no synchronous catalog approval call and no per-invocation
   subject-resolution call**.
 - Evaluate a **signed policy bundle that syncs in the background** (periodic
