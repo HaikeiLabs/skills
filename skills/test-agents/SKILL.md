@@ -77,7 +77,7 @@ A suite is data, not code. Keep it in the repo that owns the agent.
 | `expect.args` | Exact values (the parent id, the enum value) |
 | `required_arg_keys` / `forbidden_arg_keys` | Keys that must / must never appear. Put proxy-delegated scope in `forbidden_arg_keys` |
 | `forbidden_tools` | Tools that must not be called at all (e.g. `create_issue` when the request is a bug) |
-| `deny` | The governed layer must deny, and the reply must not claim success. Needs `context.allowed_tools` |
+| `deny` | The policy layer must deny, and the reply must not claim success. Needs `context.allowed_tools` |
 | `content` | `contains_all`, `contains_any`, `regex`, `not_contains` — case-insensitive, on the final reply text |
 
 How a deny case works: `context.allowed_tools` becomes a real agentware

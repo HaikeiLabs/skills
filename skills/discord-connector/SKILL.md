@@ -19,11 +19,11 @@ before execution.
 - All write operations (POST, PATCH, DELETE) are write operations that
   require policy evaluation by Kei before execution.
 - The agent should never construct, store, or expose the bot token — the
-  governed connector injects the `Authorization: Bot <token>` header at
+  connector Kei checks injects the `Authorization: Bot <token>` header at
   runtime. Setup reads the token from stdin without echo (`kei connectors
   create --provider discord`); rotate it with `kei connectors reconnect <id>`.
-- Guild deletion and channel deletion are not available through the governed
-  connector; they are irreversible and outside its scope (see the denied
+- Guild deletion and channel deletion are not available through the connector
+  Kei checks; they are irreversible and outside its scope (see the denied
   command surface).
 - Discord declares six Snowflake-keyed resource types for Kei policy (per
   ADR-028): `guild`, `channel`, `thread`, `message`, `member`, `role`. When
@@ -33,7 +33,7 @@ before execution.
 
 ## Install
 
-Agents load this skill automatically when the harness has the Haikei skills
+Agents load this skill automatically when the harness has the Haikei Skills
 plugin installed. See the repo README for per-harness setup.
 
 ## Lexicon — endpoints and operations
@@ -83,17 +83,17 @@ Base URL: `https://discord.com/api/v10`
 
 ### Denied command surface
 
-These actions are **not available** through the governed connector — they fall
+These actions are **not available** through the connector Kei checks — they fall
 outside the connector's scope:
 
 | Operation | Reason |
 | --- | --- |
 | Guild deletion | Not available — irreversible; requires owner-level Discord permissions outside the connector's scope |
 | Channel deletion | Not available — irreversible; requires MANAGE_CHANNELS permission beyond connector scope |
-| Ban / kick members | Moderation actions outside governed connector scope |
+| Ban / kick members | Moderation actions outside the Kei-checked connector scope |
 | Modify guild settings (name, region, verification level) | Guild-admin operations outside connector scope |
-| Webhook management | Admin scope outside governed token |
-| Create or delete threads | Thread management may be separately governed |
+| Webhook management | Admin scope outside Kei-checked token |
+| Create or delete threads | Thread management may have separate Kei policies |
 
 ## Pragmatics — how agents use this connector
 
@@ -267,7 +267,7 @@ node scripts/run-evals.mjs --skill discord-connector --harness opencode \
   deleting resources.
 - **Do not** expose the raw bot token in output, logs, or conversation — Kei
   masks the credential via the runtime.
-- **Do not** use Discord's Gateway (WebSocket) API through the governed
-  connector — use the REST API only.
+- **Do not** use Discord's Gateway (WebSocket) API through the connector
+  Kei checks — use the REST API only.
 - **Do not** hardcode guild or channel IDs; resolve them by name or list
   first, then use the Snowflake ID for all subsequent operations.

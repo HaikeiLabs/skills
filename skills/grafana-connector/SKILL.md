@@ -19,8 +19,8 @@ management (`grafana-cli`). Agents use the Grafana HTTP API directly.
   connector from a catalog template (`kei connectors create --template …`,
   see *Connect and credentials*), and each user connects their own account
   with OAuth.
-- Dashboard and folder deletion is not available through the governed
-  connector — it is irreversible and requires admin permissions beyond the
+- Dashboard and folder deletion is not available through the connector
+  Kei checks — it is irreversible and requires admin permissions beyond the
   connector's scope.
 - Resource types for Kei policy follow ADR-028; dashboards, folders, and
   datasources are addressed by immutable UID (panels and annotations by
@@ -33,7 +33,7 @@ management (`grafana-cli`). Agents use the Grafana HTTP API directly.
 
 ## Install
 
-Agents load this skill automatically when the harness has the Haikei skills
+Agents load this skill automatically when the harness has the Haikei Skills
 plugin installed. See the repo README for per-harness setup.
 
 ## Lexicon — endpoints and operations
@@ -91,17 +91,17 @@ Base URL: `https://{instance}/api`
 
 ### Denied command surface
 
-These actions are **not available** through the governed connector — they fall
+These actions are **not available** through the connector Kei checks — they fall
 outside the connector's scope:
 
 | Operation | Reason |
 | --- | --- |
 | Delete dashboards | Not available — irreversible; requires admin permissions beyond connector scope |
 | Delete folders | Not available — irreversible; cascading deletion of contained dashboards |
-| Modify organization settings (name, preferences) | Org-admin operation outside governed token |
+| Modify organization settings (name, preferences) | Org-admin operation outside Kei-checked token |
 | Manage API keys (create/delete service accounts) | Identity management outside connector scope |
 | Manage user permissions / team membership | User management outside connector scope |
-| Snapshot creation / sharing | Snapshot functionality may be separately governed |
+| Snapshot creation / sharing | Snapshot functionality may have separate Kei policies |
 
 ## Pragmatics — how agents use this connector
 

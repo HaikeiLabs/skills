@@ -54,7 +54,7 @@ Include all four in any design, and check them in review:
 Migrations for a new table follow the goose rules (unique next number from
 `origin/main`, `+goose Up`/`+goose Down`).
 
-When a governed CLI command exists, public workflows should use it rather than
+When a Kei-checked CLI command exists, public workflows should use it rather than
 reaching around the client with guessed routes or raw HTTP. This skill remains
 the source for API-only resources until the CLI covers them. Verify paths and
 methods against the route table and current contract; documentation never
@@ -89,14 +89,14 @@ package for it.
 | Roles | `/api/v1/orgs/{org_id}/roles`, `/api/v1/roles/{id}`, `/api/v1/service-principals`, `/api/v1/role-requests` | Custom org roles; role service principals; role requests and approve/deny |
 | Authorization (legacy) | `/api/v1/authorize` | The ABAC decision endpoint: subject/action/resource → `allow`/`deny`. Legacy control-plane path; ADR-011's target is a local PDP in the runtime (see `kei-proxy`) |
 | Consents | `/api/v1/consents`, `/api/v1/consent-requests` | Provider consent grants and consent requests (confirm via `/{token}/confirm`) |
-| Audit | `/api/v1/audit`, `/api/v1/audit/query*`, `/api/v1/organizations/{org}/audit-encryption-keys` | List audit logs/events/records; governed, ABAC-checked audit queries; manage audit-encryption keys (POST to create with `public_key` and `display_name`, GET to check `encryption_enabled`). The CLI is the preferred surface; use the API as a fallback when the CLI's `kei audit` subcommands are unavailable |
+| Audit | `/api/v1/audit`, `/api/v1/audit/query*`, `/api/v1/organizations/{org}/audit-encryption-keys` | List audit logs/events/records; audit queries that Kei checks (ABAC); manage audit-encryption keys (POST to create with `public_key` and `display_name`, GET to check `encryption_enabled`). The CLI is the preferred surface; use the API as a fallback when the CLI's `kei audit` subcommands are unavailable |
 | Runtime | `/api/v1/runtime/*` | Harness-facing: `whoami`, `agents`, `heartbeat`, `credential-bindings`, `credential-delivery/claim|ack`, `credential-sync-keys`, `model-profiles` |
 | Chat identity claims | `/api/v1/runtime/chat-identity-claims`, `/api/v1/internal/chat-identity-claims*`, `/api/v1/organizations/{id}/chat-identity-access-requests*`, `/api/v1/chat-identity-access-requests/{id}:decide` | Issue one-time claim links for chat-platform self-enrollment; server-to-server preview/redeem endpoints; managed access-request approval flow |
 | Internal | `/api/v1/internal/*` | Device-authorization flow, harness-identity, runtime-installations and lifecycle (bind/disable/revoke/rotate) |
 
 ## How authorization is decided
 
-> **Control-plane API reference.** `POST /api/v1/authorize` is a control-plane route; harnesses do not call it to authorize a governed tool invocation. The runtime decision uses `kei-proxy serve` and its local Unix-socket `POST /v1/authorize` route through the Agentware socket client. The one-shot `kei-proxy authorize` CLI remains a fallback for one-shot environments, but it is not a v2 allow probe: it returns `preflight_required`. See `agentware-sdk` and `kei-proxy` for the socket path and CLI behavior.
+> **Control-plane API reference.** `POST /api/v1/authorize` is a control-plane route; harnesses do not call it to authorize a protected tool invocation. The runtime decision uses `kei-proxy serve` and its local Unix-socket `POST /v1/authorize` route through the Agentware socket client. The one-shot `kei-proxy authorize` CLI remains a fallback for one-shot environments, but it is not a v2 allow probe: it returns `preflight_required`. See `agentware-sdk` and `kei-proxy` for the socket path and CLI behavior.
 
 `POST /api/v1/authorize` is the ABAC decision endpoint. The request carries the
 harness token (or user identity) plus `action`, `resource`, `service`, `agent_id`,
@@ -294,7 +294,7 @@ rg -n "agent not found" cmd/abac-engine/pkg/handlers/harness_keys.go
 
 ## Realistic usage boundaries
 
-- Prefer a released, governed `kei` CLI resource command over direct API use;
+- Prefer a released, Kei-checked `kei` CLI resource command over direct API use;
   current CLI releases do not cover all resource groups in this skill.
 - **Do not** claim a CLI command exists for org management. It does not; this API is the surface.
 - **Do not** collapse the three auth schemes. CLI bearer = human admin + org-bound; harness bearer = installation; session cookie = web UI. Header alone cannot tell (a) from (b).

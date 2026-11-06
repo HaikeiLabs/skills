@@ -15,9 +15,9 @@ time; that is `kei-proxy`.
 
 | | `kei` — platform admin (this skill) | `kei-proxy` — runtime for agent interaction |
 | --- | --- | --- |
-| Who runs it | A person: org `owner`/`admin` | The harness — as a `kei-proxy serve` daemon over a Unix socket (primary, through the agentware socket client), or as a one-shot CLI subprocess per governed operation (fallback with no daemon) |
+| Who runs it | A person: org `owner`/`admin` | The harness — as a `kei-proxy serve` daemon over a Unix socket (primary, through the agentware socket client), or as a one-shot CLI subprocess per protected operation (fallback with no daemon) |
 | Auth | `kei login` → CLI token in the OS keychain | `KEI_RUNTIME_TOKEN` in the harness environment |
-| Jobs | Login, installations, runtime credentials, bind, agents-on-installation | Allow/deny each tool call (socket `POST /v1/authorize`, or `kei-proxy authorize`), governed connector calls (credential release), heartbeat, audit shipping |
+| Jobs | Login, installations, runtime credentials, bind, agents-on-installation | Allow/deny each tool call (socket `POST /v1/authorize`, or `kei-proxy authorize`), protected connector calls (credential release), heartbeat, audit shipping |
 | Skill | `kei-cli` | `kei-proxy` |
 
 If the task is "make the agent's tool call go through Kei" or "check whether
@@ -644,7 +644,7 @@ kei connect pi [--workspace NAME] [--yes]
 Harness values come from the installed help: `claude-code`, `codex`,
 `opencode`, and `pi`. Values such as `cli` and `openwebui` are not accepted.
 `cursor` is the seventh value, but it is **not released yet** (kei-cli#233 in
-review): a released kei-cli (0.2.20 is current) rejects it. Cursor is governed
+review): a released kei-cli (0.2.20 is current) rejects it. Cursor is Kei-checked
 native-first — Kei renders policy into Cursor's CLI config permissions
 (`~/.cursor/cli-config.json`); sync fails closed (exit non-zero, nothing
 written) when a policy kind cannot be gated, e.g. `skill:` — and it needs a

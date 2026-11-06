@@ -2,7 +2,7 @@
 
 A **looped harness** is a self-driving agent workflow that dispatches worker agents in parallel, monitors them, re-plans on failures, and hands back reviewable stacked PRs — all driven by one orchestrator agent in a loop.
 
-This directory shows one concrete loop: **herdr-orchestrator** (the orchestrator skill), **herdr-wiki-plugin** (shared durable memory), and a **harness command policy** that governs which shell commands each harness may run without asking.
+This directory shows one concrete loop: **herdr-orchestrator** (the orchestrator skill), **herdr-wiki-plugin** (shared durable memory), and a **harness command policy** that specifies which shell commands each harness may run without asking.
 
 ## How the loop works
 
@@ -30,7 +30,7 @@ The orchestrator never writes code. It manages worker scaffolds (briefs, context
 
 - **herdr** — terminal multiplexer for agent panes. Install from `https://github.com/Soypete/herdr`.
 - **herdr-wiki-plugin** — provides both the wiki CLI (`wiki search`, `wiki capture`, ...) and the `herdr-orchestrator` skill. Install from `https://github.com/Soypete/herdr-wiki-plugin`.
-- **Haikei skills** — the Kei governance skills for your harnesses (optional, only needed if using the policy example). Install from `https://github.com/HaikeiLabs/skills`.
+- **Haikei Skills** — the Kei policy skills for your harnesses (optional, only needed if using the policy example). Install from `https://github.com/HaikeiLabs/skills`.
 
 ## Install
 
@@ -67,7 +67,7 @@ The orchestrator skill expects the wiki CLI to be on `PATH` (installed by the pl
 
 ### 3. Apply the sample policy (optional)
 
-The entries in `policy/harness-commands.example.json` permit common loop commands (herdr, wiki, gh stack, git worktree). If you use Kei governance, create each entry via the CLI or web UI:
+The entries in `policy/harness-commands.example.json` permit common loop commands (herdr, wiki, gh stack, git worktree). If you use Kei policies, create each entry via the CLI or web UI:
 
 ```sh
 # Create one policy per entry (repeat for each permit/deny rule)
