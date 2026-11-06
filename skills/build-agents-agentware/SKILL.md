@@ -240,7 +240,7 @@ scope (see `test-agents`).
 ## 4. Register governed tools with Kei
 
 Before Kei can decide a tool by name, an admin loads its scope into the
-catalog. In agentware 0.11.0 a tool declares a `KeiScope` (service, action,
+catalog. In agentware 0.11.0 or later a tool declares a `KeiScope` (service, action,
 resource patterns), and `ToolRegistry.export_kei_tool_manifest()` emits
 deterministic JSON for the admin to load. The runtime never registers tools
 itself. Details: `agentware-sdk`, "Making governed tool calls".
