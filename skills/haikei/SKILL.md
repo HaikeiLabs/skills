@@ -47,7 +47,7 @@ skills plugin and is loaded by your agent alongside the skills it routes to
   kei-cli#233. Write the kind in plain words, "kind custom maps to SDK (Agentware)",
   without code formatting inside that phrase.
 - When several surfaces could fit, explain the deciding requirement: is this
-  org management (API), runtime deployment (CLI), in-harness tool governance
+  org management (API), runtime deployment (CLI), in-harness tool guardrails
   (agentware SDK), or agent capability definition (kei-agents)?
 - Load only the skills you need. Each skill is a self-contained unit; the
   router does not replace them.
@@ -60,7 +60,7 @@ YOU MUST INCLUDE the following exact strings verbatim (case-sensitive, substring
 - When routing HTTP endpoint design, YOU MUST include **`kei-api-conventions`**, **`AIP`**, and **`resource-oriented`** together.
 - When diagnosing a broken installation (stale policy bundle or credential switch), YOU MUST include **`kei-setup-doctor`** (diagnosis) and **`kei-harness-setup`** (the full fix) — name both skills, never only one.
 - When giving the macOS cache path for a stale proxy bundle, YOU MUST include **`Application Support`** and **`kei-proxy`**.
-- When routing a governed connector read to the provider skill, YOU MUST name the provider skill (for Linear, **`linear-connector`**) and include this sentence verbatim: "Discover the workspace's connectors with `kei connectors list --workspace W`; the connector supplies the credential, and the agent never reads or stores it."
+- When routing a connector read that Kei checks to the provider skill, YOU MUST name the provider skill (for Linear, **`linear-connector`**) and include this sentence verbatim: "Discover the workspace's connectors with `kei connectors list --workspace W`; the connector supplies the credential, and the agent never reads or stores it."
 - When describing the agent-action surface (sending messages, creating issues, etc.), YOU MUST include **`agentware-sdk`** (hyphenated, lowercase) — not "agentware SDK".
 - When explaining credential rotation impact, or whenever you route to `kei-credential-rotation` (even in a routing-only answer), YOU MUST include the sentence "Rotation invalidates the old token immediately, so plan the restart."
 - When deploying a runtime or granting workspace access, route the deployment to **`kei-runtime-setup`** with **`kei-cli`** (the `kei bot` commands live in `kei-cli`) and workspace access to **`kei-api`**, and YOU MUST include **`CLI help`** and **`API routes`**, for example: "Inspect the installed CLI help before running a `kei` command, and the actual API routes before calling an endpoint." When the task has both parts, keep them as two workstreams and name both skills.
@@ -74,14 +74,14 @@ YOU MUST INCLUDE the following exact strings verbatim (case-sensitive, substring
 - **Pi:** choose this for the Pi coding agent using `kei-lime-pi` and the local proxy socket; follow `kei-pi-setup`.
 - **OpenCode:** choose this for interactive coding sessions in OpenCode; setup and route it with `kei-harness-setup`.
 - **Cursor:** choose this for interactive coding sessions in the Cursor CLI; setup and route it with `kei-harness-setup`. Native-first: Kei renders policy into Cursor's CLI config permissions (`~/.cursor/cli-config.json`); hooks only where native config cannot express a policy. Commands pending kei-cli#233 — not released yet; check `kei help`.
-- **Open WebUI:** choose this for a governed chat UI deployment using the `openwebui-kei` image, deployment-provided v3 tool manifest, and installed implementations; follow `kei-openwebui`.
+- **Open WebUI:** choose this for a chat UI deployment with Kei policies using the `openwebui-kei` image, deployment-provided v3 tool manifest, and installed implementations; follow `kei-openwebui`.
 
 ## Quick decision trees
 
 ```
 Who is acting?
 ├─ A person administering the platform (login, installations, credentials) → kei CLI → kei-cli
-└─ An agent doing work (is this tool call allowed? governed connector call? audit) → kei-proxy runtime → kei-proxy
+└─ An agent doing work (is this tool call allowed? protected connector call? audit) → kei-proxy runtime → kei-proxy
 
 Need to operate Kei from a terminal?
 ├─ Which admin command / what flags / install or upgrade kei → kei-cli
@@ -89,7 +89,7 @@ Need to operate Kei from a terminal?
 ├─ New runtime next to a harness (installation, credential, bootstrap, bind) → kei-runtime-setup
 ├─ Rotate / revoke a runtime credential (KEI_RUNTIME_TOKEN) — agent keys deprecated for runtime; rotation invalidates the old token immediately → kei-credential-rotation
 ├─ Sync Entra (Azure AD) app roles into Kei groups and users, or debug that sync (`kei directory-sync`) → kei-directory-sync
-├─ Run Open WebUI governed by Kei (openwebui-kei image, v3 tool manifest, boot tool sync, unlinked users) → kei-openwebui
+├─ Run Open WebUI with Kei policies (openwebui-kei image, v3 tool manifest, boot tool sync, unlinked users) → kei-openwebui
 ├─ Existing installation misbehaving → kei-setup-doctor
 ├─ Operating Kei's own services (deploy/rollback oidc-bridge, migrations, signing keys, KeiIdentity* alerts) → kei-service-ops
 ├─ Connector (list, create, get, reconnect, delete) → `kei connectors` subcommand (released in kei; v0.1.13 is current; fallback to Kei API)
@@ -99,10 +99,10 @@ Need to operate Kei from a terminal?
 ├─ Workspace, group, user, policy, connector → kei CLI → kei-cli
 └─ Org-wide operations and resources not exposed by the CLI → Kei API → kei-api
 
-Need a coding agent governed by Kei?
+Need a coding agent with Kei policies?
 ├─ Install/configure Pi with Kei's local adapter → kei-pi-setup
 ├─ Run Open WebUI with its Kei image and deployment-provided v3 tool manifest → kei-openwebui
-├─ Install the Haikei skills in Claude Code / Codex / OpenCode / Cursor → kei-harness-setup
+├─ Install the Haikei Skills in Claude Code / Codex / OpenCode / Cursor → kei-harness-setup
 ├─ Govern an application built with the Agentware SDK → agentware-sdk
 └─ Define agent tools and schemas → kei-agents
 ```
@@ -118,17 +118,17 @@ exist in the code today.
 
 | What you need to do | Surface | When to choose it | Skill |
 | --- | --- | --- | --- |
-| Choose a Kei harness type | SDK (Agentware), Claude Code, Codex, Pi, OpenCode, Cursor, or Open WebUI | SDK (Agentware): a framework or bespoke loop using `KeiProxyEvaluator` and `kei-proxy authorize`; Claude Code, Codex, or OpenCode: interactive coding sessions; Cursor: the Cursor CLI, governed native-first via its CLI config permissions; Pi: `kei-lime-pi` and local proxy socket; Open WebUI: `openwebui-kei` image, v3 manifest and installed implementations | `agentware-sdk`, `kei-harness-setup`, `kei-pi-setup`, or `kei-openwebui` |
+| Choose a Kei harness type | SDK (Agentware), Claude Code, Codex, Pi, OpenCode, Cursor, or Open WebUI | SDK (Agentware): a framework or bespoke loop using `KeiProxyEvaluator` and `kei-proxy authorize`; Claude Code, Codex, or OpenCode: interactive coding sessions; Cursor: the Cursor CLI, Kei policies apply native-first via its CLI config permissions; Pi: `kei-lime-pi` and local proxy socket; Open WebUI: `openwebui-kei` image, v3 manifest and installed implementations | `agentware-sdk`, `kei-harness-setup`, `kei-pi-setup`, or `kei-openwebui` |
 | Log in to Haikei from the CLI, or look up any `kei` command | kei CLI | Human operator (owner/admin) needs an org-bound CLI token via the device flow, or exact command syntax. Always inspect the installed CLI help before using a command | `kei-cli` |
 | Make an agent's tool call go through Kei (allow/deny, connector calls, audit) | `kei-proxy` runtime | Harness or adapter code that calls Kei at run time; never `kei login` | `kei-proxy` |
 | Stand up a customer-hosted runtime / kei-proxy | kei CLI (`kei bot …`) + `kei-proxy runtime` | New installation → credential → config → bootstrap → heartbeat → bind. The CLI surface (login, init, credential, bind) lives in `kei-cli`; the boot/run surface lives in `kei-runtime-setup` | `kei-runtime-setup` + `kei-cli` |
 | Rotate or revoke a runtime credential (KEI_RUNTIME_TOKEN) | kei CLI `bot credential --rotate` | Scheduled rotation, suspected leak, or a bootstrap missing `workspace_id`. Rotation invalidates the old token immediately; plan the restart | `kei-credential-rotation` |
 | Sync a customer's Entra groups and users into a Kei org | Azure portal + kei CLI `kei directory-sync` | App roles → Kei groups (`group:<role value>`), users created as org members; set up the sync app's Graph permissions and federated credential, dry run, report, go live, or debug a failed run | `kei-directory-sync` |
 | Run Open WebUI with Kei | `openwebui-kei` image + kei CLI (`kei bot init --platform openwebui`, `kei policies`) | Installation, credential, optional model profile for model credentials, `tool:<name>` permits, the image by digest (UID 10001), a deployment-provided v3 manifest, installed implementations and boot tool sync, linking users, or debugging `tool_not_registered`, `identity.unlinked` or no models | `kei-openwebui` |
-| Connect Claude Code, Codex, OpenCode, or Cursor to Kei | Haikei skills + kei-proxy | Install these skills in a coding harness and route its governed calls through the runtime | `kei-harness-setup` |
+| Connect Claude Code, Codex, OpenCode, or Cursor to Kei | Haikei Skills + kei-proxy | Install these skills in a coding harness and route its protected calls through the runtime | `kei-harness-setup` |
 | Set up Pi with Kei | `kei-lime-pi` extension + local `kei-proxy` socket | Install the Pi package, keep the runtime token out of Pi, and verify supported tool calls fail closed | `kei-pi-setup` |
 | Create an organization or workspace | Kei API | Set up an org, workspaces, seats, plans, members. Always inspect the actual API routes before calling an endpoint | `kei-api` |
-| Add or manage a data connector | Kei API | Register a governed data source (GitHub, Linear, Drive, S3, http_api/CRM) and its status | `kei-api` |
+| Add or manage a data connector | Kei API | Register a data source Kei checks (GitHub, Linear, Drive, S3, http_api/CRM) and its status | `kei-api` |
 | Set up a remote MCP connector end to end, or troubleshoot its activation, OAuth connection, tool manifest, or harness sync | kei CLI + Kei console | An admin is creating or activating a remote MCP connector, connecting an account, approving tools, or diagnosing setup errors | `kei-mcp-connectors` |
 | Look up exact syntax for `kei connectors` commands | kei CLI | Connector administration outside the end-to-end setup flow, or exact flags for the installed version | `kei-cli` |
 | Manage groups, policies, users, roles, access levels | Kei API | Administer RBAC/ABAC state that decides agent and user access | `kei-api` |
@@ -136,10 +136,10 @@ exist in the code today.
 | Invite users to an org or harness | Kei API | Send or accept invitations; add members to an org | `kei-api` |
 | Create agents or mint runtime credentials | Web app (console **Agents**); Kei API (`kei-api`) for integrations | Create an agent in the console; mint a runtime credential via the installation flow | `kei-api` |
 | Enforce policy and audit on agent tool calls | agentware SDK | Wrap tool execution so every call is decided (allow/deny/filter), audited, and attributed to the invoking human | `agentware-sdk` |
-| Perform an action on behalf of an agent (send a message, query data, etc.) | agentware SDK + kei-agents + kei-proxy | The action needs a tool definition (kei-agents), runtime governance (agentware-sdk), and an authorized execution path (kei-proxy). Start with `agentware-sdk` for the governance wrapper | `agentware-sdk` |
+| Perform an action on behalf of an agent (send a message, query data, etc.) | agentware SDK + kei-agents + kei-proxy | The action needs a tool definition (kei-agents), runtime guardrails (agentware-sdk), and an authorized execution path (kei-proxy). Start with `agentware-sdk` for the guardrails wrapper | `agentware-sdk` |
 | Implement the SDK (Agentware) harness contract | Agentware SDK + kei-proxy | Build an application harness with the SDK (pydantic-ai, Gemini SDK, AWS AgentCore, or a bespoke loop); `KeiProxyEvaluator` calls `kei-proxy authorize` | `agentware-sdk` |
 | Define agent tool definitions and schemas for the assistant | kei-agents | Describe agent capabilities, tool definitions and schemas, permission gates, and multi-model tool rendering | `kei-agents` |
-| Define governed connector read schemas | kei-agents | Express what an agent may read through a governed connector, with delegated context | `kei-agents` |
+| Define connector read schemas for connectors Kei checks | kei-agents | Express what an agent may read through a connector Kei checks, with delegated context | `kei-agents` |
 | Diagnose a broken or unverified Kei installation | kei CLI (`setup`, `runtime bootstrap`, `bot status`) driven as a workflow | An installation already exists (or is being stood up) and needs read-only diagnosis, verification, or handoff across local, AWS, or Azure | `kei-setup-doctor` |
 | Operate Kei's own platform services (the operator's view, not tenant use) | Service repos + helm/kubectl on the Kei cluster | Deploy or roll back oidc-bridge/catalog (merge = deploy, ADR-031), run or reach a goose migration on the private RDS, bootstrap/rotate/retire identity signing keys, re-encrypt tokens at rest with KMS, explain east-west `X-KEI-API-Key` auth, or respond to a `KeiIdentity*` alert | `kei-service-ops` |
 | Develop or review a customer assistant's ingress boundary | Ingress security invariants | Work on fail-closed feature flags, token verification, SSO, governor, audit, enrollment, or idempotency gates of a bot ingress service, or review their security | `kei-ingress-security` |
@@ -149,8 +149,8 @@ exist in the code today.
 | Wire an OpenAI-compatible LLM backend | OpenAI-compatible backends | Point a harness at an OpenAI-compatible endpoint (LLM_ENDPOINT/LLM_MODEL), work with agentware's per-family tool formatters and reasoning adapter, or wire agentware eval model backends | `kei-openai-backends` |
 | List, get, create, update, delete, or import harness command policies; register an agent-keyed harness and sync tool registrations | kei-harness-policy | Manage `shell:`/`skill:`/`path:` policies (ADR-029), import native harness config, render native config via `kei harness sync`, register agent-keyed harnesses (kinds claude_code|codex|opencode|custom|cursor) and sync tool metadata. Requires a released kei (v0.1.13 is current) for `kei policies` and `kei harness` subcommands | `kei-harness-policy` |
 | Encrypt audit tool-call arguments; create, list, disable, or rotate audit encryption keys; decrypt an audit record locally | kei-audit-encryption | Opt-in, customer-held age (X25519) encryption of audit args: `kei audit keys create\|list\|disable`, `kei audit decrypt`, the audit-encryption-keys AIP resource, the keyed `args_digest`, opt-in semantics, rotation, escrow (off by default). `kei audit` needs kei v0.1.9 or later | `kei-audit-encryption` |
-| Read or write data through a governed connector (GitHub, Linear, Drive, or any connector in the workspace) | Provider connector skill | Discover which connectors the workspace has via `kei connectors list --workspace W` (released in kei; v0.1.13 is current; fallback `GET /api/v1/data-connectors`), then load `skills/<provider>-connector/`. The connector supplies the credential; the agent never reads or stores it | `<provider>-connector` (discovered at runtime) |
-| Create a new governed connector skill from a template | Connector skill templates | Fork the connector-skill template to build a new governed data-source skill following the Lexicon/Pragmatics/Semantics pattern | `templates/connector-skill` |
+| Read or write data through a connector Kei checks (GitHub, Linear, Drive, or any connector in the workspace) | Provider connector skill | Discover which connectors the workspace has via `kei connectors list --workspace W` (released in kei; v0.1.13 is current; fallback `GET /api/v1/data-connectors`), then load `skills/<provider>-connector/`. The connector supplies the credential; the agent never reads or stores it | `<provider>-connector` (discovered at runtime) |
+| Create a new connector skill from a template | Connector skill templates | Fork the connector-skill template to build a new data-source skill for a connector Kei checks following the Lexicon/Pragmatics/Semantics pattern | `templates/connector-skill` |
 
 The API/catalog kind custom means **SDK (Agentware)** only. It is not
 the kind for Pi or Open WebUI. Register SDK harnesses with
@@ -165,7 +165,7 @@ command and version requirement.
 | `kei` CLI | the `kei-cli` repository (not `kei/cmd/kei`) | `kei setup`, `kei runtime bootstrap`, `kei login`/`logout`, `kei upgrade`, `kei bot` (init/agents/status/delete/credential/bind), and `kei connectors` (list/create/get/reconnect/delete — released in kei; v0.1.13 is current) for customer-hosted runtimes | Org, workspace, agent, group, policy, user commands (none exist); `bot install`/`deploy`/`destroy`/`list` (none exist) |
 | Kei API | `cmd/abac-engine` | Organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles, consents, audit — all of org management | CLI-shaped org management |
 | agentware SDK | `pedro-agentware` (`go/`, `python/`, `typescript/`) | Policy/audit middleware, delegation, harness contract, kei auth/proxy modules | Connector execution, credential resolution, control-plane data |
-| kei-agents | `kei-agents` (`src/agents/`) | Agent tool definitions, schemas, permissions, governed connector read schemas | Provider clients, credential resolution, writes as connector capabilities |
+| kei-agents | `kei-agents` (`src/agents/`) | Agent tool definitions, schemas, permissions, connector read schemas for connectors Kei checks | Provider clients, credential resolution, writes as connector capabilities |
 | setup doctor (workflow, not a command) | the `kei-cli` binary + the customer's environment | Read-only diagnosis of an installation: control-plane target, runtime health, credential destination, handoff | Any `kei setup doctor` subcommand — none exists; provisioning decisions, org management, remediation without consent |
 | service operations (operator's view) | each service's own repo (chart + `deploy.yaml`, migrations, scripts) + the Kei cluster | Deploy (merge = deploy, ADR-031), rollback (helm/kubectl, catalog `credentialRelease.authMode`), goose migrations (relay pod + port-forward to private RDS), signing keys (dry-run only for agents), KMS re-encryption, `X-KEI-API-Key` east-west auth (ADR-009), `KeiIdentity*` alert response | Tenant-facing work (customer runtimes, credentials, installations — that is `kei-runtime-setup`/`kei-credential-rotation`/`kei-setup-doctor`); applying terraform or mutating prod (human-only); printing secrets |
 | harness command policy | the `kei-cli` repository (`kei policies`, `kei harness` subcommands — released; v0.1.13 is current) | Harness command policies (`shell:`/`skill:`/`path:` dst), native config import and render (via `kei harness sync`), agent-keyed harness registration and tool sync | Tool-call policy (kei-proxy ABAC); org-level ABAC policy management (Kei API); report-only hook implementation (follow-up) |
@@ -175,8 +175,8 @@ command and version requirement.
 | tool adapters / governor | customer assistant ingress (tool lanes, governor) + agentware TS SDK tool formats | Tool lane stacks, governor proposals and stdio protocol, registry | LLM-driven dynamic tool selection; free-form endpoint selection |
 | headless evals | customer assistant ingress (`src/eval/`) + agentware (`python/src/evals`, `go/evals`, `typescript/src/evals`) | Offline deterministic eval harnesses, golden fixtures, ScriptedBackend, eval CLI | The `agentware` eval backend seam (intentionally unwired) |
 | OpenAI-compatible backends | agentware (`toolformat/`, reasoning adapter, evals) + your harness's model config | LLM endpoint wiring, per-family tool formats and reasoning fields, eval model backends | Non-OpenAI-compatible endpoints; a zero-LLM ingress service |
-| Provider connector skills | `skills/<provider>-connector/` | Governed reads and writes through a provider's API under Kei governance; entity hierarchy and ADR-028 resource types are provider-specific; discover which connectors the workspace has via `kei connectors list --workspace W` (released in kei; v0.1.13 is current; fallback `GET /api/v1/data-connectors`). The connector supplies the credential; the agent never reads or stores it | Credential management (Kei supplies the credential); provider-specific SDKs; the list of providers is not enumerable via CLI — pending ticket |
-| Connector skill templates | `templates/connector-skill/` + `templates/connector-plugin/` | Forkable template for building new governed connector skills with Lexicon/Pragmatics/Semantics sections, evals, and plugin manifests | The template itself; use the example skills as concrete references |
+| Provider connector skills | `skills/<provider>-connector/` | Reads and writes through a provider's API that Kei checks, under Kei policies; entity hierarchy and ADR-028 resource types are provider-specific; discover which connectors the workspace has via `kei connectors list --workspace W` (released in kei; v0.1.13 is current; fallback `GET /api/v1/data-connectors`). The connector supplies the credential; the agent never reads or stores it | Credential management (Kei supplies the credential); provider-specific SDKs; the list of providers is not enumerable via CLI — pending ticket |
+| Connector skill templates | `templates/connector-skill/` + `templates/connector-plugin/` | Forkable template for building new connector skills for connectors Kei checks with Lexicon/Pragmatics/Semantics sections, evals, and plugin manifests | The template itself; use the example skills as concrete references |
 
 ## Worked routing examples
 
@@ -209,7 +209,7 @@ command and version requirement.
 - **"Run our Open WebUI through Kei."** → `kei-openwebui`. Create the
   installation with `kei bot init --platform openwebui`, pipe
   `kei bot credential` into the secret manager, and write `tool:<name>` permits
-  for governed tools. A model configured in Open WebUI or its harness works
+  for tools Kei checks. A model configured in Open WebUI or its harness works
   without a Kei model profile; profiles are optional credential convenience,
   and inference does not go through kei-proxy. Deploy
   `openwebui-kei@sha256:<digest>` as UID 10001 with its implementation packages installed;
@@ -229,8 +229,8 @@ command and version requirement.
   → agentware SDK. Wrap the harness tool client with a `Policy` (deny rule) and an
   auditor. Load `agentware-sdk`.
 - **"What tools can my assistant expose for GitHub, and what permissions gate them?"**
-  → kei-agents. `github_read`/`github_write` tool definitions, governed read
-  schemas, `render_tools`. Load `kei-agents`.
+  → kei-agents. `github_read`/`github_write` tool definitions, read
+  schemas for connectors Kei checks, `render_tools`. Load `kei-agents`.
 - **"Invite a user to an org."** → Kei API (`POST /api/v1/invitations`). No CLI.
 - **"What does the Kei API expose?"** → `kei-api`, whose `references/routes.md`
   is the full enumerated route table. Always inspect the installed CLI help and
@@ -273,13 +273,13 @@ command and version requirement.
 - **"Point our chat harness at a local vLLM instance."** → `kei-openai-backends`.
   Set the endpoint and model (for example `LLM_ENDPOINT`, `LLM_MODEL`); a Python harness
   can use pydantic-ai `OpenAIChatModel` with the `/v1` contract. No vendor SDK needed.
-- **"Read data from a governed connector."** First discover which connectors
+- **"Read data from a connector Kei checks."** First discover which connectors
   are configured in this workspace. Try `kei connectors list --workspace W`
   (released in kei; v0.1.13 is current; fallback
   `GET /api/v1/data-connectors`). Once you know the provider (e.g. `github`,
   `linear`, `googledrive`), load `skills/<provider>-connector/` (e.g.
   `skills/github-connector/` or `skills/linear-connector/`). Each connector skill documents its CLI, API, and
-  entity model. The governed connector supplies the credential; the agent never reads
+  entity model. The connector Kei checks supplies the credential; the agent never reads
   or stores it.
 - **"Read our Linear issues through the connector, then post a message from my
   agent."** Two surfaces. The read: discover the connector with

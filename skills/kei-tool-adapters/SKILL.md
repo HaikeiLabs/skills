@@ -111,7 +111,7 @@ the deployment-artifact contract test, and the registry digest verify script.
   allowlists, the interpreter flags, and fixed selections are source constants, not env or
   per-call parameters.
 - When adding a tool lane, add the full stack (schema/client/guard/envelope/renderer/runtime
-  + proposal + registry entry) plus a matching integration test and the governance assertions
+  + proposal + registry entry) plus a matching integration test and the policy assertions
   in the deployment-artifact contract test.
 
 ## Related skills

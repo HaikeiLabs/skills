@@ -116,7 +116,7 @@ pi install -l git:github.com/HaikeiLabs/skills
 pi list
 ```
 
-For Kei-governed Pi tool calls, install the separate adapter package too:
+For Pi tool calls that Kei checks, install the separate adapter package too:
 `pi install git:github.com/HaikeiLabs/kei-lime-pi`. See
 [`kei-pi-setup`](skills/kei-pi-setup/SKILL.md) for runtime and policy
 requirements. Skills and adapter packages are separate; installing either does
@@ -155,14 +155,14 @@ skill.
 | [kei-runtime-setup](skills/kei-runtime-setup/SKILL.md) | Stand up a customer-hosted runtime end to end: login, installation, credential to secret manager, `KEI_RUNTIME_*` env, `kei-proxy runtime bootstrap`/`heartbeat`, bind, and a fail-closed check |
 | [kei-credential-rotation](skills/kei-credential-rotation/SKILL.md) | Rotate or revoke a runtime installation credential (`kei bot credential --rotate`, immediate cutover) and the console-only agent-key rotation |
 | [kei-directory-sync](skills/kei-directory-sync/SKILL.md) | Per-org Entra directory sync for customer admins: app roles → Kei groups, users created as org members, the sync app's Graph permissions and federated credential (no secret), `kei directory-sync get\|set\|enable\|disable\|report`, dry run first, and troubleshooting |
-| [kei-openwebui](skills/kei-openwebui/SKILL.md) | Open WebUI governed by Kei with the published `openwebui-kei` image: the `openwebui` installation, credential, model profile and `model:invoke` / `tool:<name>` permits, the image by digest and UID 10001, deployment-provided v3 tool manifest, generated-catalog fallback, installed implementations and boot sync, user linking, verification, and troubleshooting |
+| [kei-openwebui](skills/kei-openwebui/SKILL.md) | Open WebUI with Kei policies, using the published `openwebui-kei` image: the `openwebui` installation, credential, model profile and `model:invoke` / `tool:<name>` permits, the image by digest and UID 10001, deployment-provided v3 tool manifest, generated-catalog fallback, installed implementations and boot sync, user linking, verification, and troubleshooting |
 | [kei-audit-encryption](skills/kei-audit-encryption/SKILL.md) | Opt-in, customer-held age (X25519) encryption of audit tool-call arguments: `kei audit keys create\|list\|disable`, `kei audit decrypt`, the audit-encryption-keys AIP resource, the keyed `args_digest`, rotation (add-new-then-disable-old), and the escrow setting (off by default). `kei audit` ships in the next kei release |
 | [kei-harness-setup](skills/kei-harness-setup/SKILL.md) | Connect Claude Code, Codex, OpenCode, or Cursor to Kei: install these skills, pair with a runtime, pass agent identity to `kei-proxy authorize`, prove denials |
 | [kei-pi-setup](skills/kei-pi-setup/SKILL.md) | Install the Pi adapter and skills packages, recommend starter Pi policies before setup, use local `shell:` policies for Pi Bash, understand digest-only audit behavior, and verify fail-closed tool calls |
 | [kei-api](skills/kei-api/SKILL.md) | The Kei HTTP API (`/api/v1/*`): organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles — where org management actually lives today |
 | [kei-api-conventions](skills/kei-api-conventions/SKILL.md) | Resource-oriented (AIP-style) HTTP endpoint conventions from ADR-019: collection naming, `:verb` custom methods, pagination, the dual-write migration, and the `aipcheck` CI gate |
 | [agentware-sdk](skills/agentware-sdk/SKILL.md) | The open-source agentware SDK: policy enforcement, audit records, and delegation for agent tool calls, in Go, Python, and TypeScript |
-| [kei-agents](skills/kei-agents/SKILL.md) | Agent definitions, tool schemas, semantic mappings, and governed connector bindings from the `kei-agents` package |
+| [kei-agents](skills/kei-agents/SKILL.md) | Agent definitions, tool schemas, semantic mappings, and connector bindings Kei checks from the `kei-agents` package |
 | [kei-setup-doctor](skills/kei-setup-doctor/SKILL.md) | A diagnosis *workflow* (not a CLI command — there is no `kei setup doctor`) for Kei runtime installations across local, AWS, Azure, or other customer environments |
 | [kei-service-ops](skills/kei-service-ops/SKILL.md) | Operating Kei's own platform services from the operator's view (not tenant use): service-owned chart deploys (merge = deploy, ADR-031), helm/kubectl rollbacks, goose migrations on the private RDS, identity signing-key bootstrap/rotate/retire, KMS token re-encryption, east-west service-key auth, and KeiIdentity* alert response |
 | [kei-ingress-security](skills/kei-ingress-security/SKILL.md) | A customer assistant's ingress boundary: fail-closed authentication, principal derivation, enrollment gates, pseudonymous audit, idempotency, and the governor pin — security invariants for the Teams/Bot Framework bot that must not be weakened |
@@ -170,13 +170,13 @@ skill.
 | [kei-tool-adapters](skills/kei-tool-adapters/SKILL.md) | Tool adapters and the governor tool-lane pattern: schema/client/guard/envelope/renderer/runtime stacks, GovernorClient proposals and stdio protocol, the typed tool-lane registry, and the agentware TS SDK tool formats |
 | [kei-headless-evals](skills/kei-headless-evals/SKILL.md) | Headless, deterministic evaluation harnesses: EvalSuite/EvalCase/EvalTrace/EvalReport, ScriptedBackend, golden fixtures, the assistant CLI, and the agentware eval harnesses |
 | [kei-openai-backends](skills/kei-openai-backends/SKILL.md) | OpenAI-compatible LLM backend integration: LLM_ENDPOINT/LLM_MODEL wiring, pydantic-ai OpenAIChatModel, agentware per-family tool formats and reasoning fields, and agentware eval model backends |
-| [linear-connector](skills/linear-connector/SKILL.md) | Generated reference for governed Linear connector tools, permissions, request mappings, and credential flow |
-| [github-connector](skills/github-connector/SKILL.md) | Generated reference for governed GitHub connector tools, permissions, request mappings, and credential flow |
+| [linear-connector](skills/linear-connector/SKILL.md) | Generated reference for the Linear connector tools Kei checks, permissions, request mappings, and credential flow |
+| [github-connector](skills/github-connector/SKILL.md) | Generated reference for the GitHub connector tools Kei checks, permissions, request mappings, and credential flow |
 ## Templates
 
 | Template | Use |
 |----------|-----|
-| [connector-skill](templates/connector-skill/TUTORIAL.md) | Fork this to create a new governed-connector skill. See the [tutorial](templates/connector-skill/TUTORIAL.md) for the full walkthrough from fork to published PR. |
+| [connector-skill](templates/connector-skill/TUTORIAL.md) | Fork this to create a new connector skill (a connector Kei checks). See the [tutorial](templates/connector-skill/TUTORIAL.md) for the full walkthrough from fork to published PR. |
 | [connector-plugin](templates/connector-plugin/plugin.json) | Standalone plugin manifest for a connector skill published outside the monorepo. Fork the `plugin.json` alongside your skill folder. |
 
 ## What is deliberately absent

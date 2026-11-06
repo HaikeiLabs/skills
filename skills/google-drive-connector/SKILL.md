@@ -10,7 +10,7 @@ REST API. It covers the Lexicon (endpoints and operations), Pragmatics (how
 agents use them), and Semantics (data returned and entity relationships).
 
 There is no maintained official CLI for Google Drive that covers all
-governed operations. Agents use the Google Drive API v3 directly.
+operations Kei allows or denies. Agents use the Google Drive API v3 directly.
 
 ## Key rules
 
@@ -25,11 +25,11 @@ governed operations. Agents use the Google Drive API v3 directly.
   [Writing a doc (harness-side)](#writing-a-doc-harness-side). That token is
   only for doc writes: authorizing the connector is always
   `kei connectors create --provider googledrive --workspace W`.
-- Permanent file deletion is not available through the governed connector —
+- Permanent file deletion is not available through the connector Kei checks —
   files move to trash instead (trash is available and reversible). When asked
   whether you can permanently delete a file, start with this sentence: "No,
-  permanent deletion is not available (not supported) through the governed
-  connector." Then offer moving the file to trash.
+  permanent deletion is not available (not supported) through the connector Kei
+  checks." Then offer moving the file to trash.
 - Resource types for Kei policy follow ADR-028: `folder` (no parent) and
   `file` (parent: folder).
 - The optional `drive_id` field scopes the connector to one shared drive;
@@ -39,12 +39,12 @@ governed operations. Agents use the Google Drive API v3 directly.
 
 ## Install
 
-Agents load this skill automatically when the harness has the Haikei skills
+Agents load this skill automatically when the harness has the Haikei Skills
 plugin installed. See the repo README for per-harness setup.
 
 ## Connect and credentials
 
-Kei governs every connector call. The agent never holds, asks for, or prints a
+Kei checks every connector call. The agent never holds, asks for, or prints a
 raw credential.
 
 If a user offers to paste a key (a service account JSON key, a token), do not
@@ -128,7 +128,7 @@ token, secret, or API key.
 
 ### Denied command surface
 
-These actions are **not available** through the governed connector — they fall
+These actions are **not available** through the connector Kei checks — they fall
 outside the connector's scope:
 
 | Operation | Reason |
@@ -147,7 +147,7 @@ when a user offers to paste a key, is always answered with
 `kei connectors reconnect <id>`), never with a Drive OAuth scope or gcloud.
 
 Drive writes are **harness-side** (owner decision 2026-10-09). Kei never
-writes through the governed connector: writes are not a governed connector
+writes through the connector Kei checks: writes are not a protected connector
 capability. The broad scopes do not
 decide what an agent may do; Kei policy does. The harness calls the Drive REST API directly with the **invoking
 user's own Google OAuth token**:
@@ -200,7 +200,7 @@ user's own Google OAuth token**:
   `Authorization` header, as below.
 - **A child carries its parent.** A new doc always gets
   `parents: [<folder_id>]`. An update targets `<doc_id>`.
-- **Governed harness.** Ask kei-proxy before the write, with the resource
+- **Kei-enabled harness.** Ask kei-proxy before the write, with the resource
   `drive:folder/<folder_id>` for a create or `drive:doc/<doc_id>` for an
   update. Write only on allow. When the harness uses agentware, its
   `KeiProxyEvaluator` makes this call over the `kei-proxy serve` socket
@@ -447,7 +447,7 @@ node scripts/run-evals.mjs --skill google-drive-connector --harness opencode \
 ## Realistic usage boundaries
 
 - **Do not** manage credentials. Kei handles authentication via Google OAuth
-  for governed reads. For a harness-side doc write, use the user's own token
+  for protected reads. For a harness-side doc write, use the user's own token
   inline, and never print or store it.
 - **Do not** write a doc before the user confirms the exact title, target,
   and content.
@@ -455,7 +455,7 @@ node scripts/run-evals.mjs --skill google-drive-connector --harness opencode \
   `/export` instead with a suitable mimeType.
 - **Do not** assume `name` is unique — multiple files can have the same name
   in the same folder.
-- **Do not** delete files permanently — the governed connector may support
+- **Do not** delete files permanently — the connector Kei checks may support
   trash (which is reversible) but not hard deletion.
 - **Do not** bypass the `fields` parameter — requesting all fields on large
   file lists consumes excessive quota.

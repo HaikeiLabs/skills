@@ -17,7 +17,7 @@ description: "Govern harness command execution through Kei policies. Use when cr
 **Requires kei v0.1.7 or newer**, the first release with harness policies and
 `kei harness`; every supported kei release has them.
 
-Kei governs a coding-agent harness in two layers:
+Kei puts policies on a coding-agent harness in two layers:
 
 1. **Tool-call policy** — the standard Kei ABAC path: agent tool calls go
    through kei-proxy — the `kei-proxy serve` socket (`POST /v1/authorize` in a
@@ -54,7 +54,7 @@ OpenCode `permission.bash`).
   config.
 - **Kei does not deny unmatched commands on desktop harnesses.** A command no
   policy matches falls through to the harness's own entries and default
-  permission mode (usually `ask`). Custom harnesses and governed connectors
+  permission mode (usually `ask`). Custom harnesses and connectors Kei checks
   deny by default (fail-closed).
 - **The hook only audits.** The report-only hook that sync installs
   (`kei-proxy hook <harness>`, HP-C6) records each call and the harness's
@@ -69,7 +69,7 @@ OpenCode `permission.bash`).
 - **Desktop harnesses share one installation.** Claude Code, Codex and OpenCode
   on one machine are sessions of the same runtime installation, and
   sync discovers them automatically. `kei harness add` is only for custom/SDK
-  harnesses (`--kind custom`). Pi is governed by the kei-lime-pi extension
+  harnesses (`--kind custom`). Pi's calls are checked through the kei-lime-pi extension
   instead, which kei-proxy (0.2.4 or newer) decides at call time; sync renders
   nothing for it.
 
@@ -124,7 +124,7 @@ first. If something is not here, say so. In every answer:
   `kei://connectors/<id>/<field>` reference at run time and injects the value
   into the child process only; the agent and harness do not read, access, see,
   or store raw credentials, and the credential is never in the policy. Say
-  this is the same pattern as governed connector
+  this is the same pattern as protected connector
   calls (credential release uses the same connector policy check and secret
   resolution).
 - **`policy_bundle_expired`:** the bundle passed its `not_after` expiry
@@ -135,7 +135,7 @@ first. If something is not here, say so. In every answer:
   run `kei harness sync` to re-render the native config from the fresh bundle.
 - **`STALE_BUT_VALID`:** the refresh is overdue (no successful refresh within
   `stale_after_seconds`, default 300 s) but the bundle is still valid until
-  `not_after`; after that every governed call is denied. Check connectivity to
+  `not_after`; after that every protected call is denied. Check connectivity to
   the control plane, the control-plane URL, DNS, and the runtime token
   (expired or rotated). `kei-proxy policy sync` forces a fresh fetch.
 - **Bundle versions:** explain `bundle_id`, `bundle_version`, and
@@ -152,7 +152,7 @@ or `kei harness sync --harness custom --manifest tools.json`.
 
 | Term | Meaning |
 | --- | --- |
-| **Harness command policy** | A Kei ABAC policy whose `dst` follows the `shell:`, `skill:`, or `path:` scheme — governs what commands and skills a harness agent may run on the host without asking (ADR-029 §2). |
+| **Harness command policy** | A Kei ABAC policy whose `dst` follows the `shell:`, `skill:`, or `path:` scheme — specifies what commands and skills a harness agent may run on the host without asking (ADR-029 §2). |
 | **`shell:` dst** | A command prefix the harness may run without asking. `shell:git` permits any `git` invocation; `shell:herdr` permits herdr commands. |
 | **`skill:` dst** | A skill name the harness may load without asking. `skill:kei-agents` permits the Kei agents skill. |
 | **`path:` dst** | A filesystem path prefix the harness may read or write without asking. `path:/workspace/project` permits access under that directory. |
@@ -214,7 +214,7 @@ Installing Codex next to Claude Code on the same machine? Just run
 | Claude Code / Codex / OpenCode on a workstation | `kei harness sync` (no `add` needed) |
 | Pi on a workstation | Install the Kei extension: `pi install git:github.com/HaikeiLabs/skills` and `pi install git:github.com/HaikeiLabs/kei-lime-pi` (no `add`, no `sync`) |
 
-**Pi is governed by an extension, not by sync.** The kei-lime-pi extension
+**Pi's calls are checked through an extension, not by sync.** The kei-lime-pi extension
 (`@haikeilabs/kei-lime-pi`) sends Pi's `read`, `write`, `edit` and `bash`
 calls and registered Kei v2 connector calls to the local kei-proxy, which
 decides each one at call time (Bash through `shell:` policies, which can be
@@ -428,7 +428,7 @@ the runtime token and renders the native config for the matching harness kind;
 `--harness KIND` limits the sync to one kind.
 
 **Cursor** (kei-cli#233, not released yet) is the seventh desktop kind and is
-governed native-first: sync renders the policies into Cursor's CLI config
+Kei policies apply native-first: sync renders the policies into Cursor's CLI config
 permissions (`~/.cursor/cli-config.json` → `permissions.allow` /
 `permissions.deny` with `Shell(base)`, `Read(glob)`, `Write(glob)`,
 `WebFetch(domain)`, `Mcp(server:tool)` tokens; deny beats allow). Cursor has
@@ -458,13 +458,13 @@ roll back by hand, copy the backup over the native config, for example
 Copy it somewhere else first if you want to keep it past the next sync.
 Sync removes the entries its previous run wrote (recorded in a local sync
 ledger), merges in the current ones, and keeps your own entries and key order,
-so the diff shows only Kei-managed changes. Run sync after installing new Haikei skills or
+so the diff shows only Kei-managed changes. Run sync after installing new Haikei Skills or
 after a policy change.
 
 ## Bundle renewal
 
 Policy bundles carry a `not_after` expiry (ADR-026 §4). When a bundle expires,
-`kei-proxy` denies every governed call with `reason_code: policy_bundle_expired`.
+`kei-proxy` denies every protected call with `reason_code: policy_bundle_expired`.
 The harness command policies in the bundle expire at the same time — the
 harness's native config falls back to its own default permission mode (usually
 `ask` for native harnesses) until the bundle is renewed.
@@ -514,7 +514,7 @@ GH_TOKEN=kei://connectors/<connector-id>/token kei-proxy run -- git push
   `--connector <id>` optionally restricts them to one connector.
 - `kei-proxy` resolves each reference through the runtime credential path:
   the same connector policy check and tenant-side secret resolution that
-  credential release uses for governed connector calls. A denied or
+  credential release uses for protected connector calls. A denied or
   unresolvable reference means the command is not started, and `kei-proxy run`
   exits non-zero with a reason code.
 - The resolved value is injected **only into the child process's

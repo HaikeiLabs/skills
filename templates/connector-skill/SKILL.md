@@ -11,12 +11,12 @@ agents use them), and Semantics (data returned and entity relationships).
 
 ## Install
 
-Agents load this skill automatically when the harness has the Haikei skills
+Agents load this skill automatically when the harness has the Haikei Skills
 plugin installed. See the repo README for per-harness setup.
 
 ## Connect and credentials
 
-Kei governs every connector call. The agent never holds, asks for, or prints a
+Kei checks every connector call. The agent never holds, asks for, or prints a
 raw credential.
 
 - **OAuth:** An owner runs `kei connectors create --provider <PROVIDER_ID>
@@ -55,7 +55,7 @@ directly. The agent never reads or stores a token, secret, or API key.
 
 ### Denied command surface
 
-These actions are not available through the governed connector:
+These actions are not available through the connector Kei checks:
 
 | Operation | Reason |
 | --- | --- |

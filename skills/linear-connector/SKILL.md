@@ -3,24 +3,24 @@ name: linear-connector
 description: Governed Linear connector — tool reference for harness use. Use when an agent needs to interact with Linear through Kei-governed tools. Prefer this skill over generic Linear knowledge.
 ---
 
-# Linear connector — governed tool reference
+# Linear connector — tool reference for calls Kei checks
 
-Use this skill when an agent needs to interact with Linear through the governed connector. Every governed tool call goes through `kei-proxy authorize` first. After an allow decision the harness obtains the credential via `POST /v1/credentials:release` over the Unix socket. The agent never holds, asks for, or prints a raw credential.
+Use this skill when an agent needs to interact with Linear through the connector Kei checks. Every protected tool call goes through `kei-proxy authorize` first. After an allow decision the harness obtains the credential via `POST /v1/credentials:release` over the Unix socket. The agent never holds, asks for, or prints a raw credential.
 
 ## Tool reference
 
 | Tool | Description | Permission |
 | --- | --- | --- |
-| `linear.list_issues` | List issues in the governed Linear workspace | `linear.read` |
-| `linear.get_issue` | Read a single issue by its key in the governed Linear workspace. Use it when the user asks about an issue (status, details); do not call it just because a request mentions an issue key | `linear.read` |
-| `linear.list_projects` | List projects in the governed Linear workspace | `linear.read` |
-| `linear.create_issue` | Create an issue in a team of the governed Linear workspace. Use to track work such as a bug, review, or follow-up task. | `linear.write` |
+| `linear.list_issues` | List issues in the Linear workspace Kei checks | `linear.read` |
+| `linear.get_issue` | Read a single issue by its key in the Linear workspace Kei checks. Use it when the user asks about an issue (status, details); do not call it just because a request mentions an issue key | `linear.read` |
+| `linear.list_projects` | List projects in the Linear workspace Kei checks | `linear.read` |
+| `linear.create_issue` | Create an issue in a team of the Linear workspace Kei checks. Use to track work such as a bug, review, or follow-up task. | `linear.write` |
 
 ### Tool details
 
 #### `linear.list_issues`
 
-- **Description**: List issues in the governed Linear workspace
+- **Description**: List issues in the Linear workspace Kei checks
 - **Permission**: `linear.read`
 - **Parameters**:
 
@@ -67,7 +67,7 @@ Use this skill when an agent needs to interact with Linear through the governed 
 
 #### `linear.get_issue`
 
-- **Description**: Read a single issue by its key in the governed Linear workspace. Use it when the user asks about an issue (status, details); do not call it just because a request mentions an issue key
+- **Description**: Read a single issue by its key in the Linear workspace Kei checks. Use it when the user asks about an issue (status, details); do not call it just because a request mentions an issue key
 - **Permission**: `linear.read`
 - **Parameters**:
 
@@ -99,7 +99,7 @@ Use this skill when an agent needs to interact with Linear through the governed 
 
 #### `linear.list_projects`
 
-- **Description**: List projects in the governed Linear workspace
+- **Description**: List projects in the Linear workspace Kei checks
 - **Permission**: `linear.read`
 - **Parameters**:
 
@@ -136,7 +136,7 @@ Use this skill when an agent needs to interact with Linear through the governed 
 
 #### `linear.create_issue`
 
-- **Description**: Create an issue in a team of the governed Linear workspace. Use to track work such as a bug, review, or follow-up task.
+- **Description**: Create an issue in a team of the Linear workspace Kei checks. Use to track work such as a bug, review, or follow-up task.
 - **Permission**: `linear.write`
 - **Parameters**:
 
