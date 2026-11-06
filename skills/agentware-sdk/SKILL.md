@@ -16,7 +16,7 @@ to Agentware solely because it mentions an agent or a model.
 When writing responses about agentware:
 
 - For TypeScript runtime identity, state the compatibility minimums directly:
-  Agentware 0.11.0, kei-proxy v0.3.0, and kei-cli 0.2.0. Read the assigned
+  Agentware 0.16.0, kei-proxy v0.6.5, and kei-cli 0.3.6. Read the assigned
   agent ID from `link.identity()?.defaultAgentId` and the agents from
   `link.identity()?.agents`; when identity is unavailable, deny governed calls
   and never guess a fallback agent ID.
@@ -106,10 +106,10 @@ explicit integration environments.
 
 ## Install and dependencies
 
-As of 2026-10-31, the latest verified npm, PyPI, and Go module proxy releases
-are Agentware 0.15.0. Check the package registries and the Agentware README
+As of 2026-11-05, the latest verified npm, PyPI, and Go module proxy releases
+are Agentware 0.16.0. Check the package registries and the Agentware README
 compatibility table for newer releases and the versions required by your setup.
-For SDK 0.15.0 with Kei, the checked source table lists kei-proxy v0.6.5 and
+For SDK 0.16.0 with Kei, the checked source table lists kei-proxy v0.6.5 and
 kei-cli 0.3.6 as minimums; these are integration minimums, not SDK versions.
 
 ### Go
@@ -170,7 +170,7 @@ supplied arguments, so sanitize sensitive values before recording; do not
 claim every port hashes or redacts arguments automatically. Check the
 selected auditor's source and tests.
 
-## Python runtime identity/auth integration (Agentware 0.11.0)
+## Python runtime identity/auth integration (from Agentware 0.11.0)
 
 - `python/src/haikeilabs/agentware/kei/auth.py` — `TokenType` (OPAQUE | JWT),
   `BOOTSTRAP_TOKEN_ENV = "KEI_RUNTIME_TOKEN"`, `OpaqueTokenProvider` (current, no auto-renew;
@@ -408,7 +408,7 @@ const decision = await evaluator.evaluate("github.get_issue", args, caller);
 `openSession`, `authorize`, `listModels`, `chatCompletion`,
 `streamChatCompletion` (an async generator of SSE `data:` lines) and
 `policyBundleStatus` are on `KeiProxySocketAuthorizeClient`. These socket
-client APIs and tool registration are available in Agentware 0.11.0.
+client APIs and tool registration are available from Agentware 0.11.0.
 
 ### Go
 
@@ -944,17 +944,17 @@ object-shaped results, arbitrary exceptions) stay in
 The fixture-integrity checks (every derived case agrees with the seeded policy
 rule it names) run once, in Python.
 
-### Historical SDK baseline
+### Checked SDK baseline
 
-The checked 0.11.0 tag includes these socket and sync surfaces. This is a
-historical baseline, not a claim that every current feature or Kei deployment
-works with 0.11.0. For 0.15.0 use the compatibility minimums above.
+These socket and sync surfaces exist from Agentware 0.11.0. This is a checked
+baseline, not a claim that every feature or Kei deployment works with 0.11.0
+or later. For current releases use the compatibility minimums above.
 
-| Language | Package | Checked historical SDK version |
+| Language | Package | Checked current SDK version |
 |---|---|---|
-| Python | \`haikeilabs-agentware\` (import \`haikeilabs.agentware\`) | \`0.11.0\` |
-| TypeScript | \`@haikeilabs/agentware\` | \`0.11.0\` |
-| Go | \`github.com/haikeilabs/agentware/go\` (\`kei/runtimesocket\`, \`kei/toolsync\`) | \`v0.11.0\` |
+| Python | \`haikeilabs-agentware\` (import \`haikeilabs.agentware\`) | \`0.16.0\` |
+| TypeScript | \`@haikeilabs/agentware\` | \`0.16.0\` |
+| Go | \`github.com/haikeilabs/agentware/go\` (\`kei/runtimesocket\`, \`kei/toolsync\`) | \`v0.16.0\` |
 
 The Go module is published through the Go module proxy; no separate registry
 login is needed.
