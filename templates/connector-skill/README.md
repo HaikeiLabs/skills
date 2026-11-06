@@ -1,7 +1,7 @@
 # Connector skill template
 
-This directory is a **forkable template** for building a new governed-connector
-skill in the Haikei skills repository.
+This directory is a **forkable template** for building a new connector skill
+(a connector Kei checks) in the Haikei Skills repository.
 
 ## What you get
 
@@ -48,7 +48,7 @@ skill in the Haikei skills repository.
 ## Conventions
 
 - One connector skill per data source.
-- Each skill documents only the **governed** surface — operations available
+- Each skill documents only the **Kei-checked** surface — operations available
   through the Kei connector, not the full provider API.
 - Credential management is Kei's responsibility; the skill explains the
   pass-through model.

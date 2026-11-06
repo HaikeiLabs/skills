@@ -214,7 +214,7 @@ ever sees public keys.
 
 1. `kei audit keys list` — the key shows `active` / `customer`; the list
    response also carries `encryption_enabled`.
-2. Trigger a governed tool call, then fetch the record via the audit records
+2. Trigger a protected tool call, then fetch the record via the audit records
    API (`GET /api/v1/audit/records`, or the org-scoped record get — `kei-api`
    skill) or the console's record detail. An encrypted record carries
    `args_ciphertext` (base64 age) + `recipient_key_ids`, alongside the

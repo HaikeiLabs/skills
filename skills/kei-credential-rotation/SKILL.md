@@ -55,7 +55,7 @@ the moment rotation succeeds — there is no overlap window and no grace period.
 Only `pending` or `active` installations can be rotated.
 
 That makes rotation a cutover, not a background task. The running runtime will
-start failing its next heartbeat and every governed call until it is restarted
+start failing its next heartbeat and every protected call until it is restarted
 with the new token. Plan the order so that gap is seconds, not hours.
 
 ## Before rotating
@@ -112,7 +112,7 @@ Then immediately:
    bootstrap lacked `workspace_id`.
 3. Confirm the heartbeat process is running again and
    `kei bot status --installation INSTALLATION_ID` shows it fresh.
-4. Verify the old token is dead: a governed call or bootstrap with the previous
+4. Verify the old token is dead: a protected call or bootstrap with the previous
    value (if it is still retrievable from a secret-manager version) must fail
    closed. Do not keep the old value around longer than this check needs.
 

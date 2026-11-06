@@ -1,4 +1,4 @@
-# Deploy and distribute governed AI agents
+# Deploy and distribute AI agents with Kei policies
 
 *Part 3 of 3: build, test, deploy.*
 
@@ -10,7 +10,7 @@ accounts.
 
 ## The shape of a deployment
 
-Every governed agent runs next to a **Kei runtime**: a small binary called
+Every agent with Kei policies runs next to a **Kei runtime**: a small binary called
 `kei-proxy`. The runtime holds your installation's credential, keeps a copy of
 your workspace policy, makes allow-or-deny decisions locally, runs connector
 calls with the right user's credential, and ships audit metadata back. Your
@@ -88,7 +88,7 @@ PUT /v1/session
 → 201 {"session_id":"ks_…","user_id":"…","status":"linked","idle_ttl_seconds":1800}
 ```
 
-Each governed call then names that session in an `X-Kei-Session` header on
+Each protected call then names that session in an `X-Kei-Session` header on
 `POST /v1/authorize`. The daemon decides it locally, against the policy it
 synced, with no round trip to Kei. Each session has its own identity and its
 own connector credentials, and nothing is shared between them. Sessions end
@@ -116,7 +116,7 @@ its identity; there's no agent-id environment variable to set.
 ## Step 4: connect the harness
 
 **Coding agents on laptops (Claude Code, Codex, OpenCode).** Install the
-Haikei skills. In Claude Code that's `/plugin marketplace add
+Haikei Skills. In Claude Code that's `/plugin marketplace add
 HaikeiLabs/skills` then `/plugin install haikei@haikei`; Codex has the same
 two commands under `codex plugin`; for OpenCode, clone the repository and link
 the skill folders into its skills directory. Set up the local runtime with
@@ -133,7 +133,7 @@ Back up the harness's settings file first; sync overwrites it.
 **A chat bot (Discord, Teams, Slack).** Create the installation for that
 platform (`kei bot init --platform discord …`) and open one daemon session per
 chat user. The first time someone who isn't linked to a Kei user asks for
-something governed, the decision is a deny with an **enrollment link**. Send
+something protected, the decision is a deny with an **enrollment link**. Send
 it to that person in a direct message, never in the channel and never to a
 log. Each response mints a fresh link and voids the old one, so always send
 the newest. Once they've enrolled, their next request goes through policy like

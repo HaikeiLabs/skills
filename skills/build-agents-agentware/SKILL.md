@@ -11,7 +11,7 @@ separate; each has one owner:
 | Layer | What it is | Package |
 | --- | --- | --- |
 | **Definition** | System prompt + tool schemas + the permissions the agent may hold | `kei-agents` (`agents` import) |
-| **Governance** | Every tool call is decided (allow/deny/filter), audited, and attributed to a human | agentware SDK (`haikeilabs.agentware`, Go, TypeScript) |
+| **Guardrails** | Every tool call is decided (allow/deny/filter), audited, and attributed to a human | agentware SDK (`haikeilabs.agentware`, Go, TypeScript) |
 | **Runtime decision** | The live allow/deny comes from the workspace policy, made tenant-side | `kei-proxy serve`, reached through `KeiProxyEvaluator` and the socket client |
 
 The model never decides what it is allowed to do. A refusal in the prompt is
@@ -146,7 +146,7 @@ sync_tool_manifest(registry.export_kei_tool_manifest(), ToolManifestSyncConfig.f
 client.with_policy(KeiProxyEvaluator(select_authorization_client("discord")))
 ```
 Instead of the control-plane sync helper above, choose direct local socket
-registration: define the governed declarations as `ToolSpec` values and call
+registration: define the protected declarations as `ToolSpec` values and call
 `await register_tool_specs(specs, socket_client);
 that sends manifest v3 to `POST /v1/tools:register`. In TypeScript use
 `registerToolSpecs`, and in Go use `toolsync.SocketRegistrar.Send`. An operator
@@ -190,7 +190,7 @@ assert child.invoking_subject == caller.invoking_subject
 `delegate()` refuses to override `invoking_subject`. Never replace it with the
 agent's own service identity; the audit trail would then say "the bot did it".
 Agent identity is discovered from the runtime (`link.identity()`), never from
-an env var; if it is unavailable, deny governed calls.
+an env var; if it is unavailable, deny protected calls.
 
 ## 3. Design tool arguments: Lexicon, Pragmatics, Semantics
 
@@ -237,13 +237,13 @@ Eval cases then pin it: `"args": {"team_key": "KEI"}` for the parent, and
 `"forbidden_arg_keys": ["tenant_id", "workspace", "repository"]` for the
 scope (see `test-agents`).
 
-## 4. Register governed tools with Kei
+## 4. Register protected tools with Kei
 
 Before Kei can decide a tool by name, an admin loads its scope into the
 catalog. In agentware 0.11.0 or later a tool declares a `KeiScope` (service, action,
 resource patterns), and `ToolRegistry.export_kei_tool_manifest()` emits
 deterministic JSON for the admin to load. The runtime never registers tools
-itself. Details: `agentware-sdk`, "Making governed tool calls".
+itself. Details: `agentware-sdk`, "Making protected tool calls".
 
 ## Validation commands
 
@@ -280,7 +280,7 @@ KEI_RUNTIME_SOCKET_PATH=/tmp/no-daemon.sock python your_harness.py   # expect "p
 ## Related skills
 
 - `agentware-sdk` — full SDK reference, decision table, Go/TypeScript ports.
-- `kei-agents` — the tool catalog, governed connector read schemas, `render_tools`.
+- `kei-agents` — the tool catalog, connector read schemas for connectors Kei checks, `render_tools`.
 - `test-agents` — table-test evals for the agent you just built.
 - `deploy-agents` — runtime, harness, policies, and per-user connectors.
 - `templates/connector-skill` — where Lexicon/Pragmatics/Semantics are written down.

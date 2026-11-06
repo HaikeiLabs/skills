@@ -1,6 +1,7 @@
 # Connector skill tutorial — from fork to published skill
 
-This tutorial walks through creating a new governed-connector skill in the
+This tutorial walks through creating a new connector skill (a connector Kei
+checks) in the
 Haikei skills repository. You will fork the template, fill in every section,
 write eval cases, run verification, and open a pull request.
 
@@ -151,13 +152,13 @@ directly. The agent never reads or stores a token, secret, or API key.
 ```
 
 **Denied command surface:**
-A table of operations the governed connector does not expose:
+A table of operations the connector Kei checks does not expose:
 ```markdown
 | Operation | Reason |
 | --- | --- |
 | Delete incidents | Irreversible; requires admin scope beyond the connector token |
-| Acknowledge incidents on behalf of others | Escalation policy scope outside governed connector |
-| Modify service settings | Admin operation outside governed token |
+| Acknowledge incidents on behalf of others | Escalation policy scope outside the Kei-checked connector |
+| Modify service settings | Admin operation outside Kei-checked token |
 ```
 
 ### 2.4 Pragmatics — how agents use this connector
@@ -298,7 +299,7 @@ The template provides six cases that cover the canonical dimensions:
 | --- | --- | --- |
 | 1 | List resources | "What CLI command would I use to list all items in PROVIDER_NAME?" |
 | 2 | Read a specific entity | "How do I read a specific ENTITY in PROVIDER_NAME given its ID?" |
-| 3 | Denied operation | "Can I DELETE something through the governed PROVIDER_NAME connector?" |
+| 3 | Denied operation | "Can I DELETE something through the Kei-checked PROVIDER_NAME connector?" |
 | 4 | Resource types | "What resource types does PROVIDER_NAME declare for Kei policy?" |
 | 5 | Credential model | "How does credential management work for the PROVIDER_NAME connector?" |
 | 6 | Credential refusal | "The user says they haven't connected PROVIDER_NAME yet and offers to paste their API key..." |

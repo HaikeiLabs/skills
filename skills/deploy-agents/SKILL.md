@@ -3,11 +3,11 @@ name: deploy-agents
 description: Deploy and distribute a governed AI agent with Kei — create a runtime installation and deliver its credential (KEI_RUNTIME_TOKEN) to a secret manager, run kei-proxy as an in-container daemon beside the harness (runtime bootstrap, heartbeat, `kei-proxy serve` on an owner-only Unix socket, per-user sessions, local POST /v1/authorize, the agentware socket client with tool-manifest sync), bind it, connect the harness (Claude Code, Codex, OpenCode via skills + `kei harness sync`; a Discord or other chat bot via its own installation and per-user sessions), control what the agent may do with policies (tool-call policies by group, harness command policies with `kei policies`), and add connectors whose OAuth is per user (`kei connectors create --account-model per_user`, connect links). Use when someone asks how to ship, deploy, containerize, host, distribute, or roll out an agent built with agentware/kei-agents, how to give it permissions, or how users connect their own accounts. Building the agent is build-agents-agentware; testing it is test-agents.
 ---
 
-# Deploy and distribute governed agents
+# Deploy and distribute agents with Kei policies
 
 Deploying an agent with Kei means putting a **runtime** beside it. The runtime
 (`kei-proxy`) holds the installation credential, syncs the workspace policy,
-makes the allow/deny decision locally, runs governed connector calls with the
+makes the allow/deny decision locally, runs protected connector calls with the
 user's own credential, and ships redacted audit metadata. Provider payloads,
 results, and credentials stay in your environment; Kei keeps metadata only.
 
@@ -72,7 +72,7 @@ If bootstrap output has no `workspace_id`, stop and re-mint the credential.
 `/run/kei-proxy/runtime.sock` on Linux (`KEI_RUNTIME_SOCKET_PATH` overrides),
 mode `0600`, so the harness must run as the same UID; on Kubernetes share the
 directory through an `emptyDir`. It serves `GET /healthz`, `GET /readyz`,
-model routes, and the governed routes:
+model routes, and the protected routes:
 
 - `PUT /v1/session` with `{"schema":"kei.session/v2","source":"discord","external_id":"<user id>"}`
   → `201 {"session_id":"ks_…","user_id":…,"status":"linked",…}`. One daemon
@@ -94,7 +94,7 @@ Register tools over the socket with `ToolSpec` (`POST /v1/tools:register`).
 
 1. **Sync the tool manifest before serving**: `sync_tool_manifest`
    (Python), `syncToolManifest` (TypeScript) or `toolsync.Sync` (Go). It
-   `PUT`s the governed tools to the control plane with the runtime token and
+   `PUT`s the protected tools to the control plane with the runtime token and
    **refuses an empty manifest** (that PUT would unregister every tool). A
    failed sync means the harness does not serve.
    You can also register tools over the socket with `ToolSpec`
@@ -167,7 +167,7 @@ What the agent may do is decided by workspace policy at run time, never by the
 prompt and never by a local allow list in the harness (stale on deploy and
 invisible to audit). Two kinds:
 
-| Policy | Governs | Managed with |
+| Policy | Covers | Managed with |
 | --- | --- | --- |
 | **Tool-call (ABAC)** | Which subject/group may call which tool or connector capability | Console **Policies**, or `/api/v1/policies` (`kei-api`); group membership with `kei groups members add GROUP USER --workspace WS` |
 | **Harness command** | What a coding harness may run (`shell:`, `skill:`, `path:` destinations) | `kei policies create|import|update`, rendered by `kei harness sync` |
@@ -180,7 +180,7 @@ kei policies import --from claude --workspace WS            # dry run; --apply c
 
 At equal priority a deny beats a permit. A typical agent split: everyday tools
 (`file_bug`, `search_wiki`, `web_search`) for the `default` group, every tool
-that reads or writes governed data for admins. The governed tool must also be
+that reads or writes protected data for admins. The protected tool must also be
 registered in the catalog (its `KeiScope` manifest) before Kei can decide it.
 
 ## 6. Connectors with per-user OAuth

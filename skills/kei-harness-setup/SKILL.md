@@ -11,12 +11,12 @@ For Claude Code, Codex, OpenCode, or Pi, the advertised one-command path is
 kei-cli#233 ships — not released yet, check `kei help`). Use the manual steps
 below when you need to inspect or customize setup.
 
-Kei governs a harness through this chain:
+Kei puts guardrails on a harness through this chain:
 
 `harness adapter → kei-proxy → kei-policy-catalog`
 
 For long-lived SDK (Agentware) harnesses, the harness connects to
-`kei-proxy serve` over its local socket and asks it to decide each governed
+`kei-proxy serve` over its local socket and asks it to decide each protected
 tool call. `kei-proxy` decides locally against the workspace policy bundle and runs allowed work
 inside the tenant runtime. The catalog holds policy, connector metadata, and
 redacted audit metadata only. Setting up a harness means installing the skills
@@ -34,7 +34,7 @@ When a detail lives in another skill, end the answer with a **See also:**
 line naming that skill (DeepSeek-style short answers still need it):
 
 Installing the skills does not grant permission; Kei policy decides whether
-governed tool calls are allowed.
+protected tool calls are allowed.
 
 - **Installing into an existing config:** install from
   `https://github.com/HaikeiLabs/skills`; skip, or ask about, same-named
@@ -57,7 +57,7 @@ governed tool calls are allowed.
   `~/.config/kei.yaml`) it creates the runtime installation; the credential is
   piped from `kei bot credential` into `kei setup` and never printed; and it
   ends by running `verify.sh` (name the file) to confirm the setup is valid.
-- **Identity on governed calls:** set `KEI_PROXY_FRAMEWORK` (the harness kind)
+- **Identity on protected calls:** set `KEI_PROXY_FRAMEWORK` (the harness kind)
   and `KEI_PROXY_INVOKING_SUBJECT` (the human); agent identity is
   auto-discovered. See also: `kei-runtime-setup` (runtime half) and
   `kei-openai-backends` (model half).
@@ -68,8 +68,8 @@ governed tool calls are allowed.
   needed.
   End with: See also: `kei-harness-policy` `references/bundle-versioning.md`.
 - **Rejected bundle or disabled proxy:** `kei-proxy` fails closed and denies
-  every governed call until it is fixed.
-- **Last setup step:** one governed call in the harness (for example, the agent
+  every protected call until it is fixed.
+- **Last setup step:** one protected call in the harness (for example, the agent
   running `git status`), confirmed in the console: **Audit Logs** shows it
   with the harness kind, **the installation's card shows the recent
   activity** (say this one too), and `kei runtime service status` shows the runtime service running (the
@@ -79,7 +79,7 @@ governed tool calls are allowed.
 
 - **Harness** — software that lets an LLM act as an agent (for example Claude
   Code, OpenCode, or an SDK (Agentware) application).
-- **Kei-enabled harness** — a harness governed by Kei through a **runtime
+- **Kei-enabled harness** — a harness with Kei policies through a **runtime
   installation**.
 - **Runtime installation** — Kei's record for the one runtime deployed beside
   that harness (one harness : one runtime installation : one credential,
@@ -89,7 +89,7 @@ governed tool calls are allowed.
 
 This is a workflow skill. Keep the two Kei executables straight: **`kei`** is
 the platform admin CLI a person runs once to set things up (`kei-cli` skill);
-**`kei-proxy`** is the runtime the harness calls on every governed tool call
+**`kei-proxy`** is the runtime the harness calls on every protected tool call
 (`kei-proxy` skill). Load **`kei-runtime-setup`** for the runtime half of the
 setup. Pi has a separate extension and tokenless local-socket path; use
 **`kei-pi-setup`** for Pi instead of applying this skill's desktop sync or
@@ -113,7 +113,7 @@ the primary registration path for desktop harnesses is `kei harness sync`.
 **Installing from GitHub (clone + link):**
 
 ```sh
-# 1. Clone the Haikei skills repo (once; git pull to update)
+# 1. Clone the Haikei Skills repo (once; git pull to update)
 git clone https://github.com/HaikeiLabs/skills.git ~/src/haikei-skills
 
 # 2. Link each skill into the harness's skills directory
@@ -185,7 +185,7 @@ The API/catalog kind `custom` maps only to SDK (Agentware), not Pi or Open WebUI
   released yet (kei-cli#233 in review): check `kei help`. Whether the Cursor
   editor honors `cli-config.json` is undocumented — do not promise editor
   enforcement. There is no VS Code extension.
-- **Open WebUI:** choose this for a governed chat UI deployment using the `openwebui-kei` image, Python library, and tool packs. See `kei-openwebui`.
+- **Open WebUI:** choose this for a chat UI deployment with Kei policies using the `openwebui-kei` image, Python library, and tool packs. See `kei-openwebui`.
 
 The API/catalog kind value `custom` names only the **SDK (Agentware)** type; it
 does not describe Pi or Open WebUI. Register an SDK harness with
@@ -208,7 +208,7 @@ registered. Do not improvise one.
 
 ## Entry point: console setup prompt
 
-The fastest path to a governed harness starts in the console. Open the
+The fastest path to an agent with Kei policies starts in the console. Open the
 **Agents** page, find your harness card, and click **Copy setup prompt**.
 The prompt tells the agent everything it needs:
 
@@ -233,9 +233,9 @@ again.
 
 > **Installing skills changes what the agent knows, not what it may do.**
 > Policy in the workspace decides that. Until a deny check passes (step 6),
-> the agent can see the Haikei skills but cannot make governed tool calls.
+> the agent can see the Haikei Skills but cannot make protected tool calls.
 
-## 1. Install the Haikei skills
+## 1. Install the Haikei Skills
 
 The repo is `https://github.com/HaikeiLabs/skills`. Skills are portable
 `SKILL.md` folders, so every harness gets the same content.
@@ -298,7 +298,7 @@ skill is not picked up by a session that is already running.
 
 ## 2. Pair the harness with a runtime
 
-Governed calls need a runtime installation and `kei-proxy` on the same host or
+Protected calls need a runtime installation and `kei-proxy` on the same host or
 container as the harness. Follow **`kei-runtime-setup`** — it starts with
 `kei login`, which a person must approve in the browser. For a local coding
 harness, create the installation with `--platform cli`.
@@ -386,8 +386,7 @@ source of permissions.
 
 ### Cursor (pending kei-cli#233 — not released yet)
 
-Cursor is the seventh harness kind (`cursor`, tool prefix `cursor.`). It is
-governed native-first: Kei renders the policy bundle into Cursor's CLI config
+Cursor is the seventh harness kind (`cursor`, tool prefix `cursor.`). Kei policies apply native-first: Kei renders the policy bundle into Cursor's CLI config
 permissions (`~/.cursor/cli-config.json` → `permissions.allow` /
 `permissions.deny`, with tokens `Shell(base)`, `Read(glob)`, `Write(glob)`,
 `WebFetch(domain)`, and `Mcp(server:tool)`; deny beats allow). Hooks are used
@@ -406,17 +405,17 @@ These commands are not released yet (kei-cli#233 is in review): a released
 kei-cli (0.2.20 is current) rejects them. Check `kei help` for what your
 installed version accepts.
 
-## 4. Pass identity on every governed call
+## 4. Pass identity on every protected call
 
-A tool call is **governed** when it touches tenant data, external systems, or
+A tool call is **protected** when it touches tenant data, external systems, or
 credentials: it goes through the Agentware socket client to `kei-proxy serve`
 (or the `kei-proxy authorize` CLI fallback for a one-shot environment), Kei
 policy decides, the decision is audited, and enrollment or approval can apply. A call that is
-**non-governed** runs locally and never reaches Kei. When unsure, treat the
-tool as governed. The full distinction is in the `kei-proxy` skill.
+**local** runs locally and never reaches Kei. When unsure, treat the
+tool as protected. The full distinction is in the `kei-proxy` skill.
 
 Agentware applications use `KeiProxyEvaluator` with the selected socket client
-so each governed tool call is decided by the daemon. A configured socket that
+so each protected tool call is decided by the daemon. A configured socket that
 cannot be reached is a refusal; do not fall back to a subprocess. The CLI
 fallback returns exit code `0` for allow; any non-zero exit (deny or error)
 means do not run the tool. The full flag and env reference is in the
@@ -439,7 +438,7 @@ chat subject simply reaches the policy decision.
 
 To read the assigned agent ID at runtime, use the agentware SDK's
 `link.identity()` (see `agentware-sdk` skill). If identity is not available,
-deny governed calls — never guess a fallback agent ID.
+deny protected calls — never guess a fallback agent ID.
 
 ### 4a. Use KeiProxyEvaluator with the socket client
 
@@ -534,7 +533,7 @@ user is unlinked. A denied call must fail without a provider call and produce
 only redacted audit metadata. Invalid installation scope, stale policy, and
 no matching policy must all be **DENY**. The harness
 is not set up until you have seen a denial — until then the agent can see the
-Haikei skills but has not proven that governed calls actually go through Kei.
+Haikei Skills but has not proven that protected calls actually go through Kei.
 
 If you configured harness command policies (step 3), also verify the native
 config was rendered correctly:
@@ -561,21 +560,20 @@ curl example.com
 ```
 
 `KEI_PROXY_DISABLED=true` is a valid setting, but it turns permits off: a
-disabled, missing, or misconfigured kei-proxy denies **every** governed call
+disabled, missing, or misconfigured kei-proxy denies **every** protected call
 (fail-closed, HAI-249) — it never permits a tool call. Tests that need an allow
 inject a fake evaluator instead (see the `agentware-sdk` skill); a production
 harness should not run with kei-proxy disabled.
 
-## 7. Make one governed call in the harness (first use)
+## 7. Make one protected call in the harness (first use)
 
 For SDK (Agentware), a successful socket-client authorization and `verify.sh`
 prove the socket plumbing is configured; the daemon socket route can preflight
 a policy decision. These checks do not prove the harness itself makes a
-governed call. Setup is not complete until a real governed tool call has been
+protected call. Setup is not complete until a real protected tool call has been
 verified in the harness.
-complete until the harness does.
 
-In the harness, make **one** governed tool call — for example, have the agent
+In the harness, make **one** protected tool call — for example, have the agent
 run `git status` (a shell command your policies permit). For desktop harnesses
 the call is decided natively by the harness from the Kei-rendered policy; the
 `kei-proxy` hook records the decision for audit.
@@ -592,7 +590,7 @@ The audit upload needs the runtime service running. Check it with:
 kei runtime service status
 ```
 
-If the service is not running, the call is still governed, but the audit record
+If the service is not running, the call is still protected, but the audit record
 is not uploaded — so it will not appear in Audit Logs.
 
 ## 8. Enrolling chat users (claim links)
@@ -833,7 +831,7 @@ kei harness sync --harness <kind>
 
 **Symptom:** After switching to a different runtime installation (new
 credential, new bootstrap), the policy bundle loaded by `kei-proxy` is a
-stale version from the previous installation. Governed calls use incorrect
+stale version from the previous installation. Protected calls use incorrect
 (or empty) policy rules.
 
 **Cause:** `kei-proxy` caches the policy bundle on disk at
@@ -861,7 +859,7 @@ After confirming the new bundle is correct, remove the backup directory.
 policy bundle candidate rejected: invalid policy bundle schema ... dst_pattern 'web_search' does not match
 ```
 
-The specific tool (`web_search`) is denied, but other governed calls still
+The specific tool (`web_search`) is denied, but other protected calls still
 work — the bundle is accepted; the bare dst row is skipped.
 
 **Cause:** A policy targets a bare tool name as its `dst_pattern` (e.g.
@@ -892,7 +890,7 @@ kei policies update <name-or-id> --workspace WS --dst-pattern tool:web_search
 Once the fix is applied, re-run `kei runtime bootstrap` or restart
 `kei-proxy serve` to reload the bundle.
 
-### 10. Every governed tool call denied (fail-closed)
+### 10. Every protected tool call denied (fail-closed)
 
 **Symptom:** Every `kei-proxy authorize` returns a non-zero exit. Tools that
 previously worked are now denied.
@@ -900,7 +898,7 @@ previously worked are now denied.
 **Cause:** `KEI_PROXY_DISABLED=true` is set, `KEI_RUNTIME_TOKEN` is missing,
 `KEI_RUNTIME_CONTROL_PLANE_URL` is wrong, or kei-proxy is not on `PATH`.
 When kei-proxy is disabled, misconfigured, or unreachable, it denies every
-governed call (fail-closed, HAI-249).
+protected call (fail-closed, HAI-249).
 
 **Fix:** Check environment variables:
 
@@ -956,9 +954,9 @@ kei bot credential --installation <ID> --rotate | <secret-manager import>
 Update the environment variable on every consumer, then restart or reload the
 runtime. Each rotation invalidates the previous credential immediately.
 
-### 13. Every governed tool call denied with `policy_bundle_expired`
+### 13. Every protected tool call denied with `policy_bundle_expired`
 
-**Symptom:** Every governed tool is denied, including ones that worked
+**Symptom:** Every protected tool is denied, including ones that worked
 before and local tools such as `web_search`. The decision carries
 `reason_code: policy_bundle_expired` and `deny_source: runtime_state`. The
 console **Agents** page shows Policy bundle **Not ready** with the reason
@@ -1033,5 +1031,5 @@ kei connector-bindings list --workspace WS --json        # agent↔connector wir
   schemas (`render_tools`) and reasoning-content extraction.
 - `kei-runtime-setup` — the runtime installation and bootstrap half of the
   harness setup workflow.
-- `kei-proxy` — the runtime binary the harness calls for governed decisions.
+- `kei-proxy` — the runtime binary the harness calls for allow/deny decisions.
 - `agentware-sdk` — the SDK with `KeiProxyEvaluator` and policy enforcement.
