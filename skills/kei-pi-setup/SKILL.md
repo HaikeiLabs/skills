@@ -84,8 +84,8 @@ kei policy create --workspace WORKSPACE --group GROUP --allow tool:pi.read
 ```
 
 Quote a target that has a space. Check `kei policy create -h` first, and use
-the `kei-harness-policy` skill for the policy model. The older
-`kei policies create` command and its `--src-pattern`/`--dst-pattern` flags are
+the `kei-harness-policy` skill for the policy model. The older `kei policies`
+alias and its `--src-pattern`/`--dst-pattern` flags are
 deprecated; do not use them. Confirm a rule with
 `kei policy test "shell:git status" --workspace WORKSPACE --as group:GROUP`.
 

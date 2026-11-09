@@ -98,16 +98,16 @@
     {
       "id": 4,
       "prompt": "Using Kei, how do I stop our OpenCode harness from running curl while still allowing git? Do not execute anything — just explain in text, with code where it helps.",
-      "expected_output": "Harness command policies: kei policies create --src-pattern harness:opencode --dst-pattern shell:curl --effect deny (and shell:git permit), rendered with kei harness sync.",
+      "expected_output": "Harness command policies: kei policy create --group <group> --deny shell:curl (and --allow shell:git), rendered with kei harness sync.",
       "expectations": [
-        "uses kei policies create",
+        "uses kei policy create",
         "targets the shell:curl destination"
       ],
       "checks": [
         {
-          "text": "uses kei policies create",
+          "text": "uses kei policy create",
           "contains_any": [
-            "kei policies create"
+            "kei policy create"
           ]
         },
         {

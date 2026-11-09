@@ -42,7 +42,7 @@ The code wins over this file. Never invent a flag or an environment variable. Th
 ## What every answer must say
 
 - Name the real commands: `kei bot init --platform openwebui`,
-  `kei bot credential ... | <secret manager>`, `kei policies create`,
+  `kei bot credential ... | <secret manager>`, `kei policy create`,
   `kei directory-sync`.
 - The model configured in Open WebUI or its harness works without a Kei model
   profile. Model profiles are optional and can pass model credentials; model
@@ -98,15 +98,15 @@ The code wins over this file. Never invent a flag or an environment variable. Th
 5. **Policies** for protected tools:
 
    ```sh
-   kei policies create --workspace <ws> --name chat-list-orders \
-     --src-pattern group:chat-users --dst-pattern tool:acme.orders.list_orders --effect permit
+   kei policy create --workspace <ws> --group chat-users \
+     --allow tool:acme.orders.list_orders
    ```
 
-   - `--src-pattern` is `user:<id>`, `group:<name>` or `*`.
-     `*` from the CLI grants nothing for `tool:` dst policies because the
-     CLI does not establish a bundle subject. Use `user:` or `group:` for
-     tool permits; `*` and bare/wildcard/`model:`/`connector:` target
-     patterns are silently skipped (HAI-673).
+   - `--group` is the group the rule applies to: a group name such as
+     `chat-users`, or `autogroup:member` / `autogroup:admin`. Policies apply
+     to groups; there is no `user:` or `*` source on the CLI.
+     Bare/wildcard/`model:`/`connector:` target patterns are silently
+     skipped (HAI-673); write the exact `tool:<name>`.
    - A write tool runs as soon as a permit allows it.
    - A permit only applies to a **registered** tool (section 3).
    - A harness-executor tool (an Open WebUI tool implementation) needs an exact
@@ -228,7 +228,7 @@ installed. It is read-only and exits 1 on drift.
 ```sh
 kei help | grep -E 'bot init|model-profiles|policies|directory-sync'
 kei bot status --installation <installation-id>
-kei policies list --workspace <ws>
+kei policy list --workspace <ws>
 # in the container:
 python -m kei_openwebui.boot --export-manifest
 "$KEI_PROXY_PATH" policy show

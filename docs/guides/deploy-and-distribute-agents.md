@@ -160,11 +160,12 @@ There are two kinds of policy:
   machine — shell commands, skills, paths:
 
 ```sh
-kei policies create --workspace WS --name "allow git" \
-  --src-pattern "harness:opencode" --dst-pattern "shell:git" --effect permit --priority 100
-kei policies create --workspace WS --name "deny curl" \
-  --src-pattern "harness:opencode" --dst-pattern "shell:curl" --effect deny --priority 100
+kei policy create --workspace WS --group <group> --allow "shell:git"
+kei policy create --workspace WS --group <group> --deny "shell:curl"
 ```
+
+Policies apply to groups: `--group` takes a group name or `autogroup:member` /
+`autogroup:admin`.
 
 At equal priority, deny wins. If you already have allow lists in Claude Code,
 `kei policies import --from claude` turns them into Kei policies (it's a dry
