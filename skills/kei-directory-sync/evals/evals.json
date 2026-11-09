@@ -387,7 +387,7 @@
     {
       "id": 11,
       "prompt": "The Entra sync is live for contoso and created a Kei group called pilot from our app role. How do I write a Kei policy that applies to everyone in that group?",
-      "expected_output": "Reference the group as group:pilot in the policy source pattern (e.g. kei policies create --src-pattern group:pilot ...), and use the kei-harness-policy skill.",
+      "expected_output": "Reference the group as group:pilot in the policy (e.g. kei policy create --group group:pilot ...), and use the kei-harness-policy skill.",
       "expectations": [
         "The response references the synced group as group:pilot.",
         "The response points to the kei-harness-policy skill or kei policies."

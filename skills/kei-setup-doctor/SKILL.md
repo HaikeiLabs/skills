@@ -96,7 +96,7 @@ out.
   policy decision, not a cleanup. The fix is to delete them, and YOU MUST
   include this sentence: "Delete them only after approval for the listed
   rows." Name both ways to delete: the console **Delete this legacy row**
-  action and `kei policies delete`. Section 4c has the commands.
+  action and `kei policy delete`. Section 4c has the commands.
 - **`kei harness sync` says "No registered harnesses selected".** The
   policy bundle cached by kei-proxy (in its cache directory,
   `~/Library/Application Support/kei-proxy` on macOS or
@@ -473,7 +473,7 @@ they look like grants. Check every workspace, read-only:
 
 ```sh
 kei workspaces list --json
-kei policies list --workspace WORKSPACE_ID --json   # once per workspace
+kei policy list --workspace WORKSPACE_ID --json   # once per workspace
 ```
 
 Classify each row by its `dst_pattern` the way the catalog's bundle compiler
@@ -514,11 +514,11 @@ Explain legacy rows to the admin like this:
   Kei console, or, after approval, run once per row:
 
   ```sh
-  kei policies delete POLICY_ID --workspace WORKSPACE_ID --yes
+  kei policy delete POLICY_ID --workspace WORKSPACE_ID --yes
   ```
 
   Use the policy ID, not the name: legacy rows in different workspaces often
-  share a name. Re-run `kei policies list --workspace WORKSPACE_ID --json` to
+  share a name. Re-run `kei policy list --workspace WORKSPACE_ID --json` to
   confirm they are gone. Deleting them does not change any runtime decision.
 
 v1 policy bundles are deprecated (HAI-437). If `kei-proxy policy show` or
@@ -645,7 +645,7 @@ The `kei-harness-setup` skill has the full version with exact commands.
 | Symptom | Cause | Fix |
 |---|---|---|
 | `policy bundle candidate rejected: invalid policy bundle schema` | `dst_pattern` uses bare name instead of `tool:` prefix (HAI-372) | Legacy (v1) row: the catalog now skips it (`bare_target`) instead of rejecting the bundle. Do not convert it to `tool:<name>`; that newly grants access. Delete it with approval (see 4c), then re-bootstrap |
-| Admin sees policies such as `member:workspace:wiki` → `search_wiki` but users are still denied | Legacy (v1) rows with a bare `dst_pattern`, skipped with `bare_target`; they grant nothing | List them per workspace (4c). Offer the console **Delete this legacy row** action or `kei policies delete POLICY_ID --workspace WORKSPACE_ID --yes`, only after approval for the listed rows |
+| Admin sees policies such as `member:workspace:wiki` → `search_wiki` but users are still denied | Legacy (v1) rows with a bare `dst_pattern`, skipped with `bare_target`; they grant nothing | List them per workspace (4c). Offer the console **Delete this legacy row** action or `kei policy delete POLICY_ID --workspace WORKSPACE_ID --yes`, only after approval for the listed rows |
 
 ### Credential
 
@@ -670,7 +670,7 @@ The `kei-harness-setup` skill has the full version with exact commands.
 - When the policy bundle is stale, mention **"HAI-403"**, **"stale policy bundle"**, **"retrying sync"**, **"bundle refresh"**, **"policy edit"**, **"background refresh"**, and that **"desktop"** harnesses are **"auto-discovered"**.
 - When an identity-mode connector call denies `credential_unavailable` or `credential_backend_mismatch`, mention **"kei-proxy credential sync"**, **"KEI_RUNTIME_STATE_DIR"**, **"connector-credentials.json"**, **"kei connectors reconnect"**, and **"proxy-v0.2.4"** (it is not live in that release; it needs kei-proxy 0.2.5 or newer and the `POLICY_BUNDLE_V2_CONNECTORS` gate).
 - When kei-proxy reports **"model profile credential unavailable"**, say the runtime's cloud identity cannot read the profile's **"secret_ref"**: check **"GetSecretValue"** on that one secret, the **"account"** and **"region"**, and **"kms:Decrypt"** for a customer-managed key. Say a same-account runtime needs **no credential sync**, and never tell the user to put the key in an env var or values file. For "not found" or "not assigned" errors, the fix is **"kei model-profiles assign"** to the runtime's agent.
-- When legacy policy rows come up (bare `dst_pattern` without a `tool:` prefix), mention **"bare_target"**, **"grant nothing"**, **"newly grant"** (converting is a policy decision), **"Delete this legacy row"**, **"kei policies delete"**, and **"approval"**.
+- When legacy policy rows come up (bare `dst_pattern` without a `tool:` prefix), mention **"bare_target"**, **"grant nothing"**, **"newly grant"** (converting is a policy decision), **"Delete this legacy row"**, **"kei policy delete"**, and **"approval"**.
 - When the proxy cache is stale, mention **"HAI-404"**, **"stale proxy cache"**, **"Application Support"**, **"kei-proxy"**, **"moving"** (the cache aside, not deleting it), and **"re-bootstrap"** — do NOT say "re-create the installation".
 - When sessions are missing from the console or `kei doctor` shows a heartbeat WARN, mention **"kei doctor"**, **"kei runtime service status"**, **"kei bot status"**, **"kei-runtime.log"**, **"kei-proxy-serve.log"**, **"runtime identity request returned 401"**, **"another kei-proxy process owns the runtime state directory"**, that **"kei-proxy serve"** already **"reports heartbeats"** so only one process may own the state directory and processes are not killed without the owner's **"consent"**, **"flush returned status 400"** with a growing **"spool"**, that every harness hook line must show **"PASS"**, that the diagnosis is **"read-only"** and never prints tokens, and name **"kei-setup-doctor"** (diagnosis) and **"kei-harness-setup"** (full fix).
 - When approving `kei login` on another device fails with **"invalid OAuth state"**, say the **"state cookie"** was lost between sign-in and callback (provider app, in-app browser, private mode, reloaded or second tab), that **"kei login --no-browser"** prints a URL and a verification code to approve on another device, and to use **"one normal tab"** end to end. For a persistent failure, name **"kei feedback"** with **"--description"**, description only, and say transcripts are **"redacted"** before upload and attached only if the owner asks.

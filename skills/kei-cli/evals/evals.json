@@ -278,7 +278,7 @@
     },
     {
       "id": 10,
-      "prompt": "I ran `kei policies list --workspace my-workspace` and got a JSON decode error instead of my policies. kei --version says 0.1.10. What's wrong?",
+      "prompt": "I ran `kei policy list --workspace my-workspace` and got a JSON decode error instead of my policies. kei --version says 0.1.10. What's wrong?",
       "expected_output": "Explains that kei \u2264 0.1.10 sent a malformed request causing a decode error (HAI-373). Recommends upgrading to kei v0.1.11+ or using the web app. Notes that after upgrading, policies commands accept names in addition to IDs.",
       "expectations": [
         "The response identifies that kei \u2264 0.1.10 has a bug that causes the decode error.",

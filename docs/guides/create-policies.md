@@ -85,14 +85,17 @@ check **All tools on this connector**.
 **CLI.**
 
 ```sh
-kei policies create --name "admins: deny git push --force" \
-  --src-pattern "group:admins" --dst-pattern "shell:git push --force" \
-  --effect deny --priority 100
+kei policy create --group group:admins \
+  --deny "shell:git push --force" --workspace <workspace>
 
-kei policies create --name "allow git" \
-  --src-pattern "*" --dst-pattern "shell:git" \
-  --effect permit --priority 10
+kei policy create --group autogroup:member \
+  --allow "shell:git" --workspace <workspace>
 ```
+
+Policies apply to groups: `--group` takes a group such as `group:admins` or
+the autogroups `autogroup:member` / `autogroup:admin`. The CLI sets no
+priority — set it in the console (**Advanced**); at equal priority, `deny`
+wins.
 
 `kei policies import --from claude` (or `codex`, `opencode`) reads a
 harness's existing allow list. By default it only prints the policies it

@@ -377,7 +377,7 @@ There is no `kei policies verify` command yet. To check coverage, list the
 policies and confirm by hand:
 
 ```sh
-kei policies list --workspace my-workspace --json
+kei policy list --workspace my-workspace --json
 ```
 
 - Every `shell:` command you expect to allow has a matching `shell:<prefix>`
@@ -548,7 +548,7 @@ without enforcing them: rendered policies are always enforced natively by the
 harness, and commands no policy matches fall through to the harness's own
 permission mode. To see what a policy change would do before it takes effect,
 preview with `kei harness sync --harness <kind> --dry-run`, or list the
-policies (`kei policies list --workspace WS --json`) and check them by hand.
+policies (`kei policy list --workspace WS --json`) and check them by hand.
 There is no `kei policies verify` command.
 
 ## How Kei manages harness permissions

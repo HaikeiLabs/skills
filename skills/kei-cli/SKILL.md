@@ -248,11 +248,11 @@ default. The state dir holds transient runtime data (policy bundle cache,
 heartbeat timestamps); `0700` ensures other processes on the machine cannot
 read it.
 
-### 5. `kei policies list` returns a decode error on kei ≤ 0.1.10
+### 5. `kei policy list` returns a decode error on kei ≤ 0.1.10
 
 **Symptom:**
 ```
-kei policies list --workspace my-workspace
+kei policy list --workspace my-workspace
 ```
 returns a JSON decode error or a stack trace instead of the policy list.
 
@@ -741,7 +741,7 @@ with all three (login is a precondition, not one of them):
 1. The **exact name** in `kei help`: use singular `kei policy`; `kei policies`
    is a deprecated compatibility alias. Use `kei policy migration-report`
    for the read-only legacy policy report.
-2. The **installed version**: `kei --version`; for example `kei policies list`
+2. The **installed version**: `kei --version`; for example `kei policy list`
    needs v0.1.11 or later.
 3. The **contract** above: opaque page tokens for `list`, PATCH with an
    update mask for `update`.

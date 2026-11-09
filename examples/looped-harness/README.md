@@ -71,13 +71,14 @@ The entries in `policy/harness-commands.example.json` permit common loop command
 
 ```sh
 # Create one policy per entry (repeat for each permit/deny rule)
-kei policies create \
-  --name "allow herdr orchestration" \
-  --src "*" \
-  --dst "shell:herdr" \
-  --effect permit \
-  --priority 100
+kei policy create \
+  --group autogroup:member \
+  --allow "shell:herdr" \
+  --workspace <workspace>
 ```
+
+Policies apply to groups: `--group` takes a group name or `autogroup:member` /
+`autogroup:admin`; there is no `*` source.
 
 If you don't use Kei, add equivalent allow rules in your harness's native config:
 

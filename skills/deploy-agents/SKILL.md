@@ -170,17 +170,17 @@ invisible to audit). Two kinds:
 | Policy | Covers | Managed with |
 | --- | --- | --- |
 | **Tool-call (ABAC)** | Which subject/group may call which tool or connector capability | Console **Policies**, or `/api/v1/policies` (`kei-api`); group membership with `kei groups members add GROUP USER --workspace WS` |
-| **Harness command** | What a coding harness may run (`shell:`, `skill:`, `path:` destinations) | `kei policies create|import|update`, rendered by `kei harness sync` |
+| **Harness command** | What a coding harness may run (`shell:`, `skill:`, `path:` destinations) | `kei policy create`, `kei policies import|update` (deprecated alias), rendered by `kei harness sync` |
 
 ```sh
-kei policies create --workspace WS --name "allow git" --src-pattern "harness:opencode" \
-  --dst-pattern "shell:git" --effect permit --priority 100
+kei policy create --workspace WS --group default --allow "shell:git"
 kei policies import --from claude --workspace WS            # dry run; --apply creates them
 ```
 
-At equal priority a deny beats a permit. A typical agent split: everyday tools
-(`file_bug`, `search_wiki`, `web_search`) for the `default` group, every tool
-that reads or writes protected data for admins. The protected tool must also be
+Policies apply to groups: `--group` takes a group name or `autogroup:member` /
+`autogroup:admin`. At equal priority a deny beats a permit. A typical agent
+split: everyday tools (`file_bug`, `search_wiki`, `web_search`) for the
+`default` group, every tool that reads or writes protected data for admins. The protected tool must also be
 registered in the catalog (its `KeiScope` manifest) before Kei can decide it.
 
 ## 6. Connectors with per-user OAuth
