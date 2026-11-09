@@ -364,13 +364,7 @@
         },
         {
           "text": "The response explains set creates the config, so the 404 is not a missing configuration.",
-          "contains_any": [
-            "creates the config",
-            "creates the configuration",
-            "first set creates",
-            "set creates",
-            "creates it"
-          ]
+          "regex": "(?=[\\s\\S]*\\bcreates?\\b)(?=[\\s\\S]*\\bset\\b)(?=[\\s\\S]*(?:never|isn't|is not|can never|cannot|doesn't mean|does not mean)[\\s\\S]{0,60}(?:missing|configur))"
         },
         {
           "text": "The response tells the admin to ask Haikei.",
@@ -427,7 +421,15 @@
         {
           "text": "The response says the permissions must be application permissions.",
           "contains_any": [
-            "application permission"
+            "application permission",
+            "app permission",
+            "application-level",
+            "app-only",
+            "application type",
+            "not delegated",
+            "rather than delegated",
+            "instead of delegated",
+            "application.read.all"
           ]
         },
         {

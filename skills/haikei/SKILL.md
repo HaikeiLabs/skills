@@ -43,8 +43,9 @@ skills plugin and is loaded by your agent alongside the skills it routes to
   `kei harness add --kind custom` plus
   `kei harness sync --harness custom --manifest tools.json` (kei v0.1.33+).
 - When asked for the six user-facing harness types, name SDK (Agentware), Claude
-  Code, Codex, Pi, OpenCode, and Open WebUI; mention Cursor separately as pending
-  kei-cli#233. Write the kind in plain words, "kind custom maps to SDK (Agentware)",
+  Code, Codex, Pi, OpenCode, and Open WebUI; mention Cursor separately as the
+  seventh harness (released in kei-cli v0.3.0). Write the kind in plain words,
+  "kind custom maps to SDK (Agentware)",
   without code formatting inside that phrase.
 - When several surfaces could fit, explain the deciding requirement: is this
   org management (API), runtime deployment (CLI), in-harness tool guardrails
@@ -73,7 +74,7 @@ YOU MUST INCLUDE the following exact strings verbatim (case-sensitive, substring
 - **Codex:** choose this for interactive coding sessions in Codex; setup and route it with `kei-harness-setup`.
 - **Pi:** choose this for the Pi coding agent using `kei-lime-pi` and the local proxy socket; follow `kei-pi-setup`.
 - **OpenCode:** choose this for interactive coding sessions in OpenCode; setup and route it with `kei-harness-setup`.
-- **Cursor:** choose this for interactive coding sessions in the Cursor CLI; setup and route it with `kei-harness-setup`. Native-first: Kei renders policy into Cursor's CLI config permissions (`~/.cursor/cli-config.json`); hooks only where native config cannot express a policy. Commands pending kei-cli#233 — not released yet; check `kei help`.
+- **Cursor:** choose this for interactive coding sessions in the Cursor CLI; setup and route it with `kei-harness-setup`. Native-first: Kei renders policy into Cursor's CLI config permissions (`~/.cursor/cli-config.json`); hooks only where native config cannot express a policy. Released in kei-cli v0.3.0; check `kei help` for the installed version.
 - **Open WebUI:** choose this for a chat UI deployment with Kei policies using the `openwebui-kei` image, deployment-provided v3 tool manifest, and installed implementations; follow `kei-openwebui`.
 
 ## Quick decision trees

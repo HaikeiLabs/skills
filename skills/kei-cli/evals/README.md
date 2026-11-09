@@ -1,7 +1,7 @@
 # kei-cli evals
 
 Case 29 covers the Cursor harness value for `kei connect` (HAI-882): cursor is
-listed but is not released yet (kei-cli#233), so check `kei help` for the
+listed and released (kei-cli v0.3.0), so check `kei help` for the
 installed version.
 
 The existing cases cover CLI setup and operations. Eval 28 checks policy CLI

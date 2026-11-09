@@ -116,12 +116,12 @@
     },
     {
       "id": 5,
-      "prompt": "I'm setting up a DeepSeek-powered harness with Kei. Can you tell me what model format the DeepSeek model uses and how the harness passes identity on governed calls?",
-      "expected_output": "DeepSeek uses OpenAI-compatible JSON function-calling (same format as OpenAI) with reasoning_content and optional [THINK]...[/THINK] tags for text-mode reasoning. For governed calls, the harness passes KEI_PROXY_FRAMEWORK=opencode (or the appropriate harness type) and KEI_PROXY_INVOKING_SUBJECT for audit attribution. Points to kei-openai-backends for model format details and kei-runtime-setup for runtime pairing.",
+      "prompt": "I'm setting up a DeepSeek-powered harness with Kei. Can you tell me what model format the DeepSeek model uses and how the harness passes identity on protected calls?",
+      "expected_output": "DeepSeek uses OpenAI-compatible JSON function-calling (same format as OpenAI) with reasoning_content and optional [THINK]...[/THINK] tags for text-mode reasoning. For protected calls, the harness passes KEI_PROXY_FRAMEWORK=opencode (or the appropriate harness type) and KEI_PROXY_INVOKING_SUBJECT for audit attribution. Points to kei-openai-backends for model format details and kei-runtime-setup for runtime pairing.",
       "expectations": [
         "The response correctly identifies DeepSeek's format as OpenAI-compatible JSON.",
         "The response mentions reasoning_content and [THINK] tags.",
-        "The response covers governed call identity (KEI_PROXY_FRAMEWORK, KEI_PROXY_INVOKING_SUBJECT).",
+        "The response covers protected call identity (KEI_PROXY_FRAMEWORK, KEI_PROXY_INVOKING_SUBJECT).",
         "The response cross-references kei-openai-backends and kei-runtime-setup for details."
       ],
       "checks": [
@@ -140,7 +140,7 @@
           ]
         },
         {
-          "text": "The response covers governed call identity (KEI_PROXY_FRAMEWORK, KEI_PROXY_INVOKING_SUBJECT).",
+          "text": "The response covers protected call identity (KEI_PROXY_FRAMEWORK, KEI_PROXY_INVOKING_SUBJECT).",
           "contains_all": [
             "KEI_PROXY_FRAMEWORK",
             "KEI_PROXY_INVOKING_SUBJECT"
@@ -336,20 +336,17 @@
     {
       "id": 10,
       "prompt": "I just finished the Kei harness setup for Claude Code — skills installed, runtime bootstrapped, harness registered and synced, verify.sh passed. What's the last thing I should do to be sure the setup actually works end to end?",
-      "expected_output": "Says setup is not complete until the harness itself makes one governed tool call (e.g. have Claude Code run git status) and the call is confirmed in the console: Audit Logs shows the call with the harness kind, and the installation's card shows the recent activity. Notes the runtime service must be running (kei runtime service status) for the audit upload.",
+      "expected_output": "Says setup is not complete until the harness itself makes one protected tool call (e.g. have Claude Code run git status) and the call is confirmed in the console: Audit Logs shows the call with the harness kind, and the installation's card shows the recent activity. Notes the runtime service must be running (kei runtime service status) for the audit upload.",
       "expectations": [
-        "The response instructs making one governed tool call inside the harness itself (for example, having Claude Code run git status) as the final step, rather than stopping at shell-level checks.",
+        "The response instructs making one protected tool call inside the harness itself (for example, having Claude Code run git status) as the final step, rather than stopping at shell-level checks.",
         "The response says to confirm the call in the console Audit Logs, where it appears with the harness kind recorded.",
         "The response says the installation's card shows the recent activity.",
         "The response states the runtime service must be running for the audit upload and gives kei runtime service status to check it."
       ],
       "checks": [
         {
-          "text": "The response instructs making one governed tool call inside the harness itself (for example, having Claude Code run git status) as the final step, rather than stopping at shell-level checks.",
-          "contains_all": [
-            "git status",
-            "governed"
-          ]
+          "text": "The response instructs making one protected tool call inside the harness itself (for example, having Claude Code run git status) as the final step, rather than stopping at shell-level checks.",
+          "regex": "^(?=[\\s\\S]*git status)(?=[\\s\\S]*(?:governed|protected))"
         },
         {
           "text": "The response says to confirm the call in the console Audit Logs, where it appears with the harness kind recorded.",
@@ -407,7 +404,7 @@
     {
       "id": 12,
       "prompt": "I am choosing a Kei harness. List all seven user-facing harness types and say when to choose each. Explain which type the API/catalog calls kind custom, give its registration command, and show the manifest sync command and minimum kei version. Do not execute anything.",
-      "expected_output": "Names SDK (Agentware), Claude Code, Codex, Pi, OpenCode, Cursor, and Open WebUI, with a brief selection use for each, noting Cursor's commands are pending kei-cli#233 (not released yet). States API/catalog kind custom maps only to SDK (Agentware), not Pi or Open WebUI. Gives kei harness add --kind custom and kei harness sync --harness custom --manifest tools.json, with kei >= 0.1.33.",
+      "expected_output": "Names SDK (Agentware), Claude Code, Codex, Pi, OpenCode, Cursor, and Open WebUI, with a brief selection use for each, noting Cursor is released (kei-cli v0.3.0+). States API/catalog kind custom maps only to SDK (Agentware), not Pi or Open WebUI. Gives kei harness add --kind custom and kei harness sync --harness custom --manifest tools.json, with kei >= 0.1.33.",
       "expectations": [
         "The response names the seven harness types.",
         "The response maps kind custom to SDK (Agentware).",
@@ -558,7 +555,7 @@
     {
       "id": 17,
       "prompt": "Our admin wants to wire the GitHub connector in workspace acme-prod to our coding agent from the terminal. What is the exact kei command to create that binding, and how do we see the bindings afterwards? Do not execute anything.",
-      "expected_output": "Use `kei connector-bindings create --agent AGENT_ID --connector CONNECTOR_ID --workspace WORKSPACE` (the agent UUID comes from `kei bot agents list --installation ID` or the console; --connector takes an ID or name; --capabilities defaults to the connector's declared capabilities). Review the wiring with `kei connector-bindings list --workspace WORKSPACE` (or --agent AGENT_ID) and `get BINDING_ID`; remove with `kei connector-bindings delete BINDING_ID --workspace WORKSPACE --yes`. The command shipped on kei-cli main (kei-cli#228) after the v0.2.20 release, so check `kei help` for the installed binary — an older CLI prints `unknown command \"connector-bindings\"`; the console can do the same wiring. A binding is wiring only, never a permission gate: the workspace policy still decides access.",
+      "expected_output": "Use `kei connector-bindings create --agent AGENT_ID --connector CONNECTOR_ID --workspace WORKSPACE` (the agent UUID comes from `kei bot agents list --installation ID` or the console; --connector takes an ID or name; --capabilities defaults to the connector's declared capabilities). Review the wiring with `kei connector-bindings list --workspace WORKSPACE` (or --agent AGENT_ID) and `get BINDING_ID`; remove with `kei connector-bindings delete BINDING_ID --workspace WORKSPACE --yes`. The command shipped in kei-cli v0.3.0 (v0.3.7 is current), so check `kei help` for the installed binary — an older CLI prints `unknown command \"connector-bindings\"`; the console can do the same wiring. A binding is wiring only, never a permission gate: the workspace policy still decides access.",
       "expectations": [
         "The response gives `kei connector-bindings create` with --agent and --connector (and --workspace).",
         "The response shows how to review bindings afterwards with `kei connector-bindings list`.",
@@ -587,7 +584,8 @@
             "unknown command",
             "0.2.20",
             "kei-cli#228",
-            "kei help"
+            "kei help",
+            "v0.3.0"
           ]
         },
         {
@@ -643,7 +641,7 @@
     {
       "id": 19,
       "prompt": "A teammate told me to run `kei connectors bind --agent <uuid> --connector <id> --workspace acme-prod` to wire our agent to a connector. Check that command against the kei CLI and give me the correct way to do it. Do not execute anything.",
-      "expected_output": "There is no `kei connectors bind` subcommand — `kei connectors` covers create/test/list/get/connect/reconnect/delete plus manifests. The binding command is `kei connector-bindings create --agent AGENT_ID --connector CONNECTOR_ID [--capabilities A,B] --workspace WORKSPACE` (plus list/get/delete; delete needs --yes). A binding is wiring only, never a permission gate. Check `kei help` for the installed binary: connector-bindings shipped on kei-cli main (kei-cli#228) after v0.2.20, so an older CLI prints `unknown command \"connector-bindings\"`.",
+      "expected_output": "There is no `kei connectors bind` subcommand — `kei connectors` covers create/test/list/get/connect/reconnect/delete plus manifests. The binding command is `kei connector-bindings create --agent AGENT_ID --connector CONNECTOR_ID [--capabilities A,B] --workspace WORKSPACE` (plus list/get/delete; delete needs --yes). A binding is wiring only, never a permission gate. Check `kei help` for the installed binary: connector-bindings shipped in kei-cli v0.3.0 (v0.3.7 is current), so an older CLI prints `unknown command \"connector-bindings\"`.",
       "expectations": [
         "The response says there is no `kei connectors bind` subcommand (correcting the premise).",
         "The response gives the real command: `kei connector-bindings create` with --agent and --connector.",
@@ -716,31 +714,36 @@
     {
       "id": 21,
       "prompt": "Is `kei connect cursor` available in the released kei CLI today? I want to connect our Cursor setup to Kei. Do not execute anything.",
-      "expected_output": "No. Cursor support is not released yet: kei-cli#233 is in review. On a released kei-cli (0.2.20 is current), `kei connect cursor` and `kei harness sync --harness cursor` are rejected — they fail closed (exit non-zero, nothing written) rather than half-configure anything. Check `kei help` for what your installed version accepts.",
+      "expected_output": "Yes. Cursor support shipped in kei-cli v0.3.0 (v0.3.7 is current): `kei connect cursor` renders the policy bundle into Cursor's CLI config permissions (~/.cursor/cli-config.json) and `kei harness sync --harness cursor` is auto-discovered — both fail closed (exit non-zero, nothing written) when the policy set contains a kind Cursor cannot gate, e.g. skill:. Check `kei help` for what your installed version accepts.",
       "expectations": [
-        "The response says Cursor support is not released yet.",
-        "The response names kei-cli#233 as the pending change.",
-        "The response tells the user to check the installed CLI help."
+        "The response says Cursor support is released (or available) in current kei-cli.",
+        "The response says the Cursor config is rendered native-first and sync fails closed on kinds Cursor cannot gate.",
+        "The response tells the user to check the installed CLI help.",
+        "The response does not claim Cursor is unreleased or pending."
       ],
       "checks": [
         {
-          "text": "The response says Cursor support is not released yet.",
+          "text": "The response says Cursor support is released (or available) in current kei-cli.",
           "contains_any": [
-            "not released",
-            "not yet released",
-            "isn't released",
-            "not shipped",
-            "hasn't shipped",
-            "not available yet"
+            "released",
+            "v0.3.0",
+            "is available",
+            "now available",
+            "has shipped",
+            "shipped"
           ]
         },
         {
-          "text": "The response names kei-cli#233 as the pending change.",
+          "text": "The response says the Cursor config is rendered native-first and sync fails closed on kinds Cursor cannot gate.",
           "contains_any": [
-            "#233",
-            "PR 233",
-            "pr 233",
-            "kei-cli 233"
+            "cli-config.json",
+            "fail closed",
+            "fails closed",
+            "cannot gate",
+            "can't gate",
+            "cannot be gated",
+            "native-first",
+            "native first"
           ]
         },
         {
@@ -749,6 +752,20 @@
             "kei help",
             "kei --version",
             "installed CLI help"
+          ]
+        },
+        {
+          "text": "The response does not claim Cursor is unreleased or pending.",
+          "not_contains": [
+            "not released",
+            "not yet released",
+            "isn't released",
+            "is not released",
+            "not shipped",
+            "hasn't shipped",
+            "not available yet",
+            "still in review",
+            "pending release"
           ]
         }
       ]

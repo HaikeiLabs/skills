@@ -23,7 +23,7 @@ links it to an email-keyed Kei user. Until then the user is **unlinked** and
 refused.
 
 **Tool definition invariant:** when `KEI_OPENWEBUI_TOOLS_FILE` is set, that file
-is the **only** definition source. The plugin loads the manifest and registers
+is the only definition source. The plugin loads the manifest and registers
 the tools once at boot; there is no hot reload. Restart the container to apply
 file changes.
 
@@ -55,7 +55,7 @@ The code wins over this file. Never invent a flag or an environment variable. Th
 - The image runs as **UID/GID 10001**.
 - Never print, echo or paste `KEI_RUNTIME_TOKEN`.
 - When explaining tool registration, explicitly say that a set
-  `KEI_OPENWEBUI_TOOLS_FILE` is the **only** definition source, is loaded and
+  `KEI_OPENWEBUI_TOOLS_FILE` is the only definition source, is loaded and
   registered once at boot, and has no hot reload; restart to apply changes.
   When the variable is unset, the generated catalog remains the source. If a
   manifest `method` is used, it must name a public method on the installed

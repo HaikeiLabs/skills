@@ -159,8 +159,8 @@ or `kei harness sync --harness custom --manifest tools.json`.
 | **`kei.harness-match/v1`** | The match dialect for harness command policies. Same matching rules as `kei.match/v1` (ADR-028 §5) but with the harness-specific dst candidates above. A policy never combines `shell:`, `skill:`, and `path:` in one dst — write separate policies. |
 | **Native config** | Each harness's own allow/deny list: Claude Code `~/.claude/settings.json` → `permissions.allow`, Codex `prefix_rule` lines in `~/.codex/rules/*.rules` (Kei renders its own into the Kei-owned `kei.rules` and never touches your `default.rules`), OpenCode `opencode.json` → `permission.bash`, Cursor `~/.cursor/cli-config.json` → `permissions.allow`/`permissions.deny`. |
 | **Report-only hook** | `kei-proxy hook <harness>`, which `kei harness sync` installs in each desktop harness (Claude Code and Codex hooks, an OpenCode plugin). It writes each tool call and the harness's native decision to the audit trail, always exits 0, and never blocks or decides (HP-C6, ADR-029 §6). It is not an enforcement mode: see "Report-only hook (HP-C6)" below. |
-| **`kei harness add`** | Register a custom/SDK harness type (`--kind custom`) so its tools are known to the control plane. Desktop harnesses (claude_code, codex, opencode; cursor pending kei-cli#233) are auto-detected by sync — do NOT use `add` for them. `--installation` and `--agent` are optional with defaults (single installation, default agent). |
-| **`kei harness sync`** | Fetch the policy bundle and render it into the harness's native config format (Claude Code `permissions.allow`, Codex `prefix_rule`, OpenCode `permission.bash`, Cursor CLI config `permissions`). Auto-discovers desktop harnesses (claude_code, codex, opencode; cursor pending kei-cli#233) from the registered runtime installation — no separate `add` needed. |
+| **`kei harness add`** | Register a custom/SDK harness type (`--kind custom`) so its tools are known to the control plane. Desktop harnesses (claude_code, codex, opencode, cursor) are auto-detected by sync — do NOT use `add` for them. `--installation` and `--agent` are optional with defaults (single installation, default agent). |
+| **`kei harness sync`** | Fetch the policy bundle and render it into the harness's native config format (Claude Code `permissions.allow`, Codex `prefix_rule`, OpenCode `permission.bash`, Cursor CLI config `permissions`). Auto-discovers desktop harnesses (claude_code, codex, opencode, cursor) from the registered runtime installation — no separate `add` needed. |
 
 ## Retrieval sources
 
@@ -397,7 +397,7 @@ identity is `(installation_id, agent_id)`, and the console labels these
 harnesses "agents". Before `kei harness sync` can render native config, the
 agent must already be attached to the installation (`kei bot agents add`).
 
-**Desktop harnesses (claude_code, codex, opencode; cursor pending kei-cli#233) are auto-discovered.**
+**Desktop harnesses (claude_code, codex, opencode, cursor) are auto-discovered.**
 You do NOT need `kei harness add` — just sync:
 
 ```sh
@@ -427,7 +427,7 @@ may be registered. `kei harness sync` fetches the current policy bundle with
 the runtime token and renders the native config for the matching harness kind;
 `--harness KIND` limits the sync to one kind.
 
-**Cursor** (kei-cli#233, not released yet) is the seventh desktop kind and is
+**Cursor** (released in kei-cli v0.3.0) is the seventh desktop kind and is
 Kei policies apply native-first: sync renders the policies into Cursor's CLI config
 permissions (`~/.cursor/cli-config.json` → `permissions.allow` /
 `permissions.deny` with `Shell(base)`, `Read(glob)`, `Write(glob)`,

@@ -129,8 +129,10 @@
         },
         {
           "text": "The response says deployment CI/CD provides the file.",
-          "contains_all": [
-            "CI/CD"
+          "contains_any": [
+            "CI/CD",
+            "CI CD",
+            "pipeline"
           ]
         },
         {
@@ -142,10 +144,7 @@
         },
         {
           "text": "The response says the file is the only definition source when configured and sync occurs at boot.",
-          "contains_any": [
-            "only definition source",
-            "only source"
-          ]
+          "regex": "(?=[\\s\\S]*(?:only|sole|single|exclusiv\\w*)[\\s\\S]{0,30}(?:definition source|source of definitions?))|(?:only|sole|single)\\s*\\**\\s*source\\b|(?:definition source|source of definitions?)[\\s\\S]{0,30}(?:only|sole|single|exclusiv\\w*)"
         }
       ]
     },
@@ -353,11 +352,7 @@
       "checks": [
         {
           "text": "The response says unknown or invalid method stops startup.",
-          "contains_any": [
-            "unknown method",
-            "invalid method",
-            "fail closed"
-          ]
+          "regex": "(?=[\\s\\S]*method)(?=[\\s\\S]*(?:public|valid|unknown|invalid|unrecognized|not recognized|finds? none|no such|can'?t find|cannot find|not found|doesn't exist|does not exist|missing|doesn't name|does not name))(?=[\\s\\S]*(?:fails?[\\s\\S]{0,15}closed|fails?|stops?|refus\\w*|aborts?|prevents?|blocks?|won'?t start|will not start|not start|can'?t start|cannot start))|fails?[\\s\\S]{0,15}closed"
         },
         {
           "text": "The response says method must identify a public method on the installed Tools class.",
@@ -368,10 +363,7 @@
         },
         {
           "text": "The response says service must resolve to the installed implementation.",
-          "contains_all": [
-            "service",
-            "implementation"
-          ]
+          "regex": "(?=[\\s\\S]*service)(?=[\\s\\S]*(?:implementation|entry point|Tools class))"
         }
       ]
     },

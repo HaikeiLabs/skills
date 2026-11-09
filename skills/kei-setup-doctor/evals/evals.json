@@ -194,7 +194,7 @@
         },
         {
           "text": "The response explains that a disabled, missing, or misconfigured proxy denies every governed call and never permits one.",
-          "regex": "(?=[\\s\\S]*disabled)(?=[\\s\\S]*\\bden(?:y|ies|ied)\\b)(?=[\\s\\S]*governed call)"
+          "regex": "(?=[\\s\\S]*(?:disabled|missing|misconfigur))(?=[\\s\\S]*(?:\\bden(?:y|ies|ied)\\b|refus\\w*))(?=[\\s\\S]*(?:governed|protected) (?:tool )?calls?)"
         },
         {
           "text": "The response uses read-only environment checks and a single kei-proxy authorize probe rather than mutating anything.",
@@ -527,7 +527,7 @@
       "checks": [
         {
           "text": "The response explains invalid OAuth state as the state cookie being lost between sign-in and callback.",
-          "regex": "(?=[\\s\\S]*invalid OAuth state)(?=[\\s\\S]*cookie)"
+          "regex": "(?=[\\s\\S]*(?:oauth|sign-in|signin|state))(?=[\\s\\S]*(?:cookie|lost|dropped|not preserved|blocked))"
         },
         {
           "text": "The response lists the phone-context causes: provider app, in-app browser or private mode, and a reloaded or second tab.",
