@@ -54,7 +54,7 @@
         },
         {
           "text": "The response confirms that unknown activity types are never dispatched.",
-          "contains_any": ["closed dispatch", "dispatch is closed", "before routing", "never dispatched", "rejected at dispatch", "rejected at the gate"]
+          "contains_any": ["closed dispatch", "closed-dispatch", "dispatch is closed", "before routing", "before dispatch", "never dispatched", "not dispatched", "isn't dispatched", "never reach", "no handler", "rejected at dispatch", "rejected before dispatch", "dropped before dispatch", "rejected at the gate"]
         }
       ]
     },

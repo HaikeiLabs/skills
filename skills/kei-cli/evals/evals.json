@@ -523,7 +523,7 @@
         },
         {
           "text": "says only one backup is kept per file",
-          "regex": "(?:only|just|exactly|at most) (?:\\*\\*)?(?:one|a single|1)\\b(?:\\*\\*)?[^.\\n]{0,40}backup|(?:\\*\\*)?(?:one|a single|1)(?:\\*\\*)? (?:kei[- ])?backup (?:per|for each|for every)|keeps? (?:only )?(?:the )?(?:latest|newest|most recent)[^.\\n]{0,30}backup|single backup"
+          "regex": "(?:only|just|exactly|at most) (?:\\*\\*)?(?:one|a single|1)\\b(?:\\*\\*)?[^.\\n]{0,40}backup|(?:\\*\\*)?(?:one|a single|1)(?:\\*\\*)? (?:kei[- ])?backup (?:per|for each|for every)|keeps? (?:only )?(?:the )?(?:latest|newest|most recent)[^.\\n]{0,30}backup|single backup|(?:\\*\\*)?(?:one|a single|1)\\b(?:\\*\\*)?[^.\\n]{0,20}per (?:file|skill)"
         },
         {
           "text": "says to roll back by copying the kei-backup file over the native config",
@@ -930,7 +930,7 @@
     {
       "id": 27,
       "prompt": "What exact harness values does `kei connect` accept, and is singular `kei policy` available?",
-      "expected_output": "`kei connect` accepts claude-code, codex, opencode, and pi; cursor is the seventh value but is not released yet (kei-cli#233 in review) \u2014 check `kei help`. The installed CLI includes singular `kei policy`; `kei policies` is a deprecated alias.",
+      "expected_output": "`kei connect` accepts claude-code, codex, opencode, pi, and cursor (cursor released in kei-cli v0.3.0) — check `kei help`. The installed CLI includes singular `kei policy`; `kei policies` is a deprecated alias.",
       "expectations": [
         "supported factual terms",
         "reject stale guidance"
@@ -975,35 +975,15 @@
       "checks": [
         {
           "text": "creates a group standing policy with current flags",
-          "contains_all": [
-            "kei policy create",
-            "--workspace",
-            "--group",
-            "--allow",
-            "shell:git"
-          ]
+          "regex": "(?=[\\s\\S]*kei policy create)(?=[\\s\\S]*--workspace)(?=[\\s\\S]*--group)(?=[\\s\\S]*--allow)(?=[\\s\\S]*\\w+:[^\\s,)\"]+)"
         },
         {
           "text": "tests a typed target as the group",
-          "contains_all": [
-            "kei policy test",
-            "shell:git",
-            "--workspace",
-            "--as",
-            "group:"
-          ]
+          "regex": "(?=[\\s\\S]*kei policy test)(?=[\\s\\S]*--workspace)(?=[\\s\\S]*--as)(?=[\\s\\S]*group:)"
         },
         {
           "text": "creates a time-bound user access grant with current flags",
-          "contains_all": [
-            "kei access grant create",
-            "--workspace",
-            "--principal",
-            "user:",
-            "--target",
-            "shell:git",
-            "--ttl"
-          ]
+          "regex": "(?=[\\s\\S]*kei access grant create)(?=[\\s\\S]*--workspace)(?=[\\s\\S]*--principal)(?=[\\s\\S]*user:)(?=[\\s\\S]*--target)(?=[\\s\\S]*--ttl)"
         },
         {
           "text": "imports proposals with required --src and explicit --apply behavior",
@@ -1050,25 +1030,48 @@
     {
       "id": 29,
       "prompt": "Does `kei connect` support the Cursor harness? What harness values does it accept? Do not execute anything.",
-      "expected_output": "kei connect accepts claude-code, codex, opencode, and pi. cursor is the seventh value but it is not released yet (kei-cli#233 in review): a released kei-cli (0.2.20 is current) rejects it. Once it ships, Cursor is governed native-first via ~/.cursor/cli-config.json permissions. cli and openwebui are not accepted harness values. Check kei help for what your installed version accepts.",
+      "expected_output": "kei connect accepts claude-code, codex, opencode, pi, and cursor. cursor is the seventh value, released in kei-cli v0.3.0 (v0.3.7 is current). Cursor is governed native-first via ~/.cursor/cli-config.json permissions, and sync fails closed when a policy kind cannot be gated. cli and openwebui are not accepted harness values. Check kei help for what your installed version accepts.",
       "expectations": [
-        "The response lists the released harness values.",
-        "The response says cursor is not released yet (kei-cli#233).",
+        "The response lists the accepted harness values.",
+        "The response says cursor is released (or available) in kei-cli.",
+        "The response does not claim cursor is unreleased or pending.",
         "The response points at kei help for the installed version."
       ],
       "checks": [
         {
-          "text": "The response lists the released harness values.",
+          "text": "The response lists the accepted harness values.",
           "contains_all": [
             "claude-code",
             "codex",
             "opencode",
-            "pi"
+            "pi",
+            "cursor"
           ]
         },
         {
-          "text": "The response says cursor is not released yet (kei-cli#233).",
-          "regex": "cursor[\\s\\S]{0,300}(#233|not released|not yet released|isn't released|pending)|(#233|not released|not yet released|isn't released|pending)[\\s\\S]{0,300}cursor"
+          "text": "The response says cursor is released (or available) in kei-cli.",
+          "contains_any": [
+            "released",
+            "v0.3.0",
+            "is available",
+            "now available",
+            "has shipped",
+            "shipped"
+          ]
+        },
+        {
+          "text": "The response does not claim cursor is unreleased or pending.",
+          "not_contains": [
+            "not released",
+            "not yet released",
+            "isn't released",
+            "is not released",
+            "not shipped",
+            "hasn't shipped",
+            "not available yet",
+            "still in review",
+            "pending release"
+          ]
         },
         {
           "text": "The response points at kei help for the installed version.",

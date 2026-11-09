@@ -54,11 +54,11 @@
     {
       "id": 3,
       "prompt": "I need to read the agent ID assigned to my runtime installation from within the agentware SDK. The agent was set up in the Kei console and attached to the installation. How do I get the agent ID in TypeScript, and what should I do if identity is not available?",
-      "expected_output": "Uses link.identity() from Agentware 0.11.0 with kei-proxy v0.3.0 and kei-cli 0.2.0 (the current compatibility row), reads defaultAgentId and agents from the identity object, and denies governed calls if identity is unavailable rather than guessing a fallback agent ID.",
+      "expected_output": "Uses link.identity() from Agentware 0.16.0 with kei-proxy v0.6.5 and kei-cli 0.3.6 (the current compatibility row), reads defaultAgentId and agents from the identity object, and denies protected calls if identity is unavailable rather than guessing a fallback agent ID.",
       "expectations": [
         "The response reads agent identity from link.identity(), not from an environment variable.",
-        "The response denies governed calls when identity is undefined rather than guessing a fallback agent ID.",
-        "The response uses current compatibility minimums: Agentware 0.11.0, kei-proxy v0.3.0, and kei-cli 0.2.0."
+        "The response denies protected calls when identity is undefined rather than guessing a fallback agent ID.",
+        "The response uses current compatibility minimums: Agentware 0.16.0, kei-proxy v0.6.5, and kei-cli 0.3.6."
       ],
       "checks": [
         {
@@ -70,13 +70,13 @@
         {
           "contains_all": [
             "deny",
-            "governed calls"
+            "protected calls"
           ],
-          "text": "The response denies governed calls when identity is undefined rather than guessing a fallback agent ID."
+          "text": "The response denies protected calls when identity is undefined rather than guessing a fallback agent ID."
         },
         {
-          "text": "The response uses current compatibility minimums: Agentware 0.11.0, kei-proxy v0.3.0, and kei-cli 0.2.0.",
-          "regex": "(?=.*(?:(?:agentware|agentware SDK)[\\s\\S]{0,35}0\\.11\\.0|0\\.11\\.0[\\s\\S]{0,35}(?:agentware|agentware SDK)))(?=.*kei-proxy[\\s\\S]{0,35}v?0\\.3\\.0)(?=.*kei-cli[\\s\\S]{0,35}0\\.2\\.0)"
+          "text": "The response uses current compatibility minimums: Agentware 0.16.0, kei-proxy v0.6.5, and kei-cli 0.3.6.",
+          "regex": "(?=.*(?:agentware[\\s\\S]{0,35}0\\.16\\.0|0\\.16\\.0[\\s\\S]{0,35}agentware))(?=.*kei-proxy[\\s\\S]{0,35}v?0\\.6\\.5)(?=.*kei-cli[\\s\\S]{0,35}0\\.3\\.6)"
         }
       ]
     },
@@ -111,12 +111,12 @@
     },
     {
       "id": 5,
-      "prompt": "A governed tool call returned a DENY with an enrollment payload containing a URL. How should my harness handle this, and what must never happen with that URL?",
-      "expected_output": "Extracts decision.enrollment.url from the DENY payload, delivers the one-time claim URL privately to the user, never logs the URL or its contents and never caches an expired link, and explains the user must visit it to link their chat identity before they can use governed tools.",
+      "prompt": "A protected tool call returned a DENY with an enrollment payload containing a URL. How should my harness handle this, and what must never happen with that URL?",
+      "expected_output": "Extracts decision.enrollment.url from the DENY payload, delivers the one-time claim URL privately to the user, never logs the URL or its contents and never caches an expired link, and explains the user must visit it to link their chat identity before they can use protected tools.",
       "expectations": [
         "extracts enrollment.url from the decision payload and delivers it privately to the user",
         "warns that claim or enrollment URLs are never logged and expired links are never cached",
-        "explains the user must visit the link to link their chat identity before governed tools work"
+        "explains the user must visit the link to link their chat identity before protected tools work"
       ],
       "checks": [
         {
@@ -132,7 +132,7 @@
             "link",
             "identity"
           ],
-          "text": "explains the user must visit the link to link their chat identity before governed tools work"
+          "text": "explains the user must visit the link to link their chat identity before protected tools work"
         }
       ]
     },

@@ -53,7 +53,7 @@ Renderers per kind: Claude Code (`~/.claude/settings.json` →
 `permissions.allow`/`permissions.deny`), Codex (`~/.codex/rules/kei.rules` →
 `prefix_rule` entries), OpenCode (`opencode.json` → `permission.bash`), and
 Cursor (`~/.cursor/cli-config.json` → `permissions.allow`/`permissions.deny`).
-Cursor is pending kei-cli#233 and not released yet. It has no `skill:` token —
+Cursor shipped in kei-cli v0.3.0. It has no `skill:` token —
 when the policy set contains a `skill:` policy in scope for the Cursor
 harness, sync fails closed: it exits non-zero and writes nothing.
 

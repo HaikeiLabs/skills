@@ -67,10 +67,10 @@ Details and click paths: [references/azure-setup.md](references/azure-setup.md).
    skips them (`default_access_skipped`), so a group assigned to Default Access
    never reaches Kei.
 2. **A sync app registration** (e.g. `Kei Entra sync`, single tenant) with
-   Microsoft Graph **application** permissions (not delegated):
-   `Application.Read.All`, `GroupMember.Read.All`, `User.Read.All`. Then
-   **Grant admin consent** for the tenant. All three are read-only; the sync
-   never writes to Entra.
+   Microsoft Graph application permissions — of type application, not
+   delegated — `Application.Read.All`, `GroupMember.Read.All`,
+   `User.Read.All`. Then grant admin consent for the tenant. All three are
+   read-only; the sync never writes to Entra.
 3. **A federated credential on the sync app, and no client secret.**
    **Certificates & secrets → Federated credentials → Add credential**,
    scenario *Kubernetes accessing Azure resources* (or *Other issuer*):
@@ -184,12 +184,12 @@ contains tokens or Graph bodies). Exact strings:
 | Users skipped; `users_skipped_disabled` or `users_skipped_guest` > 0 | The Entra account is **disabled** (or Graph didn't return `accountEnabled`), or the user is a **guest** (`userType=Guest`) | Expected. Enable the account in Entra; guests are not created by default, ask Haikei |
 | A person missing from a group; `member_errors` > 0 | Member of a nested group only, or signed in at the same moment as the sync and isn't in the org | Add them to the assigned group directly; an org admin adds them to the org |
 | `token: entra returned 400 …` / `401 invalid_client`; an `AADSTS…` federated-credential error in Entra's sign-in logs | Entra rejected the federated sign-in: issuer, subject or audience doesn't match exactly, or `--client-id` / `--tenant-id` is wrong | On the sync app's federated credential, check the issuer, subject `system:serviceaccount:kei:oidc-bridge` and audience `api://AzureADTokenExchange` exactly (no trailing slash or space). Check `--client-id` is the **sync** app and `--tenant-id` your tenant. Don't add a secret |
-| 403 from Graph (`graph: … status 403`) | A Graph permission is missing, delegated instead of application, or not admin-consented | Add `Application.Read.All`, `GroupMember.Read.All`, `User.Read.All` as **application** permissions and **Grant admin consent** |
+| 403 from Graph (`graph: … status 403`) | A Graph permission is missing, delegated instead of application, or not admin-consented | Add `Application.Read.All`, `GroupMember.Read.All`, `User.Read.All` as application permissions (not delegated) and grant admin consent |
 | `set` fails with `ALREADY_EXISTS` (HTTP 409), or a run fails with `tenant already synced by org …` | Another Kei org already syncs this tenant | Use the org that already has it, or disable it there and ask Haikei to release the tenant |
 | Report shows `dry_run: true` after `--dry-run=false` | Haikei's platform dry-run ceiling forces every org into dry run | Ask Haikei to lift it; nothing to change on your side |
 | `--revoke=true` removes nothing | Haikei's revoke ceiling is off | Ask Haikei |
 | `creation cap exceeded` / `removal cap exceeded` / `revocation cap exceeded` | The run hit a per-run cap; nothing was written | Check the Entra assignments are intended; ask Haikei to raise the cap, or roll out in batches |
-| `kei directory-sync` gets 404 (HTTP 404 on `set`/`report`, or `get` says `No directory sync configured.` even after a `set`) | Kei's console proxy doesn't allow the directory-sync routes yet (the allowlist isn't deployed) | Nothing to fix locally; ask Haikei. A first `set` creates the config, so a 404 on `set` is never "not configured" |
+| `kei directory-sync` gets 404 (HTTP 404 on `set`/`report`, or `get` says `No directory sync configured.` even after a `set`) | Kei's console proxy doesn't allow the directory-sync routes yet (the allowlist isn't deployed) | A first `set` creates the config, so a 404 on `set` is never "not configured"; nothing to fix locally, ask Haikei |
 | `unknown command` / no `directory-sync` in `kei help` | The installed kei predates the commands | `kei upgrade` to a release after v0.1.29 |
 | No new runs in the report | The sync is disabled, or Haikei hasn't enabled it for the platform | `kei directory-sync get` to check `enabled`, then ask Haikei |
 

@@ -6,7 +6,7 @@ binding is wiring and not a permission gate (ADR-038), and correcting a
 nonexistent `kei connectors bind` command. Cases 20-21 cover the Cursor
 harness (HAI-882): native-first rendering into `~/.cursor/cli-config.json`
 permissions with fail-closed sync on kinds Cursor cannot gate (`skill:`), and
-that the Cursor commands are not released yet (kei-cli#233).
+that the Cursor commands shipped in kei-cli v0.3.0.
 
 ## Running
 

@@ -2,9 +2,10 @@
 # setup-cursor.sh — Kei-governed Cursor harness
 # POSIX sh, idempotent, safe to re-run.
 #
-# Cursor support is pending kei-cli#233 (not released yet): on a released
-# kei-cli the `kei connect cursor` / `kei harness sync --harness cursor`
-# calls fail closed (exit non-zero, nothing written).
+# Cursor support shipped in kei-cli v0.3.0: `kei connect cursor` /
+# `kei harness sync --harness cursor` render the policy bundle into the
+# Cursor CLI config and fail closed (exit non-zero, nothing written) when a
+# policy kind cannot be gated.
 set -eu
 
 KIND="cursor"
