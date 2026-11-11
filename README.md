@@ -231,6 +231,9 @@ node scripts/run-evals.mjs --harness pi --skill kei-cli --model-profile glm-5.3-
 node scripts/run-evals.mjs --grade-only evals-out/<run>     # re-grade saved answers
 ```
 
+How the eval systems work — grading, models, the CI gate, and where it runs —
+is in [docs/evals.md](docs/evals.md).
+
 ### Eval results (owned skills)
 
 Latest pass rates on Qwen 3.8-27b (3 repeats, deterministic checks):
