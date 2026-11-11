@@ -6,6 +6,10 @@
 // The selection is applied before repeats are counted, so N selected cases at
 // R repeats are N x R runs.
 
+export function dropLongCases(evals) {
+  return evals.filter((ev) => ev.long !== true);
+}
+
 // Parse a spec into the sorted, de-duplicated case ids. A malformed, empty or
 // descending spec is an error: a typo must not silently run the wrong cases.
 export function parseCaseSpec(spec) {

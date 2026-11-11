@@ -112,6 +112,7 @@
     },
     {
       "id": 5,
+      "long": true,
       "prompt": "I want our coding agent to use the kei CLI to check whether it's allowed to open a PR before it does. What command should the agent run?",
       "expected_output": "Says the kei CLI is for platform admins, not agent run-time checks; points to kei-proxy authorize and the kei-proxy skill.",
       "expectations": [
@@ -320,6 +321,7 @@
     },
     {
       "id": 11,
+      "long": true,
       "prompt": "Create a Kei model profile from the CLI for our vLLM server at https://spark.example.ts.net/v1, model team-default, with an API key, and assign it to agent 3f2c9a1e-0000-4000-8000-000000000001 in workspace Main. The key is in our secret manager.",
       "expected_output": "Uses `kei model-profiles create --workspace Main --agent <agent id> --display-name ... --endpoint https://spark.example.ts.net/v1 --default-model team-default --auth-type api_key` with the key piped from the secret manager on stdin, never as a flag or echoed. Notes the credential store must exist first (`kei credential-store put`), that writes need an org admin, and that `readiness` checks whether runtimes can reach the provider. Uses kei v0.1.13 or later.",
       "expectations": [

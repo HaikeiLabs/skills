@@ -225,6 +225,7 @@
     },
     {
       "id": 9,
+      "long": true,
       "prompt": "I logged in with kei login. Can I call GET /api/v1/workspaces on the Kei API directly with that CLI bearer token?",
       "expected_output": "No. /api/v1/* collection routes are reached through the web proxy with a browser session; a request with no session subject is refused with 401 an authenticated user is required. The CLI bearer is accepted only on the /api/cli/* routes.",
       "expectations": [

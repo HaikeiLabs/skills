@@ -41,11 +41,13 @@
  * benchmark.json merged. The canonical selection is written to benchmark.json
  * as case_filter. An unknown id, an empty or malformed spec, or a spec that
  * selects nothing is an error.
+ * --skip-long removes cases marked long before --cases and repeats; suites
+ * with only long cases are reported as skipped.
  *
  * Usage:
  *   node scripts/run-evals.mjs [--skill NAME ...] [--harness claude|codex|opencode|pi]
  *                              [--skills-dir DIR] [--out DIR] [--no-baseline]
- *                              [--jobs N] [--model M] [--cases SPEC]
+ *                              [--jobs N] [--model M] [--cases SPEC] [--skip-long]
  *                              [--model-profile NAME] [--threshold N] [--repeats N]
  *                              [--run-timeout SECONDS] [--no-preflight]
  *   node scripts/run-evals.mjs --grade-only DIR    # (re)grade existing DIR/<eval>/<config>/outputs/response.md
@@ -56,7 +58,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { preflightModel } from './lib/preflight.mjs';
-import { formatCaseIds, parseCaseSpec, selectCases } from './lib/cases.mjs';
+import { dropLongCases, formatCaseIds, parseCaseSpec, selectCases } from './lib/cases.mjs';
 import { gradeChecks, hasChecks, MISSING_CHECKS, missingChecksSummary } from './lib/checks.mjs';
 import { makeBenchmark, belowThreshold } from './lib/benchmark.mjs';
 import { resolveSkillsDir } from './lib/paths.mjs';
@@ -67,7 +69,7 @@ import { noAnswer, parseModelProfile, resolveRunTimeoutSeconds, runCommand, runE
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 function parseArgs(argv) {
-  const opts = { skills: [], skillsDir: null, harness: 'opencode', out: null, baseline: true, jobs: 4, model: null, modelProfile: null, threshold: 0.9, repeats: 1, repeatsProvided: false, gradeOnly: null, runTimeout: null, cases: null, caseFilter: null, preflight: true };
+  const opts = { skills: [], skillsDir: null, harness: 'opencode', out: null, baseline: true, jobs: 4, model: null, modelProfile: null, threshold: 0.9, repeats: 1, repeatsProvided: false, gradeOnly: null, runTimeout: null, cases: null, caseFilter: null, preflight: true, skipLong: false, skippedSuites: [] };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--skill') opts.skills.push(argv[++i]);
@@ -76,6 +78,7 @@ function parseArgs(argv) {
     else if (a === '--out') opts.out = argv[++i];
     else if (a === '--no-baseline') opts.baseline = false;
     else if (a === '--no-preflight') opts.preflight = false;
+    else if (a === '--skip-long') opts.skipLong = true;
     else if (a === '--jobs') opts.jobs = Number(argv[++i]);
     else if (a === '--model') opts.model = argv[++i];
     else if (a === '--model-profile') opts.modelProfile = argv[++i];
@@ -113,6 +116,7 @@ function parseArgs(argv) {
     opts.caseFilter = formatCaseIds(parseCaseSpec(opts.cases));
     if (opts.gradeOnly) throw new Error('--cases applies to a fresh run, not --grade-only');
   }
+  if (opts.skipLong && opts.gradeOnly) throw new Error('--skip-long applies to a fresh run, not --grade-only');
   opts.runTimeoutSeconds = resolveRunTimeoutSeconds({ flag: opts.runTimeout, profile: profile?.runTimeoutSeconds });
   return opts;
 }
@@ -226,6 +230,8 @@ function report(results, out, opts) {
   const benchmark = makeBenchmark(results, { harness: opts.harness, modelProfile: opts.modelProfile,
     model: opts.model, repeats: opts.repeats, caseFilter: opts.caseFilter,
     gitSha: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim() });
+  if (opts.skippedSuites.length) benchmark.skipped_suites = opts.skippedSuites;
+  fs.mkdirSync(out, { recursive: true });
   fs.writeFileSync(path.join(out, 'benchmark.json'), JSON.stringify(benchmark, null, 2));
 
   const lines = [`# Skill eval benchmark (${opts.modelProfile ?? opts.model ?? opts.harness})`, '',
@@ -236,6 +242,7 @@ function report(results, out, opts) {
   for (const result of benchmark.results) {
     lines.push(`| ${result.suite} | ${Math.round(result.pass_rate * 100)}% | ${result.passed} | ${result.failed} | ${result.errors} | ${result.total} |`);
   }
+  for (const skill of opts.skippedSuites) lines.push(`| ${skill} | skipped: all cases long | — | — | — | — |`);
   fs.writeFileSync(path.join(out, 'benchmark.md'), `${lines.join('\n')}\n`);
   console.log(lines.join('\n'));
   console.log(`\nresults: ${out}`);
@@ -292,10 +299,14 @@ async function main() {
     const { evals } = JSON.parse(fs.readFileSync(path.join(skillPath, 'evals', 'evals.json'), 'utf8'));
     // --cases filters the cases before repeats are counted, so a shard runs
     // every repeat of its range only.
-    let selected = evals;
+    let selected = opts.skipLong ? dropLongCases(evals) : evals;
+    if (opts.skipLong && evals.length && !selected.length) {
+      opts.skippedSuites.push(skill);
+      continue;
+    }
     if (opts.cases !== null) {
       try {
-        selected = selectCases(evals, opts.cases);
+        selected = selectCases(selected, opts.cases);
       } catch (err) {
         throw new Error(`${skill}: ${err.message}`);
       }

@@ -5,11 +5,38 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { formatCaseIds, parseCaseSpec, selectCases } from './cases.mjs';
+import { dropLongCases, formatCaseIds, parseCaseSpec, selectCases } from './cases.mjs';
 
 const SCRIPT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../run-evals.mjs');
 
 const evals = (ids) => ids.map((id) => ({ id, prompt: `case-${id}` }));
+
+test('drops only cases marked long, including an all-long suite', () => {
+  const cases = [{ id: 1 }, { id: 2, long: true }, { id: 3, long: false }];
+  assert.deepEqual(dropLongCases(cases), [cases[0], cases[2]]);
+  assert.deepEqual(dropLongCases([{ id: 1, long: true }]), []);
+  assert.equal(cases.length, 3);
+});
+
+test('--skip-long skips an all-long suite before applying --cases', () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'skill-eval-long-'));
+  try {
+    const skillsDir = path.join(dir, 'skills');
+    const evalsDir = path.join(skillsDir, 'long-skill', 'evals');
+    mkdirSync(evalsDir, { recursive: true });
+    writeFileSync(path.join(evalsDir, 'evals.json'), JSON.stringify({ evals: [{ id: 1, long: true }] }));
+    const out = path.join(dir, 'out');
+    const result = spawnSync(process.execPath, [SCRIPT, '--skills-dir', skillsDir, '--out', out,
+      '--skip-long', '--cases', '1', '--repeats', '3'], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /long-skill \| skipped: all cases long/);
+    const benchmark = JSON.parse(readFileSync(path.join(out, 'benchmark.json'), 'utf8'));
+    assert.deepEqual(benchmark.results, []);
+    assert.deepEqual(benchmark.skipped_suites, ['long-skill']);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 test('parses a case range, an id list and both mixed', () => {
   assert.deepEqual(parseCaseSpec('1-8'), [1, 2, 3, 4, 5, 6, 7, 8]);
