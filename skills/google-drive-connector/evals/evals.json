@@ -349,6 +349,7 @@
     },
     {
       "id": 12,
+      "long": true,
       "prompt": "I'm in Claude Code. Publish guide.md as a Google Doc titled 'Deploy agents' into Drive folder 1FolderAbCdEfGh0123 using my own Google account. Give me the exact commands.",
       "expected_output": "Harness-side write with the user's own OAuth token (drive scope from your own Desktop OAuth client, e.g. gcloud auth application-default login --client-id-file=<client.json> --scopes=...auth/drive,...cloud-platform and print-access-token inline). Confirm the title, folder and content with the user first. Then curl POST to upload/drive/v3/files?uploadType=multipart with metadata mimeType application/vnd.google-apps.document and parents [1FolderAbCdEfGh0123], and the markdown as text/markdown.",
       "expectations": [

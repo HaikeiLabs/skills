@@ -51,6 +51,7 @@
     },
     {
       "id": 3,
+      "long": true,
       "prompt": "I think our runtime credential leaked in a CI log and I don't care if the bot goes down. Kill it now.",
       "expected_output": "Offers revocation by deleting the installation (kei bot delete --yes) or an immediate rotation, and notes cleanup of the log and secret manager.",
       "expectations": [

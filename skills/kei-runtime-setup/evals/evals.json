@@ -3,6 +3,7 @@
   "evals": [
     {
       "id": 1,
+      "long": true,
       "prompt": "We have a new customer, Acme, and I need a Kei runtime next to our coding harness on a Linux box. Walk me through getting it from nothing to bound, I'm an org admin and already have the kei CLI.",
       "expected_output": "Starts with kei login, creates the installation with kei bot init, pipes kei bot credential into a secret manager, sets KEI_RUNTIME_* env, runs kei-proxy runtime bootstrap, keeps the heartbeat running, binds, and checks a denial.",
       "expectations": [

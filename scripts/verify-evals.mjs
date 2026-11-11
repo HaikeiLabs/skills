@@ -55,6 +55,9 @@ for (const skill of skills) {
       fail(`${skill}: eval ids must be unique integers`);
     }
     ids.add(test.id);
+    if ('long' in test && typeof test.long !== 'boolean') {
+      fail(`${skill} eval ${test.id}: long must be a boolean`);
+    }
     if (typeof test.prompt !== 'string' || test.prompt.trim() === '') {
       fail(`${skill}: every eval needs a prompt`);
     }

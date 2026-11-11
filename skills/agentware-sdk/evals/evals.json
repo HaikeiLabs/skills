@@ -82,6 +82,7 @@
     },
     {
       "id": 4,
+      "long": true,
       "prompt": "I'm writing a custom harness in Python and need to govern my agents' tool calls through Kei. Show me how to construct a KeiProxyEvaluator and what happens when kei-proxy is unreachable.",
       "expected_output": "Uses the recommended socket client path to construct KeiProxyEvaluator, configures the socket client, explains that an unreachable configured socket yields DENY with proxy_unavailable reason (fail-closed), and uses evaluator.evaluate() before every tool call. If it mentions deprecated KeiProxyAuthorizeClient, identifies it as the subprocess fallback/deprecated path.",
       "expectations": [

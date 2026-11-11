@@ -29,4 +29,6 @@ See `results/2026-10-05-opencode-deepseek-v4-flash/` for detailed outputs.
 1. Add a new object to the `evals` array in `evals.json`
 2. Use the next integer `id`
 3. Include `prompt`, `expected_output`, and `expectations` (array of strings)
-4. Verify with `node scripts/verify-evals.mjs`
+4. Optionally set `long` to a boolean. Use `true` for cases that overflow the
+   model context or time out; `--skip-long` excludes them from a run.
+5. Verify with `node scripts/verify-evals.mjs`
