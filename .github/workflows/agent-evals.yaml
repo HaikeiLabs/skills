@@ -9,7 +9,9 @@
 # per case (EVAL_REPEATS 1), the eval suites the pull request changes (all of
 # them when this workflow or an EVAL_GLOBAL_PATHS file changes; none, and a
 # green "no eval-relevant changes" comment, when no changed file maps to a
-# suite). It runs them on the self-hosted kei-agent-evals runners, which reach the model
+# suite). Pull requests skip long cases unless labeled evals:long; nightly and
+# workflow_dispatch runs include them.
+# It runs them on the self-hosted kei-agent-evals runners, which reach the model
 # servers through Tailscale egress Services. It posts one sticky
 # <!-- agent-evals --> comment (suite x model table) and fails when any suite
 # is below EVAL_THRESHOLD or a model server does not answer ("models
@@ -105,7 +107,8 @@ env:
   # 1.18.32 (the image's version) has no --standalone flag; dc281eb restores
   # the 1.18-compatible invocation. After merge, re-pin to the merge commit
   # (squash merges do not keep this SHA an ancestor of main).
-  EVAL_RUNNER_REF: "dc281eb5486b5cc52aff335bab4f338d91c085d0"
+  # e2bcbc8 is skills#165's merge commit, the first grader with --skip-long.
+  EVAL_RUNNER_REF: "e2bcbc881842e778565f93a3475ba4d010af1a10"
   # EDIT-END settings
   EVAL_THRESHOLD: "0.90"
   # EV-C1 §3 profile names; each needs its base_url_env set on the runner.
@@ -572,6 +575,7 @@ jobs:
         env:
           BASE_URL: ${{ steps.probe.outputs.base_url }}
           JOBS: ${{ steps.probe.outputs.jobs }}
+          SKIP_LONG: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'evals:long') }}
         run: |
           shopt -s globstar nullglob
           cd "$GITHUB_WORKSPACE/_eval/repo"
@@ -599,9 +603,11 @@ jobs:
           set +e
           # --no-baseline: the gate scores with_skill only, and the baseline
           # would double the load on servers shared with the team.
+          long_args=()
+          if [[ "$SKIP_LONG" == true ]]; then long_args+=(--skip-long); fi
           node scripts/run-evals.mjs --harness opencode --skills-dir "$stage" \
             --model-profile "$PROFILE" --out "$OUT/skills" --threshold "$EVAL_THRESHOLD" \
-            --jobs "$JOBS" --repeats "$REPEATS" --no-baseline
+            --jobs "$JOBS" --repeats "$REPEATS" --no-baseline "${long_args[@]}"
           rc=$?
           set -e
           message=""
@@ -779,6 +785,7 @@ jobs:
                 Math.floor(Number(typeof scopeShards === 'object' && scopeShards ? scopeShards[p] : scopeShards)) || 1)]));
               const shardIds = Object.fromEntries(profiles.map((p) => [p, Array.from({ length: shardCount[p] }, (_, i) => i + 1)]));
               const cells = {};
+              const longSkipped = {};
               const problems = [];
               const status = Object.fromEntries(profiles.map((p) => [p, 'missing']));
               const shardStatus = Object.fromEntries(profiles.map((p) => [p, Object.fromEntries(shardIds[p].map((k) => [k, 'missing']))]));
@@ -806,6 +813,9 @@ jobs:
                   if (doc?.schema !== 'haikei.eval-benchmark.v1' || !Array.isArray(doc.results)) {
                     problems.push(`\`${safe(profile)}\`: a benchmark.json is not haikei.eval-benchmark.v1`);
                     continue;
+                  }
+                  for (const suite of doc.skipped_suites || []) {
+                    (longSkipped[safe(suite)] ??= new Set()).add(profile);
                   }
                   for (const r of doc.results) {
                     const suite = safe(r.suite);
@@ -837,10 +847,11 @@ jobs:
                   else if (st !== 'ok' && st !== 'below') problems.push(`${who}: the eval runner failed (\`${msg || safe(st)}\`)`);
                 }
               }
-              const suites = Object.keys(cells).sort();
+              const suites = [...new Set([...Object.keys(cells), ...Object.keys(longSkipped)])].sort();
               for (const suite of suites) {
                 for (const profile of profiles) {
-                  const c = cells[suite][profile];
+                  const c = cells[suite]?.[profile];
+                  if (!c && longSkipped[suite]?.has(profile)) continue;
                   if (status[profile] === 'unreachable') continue;
                   if (!c || c.total === 0) problems.push(`\`${suite}\` has no scored runs on \`${safe(profile)}\``);
                   else if (c.passed / c.total < threshold) {
@@ -865,7 +876,8 @@ jobs:
                 `\`${suite}\``,
                 ...profiles.map((p) => {
                   if (status[p] === 'unreachable') return '⚠️ unreachable';
-                  const c = cells[suite][p];
+                  const c = cells[suite]?.[p];
+                  if (!c && longSkipped[suite]?.has(p)) return 'skipped: all cases long';
                   if (!c || c.total === 0) return '—';
                   const r = c.passed / c.total;
                   return `${r >= threshold ? '✅' : '❌'} ${pct(r)} (${c.passed}/${c.total} runs)`;
