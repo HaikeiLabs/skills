@@ -190,7 +190,7 @@ VALUE; the client only needs it to be non-empty. A hosted provider needs its rea
 your secret manager.
 
 Render the harness's tool schemas for the model in use with kei-agents' `render_tools()`
-and `ModelFormat` (see `kei-agents`), and govern each tool call through `kei-proxy` (see
+and `ModelFormat` (see `kei-agents`), and put each tool call behind Kei guardrails through `kei-proxy` (see
 `kei-proxy` and `agentware-sdk`).
 
 ## Agentware evals (HaikeiLabs/Agentware)
