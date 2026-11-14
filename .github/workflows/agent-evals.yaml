@@ -126,8 +126,8 @@ env:
   # to 1 run/min on qwen3.8-27b at 1 slot, so shard_runs 8; glm-5.3-flash
   # starts at 8 too until its run rate at concurrency 2 is measured). A suite
   # with more runs than its shard size
-  # is split by repeats across shards; one with more cases than that stays
-  # whole (the runner has no case filter).
+  # is split by repeats across shards; a skill suite with more cases than
+  # that is split by case range (the runner's --cases).
   EVAL_SHARD_RUNS: "30"
   # shard_runs is sized for the 30-minute pull request job. The nightly job
   # gets 110 minutes, so its shards are this many times larger; that keeps the
@@ -175,6 +175,9 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           EVENT_NAME: ${{ github.event_name }}
           TUNING: ${{ contains(github.event.pull_request.labels.*.name, 'evals:tuning') }}
+          # Matches the eval job's SKIP_LONG, so case ranges never name a
+          # long case the runner has already dropped.
+          SKIP_LONG: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'evals:long') }}
         with:
           script: |
             // BEGIN agent-evals scope (tested by HaikeiLabs/kei scripts/agent-evals/test-report.mjs)
@@ -270,21 +273,54 @@ jobs:
             // EVAL_SHARD_RUNS. A unit is one suite at some number of repeats,
             // weighed in runs (cases x repeats). A suite with more runs than the
             // shard size is split by repeats into several units, so no job runs
-            // all of a big suite's repeats; a suite with more cases than the
-            // shard size stays one unit per repeat (the runner has no case
-            // filter). Units with the same repeats are packed, largest first,
+            // all of a big suite's repeats. A suite with more cases than the
+            // shard size cannot get under it by repeats, so it is split by case
+            // range instead: the pinned runner's --cases takes eval ids and
+            // applies them before repeats, and each range runs alone in its
+            // shard (one --cases spec per runner call). On a pull request
+            // without evals:long, long cases are left out of the count and the
+            // ranges, as the runner's --skip-long drops them before --cases.
+            // Units with the same repeats are packed, largest first,
             // into the lightest of N shards of about the shard size, and a new
             // shard opens when a unit would take the lightest past that size; a
             // shard never holds the same suite twice. Nightly shards are
             // EVAL_SHARD_SCALE times larger (a longer timeout).
+            const skipLong = process.env.SKIP_LONG === 'true';
+            const skillEvals = (file) => {
+              const evals = JSON.parse(fs.readFileSync(path.join(repo, file), 'utf8'))?.evals;
+              return Array.isArray(evals) && skipLong ? evals.filter((e) => e?.long !== true) : evals;
+            };
             const cases = (file) => {
               try {
-                const doc = JSON.parse(fs.readFileSync(path.join(repo, file), 'utf8'));
-                const n = kind === 'skill' ? doc?.evals?.length : doc?.cases?.length;
+                const n = kind === 'skill' ? skillEvals(file)?.length
+                  : JSON.parse(fs.readFileSync(path.join(repo, file), 'utf8'))?.cases?.length;
                 return Number.isInteger(n) && n > 0 ? n : 1;
               } catch {
                 return 1;
               }
+            };
+            // A skill suite's eval ids that will run, ascending, or null when
+            // any is not an integer (--cases takes eval ids).
+            const evalIds = (p) => {
+              try {
+                const ids = skillEvals(`${p}/evals/evals.json`)?.map((e) => e?.id);
+                return Array.isArray(ids) && ids.length && ids.every(Number.isInteger)
+                  ? [...new Set(ids)].sort((a, b) => a - b) : null;
+              } catch {
+                return null;
+              }
+            };
+            // The --cases spec for a list of ids: consecutive ids as a range,
+            // so a gap in the ids (or a skipped long case) is never named.
+            const caseSpec = (list) => {
+              const parts = [];
+              for (let i = 0; i < list.length; i++) {
+                let j = i;
+                while (j + 1 < list.length && list[j + 1] === list[j] + 1) j++;
+                parts.push(j > i ? `${list[i]}-${list[j]}` : String(list[i]));
+                i = j;
+              }
+              return parts.join(',');
             };
             const caseCount = (p) => kind === 'skill'
               ? cases(`${p}/evals/evals.json`)
@@ -314,7 +350,18 @@ jobs:
             const units = selected.map((p) => ({ suite: p, cases: caseCount(p) }));
             const pack = (perShard) => {
               const groups = new Map();
+              const rangeBins = [];
               for (const { suite, cases: n } of units) {
+                const ids = kind === 'skill' && n > perShard ? evalIds(suite) : null;
+                if (ids) {
+                  // Balanced ranges of at most perShard runs at every repeat.
+                  const count = Math.ceil(ids.length / Math.max(1, Math.floor(perShard / repeats)));
+                  for (let k = 0; k < count; k++) {
+                    const slice = ids.slice(Math.ceil((k * ids.length) / count), Math.ceil(((k + 1) * ids.length) / count));
+                    rangeBins.push({ repeats, load: slice.length * repeats, suites: [suite], cases: caseSpec(slice) });
+                  }
+                  continue;
+                }
                 const chunk = Math.max(1, Math.min(repeats, Math.floor(perShard / n)));
                 for (let left = repeats; left > 0; left -= chunk) {
                   const r = Math.min(chunk, left);
@@ -338,6 +385,7 @@ jobs:
                 }
                 bins.push(...shardsOfR);
               }
+              bins.push(...rangeBins);
               return bins;
             };
             const profiles = JSON.parse(process.env.EVAL_PROFILES);
@@ -353,7 +401,7 @@ jobs:
               for (const profile of profiles) {
                 const b = plan[profile].bins[i];
                 if (b) include.push({ profile, shard: i + 1, shards: shards[profile], repeats: b.repeats,
-                  suites: b.suites.sort().join(' ') });
+                  suites: b.suites.sort().join(' '), ...(b.cases ? { cases: b.cases } : {}) });
               }
             }
 
@@ -370,7 +418,7 @@ jobs:
             for (const profile of profiles) {
               const { perShard, bins } = plan[profile];
               core.info(`${profile}: ${bins.length} shard(s) of about ${perShard} run(s): `
-                + bins.map((b, i) => `${i + 1}=${b.load}x${b.repeats}r`).join(' '));
+                + bins.map((b, i) => `${i + 1}=${b.load}x${b.repeats}r${b.cases ? `@${b.cases}` : ''}`).join(' '));
             }
             // END agent-evals scope
 
@@ -407,6 +455,9 @@ jobs:
       EVAL_SUITES: ${{ matrix.suites }}
       # This shard's runs per case (a big suite's repeats span shards).
       REPEATS: ${{ matrix.repeats }}
+      # This shard's eval ids (--cases), when scope split a skill suite with
+      # more cases than the shard size by case range; empty otherwise.
+      CASES: ${{ matrix.cases }}
     steps:
       - name: Validate settings
         run: |
@@ -416,6 +467,7 @@ jobs:
           [[ "$EVAL_THRESHOLD" =~ ^(0(\.[0-9]+)?|1(\.0+)?)$ ]] || fail "EVAL_THRESHOLD must be between 0 and 1, got $EVAL_THRESHOLD"
           [[ "$PROFILE" =~ ^[a-z0-9][a-z0-9._-]{0,63}$ ]] || fail "invalid model profile name: $PROFILE"
           [[ "$REPEATS" =~ ^[1-9][0-9]?$ ]] || fail "repeats must be 1-99, got $REPEATS"
+          [[ -z "$CASES" || "$CASES" =~ ^[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*$ ]] || fail "invalid case spec: $CASES"
           mkdir -p "$OUT"
           # Until a step records the outcome, this shard is incomplete: a job
           # that times out, is cancelled or fails first uploads this (Upload
@@ -605,6 +657,9 @@ jobs:
           # would double the load on servers shared with the team.
           long_args=()
           if [[ "$SKIP_LONG" == true ]]; then long_args+=(--skip-long); fi
+          # A case-range shard runs one suite's eval ids; the runner applies
+          # --cases after --skip-long and before repeats.
+          if [[ -n "$CASES" ]]; then long_args+=(--cases "$CASES"); fi
           node scripts/run-evals.mjs --harness opencode --skills-dir "$stage" \
             --model-profile "$PROFILE" --out "$OUT/skills" --threshold "$EVAL_THRESHOLD" \
             --jobs "$JOBS" --repeats "$REPEATS" --no-baseline "${long_args[@]}"
