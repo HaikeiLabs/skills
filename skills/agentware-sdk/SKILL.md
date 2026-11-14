@@ -657,7 +657,7 @@ The flow is:
 
 ```
 1. Declare  →  tool implements GovernedTool with a KeiScope
-2. Register →  add governed tools (and any plain tools) to a ToolRegistry
+2. Register →  add GovernedTool tools (and any plain tools) to a ToolRegistry
 3. Export   →  registry.ExportKeiToolManifest() produces deterministic JSON
 4. Load     →  admin imports the JSON into the catalog (kei CLI or skill)
 5. Call     →  harness calls authorize by tool name only; catalog resolves resources
