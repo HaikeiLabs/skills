@@ -1,0 +1,300 @@
+{
+  "skill_name": "agentware-first-agent",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Help me build my first agent with Agentware. I want a model to answer a question using one tool that fetches data, with a simple allow/deny check on the tool call. I don't have a Kei account and don't want one yet. What's the shape of the program?",
+      "expected_output": "Follows the first-agent pattern: OpenAIBackend, a ToolRegistry with one typed tool, AuditedToolClient with withPolicy for the local allow/deny, AgentLoop run with system and user prompts, checking AgentTerminationReason. Says no Kei account is needed for this.",
+      "expectations": [
+        "The response describes the program as a backend, a tool registry, an audited client with a local policy, and an AgentLoop.",
+        "The response says a Kei account is not needed for this local agent."
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "AgentLoop",
+            "AuditedToolClient",
+            "withPolicy"
+          ],
+          "text": "The response describes the program as a backend, a tool registry, an audited client with a local policy, and an AgentLoop."
+        },
+        {
+          "text": "The response says a Kei account is not needed for this local agent.",
+          "regex": "\\b(no|without|nothing|not)\\b[\\s\\S]{0,30}\\bkei\\b|\\bkei\\b[\\s\\S]{0,60}\\b(not|no|isn.t|doesn.t|never|aren.t)\\b[\\s\\S]{0,20}\\b(needed|required|involved)\\b|\\bkei\\b[\\s\\S]{0,60}\\bis optional\\b"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "What do I install to build my first Agentware agent, and what environment does it need to run against a model?",
+      "expected_output": "Install @haikeilabs/agentware with npm. The first-agent example needs Node 22.18 or later and an OpenAI-compatible API key: OPENAI_API_KEY, with MODEL (default gpt-4o-mini) and OPENAI_BASE_URL optional for other endpoints. No Kei setup is involved.",
+      "expectations": [
+        "The response names the npm package @haikeilabs/agentware.",
+        "The response mentions OPENAI_API_KEY as the required environment variable.",
+        "The response gives the example's Node version requirement (22.18 or later)."
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "@haikeilabs/agentware"
+          ],
+          "text": "The response names the npm package @haikeilabs/agentware."
+        },
+        {
+          "contains_all": [
+            "OPENAI_API_KEY"
+          ],
+          "text": "The response mentions OPENAI_API_KEY as the required environment variable."
+        },
+        {
+          "regex": "22\\.18|node\\s*(>=|at least|version)?\\s*22",
+          "text": "The response gives the example's Node version requirement (22.18 or later)."
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "How do I define one typed tool for my first Agentware agent so the call is policy-checked and audited every time the model uses it?",
+      "expected_output": "A tool object with name, description, an inputSchema function returning JSON Schema, and an execute function that routes through client.execute(name, args, { trusted: false }) and wraps the tuple in a Result. Routing through the audited client is what makes the call policy-checked and audited.",
+      "expectations": [
+        "The response shows a tool object with name, description, inputSchema and execute.",
+        "The response routes execution through client.execute.",
+        "The response wraps the outcome in a Result."
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "inputSchema",
+            "execute"
+          ],
+          "text": "The response shows a tool object with name, description, inputSchema and execute."
+        },
+        {
+          "contains_all": [
+            "client.execute"
+          ],
+          "text": "The response routes execution through client.execute."
+        },
+        {
+          "contains_all": [
+            "Result"
+          ],
+          "text": "The response wraps the outcome in a Result."
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "In an Agentware first agent, how does the agent loop run, and how do I tell whether the agent actually finished or gave up?",
+      "expected_output": "new AgentLoop({ backend, registry, validator: new ResponseValidator(registry.names()), max_iterations }) with a bounded max_iterations, then loop.run(systemPrompt, userMessage). Check result.termination_reason against AgentTerminationReason.COMPLETE; surface the reason when it is not COMPLETE, and read result.final_response.",
+      "expectations": [
+        "The response uses AgentLoop with a registry and a bounded iteration limit.",
+        "The response checks result.termination_reason against AgentTerminationReason.COMPLETE.",
+        "The response reads the final answer from result.final_response."
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "AgentLoop",
+            "max_iterations"
+          ],
+          "text": "The response uses AgentLoop with a registry and a bounded iteration limit."
+        },
+        {
+          "regex": "AgentTerminationReason\\.COMPLETE|termination_reason",
+          "text": "The response checks result.termination_reason against AgentTerminationReason.COMPLETE."
+        },
+        {
+          "contains_all": [
+            "final_response"
+          ],
+          "text": "The response reads the final answer from result.final_response."
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I want a local guardrail on my first Agentware agent: one tool is allowed, everything else is denied, with no server involved. How do I write that rule?",
+      "expected_output": "Attach .withPolicy({ evaluate(name) { ... } }) to the AuditedToolClient; evaluate returns { action: Action.ALLOW or Action.DENY, rule, reason, timestamp } per tool name. A denied call never reaches the executor and the deny is still audited.",
+      "expectations": [
+        "The response attaches the policy to the audited client with withPolicy.",
+        "The response returns Action.ALLOW and Action.DENY decisions per tool name.",
+        "The response says a denied call is audited even though it never executes."
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "withPolicy"
+          ],
+          "text": "The response attaches the policy to the audited client with withPolicy."
+        },
+        {
+          "contains_all": [
+            "Action.DENY"
+          ],
+          "text": "The response returns Action.ALLOW and Action.DENY decisions per tool name."
+        },
+        {
+          "regex": "(audit|AUDIT)[\\s\\S]{0,120}(den(y|ied|ies))|den(y|ied|ies)[\\s\\S]{0,120}audit",
+          "text": "The response says a denied call is audited even though it never executes."
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "In the first-agent example, what actually happens when the local policy denies a tool call — does the tool run and get caught afterwards, or does it never run?",
+      "expected_output": "It never runs: the policy decision happens before execution, the caller gets an error like 'denied by policy: <reason>', and the deny is written to the audit record with the rule and reason. The comment tool in the example is not even registered with the model, so only your code can call it, and the policy still stops it.",
+      "expectations": [
+        "The response says the denied tool never executes.",
+        "The response says the denial is recorded in the audit output."
+      ],
+      "checks": [
+        {
+          "regex": "never[\\s\\S]{0,40}(run|execut|reach)|(does not|isn.t|is not|not)[\\s\\S]{0,40}(run|executed)",
+          "text": "The response says the denied tool never executes."
+        },
+        {
+          "contains_any": [
+            "AUDIT",
+            "audit"
+          ],
+          "text": "The response says the denial is recorded in the audit output."
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Why does the first-agent example build the AgentLoop validator as new ResponseValidator(registry.names()) instead of hardcoding the tool names?",
+      "expected_output": "ResponseValidator(registry.names()) binds the model to the tools actually registered in the ToolRegistry: the registry is the closed tool surface, and adding a tool to the registry updates what the model may call without editing the loop wiring.",
+      "expectations": [
+        "The response explains the validator binds the model to the registered tools.",
+        "The response ties the tool surface to the ToolRegistry."
+      ],
+      "checks": [
+        {
+          "text": "The response explains the validator binds the model to the registered tools.",
+          "regex": "(?=[\\s\\S]*\\bvalidator\\b)(?=[\\s\\S]*\\bregistr)(?=[\\s\\S]*(drift|in sync|single source|second (hardcoded )?list|derive[sd]? from|exactly the tools|closed (tool )?surface|tool surface closed|can.t call|cannot call|only (ever )?(request|call) tools|not registered|isn.t registered|aren.t registered|no longer|omit.+registered))"
+        },
+        {
+          "contains_any": [
+            "registry",
+            "ToolRegistry"
+          ],
+          "text": "The response ties the tool surface to the ToolRegistry."
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "My agentware harness now runs in production and I want its tool calls governed by our organization's central Kei policies instead of the local rule. Should I keep expanding the local withPolicy rule? Where do I go from here?",
+      "expected_output": "No: the local withPolicy rule is the first-agent, Kei-free pattern. Central Kei policy is a different setup — the kei-harness-setup skill pairs a harness with a runtime, and the agentware-sdk skill covers KeiProxyEvaluator, socket clients and tool manifests. Route there rather than growing the local rule.",
+      "expectations": [
+        "The response points to the Kei path rather than expanding the local policy.",
+        "The response names kei-harness-setup or agentware-sdk as the destination."
+      ],
+      "checks": [
+        {
+          "regex": "central|kei-proxy|runtime|organization",
+          "text": "The response points to the Kei path rather than expanding the local policy."
+        },
+        {
+          "contains_any": [
+            "kei-harness-setup",
+            "agentware-sdk"
+          ],
+          "text": "The response names kei-harness-setup or agentware-sdk as the destination."
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Write a TypeScript function that removes duplicate email addresses from an array, keeping the first occurrence of each.",
+      "expected_output": "Answers the general TypeScript question (for example with a Set or a filter over a seen list). It does not turn this into an Agentware agent task and does not pull in the agentware SDK.",
+      "expectations": [
+        "The response answers the general TypeScript question with working code.",
+        "The response does not introduce the Agentware SDK into the answer."
+      ],
+      "checks": [
+        {
+          "regex": "Set|filter|Map|indexOf|includes",
+          "text": "The response answers the general TypeScript question with working code."
+        },
+        {
+          "not_contains": [
+            "@haikeilabs/agentware"
+          ],
+          "text": "The response does not introduce the Agentware SDK into the answer."
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Is there a Go version of the Agentware first-agent example? And is there a Python one?",
+      "expected_output": "Yes for Go: examples/go/first-agent in the Agentware repo, where InferenceExecutor drives the loop and agent/policy.go holds the local deny rule. No Python first-agent example exists — the Python starting point is the minimal harness (examples/python/minimal-harness).",
+      "expectations": [
+        "The response points to the Go first-agent example.",
+        "The response says there is no Python first-agent example and names the Python starting point."
+      ],
+      "checks": [
+        {
+          "regex": "examples/go/first-agent|go/first-agent|first-agent.*Go|Go.*first-agent",
+          "text": "The response points to the Go first-agent example."
+        },
+        {
+          "regex": "no python|not[\\s\\S]{0,40}python|python[\\s\\S]{0,40}(minimal|doesn.t|does not|no)",
+          "text": "The response says there is no Python first-agent example and names the Python starting point."
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "When my first Agentware agent runs, what should I expect to see printed for each tool call, and how do I read the decision out of it?",
+      "expected_output": "An AUDIT line per tool call: JSON with the tool name, the args, the decision (action allow or deny, the rule and the reason), and the framework/source name (first-agent). The allow line precedes the model's answer; a deny line shows action deny with the reason.",
+      "expectations": [
+        "The response describes an AUDIT line per tool call.",
+        "The response says the audit line carries the tool name and the decision with its rule and reason."
+      ],
+      "checks": [
+        {
+          "contains_all": [
+            "AUDIT"
+          ],
+          "text": "The response describes an AUDIT line per tool call."
+        },
+        {
+          "contains_all": [
+            "tool_name",
+            "decision"
+          ],
+          "text": "The response says the audit line carries the tool name and the decision with its rule and reason."
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "My first Agentware agent works with its one tool. How do I add a second tool and get the model to use it, while keeping the guardrails intact?",
+      "expected_output": "Add the tool object to the registry (name, description, inputSchema), route its execution through client.execute like the first one, and add an allow rule for it to the local withPolicy evaluator. Then run a new prompt that asks the model to use it. The registry plus ResponseValidator(registry.names()) keeps the model bound to the registered tools.",
+      "expectations": [
+        "The response registers the new tool on the registry.",
+        "The response routes the new tool's execution through client.execute.",
+        "The response updates the local policy with an allow rule for the new tool."
+      ],
+      "checks": [
+        {
+          "regex": "registry\\.register|register.*registry|add.*to the registry",
+          "text": "The response registers the new tool on the registry."
+        },
+        {
+          "contains_all": [
+            "client.execute"
+          ],
+          "text": "The response routes the new tool's execution through client.execute."
+        },
+        {
+          "regex": "allow[\\s\\S]{0,60}rule|rule[\\s\\S]{0,60}allow|evaluate",
+          "text": "The response updates the local policy with an allow rule for the new tool."
+        }
+      ]
+    }
+  ]
+}

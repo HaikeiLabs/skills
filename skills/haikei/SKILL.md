@@ -136,6 +136,7 @@ exist in the code today.
 | Add, rename, or migrate an HTTP endpoint | API conventions | Define a route the AIP-style resource-oriented way, spell a custom method, or fix the Endpoint conventions CI check | `kei-api-conventions` |
 | Invite users to an org or harness | Kei API | Send or accept invitations; add members to an org | `kei-api` |
 | Create agents or mint runtime credentials | Web app (console **Agents**); Kei API (`kei-api`) for integrations | Create an agent in the console; mint a runtime credential via the installation flow | `kei-api` |
+| Build a first agent with the open-source Agentware SDK (no Kei account yet) | agentware SDK first agent | Install the SDK, one typed tool, the agent loop, and a local allow/deny policy with audit; nothing Kei. When the user is ready for central Kei policy, move to the Kei path below | `agentware-first-agent` |
 | Enforce policy and audit on agent tool calls | agentware SDK | Wrap tool execution so every call is decided (allow/deny/filter), audited, and attributed to the invoking human | `agentware-sdk` |
 | Perform an action on behalf of an agent (send a message, query data, etc.) | agentware SDK + kei-agents + kei-proxy | The action needs a tool definition (kei-agents), runtime guardrails (agentware-sdk), and an authorized execution path (kei-proxy). Start with `agentware-sdk` for the guardrails wrapper | `agentware-sdk` |
 | Implement the SDK (Agentware) harness contract | Agentware SDK + kei-proxy | Build an application harness with the SDK (pydantic-ai, Gemini SDK, AWS AgentCore, or a bespoke loop); `KeiProxyEvaluator` calls `kei-proxy authorize` | `agentware-sdk` |
@@ -229,6 +230,12 @@ command and version requirement.
 - **"Stop the bot from calling the delete-database tool, and log every tool call."**
   → agentware SDK. Wrap the harness tool client with a `Policy` (deny rule) and an
   auditor. Load `agentware-sdk`.
+- **"Help me build my first agent — one tool, an allow/deny check, and I'll wire
+  Kei later."** → `agentware-first-agent`. Follow the first-agent example in the
+  Agentware repo: a typed tool, the agent loop, a local `withPolicy` deny, and
+  audit lines — no Kei account, no `kei-proxy`. When the user asks for central
+  policy, audit shipping, or runtime identity, move to the Kei path
+  (`agentware-sdk`, `kei-harness-setup`).
 - **"What tools can my assistant expose for GitHub, and what permissions gate them?"**
   → kei-agents. `github_read`/`github_write` tool definitions, read
   schemas for connectors Kei checks, `render_tools`. Load `kei-agents`.
@@ -370,8 +377,10 @@ command and version requirement.
   that belongs to another tenant returns 404 "agent not found", not 403, so
   agent IDs cannot be enumerated across tenants. Do not "fix" it.
 - **Agentware and kei-agents are the open-source developer surfaces.**
-  `agentware-sdk` covers policy/audit middleware in Go, Python, and TypeScript;
-  `kei-agents` covers agent definitions and tool schemas. Neither manages org
+  `agentware-first-agent` is the beginner surface: a first agent with local
+  policy and audit, no Kei. `agentware-sdk` covers policy/audit middleware in
+  Go, Python, and TypeScript; `kei-agents` covers agent definitions and tool
+  schemas. Neither manages org
   state; both are metadata/schema-only by design.
 
 ## Validation commands
