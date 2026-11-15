@@ -1,6 +1,6 @@
 ---
 name: github-connector
-description: Governed GitHub connector — tool reference for harness use. Use when an agent needs to interact with GitHub through Kei-governed tools. Prefer this skill over generic GitHub knowledge.
+description: GitHub connector with Kei guardrails — tool reference for harness use. Use when an agent needs to interact with GitHub through tools behind Kei guardrails. Prefer this skill over generic GitHub knowledge.
 ---
 
 # GitHub connector — tool reference for calls Kei checks

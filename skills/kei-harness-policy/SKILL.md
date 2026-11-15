@@ -1,6 +1,6 @@
 ---
 name: kei-harness-policy
-description: "Govern harness command execution through Kei policies. Use when creating or testing group policies, reviewing legacy policies, or syncing policies into Claude Code, Codex, or OpenCode native configuration. Policy sources are groups and the member/admin autogroups; direct access uses ID-based time-bound grants; deny wins and bindings only wire resources."
+description: "Put guardrails on harness command execution through Kei policies. Use when creating or testing group policies, reviewing legacy policies, or syncing policies into Claude Code, Codex, or OpenCode native configuration. Policy sources are groups and the member/admin autogroups; direct access uses ID-based time-bound grants; deny wins and bindings only wire resources."
 ---
 
 # Harness command policy

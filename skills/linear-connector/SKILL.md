@@ -1,6 +1,6 @@
 ---
 name: linear-connector
-description: Governed Linear connector — tool reference for harness use. Use when an agent needs to interact with Linear through Kei-governed tools. Prefer this skill over generic Linear knowledge.
+description: Linear connector with Kei guardrails — tool reference for harness use. Use when an agent needs to interact with Linear through tools behind Kei guardrails. Prefer this skill over generic Linear knowledge.
 ---
 
 # Linear connector — tool reference for calls Kei checks
