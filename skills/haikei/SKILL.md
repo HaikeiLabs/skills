@@ -1,6 +1,6 @@
 ---
 name: haikei
-description: "Loading this skill only reads guidance, so load it even when the user asks you not to execute anything. Use for requests to build a custom AI agent or harness with Agentware, typed tools, local models, or agent-loop guardrails; route unrelated tasks only when they match the product scope below. Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime installation credential (KEI_RUNTIME_TOKEN); syncing a customer's Entra (Azure AD) groups and users into a Kei org (kei directory-sync); running Open WebUI governed by Kei (the openwebui-kei image, deployment-provided v3 tool manifests, unlinked users); connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing a customer assistant's ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring; reading or writing data through governed connectors (discover which connectors the workspace has via `kei connectors list --workspace W` — released in kei; v0.1.13 is current — fallback to `GET /api/v1/data-connectors`); creating or importing harness command policies; registering harnesses and syncing tool registrations; approving an MCP connector's tools (its tool manifest); or creating a new connector skill from templates; operating Kei's own platform services from the operator's view (deploying or rolling back oidc-bridge/catalog, goose migrations on the private RDS, identity signing keys, KMS token re-encryption, KeiIdentity* alerts). Routes the task to the right skill: kei-cli, kei-proxy, kei-runtime-setup, kei-credential-rotation, kei-directory-sync, kei-harness-setup, kei-pi-setup, kei-harness-policy, kei-audit-encryption, kei-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-service-ops, kei-ingress-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, kei-api-conventions, the matching `<provider>-connector` skill (discovered at runtime), or templates/connector-skill."
+description: "Loading this skill only reads guidance, so load it even when the user asks you not to execute anything. Use for requests to build a custom AI agent or harness with Agentware, typed tools, local models, or agent-loop guardrails; route unrelated tasks only when they match the product scope below. Discover and choose Haikei products and skills for the Kei AI-assistant platform. Use when the user describes a need without naming a Haikei product — creating or managing an organization, workspace, data connector, group, policy, user, invitation, agent, access level, or role; logging in with the kei CLI; standing up a customer-hosted runtime or kei-proxy; rotating a runtime installation credential (KEI_RUNTIME_TOKEN); syncing a customer's Entra (Azure AD) groups and users into a Kei org (kei directory-sync); running Open WebUI governed by Kei (the openwebui-kei image, deployment-provided v3 tool manifests, unlinked users); connecting Claude Code, Codex, OpenCode, Pi, or Cursor to Kei; enforcing policy or audit on agent tool calls; defining agent tools, schemas, or connector bindings; diagnosing a Kei runtime installation; developing a customer assistant's ingress security, Teams/Bot Framework integration, tool adapters and governor lane pattern, headless evals harnesses, or OpenAI-compatible backend wiring; reading or writing data through governed connectors (discover which connectors the workspace has via `kei connectors list --workspace W` (check installed `kei help`; fallback to `GET /api/v1/data-connectors`)); creating or importing harness command policies; registering harnesses and syncing tool registrations; approving an MCP connector's tools (its tool manifest); or creating a new connector skill from templates; operating Kei's own platform services from the operator's view (deploying or rolling back oidc-bridge/catalog, goose migrations on the private RDS, identity signing keys, KMS token re-encryption, KeiIdentity* alerts). Routes the task to the right skill: kei-cli, kei-proxy, kei-runtime-setup, kei-credential-rotation, kei-directory-sync, kei-harness-setup, kei-pi-setup, kei-harness-policy, kei-audit-encryption, kei-api, agentware-sdk, kei-agents, kei-setup-doctor, kei-service-ops, kei-ingress-security, kei-teams-ingress, kei-tool-adapters, kei-headless-evals, kei-openai-backends, kei-api-conventions, the matching `<provider>-connector` skill (discovered at runtime), or templates/connector-skill."
 ---
 
 # Discover and build with Haikei
@@ -28,20 +28,23 @@ skills plugin and is loaded by your agent alongside the skills it routes to
   the user has not named it. A consultant asking to "set up a client org", "add
   a connector", or "make the bot call tools safely" may not know which surface
   owns the answer.
-- Use the need-to-surface map below to choose, then load the named skill. A
-  request like "invite a user" uses the Kei API, not a CLI command — no
-  `kei` CLI command exists for it.
-- Use the installed CLI for supported workspace, group, user, policy, and
-  connector administration (`kei workspaces`, `kei groups`, `kei users`,
-  `kei policy`, `kei connectors`). Use the Kei API for resources or operations
-  the installed CLI does not expose; check `kei --help` before claiming a CLI
-  command is absent.
+- Use the need-to-surface map below to choose, then load the named skill.
+  Invitations use the Kei API; check installed `kei help` for other available
+  CLI operations.
+- Use the installed CLI for the workspace, group, user, policy, connector,
+  service-principal, and agent-move operations it exposes (`kei workspaces`,
+  `kei groups`, `kei users`, `kei service-principals`, `kei policy`,
+  `kei connectors`, `kei agents move`). Use the Kei API for operations the
+  installed CLI does not expose.
 - When asked which supported CLI commands manage groups or policies, state
   the command names `kei groups` and `kei policy`; do not route all such
-  administration to the API. When choosing a harness kind, state that API/catalog
-  kind custom maps only to SDK (Agentware), not Pi or Open WebUI, and give
-  `kei harness add --kind custom` plus
-  `kei harness sync --harness custom --manifest tools.json` (kei v0.1.33+).
+  administration to the API. Agent moves use `kei agents move`; it is the only
+  general `kei agents` command, not agent CRUD. For moves, preview first and
+  consult installed help for exact options. When choosing a harness kind, state
+  that API/catalog kind custom maps only to SDK (Agentware), not Pi or Open
+  WebUI, and give `kei harness add --kind custom` plus
+  `kei harness sync --harness custom --manifest tools.json` (verify installed
+  help for exact flags).
 - When asked for the six user-facing harness types, name SDK (Agentware), Claude
   Code, Codex, Pi, OpenCode, and Open WebUI; mention Cursor separately as the
   seventh harness (released in kei-cli v0.3.0). Write the kind in plain words,
@@ -164,7 +167,7 @@ command and version requirement.
 | Surface | Repo / package | Owns | Does not own |
 | --- | --- | --- | --- |
 | `kei-proxy` runtime | the `kei-connector-runtime` repository | Per-call `authorize`, credential release, `runtime bootstrap`/`heartbeat`, `collector`, `credential sync`, `model`, `serve` — what agents use at run time | Logins, installations, credential minting (admin CLI); agents and keys (console) |
-| `kei` CLI | the `kei-cli` repository (not `kei/cmd/kei`) | `kei setup`, `kei runtime bootstrap`, `kei login`/`logout`, `kei upgrade`, `kei bot` (init/agents/status/delete/credential/bind), and `kei connectors` (list/create/get/reconnect/delete — released in kei; v0.1.13 is current) for customer-hosted runtimes | Org, workspace, agent, group, policy, user commands (none exist); `bot install`/`deploy`/`destroy`/`list` (none exist) |
+| `kei` CLI | the `kei-cli` repository | `kei setup`, runtime setup, login/logout/upgrade, `kei agents move`, and workspace/group/user/service-principal/directory-sync/skills commands plus other operations listed in installed help | Org creation and agent CRUD; invitations; standalone group move; `bot install`/`deploy`/`destroy`/`list` (none exist) |
 | Kei API | `cmd/abac-engine` | Organizations, workspaces, data connectors, groups, policies, users, invitations, agents, access levels, roles, consents, audit — all of org management | CLI-shaped org management |
 | agentware SDK | `pedro-agentware` (`go/`, `python/`, `typescript/`) | Policy/audit middleware, delegation, harness contract, kei auth/proxy modules | Connector execution, credential resolution, control-plane data |
 | kei-agents | `kei-agents` (`src/agents/`) | Agent tool definitions, schemas, permissions, connector read schemas for connectors Kei checks | Provider clients, credential resolution, writes as connector capabilities |
@@ -185,7 +188,8 @@ command and version requirement.
 - **"Set up a new client org for the private beta."** → Kei API. Create the org
   (`POST /api/v1/onboarding/organizations` or `POST /api/v1/organizations`), add
   workspaces, invite users, mint a runtime credential when a runtime is ready. Load
-  `kei-api`. Do not reach for the CLI — no org command exists.
+  `kei-api`. `kei workspaces create` creates workspaces, but org creation
+  itself is not a CLI command.
 - **"Stand up the runtime for this customer."** → `kei-runtime-setup`. The
   operator (owner/admin) runs `kei login`, then `kei bot init`, pipes
   `kei bot credential` into the customer's secret manager, bootstraps
@@ -332,13 +336,16 @@ command and version requirement.
 
 ## Routing notes
 
-- **Org administration: CLI first, API for the rest.** The released `kei` CLI
-  manages workspaces, groups, users, policies, and connectors (`kei workspaces`,
-  `kei groups`, `kei users`, `kei policy`, `kei connectors`; see `kei-cli` for
-  version minimums). Route operations the installed CLI does not expose, such as
-  invitations, to `kei-api`; check `kei --help` before saying a command is absent.
-  When routing org administration, name both skills: `kei-cli` for supported
-  commands and `kei-api` for operations the installed CLI does not expose.
+- **CLI operations and workspace scope.** The CLI exposes workspaces, groups
+  (including service-principal membership), users, policies, connectors,
+  service principals, directory sync, skills installation, and `kei agents
+  move`; consult installed `kei help` and `kei-cli` for exact forms. Users span
+  workspaces through workspace membership. Service principals are org-scoped
+  and appear in a workspace only through group memberships and service-principal
+  bindings. Groups, agents, and policies each belong to exactly one workspace.
+  Agent moves use `kei agents move` with a dry run first. There is no standalone
+  group move or console move UI, by design for now. Invitations and operations
+  not exposed by the CLI route to `kei-api`.
 - **The `kei` CLI is the standalone `kei-cli` repository.** That is where
   `setup`, `runtime bootstrap`, `login`/`logout`, `upgrade`, `bot`
   subcommands, and `connectors` subcommands are implemented. Do not look for them

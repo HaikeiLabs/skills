@@ -1,12 +1,13 @@
 ---
 name: kei-cli
-description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade, login, runtime installations, workspaces, groups, users, policies (`kei policy`, with deprecated `kei policies` alias), connectors, harness management, model profiles, credential store, and one-command setup for supported harnesses (`kei connect claude-code|codex|opencode|pi|cursor`). Load before running or suggesting any `kei` command. Policy sources are groups or `autogroup:member` / `autogroup:admin`; direct access uses ID-based grants. Check installed help for exact syntax. For runtime tool-call authorization, use kei-proxy instead."
+description: "The `kei` platform-administration CLI for Kei (run by an org owner/admin, not by agents) — install/upgrade, login, runtime installations, agent moves, workspaces, groups, users, service principals, directory sync, policies (`kei policy`, with deprecated `kei policies` alias), connectors, harness management, model profiles, credential store, and Haikei skill installation for supported harnesses (`kei connect claude-code|codex|opencode|pi|cursor`). Load before running or suggesting any `kei` command. Policy sources are groups or `autogroup:member` / `autogroup:admin`; direct access uses ID-based grants. Check installed help for exact syntax. For runtime tool-call authorization, use kei-proxy instead."
 ---
 
 # kei CLI
 
-`kei` v0.3.7 is the current published CLI release. Check `kei --version` and
-`kei help` for the installed binary before relying on command syntax.
+Check `kei --version` and `kei help` for the installed binary before relying
+on command syntax. The installed help is authoritative; release contents and
+bundled `kei-proxy` versions can change independently.
 
 `kei` is the Kei **platform administration** CLI. It authenticates an org
 owner/admin and manages **runtime installations** — the identity a
@@ -327,25 +328,44 @@ kei policies import --from claude --src harness:* --workspace WORKSPACE
 kei policies import --from claude --src harness:* --workspace WORKSPACE --apply
 ```
 
+## Agent moves and workspace scope
+
+Use `kei agents move AGENT --to-workspace WORKSPACE` to move an agent. Preview
+first with `--dry-run`, inspect the plan, then repeat without `--dry-run` and
+confirm with `--yes` when appropriate. Repeat `--group NAME=move|copy|leave`
+to choose what happens to each group and `--installation ID=move_all|detach`
+to choose what happens to each installation. Groups whose members are service
+principals bound to the moving agent come along; harness tool rows are re-homed
+to the destination workspace. There is no standalone group-move command or
+console move UI; workspace moves are CLI/API only by design for now. When
+explaining a move, explicitly say that bound service-principal-member groups
+come along and harness tool rows are re-homed.
+
+If the move is blocked because the destination has no model profile, pass
+`--model-profile drop` to explicitly discard the source assignment. This flag
+is supported by the move workflow; if the installed `kei agents move --help`
+does not show it, verify the installed release before relying on it.
+
+On kei-proxy 0.9.1 and newer, `serve` refreshes its identity after a workspace
+move; no runtime restart or `kei-proxy policy sync --force` is needed. For
+older kei-proxy versions, restart the runtime and force a policy refresh after
+the move.
+
+Users are org-level identities that can span workspaces through workspace
+membership. Service principals are org-scoped; they appear in a workspace only
+through group membership and service-principal bindings. Groups, agents, and
+policies each belong to exactly one workspace.
+
 ## Key guidelines
 
-- **Nothing outside the usage string exists.** No `kei org` or `kei agent`
-  commands; no group update or delete; no `bot install`, `deploy`, or
-  `destroy`; no `kei setup doctor`. Orgs, agents, and groups are
-  created and changed in the web app (or through the HTTP API — see
-  `kei-api`). Say that plainly instead of guessing a command from an API route.
-  `kei workspaces list|create` and `kei groups create|list` exist
-  (v0.1.33+), and
-  `kei connectors`, `kei policies`, `kei harness`, `kei model-profiles` and
-  `kei credential-store` are the resource-oriented exceptions. Since v0.1.16,
-  `kei users` (list, get, create, update, resolve, identities) and
-  `kei groups members list|add|remove` manage users and group membership;
-  `kei bot list` (v0.1.8) lists installations. Since v0.1.34,
-  `kei connectors connect` connects your own per-user OAuth connector,
-  `kei credential-store get|put` accept `--workspace` to read/write workspace
-  overrides, and `kei connect` sets up a harness in one command.
-  Check `kei help` for the installed version before presenting any of them as
-  available.
+- **Nothing outside the usage string exists.** Check installed `kei help` and
+  command-specific help before naming a command or flag. Current help includes
+  `kei agents move` (not general agent CRUD), `kei users`, `kei groups`,
+  `kei workspaces create`, `kei directory-sync`, and `kei skills add`, along
+  with the other listed resource commands. There is no `kei org` command, no
+  agent create/update/delete CLI, no group update command, and no `kei setup
+  doctor`; org creation and operations not exposed by the CLI use `kei-api` or
+  the console. Do not claim agents, groups, or users have no CLI support.
 - **Credentials never touch the terminal.** `kei connectors connect` never
   prints a token; it prints only connection state and granted scopes.
   `kei bot credential` refuses to write to an interactive terminal; pipe it
@@ -389,10 +409,11 @@ kei policies import --from claude --src harness:* --workspace WORKSPACE --apply
 | --- | --- | --- |
 | Show commands for this version | `kei help` | no |
 | Log in / out | `kei login [--no-browser]` / `kei logout` | — |
-| List workspaces | `kei workspaces list [--json]` | yes |
-| Create a workspace (v0.1.33+) | `kei workspaces create --name NAME [--json] [--yes]` | yes |
-| Create a group (v0.1.33+) | `kei groups create --name NAME --workspace WORKSPACE [--description TEXT] [--json] [--yes]` | yes |
-| List groups (v0.1.33+) | `kei groups list --workspace WORKSPACE [--json]` | yes |
+| List / create workspaces | `kei workspaces list [--json]` / `kei workspaces create --name NAME [--json] [--yes]` | yes |
+| Move an agent | `kei agents move AGENT --to-workspace WS [--group NAME=move|copy|leave]… [--installation ID=move_all|detach]… [--dry-run] [--yes] [--json]` | yes |
+| Users | `kei users list|get|create|update|resolve`; `kei users identities list USER`; `kei users remote-identities list USER` | yes |
+| Groups and members | `kei groups list|create|delete`; `kei groups members list|add|remove`; add/remove accepts `--service-principal NAME` and `--workspace WS` | yes |
+| Service principals | `kei service-principals list|get|create|update|delete|bind|unbind`; `kei service-principals bindings list --workspace WS` | yes |
 | List runtime installations | `kei bot list [--json] [--all]` (v0.1.33+: shows VERSION column; flags `(below minimum)` when the installation's runtime version is below the org minimum; display-only, does not block the runtime) | yes |
 | Create a runtime installation | `kei bot init --platform cli\|teams\|discord\|slack\|whatsapp\|openwebui --name NAME [--agent ID] [--workspace WS]` | yes |
 | Emit the runtime credential | `kei bot credential --installation ID --workspace WORKSPACE \| <secret-manager import>` | yes |
@@ -432,7 +453,8 @@ kei policies import --from claude --src harness:* --workspace WORKSPACE --apply
 | Credential store | `kei credential-store get [--workspace WS]` / `put [--workspace WS]` (creates it) / `update` (PATCH) (v0.1.34+: `--workspace` reads/writes the workspace override) | yes |
 | Users (v0.1.16+) | `kei users list\|get\|create\|update\|resolve` / `kei users identities list USER` | yes |
 | Group membership (v0.1.16+) | `kei groups members list\|add\|remove GROUP [USER] [--workspace WS]` | yes |
-| Entra directory sync (after v0.1.29; workflow in `kei-directory-sync`) | `kei directory-sync get [--json]` / `set [--tenant-id G] [--client-id G] [--app-id G] [--dry-run=true\|false] [--create-users=true\|false] [--revoke=true\|false] [--yes]` / `enable\|disable [--yes]` / `report [--limit N] [--json]` | yes |
+| Entra directory sync (workflow in `kei-directory-sync`) | `kei directory-sync get|set|enable|disable|report`; see `kei directory-sync set --help` for current flags, including mutually exclusive `--app-id` and `--group-id` | yes |
+| Install Haikei skills for detected agents | `kei skills add` (installs via `npx skills add HaikeiLabs/skills -g`) | no |
 | One-command harness setup (v0.1.34+) | `kei connect HARNESS [--workspace NAME] [--yes]` (creates installation, credential, config, bootstrap, bind in one step) | yes |
 | Write local runtime config | `kei setup [--config PATH] [--control-plane-url URL]` | no (runtime token) |
 | Verify + heartbeat via local kei-proxy | `kei runtime bootstrap [--config PATH] [--proxy-path PATH]` | no (runtime token) |
@@ -700,27 +722,17 @@ kei feedback --description "..." --file app.log --screenshot error.png          
 The **Report a bug** button in the console header sends to the same place.
 Per-harness detail is in `kei-harness-setup`.
 
-## When resource commands arrive (AIP/CRUD)
+## Resource command availability
 
-The CLI exposes resource commands for workspaces, groups, users, policies,
-connectors, and harnesses (`kei workspaces`, `kei groups`, `kei users`,
-`kei policy`, `kei connectors`, `kei harness`),
-`kei model-profiles` and `kei credential-store` are the resource-oriented
-exceptions, all in v0.1.13; `kei users` and `kei groups members` arrived in
-v0.1.16; `kei workspaces create` and `kei groups create|list` arrived in
-v0.1.33; `kei connectors connect` and `kei credential-store get|put --workspace`
-arrived in v0.1.34). `kei connector-bindings` (agent↔connector wiring,
-ADR-038) is the newest: released in kei-cli v0.3.0 (v0.3.7 is current) — it calls
-`/api/v1/organizations/{org}/workspaces/{ws}/connector-bindings`.
-The first resource-oriented commands call the **shared AIP `/api/v1`
-endpoints**, not a private `/api/cli` backend: `kei policies` uses
-`/api/v1/policies`, `kei connectors` uses `/api/v1/data-connectors`,
-`kei connector-bindings` uses
-`/api/v1/organizations/{org}/workspaces/{ws}/connector-bindings`, and
-`kei model-profiles` uses `/api/v1/organizations/{org}/model-profiles` (with
-`:setDefault`; model-profile update is still `PUT` in the API today).
-Before using or documenting one, confirm it in `kei help`
-for the installed version and check that it follows the contract:
+The installed help currently exposes workspace, group, user, policy, connector,
+harness, model-profile, credential-store, service-principal, directory-sync,
+and agent-move commands. It also exposes `kei skills add` for installing the
+Haikei skills. Exact flags and supported operations vary by release; consult
+`kei help` and each command's `--help` before using them. Avoid stale version
+claims in this skill: the binary is the authority.
+
+Before using or documenting a resource command, confirm it in `kei help` for
+the installed version and check that it follows the contract:
 
 - `list` / `get` / `create` / `update` / `delete` map to the API's List, Get,
   Create, Update, and Delete;
@@ -757,21 +769,11 @@ kei bot status --installation INSTALLATION_ID
 
 ## Realistic usage boundaries
 
-- Organization, agent, connector, invitation, and
-  approval management happen in the web app today (`kei workspaces list` is
-  available for workspace discovery). The CLI will grow
-  resource-oriented commands after the API's AIP migration; until a release
-  ships one, do not describe it as available.
-  **Exception:** `kei policies`, `kei harness`, `kei model-profiles` and `kei
-  credential-store` are released resource-oriented commands (v0.1.13),
-  `kei users` / `kei groups members` are released in v0.1.16,
-  `kei workspaces create` / `kei groups create|list` are released in v0.1.33,
-  and `kei connectors connect` / `kei credential-store get|put --workspace`
-  are released in v0.1.34. `kei connector-bindings` (agent↔connector wiring;
-  a binding is wiring only, never a permission gate — ADR-038) is released in
-  kei-cli v0.3.0 (v0.3.7 is current): confirm it in
-  `kei help` before presenting it as available. For harness policy workflows,
-  load the `kei-harness-policy` skill.
+- Agent creation and general agent CRUD remain outside the CLI, but `kei agents
+  move` is available. Workspace-scoped group/user/policy operations and org
+  users/service principals are exposed to the extent listed in the installed
+  help. Invitations and other unavailable operations use `kei-api` or the
+  console. For harness policy workflows, load `kei-harness-policy`.
 - The CLI does not submit tool manifests (the runtime does), create connector
   templates, or grant a connector to a group (that is a policy). `--provider`
   has no `grafana` (or other MCP) value: an MCP server is added with
