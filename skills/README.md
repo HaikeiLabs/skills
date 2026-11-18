@@ -7,6 +7,7 @@ the scripts in `scripts/` (see the repo README).
 | Skill | Description |
 | --- | --- |
 | `agentware-sdk` | Policy/audit middleware for agent tool calls in Go, Python, and TypeScript |
+| `connector-operations` | Author connector operation contracts, fixtures, and capability manifests |
 | `discord-connector` | Discord connector that Kei checks — REST API, guild/channel/thread/message model, policy types |
 | `github-connector` | GitHub connector that Kei checks — `gh` CLI, REST API, entity model, policy types |
 | `google-drive-connector` | Google Drive connector that Kei checks — Drive API v3, file/folder model, export patterns |

@@ -14,7 +14,7 @@
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       },
-      "description": "Build a first agent with the open-source agentware SDK (no Kei account), and set up remote MCP connectors end to end with kei-mcp-connectors.",
+      "description": "Build a first agent with the open-source agentware SDK (no Kei account), and set up remote MCP connectors end to end with kei-mcp-connectors; connector operations contract authoring.",
       "category": "Developer Tools"
     }
   ]

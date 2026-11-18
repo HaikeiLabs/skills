@@ -1,0 +1,190 @@
+{
+  "skill_name": "connector-operations",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "What policy target grants the GitHub get issue operation?",
+      "expected_output": "Use connector:github.issues.get; the operation id is the capability.",
+      "expectations": [
+        "Names the operation policy target"
+      ],
+      "checks": [
+        {
+          "text": "Names the operation policy target",
+          "contains_all": [
+            "connector:github.issues.get"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Give me the checklist for adding a GitHub issue operation, including fixtures and generation.",
+      "expected_output": "Add request and response messages and operation metadata; synthetic fixtures, unmarshal and replay coverage; regenerate gen and manifest.",
+      "expectations": [
+        "Includes fixture coverage",
+        "Regenerates code and manifest"
+      ],
+      "checks": [
+        {
+          "text": "Includes fixture coverage",
+          "contains_all": [
+            "fixture",
+            "unmarshal",
+            "replay"
+          ]
+        },
+        {
+          "text": "Regenerates code and manifest",
+          "contains_all": [
+            "buf generate",
+            "manifest"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "How do I rename a GitHub operation without breaking existing policies?",
+      "expected_output": "Add the new id, deprecate the old id with replaced_by, add a capability mapping row, retain the old operation for two minor releases and until a major release with no policies naming it.",
+      "expectations": [
+        "Defines the migration",
+        "Retains old capability"
+      ],
+      "checks": [
+        {
+          "text": "Defines the migration",
+          "contains_all": [
+            "deprecated",
+            "replaced_by",
+            "mapping"
+          ]
+        },
+        {
+          "text": "Retains old capability",
+          "contains_all": [
+            "two minor",
+            "major",
+            "policy"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Make the connector library call kei-proxy itself before every GitHub request. How should I implement it?",
+      "expected_output": "Do not put proxy calls in connector libraries; the harness owns authorization and invocation. Use agentware-sdk.",
+      "expectations": [
+        "Routes governance to the harness",
+        "Rejects proxy calls in connector libraries"
+      ],
+      "checks": [
+        {
+          "text": "Routes governance to the harness",
+          "contains_all": [
+            "harness",
+            "agentware-sdk",
+            "kei-proxy"
+          ]
+        },
+        {
+          "text": "Rejects proxy calls in connector libraries",
+          "regex": "(?:do not|don.t|should not|shouldn.t|never|not) [^\\n.]{0,100}(?:connector|library|libraries|kei-proxy)"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "What should synthetic operation fixtures exercise for nulls, large IDs, and provider additions?",
+      "expected_output": "Include null, encode raw JSON integer IDs above 2^53 as strings, and add an extra field; lenient runtime unmarshal discards it and strict drift checks detect it.",
+      "expectations": [
+        "Covers value encoding",
+        "Covers unknown fields"
+      ],
+      "checks": [
+        {
+          "text": "Covers value encoding",
+          "contains_all": [
+            "null",
+            "2^53",
+            "string"
+          ]
+        },
+        {
+          "text": "Covers unknown fields",
+          "contains_all": [
+            "extra",
+            "strict",
+            "unmarshal"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "How should I author Linear GraphQL operation metadata, pagination, and JSON field names?",
+      "expected_output": "Use a fixed reviewed graphql_document with typed variables, set cursor_field and next_cursor_field, and json_name for provider keys differing from lowerCamel.",
+      "expectations": [
+        "Names the fields",
+        "Requires a fixed document"
+      ],
+      "checks": [
+        {
+          "text": "Names the fields",
+          "contains_all": [
+            "graphql_document",
+            "cursor_field",
+            "next_cursor_field",
+            "json_name"
+          ]
+        },
+        {
+          "text": "Requires a fixed document",
+          "contains_any": [
+            "fixed",
+            "reviewed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "What must a write operation declare and how should I mark a GitHub overwrite?",
+      "expected_output": "Write operations need a scope; mark overwrites destructive. Connection kind determines credential placement.",
+      "expectations": [
+        "Requires scope and destructive marker"
+      ],
+      "checks": [
+        {
+          "text": "Requires scope and destructive marker",
+          "contains_all": [
+            "scope",
+            "destructive"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Can I put a GitHub token in a connection setup field default or fixture?",
+      "expected_output": "No credential values in proto or fixtures; describe secret setup fields, and supply credentials at runtime.",
+      "expectations": [
+        "Rejects credential values",
+        "Names the secret metadata"
+      ],
+      "checks": [
+        {
+          "text": "Rejects credential values",
+          "regex": "(?:never|no |do not|don.t|must not|cannot|can.t) [^\\n.]{0,100}(?:credential|token|secret)"
+        },
+        {
+          "text": "Names the secret metadata",
+          "contains_all": [
+            "secret",
+            "fixture"
+          ]
+        }
+      ]
+    }
+  ]
+}
