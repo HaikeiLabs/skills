@@ -73,7 +73,7 @@ test('runner preflights profiles and --no-preflight skips it with a fake harness
     expectations: ['Includes fake answer'],
     checks: [{ text: 'Includes fake answer', contains_any: ['fake answer'] }],
   }] }));
-  writeFileSync(opencodePath, `#!/usr/bin/env node\nrequire('node:fs').appendFileSync(process.env.FAKE_HARNESS_MARKER, 'called\\n');\nprocess.stdout.write('fake answer\\n');\n`);
+  writeFileSync(opencodePath, `#!/usr/bin/env node\nif (process.argv.includes('--help')) { console.log('  --standalone  private server'); process.exit(0); }\nif (!process.argv.includes('--standalone')) process.exit(3);\nrequire('node:fs').appendFileSync(process.env.FAKE_HARNESS_MARKER, 'called\\n');\nprocess.stdout.write('fake answer\\n');\n`);
   chmodSync(opencodePath, 0o755);
   const env = {
     ...process.env,

@@ -192,7 +192,9 @@ same thing locally to tune a skill before opening a pull request.
 
 **Prerequisites.** Install the `opencode` harness CLI and put it on PATH.
 The runner starts it in the eval work directory using the subprocess working
-directory, compatible with OpenCode 1.x and 2.x.
+directory, compatible with OpenCode 1.x and 2.x. When supported, the runner
+uses `--standalone` so each run’s private server receives its inline provider
+and sandbox configuration.
 
 **Model server URLs.** Each profile reads its server URL from the
 environment variable named by its `base_url_env`, and the runner refuses to

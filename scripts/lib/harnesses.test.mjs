@@ -83,6 +83,13 @@ test('opencode uses the eval working directory without a directory flag', async 
   }
 });
 
+test('opencode 2 runs with a private server while 1.x keeps its supported arguments', () => {
+  const v2 = HARNESSES.opencode.command('prompt', 'eval/model', '/tmp/x', null, { opencodeStandalone: true });
+  const v1 = HARNESSES.opencode.command('prompt', 'eval/model', '/tmp/x', null, { opencodeStandalone: false });
+  assert.deepEqual(v2[1], ['run', '--standalone', '-m', 'eval/model', 'prompt']);
+  assert.deepEqual(v1[1], ['run', '-m', 'eval/model', 'prompt']);
+});
+
 test('opencode runs with_skill and without_skill under the same sandbox, isolated from user config', () => {
   const dirs = [mkdtempSync(path.join(tmpdir(), 'sandbox-a-')), mkdtempSync(path.join(tmpdir(), 'sandbox-b-'))];
   try {
@@ -98,6 +105,7 @@ test('opencode runs with_skill and without_skill under the same sandbox, isolate
       assert.equal(env.OPENCODE_CONFIG, '');
       assert.equal(env.OPENCODE_PURE, '1');
       assert.equal(env.OPENCODE_DISABLE_EXTERNAL_SKILLS, '1');
+      assert.equal(env.OPENCODE_DISABLE_CLAUDE_CODE, '1');
       assert.equal(env.OPENCODE_DISABLE_CLAUDE_CODE_SKILLS, '1');
     }
   } finally {

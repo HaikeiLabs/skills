@@ -283,6 +283,19 @@ async function main() {
   const skills = opts.skills.length
     ? opts.skills
     : fs.readdirSync(opts.skillsDir).filter((d) => fs.existsSync(path.join(opts.skillsDir, d, 'evals', 'evals.json')));
+  if (opts.harness === 'opencode') {
+    // OpenCode 2 uses a background service by default; it cannot see the
+    // per-run inline config. Older versions do not accept --standalone.
+    const probeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'opencode-probe-'));
+    try {
+      const env = HARNESSES.opencode.env({}, { cwd: probeDir, skill: '' });
+      const help = await runCommand('opencode', ['run', '--help'], { cwd: probeDir, env, timeoutMs: 10_000 });
+      if (help.code !== 0) throw new Error(`opencode run --help failed: ${help.stderr}`);
+      opts.opencodeStandalone = /(?:^|\s)--standalone(?:[\s,=]|$)/m.test(help.stdout);
+    } finally {
+      fs.rmSync(probeDir, { recursive: true, force: true });
+    }
+  }
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const out = path.resolve(opts.out ?? path.join(ROOT, 'evals-out', `${opts.harness}-${stamp}`));
   const configs = opts.baseline ? ['with_skill', 'without_skill'] : ['with_skill'];
