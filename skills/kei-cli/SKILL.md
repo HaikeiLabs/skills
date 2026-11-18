@@ -410,10 +410,10 @@ policies each belong to exactly one workspace.
 | Show commands for this version | `kei help` | no |
 | Log in / out | `kei login [--no-browser]` / `kei logout` | — |
 | List / create workspaces | `kei workspaces list [--json]` / `kei workspaces create --name NAME [--json] [--yes]` | yes |
-| Move an agent | `kei agents move AGENT --to-workspace WS [--group NAME=move|copy|leave]… [--installation ID=move_all|detach]… [--dry-run] [--yes] [--json]` | yes |
-| Users | `kei users list|get|create|update|resolve`; `kei users identities list USER`; `kei users remote-identities list USER` | yes |
-| Groups and members | `kei groups list|create|delete`; `kei groups members list|add|remove`; add/remove accepts `--service-principal NAME` and `--workspace WS` | yes |
-| Service principals | `kei service-principals list|get|create|update|delete|bind|unbind`; `kei service-principals bindings list --workspace WS` | yes |
+| Move an agent | `kei agents move AGENT --to-workspace WS [--group NAME=move\|copy\|leave]… [--installation ID=move_all\|detach]… [--model-profile drop] [--dry-run] [--yes] [--json]` | yes |
+| Users | `kei users list\|get\|create\|update\|resolve`; `kei users identities list USER`; `kei users remote-identities list USER` | yes |
+| Groups and members | `kei groups list\|create\|delete`; `kei groups members list\|add\|remove`; add/remove accepts `--service-principal NAME` and `--workspace WS` | yes |
+| Service principals | `kei service-principals list\|get\|create\|update\|delete\|bind\|unbind`; `kei service-principals bindings list --workspace WS` | yes |
 | List runtime installations | `kei bot list [--json] [--all]` (v0.1.33+: shows VERSION column; flags `(below minimum)` when the installation's runtime version is below the org minimum; display-only, does not block the runtime) | yes |
 | Create a runtime installation | `kei bot init --platform cli\|teams\|discord\|slack\|whatsapp\|openwebui --name NAME [--agent ID] [--workspace WS]` | yes |
 | Emit the runtime credential | `kei bot credential --installation ID --workspace WORKSPACE \| <secret-manager import>` | yes |
@@ -431,7 +431,7 @@ policies each belong to exactly one workspace.
 | Delete a policy | `kei policy delete ID --workspace WS` | yes |
 | List data connectors | `kei connectors list [--workspace WS] [--json]` | yes |
 | Create a data connector | `kei connectors create --provider P --name NAME [--account-model M] [--set k=v] [--credential-ref R] [--capabilities a,b] [--workspace WS]` | yes |
-| Connect your own per-user OAuth connector (v0.1.34+) | `kei connectors connect <id|name> --workspace WORKSPACE [--no-browser]` | yes |
+| Connect your own per-user OAuth connector (v0.1.34+) | `kei connectors connect <id\|name> --workspace WORKSPACE [--no-browser]` | yes |
 | Get / reconnect / delete a connector | `kei connectors get ID [--json]` / `kei connectors reconnect ID [--no-browser] [--keep-secret]` (v0.1.34+: on per-user connectors, points to `kei connectors connect`) / `kei connectors delete ID --yes` | yes |
 | Add a remote MCP server (v0.1.32+) | `kei connectors create --template TEMPLATE_ID --label LABEL [--kind mcp] [--slug S] [--mcp-url URL] [--expected-issuer URL] [--workspace WS]` | yes |
 | Review an MCP connector's tool manifests (v0.1.32+; alias `tools`) | `kei connectors manifests list\|show CONNECTOR_ID [MANIFEST_ID] [--workspace WS] [--json]` | yes |
@@ -451,9 +451,7 @@ policies each belong to exactly one workspace.
 | Validate an endpoint like the console's Test button (no provider call) | `kei model-profiles test --endpoint URL` / `kei model-profiles test PROFILE [--workspace WS]` | `--endpoint`: no |
 | Delete a model profile | `kei model-profiles delete PROFILE [--workspace WS] --yes` | yes |
 | Credential store | `kei credential-store get [--workspace WS]` / `put [--workspace WS]` (creates it) / `update` (PATCH) (v0.1.34+: `--workspace` reads/writes the workspace override) | yes |
-| Users (v0.1.16+) | `kei users list\|get\|create\|update\|resolve` / `kei users identities list USER` | yes |
-| Group membership (v0.1.16+) | `kei groups members list\|add\|remove GROUP [USER] [--workspace WS]` | yes |
-| Entra directory sync (workflow in `kei-directory-sync`) | `kei directory-sync get|set|enable|disable|report`; see `kei directory-sync set --help` for current flags, including mutually exclusive `--app-id` and `--group-id` | yes |
+| Entra directory sync (workflow in `kei-directory-sync`) | `kei directory-sync get\|set\|enable\|disable\|report`; see `kei directory-sync set --help` for current flags, including mutually exclusive `--app-id` and `--group-id` | yes |
 | Install Haikei skills for detected agents | `kei skills add` (installs via `npx skills add HaikeiLabs/skills -g`) | no |
 | One-command harness setup (v0.1.34+) | `kei connect HARNESS [--workspace NAME] [--yes]` (creates installation, credential, config, bootstrap, bind in one step) | yes |
 | Write local runtime config | `kei setup [--config PATH] [--control-plane-url URL]` | no (runtime token) |
