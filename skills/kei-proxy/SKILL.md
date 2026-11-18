@@ -92,7 +92,12 @@ The harness process needs, in its environment:
 KEI_RUNTIME_CONTROL_PLANE_URL=https://YOUR_KEI_GATEWAY   # no /api/v1 suffix
 KEI_RUNTIME_TOKEN=<runtime credential from the secret manager>  # never an argument
 KEI_RUNTIME_VERSION=<runtime version>
+KEI_SECRETS_BACKEND=aws-secrets-manager   # required by kei-proxy >= 0.7 to read model-profile/connector secrets
 ```
+
+`KEI_SECRETS_BACKEND` identifies the configured secret backend (for example
+`aws-secrets-manager`). Kei-proxy >= 0.7 requires it when reading model-profile
+or connector secrets.
 
 Leave `ABAC_URL` unset in runtime mode. Since kei-proxy 0.1.32, `authorize`
 resolves subjects at `KEI_RUNTIME_CONTROL_PLANE_URL` when `ABAC_URL` is unset;
@@ -112,6 +117,10 @@ existing same-container deployments. See the public Agentware socket parity docu
 The token determines installation, organization, and workspace scope. Do not
 pass org, tenant, or workspace IDs as scope. `--key` exists on some commands
 but puts the token in the process list and shell history; use the env var.
+
+After an agent workspace move, kei-proxy 0.9.1+ `serve` refreshes its identity
+without a restart or forced policy sync. For older proxy versions, restart the
+runtime and run `kei-proxy policy sync --force`.
 
 **Agent identity is auto-discovered.** Since kei-proxy 0.1.11 the identity
 event (whoami) returns the assigned agent ID and agent list. The harness does
