@@ -23,8 +23,9 @@ Never reuse an id for different behavior.
 
 Keep contracts and connector libraries separate from the agent harness. Do
 not add tool definitions to this repository or make connector libraries call
-`kei-proxy`: the harness owns authorization and invocation; use
-`agentware-sdk` for its governed tool integration. Do not put credential
+`kei-proxy`. Agentware's `agentware-sdk` `OperationRunner` imports the
+generated connector libraries and calls `kei-proxy` to authorize operations
+and release credentials; connector libraries never call `kei-proxy`. Do not put credential
 values, provider payloads, or customer content in contract metadata. Do not add
 new entries to the frozen legacy provider, setup, access, or tool-definition
 surfaces.
@@ -65,9 +66,9 @@ surfaces.
    language. Go conformance tests exercise lenient and strict unmarshal;
    Python and Rust have fixture unmarshal tests; add TypeScript coverage too.
    Runtime unmarshal discards unknown fields, while the strict drift check
-   detects them. Check the actual tests and CI for current coverage; operation
-   generation is Go, Python, and TypeScript, while Rust operation generation
-   and four-language replay parity are planned.
+   detects them. The Cross-language parity CI gate exercises generated
+   operations across Go, Python, TypeScript, and Rust. Check the actual tests
+   and CI for coverage.
 6. Update the connector page and any applicable legacy capability mapping.
    Run `buf generate`: message plugins and `protoc-gen-kei-ops` regenerate
    `gen/**`, and `protoc-gen-kei-manifest` regenerates the connector and
@@ -120,5 +121,5 @@ full checks.
 This skill covers authoring contracts, not provider account setup, policy
 administration, or tool definitions. Use the provider connector skill for
 usage and `agentware-sdk` for harness integration. Proto and current tests win
-when documentation or generated coverage differs. Do not assume planned Rust
-operation generation or four-language replay parity is already implemented.
+when documentation or generated coverage differs. The Cross-language parity
+CI gate covers Go, Python, TypeScript, and Rust.
