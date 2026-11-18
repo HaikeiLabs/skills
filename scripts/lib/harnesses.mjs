@@ -149,7 +149,7 @@ export const HARNESSES = {
   },
   opencode: {
     skillDir: '.opencode/skills',
-    command: (prompt, model, cwd) => ['opencode', ['run', '--dir', cwd,
+    command: (prompt, model) => ['opencode', ['run',
       ...(model ? ['-m', model] : []), prompt]],
     // `opencode run` has no tool flags; the sandbox is inline config.
     // The run also ignores the user's opencode setup: an empty config home

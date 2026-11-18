@@ -190,16 +190,9 @@ against the two model profiles in
 [`evals/model-profiles.yaml`](evals/model-profiles.yaml). You can run the
 same thing locally to tune a skill before opening a pull request.
 
-**Prerequisites.** The `opencode` harness CLI on PATH, version 1.x — the
-runner calls `opencode run --dir`, which opencode 2.x no longer supports.
-Install a pinned 1.x release into a scratch directory and put it on PATH:
-
-```bash
-mkdir -p /tmp/eval-tools
-cd /tmp/eval-tools
-npm i opencode-ai@1.19.5
-export PATH="$PWD/node_modules/.bin:$PATH"
-```
+**Prerequisites.** Install the `opencode` harness CLI and put it on PATH.
+The runner starts it in the eval work directory using the subprocess working
+directory, compatible with OpenCode 1.x and 2.x.
 
 **Model server URLs.** Each profile reads its server URL from the
 environment variable named by its `base_url_env`, and the runner refuses to
