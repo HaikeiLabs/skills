@@ -98,9 +98,9 @@ the validated daemon contract.
 
 ## Before you start
 
-- The org and workspace already exist. They are created in the Kei web app;
-  there are no `kei org` commands (use `kei workspaces list` to discover
-  workspace names and IDs from the CLI).
+- The organization already exists; create it in the console/API (there is no
+  `kei org` command). Workspaces can be created with
+  `kei workspaces create --name NAME` or discovered with `kei workspaces list`.
 - The operator is an org `owner` or `admin`. Anyone else is refused at login
   with `403 organization administrator role is required`.
 - The `kei` CLI is installed (see the `kei-cli` skill) and `kei --version`
@@ -254,7 +254,12 @@ Set these on the harness process; `kei-proxy` inherits them as a child process:
 KEI_RUNTIME_CONTROL_PLANE_URL=https://YOUR_KEI_GATEWAY
 KEI_RUNTIME_TOKEN=<loaded from the secret manager>
 KEI_RUNTIME_VERSION=<your deployed runtime version>
+KEI_SECRETS_BACKEND=aws-secrets-manager   # required by kei-proxy >= 0.7 to read model-profile/connector secrets
 ```
+
+`KEI_SECRETS_BACKEND` must name the configured secret backend (for example
+`aws-secrets-manager`; use the value matching the runtime's secret store).
+Kei-proxy 0.7+ requires it when reading model-profile or connector secrets.
 
 - The control-plane URL is deployment-specific. Production and staging must be
   HTTPS. Do not append `/api/v1`; the runtime adds its own paths.
@@ -310,14 +315,12 @@ kei-proxy serve
 
 The daemon serves readiness (`/healthz`, `/readyz`), and a protected
 `POST /v1/authorize` plus `PUT`/`DELETE /v1/session` on the owner-only socket.
-Model inference does not go through kei-proxy. The authorize
-decision is made **locally** by the runtime PDP against the synced policy
-bundle — no per-call catalog round trip — and the request carries no subject
-field (identity comes from the in-memory session). A background refresher polls
-the current bundle on the bundle's `refresh.poll_interval_seconds` (clamped to
-30–300 s, with jitter) and swaps in a new enforceable bundle; `kei-proxy
-policy show` reports the persisted bundle's state offline, and `kei-proxy
-policy sync` forces an immediate fetch.
+Model inference does not go through kei-proxy. The authorize decision is made
+locally from the synced policy bundle; a background refresher polls the bundle
+and swaps in updates. Kei-proxy 0.9.1+ refreshes its identity after an agent
+workspace move, so a runtime using `serve` does not need a restart or
+`kei-proxy policy sync --force` after the move. For older kei-proxy versions,
+restart the runtime and force a policy refresh after the move.
 
 The daemon also accepts `KEI_PROXY_LISTEN_ADDR` (TCP, default `:8085`) for
 existing same-container OpenWebUI deployments that cannot use a Unix socket;
@@ -341,6 +344,10 @@ Which path applies:
 |---|---|
 | Same cloud account as the credential store | **Read on that one secret.** No sync key, no delivery, no write. |
 | Its own, different store | Credential sync (next section) to deliver a new or rotated key into that store. |
+
+Set `KEI_SECRETS_BACKEND` to the backend configured for the runtime (for
+example `aws-secrets-manager`); kei-proxy >= 0.7 requires this setting to read
+model-profile or connector secrets.
 
 The AWS statement for the same-account case (read only, one secret):
 
@@ -611,8 +618,9 @@ kei bot agents add --installation INSTALLATION_ID --agent AGENT_ID --default
 kei bot agents list --installation INSTALLATION_ID
 ```
 
-Agents themselves are created in the web app; there is no CLI command to
-create one.
+Agent creation and general CRUD are not exposed by the CLI; use the console
+or API to create an agent. To move an existing agent across workspaces, use
+`kei agents move` (preview with `--dry-run` first; see `kei-cli`).
 
 ### Pair the runtime with a harness
 

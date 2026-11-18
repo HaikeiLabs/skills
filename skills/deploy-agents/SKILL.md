@@ -54,7 +54,11 @@ Kei runtime Dockerfile). Inject three variables into the harness process:
 KEI_RUNTIME_CONTROL_PLANE_URL=https://app.haikeilabs.com   # the gateway; never append /api/v1
 KEI_RUNTIME_TOKEN=<from the secret manager>                 # env only, never argv, never a file in the repo
 KEI_RUNTIME_VERSION=<your deployed version>
+KEI_SECRETS_BACKEND=aws-secrets-manager   # required by kei-proxy >= 0.7 to read model-profile/connector secrets
 ```
+
+`KEI_SECRETS_BACKEND` identifies the configured secret backend. Kei-proxy >=
+0.7 requires it when reading model-profile or connector secrets.
 
 Never pass an org, tenant, or workspace ID as scope; the token determines it.
 Entrypoint, in order:
@@ -67,6 +71,15 @@ exec my-harness                                # syncs its tool manifest, then s
 ```
 
 If bootstrap output has no `workspace_id`, stop and re-mint the credential.
+
+**Workspace moves.** Existing agents move with `kei agents move`; preview
+with `--dry-run` first and consult `kei-cli` for group and installation
+choices. Kei-proxy 0.9.1+ refreshes its identity after the move, so no runtime
+restart or forced policy sync is needed. Older proxy versions need a restart
+and forced sync. Groups, agents, and policies belong to one workspace; users
+span workspaces by membership, while org-scoped service principals appear in a
+workspace only through group membership and bindings. There is no standalone
+group move or console move UI, by design for now.
 
 **The daemon (`kei-proxy serve`).** It listens on a Unix socket —
 `/run/kei-proxy/runtime.sock` on Linux (`KEI_RUNTIME_SOCKET_PATH` overrides),
@@ -224,8 +237,9 @@ kei connectors list --workspace WS
 - Never put `KEI_RUNTIME_TOKEN` in argv, a repo file, a log, or the audit
   trail. Never log or share an enrollment or connect URL.
 - No public `kei-proxy` image or registry exists; do not invent one.
-- There is no CLI command to create agents or organizations, or to write
-  tool-call (ABAC) policies — use the console or the Kei API.
+- Agent creation and organization creation are not CLI operations; existing
+  agents can be moved with `kei agents move`. Use the supported `kei policy`
+  commands for ABAC policies; consult `kei help` for the installed surface.
 - Rotating the runtime credential breaks the running runtime at once; plan the
   restart (`kei-credential-rotation`).
 - Only github, gmail, google_drive, and linear run with session-held OAuth in

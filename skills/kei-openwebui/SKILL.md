@@ -244,8 +244,9 @@ python -m kei_openwebui.boot --export-manifest
 - Knowledge embeddings don't go through Kei (no `/v1/embeddings`, gap K1).
 - Read/write isn't in the authorize request; write separate permits for read
   and write tools.
-- No `kei` command creates agents, and `kei directory-sync` needs a kei-cli
-  release after v0.1.29.
+- Agent creation is not exposed by the CLI; existing agents can move between
+  workspaces with `kei agents move` (preview first). Check installed help for
+  current `kei directory-sync` syntax.
 - Agents: never print or ask for `KEI_RUNTIME_TOKEN`, never send an empty tool
   manifest (it unregisters every tool), and never run `kei` writes without the
   admin's go-ahead.

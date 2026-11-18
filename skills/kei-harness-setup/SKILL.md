@@ -1007,7 +1007,8 @@ kei connector-bindings list --workspace WS --json        # agent↔connector wir
 - A connector binding is wiring only (ADR-038 §4); it never gates permission.
   Allow/deny comes from workspace policy — group membership and matching
   targets — so a binding alone proves nothing about access.
-- Agents are created in the console; there is no CLI command for that yet.
+- Agent creation/general CRUD remain outside the CLI; existing agents can be
+  moved with `kei agents move` (preview with `--dry-run` first).
 - The explicit Harness resource and short-lived runtime identity in the ADRs
   are planned. Do not present them as available.
 - The installation-claim handshake IS available for chat-platform
