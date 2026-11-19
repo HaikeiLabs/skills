@@ -4,6 +4,11 @@ Deterministic eval cases for the build-agents-agentware guide skill: composing p
 exactly one EV-C1 check (`contains_all`, `contains_any`, `regex` or
 `not_contains`, case-insensitive). There is no LLM grader.
 
+Cases 16-19 cover section 5, taking the model from the agent's Kei model
+profile: `model_config()` and no model URL or key in harness config (16), a
+profile change mid-session (17), `no_profile` and `credential_unavailable`
+(18), and the SDK gap: no Agentware backend over kei-proxy (19).
+
 ## Running
 
 ```bash
