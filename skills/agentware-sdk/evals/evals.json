@@ -212,8 +212,8 @@
             "must not pass",
             "no resource",
             "not pass",
-            "don’t pass",
-            "shouldn’t pass"
+            "don\u2019t pass",
+            "shouldn\u2019t pass"
           ]
         },
         {
@@ -250,9 +250,9 @@
             "don't forward",
             "do not forward",
             "No.",
-            "don’t send",
-            "shouldn’t",
-            "don’t forward"
+            "don\u2019t send",
+            "shouldn\u2019t",
+            "don\u2019t forward"
           ]
         },
         {
@@ -432,6 +432,188 @@
         {
           "text": "identifies socket client selection behavior, by behavior or Go API name",
           "regex": "(select(or|ion)? (the )?(socket|authorization) client|socket (client )?selection|runtimesocket[.`]*SelectAuthorizationClient|(?=[\\s\\S]*(configured socket|KEI_RUNTIME_SOCKET_PATH))(?=[\\s\\S]*(down|unreachable|unavailable))(?=[\\s\\S]*(refus|fail.closed|den(y|ies))))"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "I'm building a Python agent with Agentware against an OpenAI-compatible model. How do I get the model's tool calls and its reasoning, and why doesn't the model see my tools when I use run_inference?",
+      "expected_output": "Use OpenAIBackend(model, base_url, api_key); its Response carries tool_calls parsed by parse_tool_calls (arguments as JSON string or object, unparseable becomes {} so validate) and reasoning from reasoning_content; ReasoningAdapter strip/extract separates reasoning. Python run_inference does not send its tools, so call backend.complete(messages, tools) in your own loop.",
+      "expectations": [
+        "The response names the Python OpenAIBackend.",
+        "The response says tool calls come back parsed on the response.",
+        "The response names reasoning_content or the ReasoningAdapter.",
+        "The response says run_inference does not send the tools and to call complete with tools."
+      ],
+      "checks": [
+        {
+          "text": "The response names the Python OpenAIBackend.",
+          "contains_all": [
+            "OpenAIBackend"
+          ]
+        },
+        {
+          "text": "The response says tool calls come back parsed on the response.",
+          "contains_any": [
+            "tool_calls",
+            "parse_tool_calls"
+          ]
+        },
+        {
+          "text": "The response names reasoning_content or the ReasoningAdapter.",
+          "contains_any": [
+            "reasoning_content",
+            "ReasoningAdapter"
+          ]
+        },
+        {
+          "text": "The response says run_inference does not send the tools and to call complete with tools.",
+          "regex": "complete\\(messages,\\s*tools|(not|n't|never)[^.\\n]{0,40}(send|pass)[^.\\n]{0,30}tools|drops? (the )?tools|with \\**no tools"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "As the Kei admin, how do I allow my Agentware harness's notes.search tool for the Support group, and check the rule before going live?",
+      "expected_output": "kei policy create --workspace WS --group Support --allow tool:notes.search, then kei policy test tool:notes.search --workspace WS --as group:Support. tool:<name> is an exact name; deny wins; unmatched tools are denied.",
+      "expectations": [
+        "The response gives kei policy create.",
+        "The response uses the tool:notes.search target.",
+        "The response gives kei policy test to check it.",
+        "The response does not use the legacy kei policies command."
+      ],
+      "checks": [
+        {
+          "text": "The response gives kei policy create.",
+          "contains_all": [
+            "kei policy create"
+          ]
+        },
+        {
+          "text": "The response uses the tool:notes.search target.",
+          "contains_all": [
+            "tool:notes.search"
+          ]
+        },
+        {
+          "text": "The response gives kei policy test to check it.",
+          "contains_all": [
+            "kei policy test"
+          ]
+        },
+        {
+          "text": "The response does not use the legacy kei policies command.",
+          "not_contains": [
+            "kei policies create"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "My Agentware ToolRegistry exported a tool manifest. How does it get loaded into Kei? Is it kei tools import, or can an operator use kei harness sync --manifest?",
+      "expected_output": "Neither. kei has no tools import command, and kei harness sync --manifest rejects the Agentware export: kei-cli reads route as a string and the v3 route is an object. The manifest is kei.tool-manifest/v3 (the only format export_kei_tool_manifest writes). The harness registers it before serving with register_tool_specs over the socket (POST /v1/tools:register) or sync_tool_manifest / sync_manifest_path (PUT /api/v1/runtime/tools).",
+      "expectations": [
+        "The response says there is no kei tools import command.",
+        "The response says the manifest is v3.",
+        "The response has the harness register the manifest through the SDK.",
+        "The response says kei harness sync --manifest does not load this manifest."
+      ],
+      "checks": [
+        {
+          "text": "The response says there is no kei tools import command.",
+          "regex": "(no|not|n't)[^.\\n]{0,50}tools import|tools import[^.\\n]{0,60}(does not|doesn't|not) exist"
+        },
+        {
+          "text": "The response says the manifest is v3.",
+          "contains_any": [
+            "v3",
+            "kei.tool-manifest/v3"
+          ]
+        },
+        {
+          "text": "The response has the harness register the manifest through the SDK.",
+          "contains_any": [
+            "register_tool_specs",
+            "sync_tool_manifest",
+            "sync_manifest_path",
+            "registerToolSpecs",
+            "syncToolManifest",
+            "toolsync",
+            "/v1/tools:register"
+          ]
+        },
+        {
+          "text": "The response says kei harness sync --manifest does not load this manifest.",
+          "regex": "harness sync[^\\n]{0,160}(reject|fail|doesn.t (work|load|accept)|does not (work|load|accept)|can.t|cannot|not (a )?(path|option|supported|work)|string)|(reject|fail|can.t|cannot|doesn.t|does not|won.t)[^.\\n]{0,80}harness sync"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "How do I test that my Agentware agent calls the right tool with the right arguments, and what pass rate do I need?",
+      "expected_output": "Write an agentware.eval-suite.v1 suite (tool, args, required_arg_keys, forbidden_arg_keys, forbidden_tools, deny cases with allowed_tools) and run python -m evals.main --suite ... --model-profile ... --repeats 3. Aim for 90% locally; the Agentware CI gate is 95%. See test-agents.",
+      "expectations": [
+        "The response names the agentware.eval-suite.v1 format.",
+        "The response names at least one expectation field.",
+        "The response gives a pass-rate target."
+      ],
+      "checks": [
+        {
+          "text": "The response names the agentware.eval-suite.v1 format.",
+          "contains_all": [
+            "agentware.eval-suite.v1"
+          ]
+        },
+        {
+          "text": "The response names at least one expectation field.",
+          "contains_any": [
+            "required_arg_keys",
+            "forbidden_arg_keys",
+            "forbidden_tools",
+            "allowed_tools"
+          ]
+        },
+        {
+          "text": "The response gives a pass-rate target.",
+          "contains_any": [
+            "90%",
+            "95%",
+            "90 %",
+            "95 %",
+            "0.95",
+            "0.9"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "prompt": "Should my Agentware harness hard-code the model endpoint and name, and can it send its chat requests through the socket client's chat_completion?",
+      "expected_output": "No hard-coding: take model and endpoint from the agent's Kei model profile with the socket client's model_config() (see kei-model-profiles). chat_completion targets POST /v1/chat/completions, which kei-proxy serve does not serve, so don't build on it.",
+      "expectations": [
+        "The response says to take the model from the agent's Kei model profile.",
+        "The response says kei-proxy serve does not serve the chat completions route.",
+        "The response points to the kei-model-profiles skill."
+      ],
+      "checks": [
+        {
+          "text": "The response says to take the model from the agent's Kei model profile.",
+          "contains_any": [
+            "model profile",
+            "model_config",
+            "modelConfig"
+          ]
+        },
+        {
+          "text": "The response says kei-proxy serve does not serve the chat completions route.",
+          "regex": "chat[_/ .-]?completions?[^\\n]{0,120}(not served|isn.t served|is not served|does not serve|doesn.t serve|404|does not exist|doesn.t exist|removed|no such|not (a )?(supported|available))|(not|n.t|no)[^.\\n]{0,40}(serve|expose|have|provide)[^.\\n]{0,40}chat|\\bno\\b[^.\\n]{0,30}chat[^.\\n]{0,30}(route|endpoint)"
+        },
+        {
+          "text": "The response points to the kei-model-profiles skill.",
+          "contains_all": [
+            "kei-model-profiles"
+          ]
         }
       ]
     }
