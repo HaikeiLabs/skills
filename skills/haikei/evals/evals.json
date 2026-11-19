@@ -12,7 +12,9 @@
       "checks": [
         {
           "text": "The response does not invent a kei CLI org or workspace command.",
-          "not_contains": ["kei org"]
+          "not_contains": [
+            "kei org"
+          ]
         },
         {
           "contains_all": [
@@ -341,6 +343,48 @@
           "text": "reject stale guidance",
           "not_contains": [
             "no CLI"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "Which Haikei skill should I load to switch the model our Kei agent uses, and does Kei fail over to a backup model on its own?",
+      "expected_output": "Load kei-model-profiles. The model an agent uses is its assigned model profile: assign another one in the console's Agents page or with kei model-profiles assign PROFILE --workspace WS --agent AGENT_ID; the harness resolves it at run time through kei-proxy (GET /v1/model-config). Automatic failover is proposed (kei#1164), not implemented.",
+      "expectations": [
+        "The response routes to the kei-model-profiles skill.",
+        "The response says switching the model means assigning a model profile.",
+        "The response says automatic failover is not implemented today."
+      ],
+      "checks": [
+        {
+          "text": "The response routes to the kei-model-profiles skill.",
+          "contains_all": [
+            "kei-model-profiles"
+          ]
+        },
+        {
+          "text": "The response says switching the model means assigning a model profile.",
+          "contains_any": [
+            "kei model-profiles assign",
+            "assign a model profile",
+            "assign another model profile",
+            "assign another profile",
+            "assign a different",
+            "model profile assign"
+          ]
+        },
+        {
+          "text": "The response says automatic failover is not implemented today.",
+          "contains_any": [
+            "not implemented",
+            "proposed",
+            "proposal",
+            "no automatic failover",
+            "no failover",
+            "no fallback",
+            "does not fail over",
+            "doesn't fail over"
           ]
         }
       ]

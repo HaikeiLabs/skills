@@ -1,0 +1,277 @@
+{
+  "skill_name": "kei-model-profiles",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our support agent in Kei should use a different model. How does an admin change which model that agent uses, in the console and with the kei CLI?",
+      "expected_output": "Model selection is the agent's model profile. In the console, open the Agents page and use the agent's Model profile button (Default profile select, Save profile), or create/edit a profile on the Model profiles page with a target agent. CLI: kei model-profiles assign PROFILE --workspace WS --agent AGENT_ID, and check with kei model-profiles assignment.",
+      "expectations": [
+        "The response says the model is chosen by assigning a model profile to the agent.",
+        "The response gives the kei model-profiles assign command.",
+        "The response passes the agent with --agent.",
+        "The response names the console place to do it."
+      ],
+      "checks": [
+        {
+          "text": "The response says the model is chosen by assigning a model profile to the agent.",
+          "contains_any": [
+            "model profile",
+            "model-profile"
+          ]
+        },
+        {
+          "text": "The response gives the kei model-profiles assign command.",
+          "contains_all": [
+            "kei model-profiles assign"
+          ]
+        },
+        {
+          "text": "The response passes the agent with --agent.",
+          "contains_all": [
+            "--agent"
+          ]
+        },
+        {
+          "text": "The response names the console place to do it.",
+          "contains_any": [
+            "Agents page",
+            "Model profile button",
+            "Model profiles page",
+            "Default profile",
+            "/models"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Can my harness send its chat completions to the kei-proxy serve Unix socket at POST /v1/chat/completions so the provider key stays inside kei-proxy?",
+      "expected_output": "No. kei-proxy serve has no POST /v1/chat/completions route (removed in HAI-671; unknown paths are 404). The harness resolves the profile with GET /v1/model-config and calls the provider itself, or uses the kei-proxy model (model invoke) subprocess, which is the only path that keeps the key in kei-proxy.",
+      "expectations": [
+        "The response says the daemon does not serve a chat completions route.",
+        "The response points at /v1/model-config or the kei-proxy model subprocess instead.",
+        "The response does not claim the socket proxies chat completions."
+      ],
+      "checks": [
+        {
+          "text": "The response says the daemon does not serve a chat completions route.",
+          "regex": "(no|not|doesn.t|does not|isn.t|removed)[^.\\n]{0,80}(/v1/)?chat/completions|chat/completions[^.\\n]{0,80}(404|not served|removed|does not exist|doesn.t exist|no longer)"
+        },
+        {
+          "text": "The response points at /v1/model-config or the kei-proxy model subprocess instead.",
+          "contains_any": [
+            "/v1/model-config",
+            "kei-proxy model",
+            "model invoke"
+          ]
+        },
+        {
+          "text": "The response does not claim the socket proxies chat completions.",
+          "not_contains": [
+            "kei-proxy serve proxies chat",
+            "the socket proxies chat completions"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Does Kei automatically fail over an agent to a backup model when its provider is down or over budget?",
+      "expected_output": "No. Today an agent resolves one profile and there is no fallback; a disabled assigned profile fails closed. Failover, ranked backup profiles and a spend watch are in the kei#1164 routing/spend-watch design, which is proposed, not implemented.",
+      "expectations": [
+        "The response says failover is not implemented today.",
+        "The response labels the routing and spend-watch design as a proposal.",
+        "The response cites the kei#1164 design."
+      ],
+      "checks": [
+        {
+          "text": "The response says failover is not implemented today.",
+          "regex": "no (automatic |built-in |automated )?(failover|fallback|fail-over)|not (yet )?(implemented|available|shipped)|(doesn.t|does not) exist|(won.t|will not|does not|doesn.t) (automatically )?fail ?over"
+        },
+        {
+          "text": "The response labels the routing and spend-watch design as a proposal.",
+          "contains_any": [
+            "proposed",
+            "proposal"
+          ]
+        },
+        {
+          "text": "The response cites the kei#1164 design.",
+          "contains_any": [
+            "1164",
+            "model-profile-routing-and-spend-watch",
+            "spend watch",
+            "spend-watch"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "An admin switched our agent's model profile in the Kei console while the harness was running. When does the harness start using the new model?",
+      "expected_output": "kei-proxy does not cache profiles: each /v1/model-config (or kei-proxy model profile) call is a fresh control-plane read, so the next lookup returns the new profile. Any delay is the harness's own cache; re-resolve on a timer (e.g. 300 s) or per conversation. In-flight provider requests are not recalled; if refresh fails, fail closed rather than fall back to a hard-coded model.",
+      "expectations": [
+        "The response says kei-proxy does not cache the profile, so the next lookup sees the change.",
+        "The response says the harness must re-resolve or refresh its own cached config.",
+        "The response says not to fall back to a hard-coded model."
+      ],
+      "checks": [
+        {
+          "text": "The response says kei-proxy does not cache the profile, so the next lookup sees the change.",
+          "regex": "(no|not|doesn.t|does not|never)[^.\\n]{0,40}cach|next (lookup|request|call|resolve)|fresh"
+        },
+        {
+          "text": "The response says the harness must re-resolve or refresh its own cached config.",
+          "contains_any": [
+            "re-resolve",
+            "refresh",
+            "re-read",
+            "poll"
+          ]
+        },
+        {
+          "text": "The response says not to fall back to a hard-coded model.",
+          "contains_any": [
+            "hard-coded",
+            "hardcoded",
+            "fail closed",
+            "fails closed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "GET /v1/model-config on the kei-proxy socket returns {\"status\":\"no_profile\"}. What does that mean and how do I fix it?",
+      "expected_output": "No active model profile resolved for the runtime's default agent (or the selected agent). Assign one: console Agents page Model profile, or kei model-profiles assign PROFILE --workspace WS --agent AGENT_ID; verify with kei model-profiles assignment. The workspace default applies only when the agent has no assignment. For deeper diagnosis use kei-setup-doctor.",
+      "expectations": [
+        "The response says no active profile is assigned to the agent.",
+        "The response gives a way to assign a profile.",
+        "The response points to kei-setup-doctor for diagnosis."
+      ],
+      "checks": [
+        {
+          "text": "The response says no active profile is assigned to the agent.",
+          "regex": "(no|not)[^.\\n]{0,40}(assign|active)"
+        },
+        {
+          "text": "The response gives a way to assign a profile.",
+          "contains_any": [
+            "kei model-profiles assign",
+            "Model profile button",
+            "Agents page",
+            "Save profile"
+          ]
+        },
+        {
+          "text": "The response points to kei-setup-doctor for diagnosis.",
+          "contains_all": [
+            "kei-setup-doctor"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "kei-proxy model profile fails with 'model profile credential unavailable'. What's wrong?",
+      "expected_output": "kei-proxy cannot read the profile's secret_ref with the runtime's own identity: check KEI_SECRETS_BACKEND is set (kei-proxy >= 0.7), IAM read on that one secret (GetSecretValue), region and KMS. See kei-setup-doctor and kei-runtime-setup for IAM.",
+      "expectations": [
+        "The response says kei-proxy cannot read the profile's secret_ref.",
+        "The response names KEI_SECRETS_BACKEND or the IAM read permission.",
+        "The response cross-links kei-setup-doctor or kei-runtime-setup."
+      ],
+      "checks": [
+        {
+          "text": "The response says kei-proxy cannot read the profile's secret_ref.",
+          "contains_all": [
+            "secret_ref"
+          ]
+        },
+        {
+          "text": "The response names KEI_SECRETS_BACKEND or the IAM read permission.",
+          "contains_any": [
+            "KEI_SECRETS_BACKEND",
+            "GetSecretValue",
+            "IAM"
+          ]
+        },
+        {
+          "text": "The response cross-links kei-setup-doctor or kei-runtime-setup.",
+          "contains_any": [
+            "kei-setup-doctor",
+            "kei-runtime-setup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "In Python I call the Agentware socket client's model_config() and get the endpoint and model, but no API key for my api_key profile. Is that a bug?",
+      "expected_output": "No, by design: the Agentware socket client strips credential, api_key and secret_ref from model_config and list_model_profiles. The raw GET /v1/model-config and kei-proxy model profile do return the key; only the kei-proxy model (invoke) subprocess keeps the key inside kei-proxy. There is no Agentware wrapper for that yet (a known gap).",
+      "expectations": [
+        "The response says the SDK strips or removes the credential on purpose.",
+        "The response names where the key does come from, or the path that keeps it in kei-proxy.",
+        "The response does not invent an Agentware model backend class."
+      ],
+      "checks": [
+        {
+          "text": "The response says the SDK strips or removes the credential on purpose.",
+          "contains_any": [
+            "strip",
+            "removes",
+            "removed",
+            "redact",
+            "by design",
+            "omits",
+            "drops"
+          ]
+        },
+        {
+          "text": "The response names where the key does come from, or the path that keeps it in kei-proxy.",
+          "contains_any": [
+            "kei-proxy model",
+            "model invoke",
+            "/v1/model-config",
+            "kei-proxy model profile"
+          ]
+        },
+        {
+          "text": "The response does not invent an Agentware model backend class.",
+          "not_contains": [
+            "KeiProxyBackend",
+            "KeiModelBackend",
+            "SocketBackend("
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Our agent's assigned model profile was disabled. Will Kei fall back to the workspace default profile?",
+      "expected_output": "No. The workspace default is used only when the agent has no assignment at all; a disabled or revoked assigned profile fails closed (no_profile in practice). Reactivate it or assign another profile.",
+      "expectations": [
+        "The response says Kei does not fall back for a disabled assigned profile.",
+        "The response says the workspace default applies only when the agent has no assignment."
+      ],
+      "checks": [
+        {
+          "text": "The response says Kei does not fall back for a disabled assigned profile.",
+          "contains_any": [
+            "fails closed",
+            "fail closed",
+            "no fallback",
+            "not fall back",
+            "doesn't fall back",
+            "won't fall back",
+            "will not fall back",
+            "does not fall back"
+          ]
+        },
+        {
+          "text": "The response says the workspace default applies only when the agent has no assignment.",
+          "regex": "(only|just)[^.\\n]{0,60}no (assignment|agent-specific|profile)|no assignment at all|without (any|an) assignment"
+        }
+      ]
+    }
+  ]
+}
