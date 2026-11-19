@@ -149,6 +149,7 @@ skill.
 | Skill | Useful for |
 |-------|------------|
 | [haikei](skills/haikei/SKILL.md) | Router: "what are you trying to build?" maps a need to the right Haikei product and the skill to load |
+| [connector-operations](skills/connector-operations/SKILL.md) | Author connector operation contracts, fixtures, and capability manifests |
 | [kei-cli](skills/kei-cli/SKILL.md) | The `kei` CLI (standalone `kei-cli` repo): `setup`, `runtime bootstrap`, `login`/`logout` (OIDC device flow, admin-only, org-bound), `upgrade`, and `bot init/credential/agents/status/bind/delete` for customer-hosted runtimes |
 | [kei-mcp-connectors](skills/kei-mcp-connectors/SKILL.md) | Set up a remote MCP connector end to end: create and activate it, connect a user's OAuth account, trigger and approve the tool manifest, sync a harness, and troubleshoot setup failures |
 | [kei-proxy](skills/kei-proxy/SKILL.md) | The `kei-proxy` runtime agents use at run time: `authorize` per tool call (exit codes, JSON, `KEI_PROXY_*` identity), credential release, `runtime bootstrap`/`heartbeat`, `collector`, `serve` — and how it differs from the `kei` admin CLI |
