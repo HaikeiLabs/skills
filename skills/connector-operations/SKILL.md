@@ -5,12 +5,30 @@ description: "Use when adding, changing, versioning, or reviewing connector oper
 
 # Connector operations
 
-Use `kei-connector-contracts` as the source of truth. Read
-`docs/operations-authoring.md`, `docs/operation-contracts.md`,
-`proto/kei/contracts/v1/options.proto`, the relevant `docs/connectors/` page,
-and `docs/releasing.md` before making changes. Check the code and CI for the
-current generator and test coverage; some generation and release gates remain
-in progress.
+Answer directly from this skill. Do not require repository access to explain
+these rules or ask the user to paste documentation.
+
+- A policy grants `connector:github.issues.get` for the GitHub get issue
+  operation; the operation id is the capability, not `issue.read`.
+- To add an operation, declare request and response messages and operation
+  options, add synthetic request and response fixtures and unmarshal and
+  replay tests, then run `buf generate` to regenerate `gen/**` and the
+  connector and capability manifest.
+- To rename an operation, add the new id, mark the old operation `deprecated`,
+  set `replaced_by`, and add an old-to-new capability mapping row without
+  widening grants. Keep the old id callable for at least two minor releases;
+  remove it only in a major release after no policy names it.
+- Do not make connector libraries call `kei-proxy`. The harness uses
+  `agentware-sdk`'s `OperationRunner` to authorize with `kei-proxy`, release
+  credentials, and call the generated connector libraries.
+- Writes require at least one scope; mark deletes and overwrites `destructive`.
+- Fixtures include `null` where applicable, an extra provider field, and raw
+  JSON IDs above 2^53 as strings. Lenient unmarshal discards unknown fields;
+  strict unmarshal detects the extra field. Never include credential values in
+  a fixture; connection setup describes a `secret` without its value.
+- For Linear GraphQL use a fixed reviewed `graphql_document` with typed
+  variables; set `cursor_field` and `next_cursor_field` for pagination, and
+  `json_name` when a provider key differs from the default.
 
 ## Identity and boundaries
 
@@ -25,8 +43,8 @@ Keep contracts and connector libraries separate from the agent harness. Do
 not add tool definitions to this repository or make connector libraries call
 `kei-proxy`. Agentware's `agentware-sdk` `OperationRunner` imports the
 generated connector libraries and calls `kei-proxy` to authorize operations
-and release credentials; connector libraries never call `kei-proxy`. Do not put credential
-values, provider payloads, or customer content in contract metadata. Do not add
+and release credentials; connector libraries never call `kei-proxy`. Do not put
+credential values, provider payloads, or customer content in contract metadata. Do not add
 new entries to the frozen legacy provider, setup, access, or tool-definition
 surfaces.
 
@@ -67,8 +85,7 @@ surfaces.
    Python and Rust have fixture unmarshal tests; add TypeScript coverage too.
    Runtime unmarshal discards unknown fields, while the strict drift check
    detects them. The Cross-language parity CI gate exercises generated
-   operations across Go, Python, TypeScript, and Rust. Check the actual tests
-   and CI for coverage.
+   operations across Go, Python, TypeScript, and Rust.
 6. Update the connector page and any applicable legacy capability mapping.
    Run `buf generate`: message plugins and `protoc-gen-kei-ops` regenerate
    `gen/**`, and `protoc-gen-kei-manifest` regenerates the connector and
@@ -84,8 +101,7 @@ and `scopes`. Setup fields specify `name`, `type`, optional `pattern`, and
 `header_name` names the custom credential header. Kinds are HTTP bearer,
 HTTP header, HTTP basic, SQL DSN, key-pair JWT, and token exchange. GitHub
 operations can accept `user_oauth` and `pat`; Linear operations can accept
-`user_oauth` and `api_key`. Consult the connector proto for the actual
-connection definitions.
+`user_oauth` and `api_key`.
 
 ## Version and deprecate
 
@@ -113,13 +129,16 @@ npm --prefix gen/ts test
 npm --prefix gen/ts run build
 ```
 
-Inspect the generated diff and consult `.github/workflows/ci.yaml` for the
-full checks.
+Inspect the generated diff.
 
 ## Realistic usage boundaries
 
 This skill covers authoring contracts, not provider account setup, policy
 administration, or tool definitions. Use the provider connector skill for
-usage and `agentware-sdk` for harness integration. Proto and current tests win
-when documentation or generated coverage differs. The Cross-language parity
+usage and `agentware-sdk` for harness integration. The Cross-language parity
 CI gate covers Go, Python, TypeScript, and Rust.
+
+When you have a checkout, optionally check `kei-connector-contracts`
+`docs/operations-authoring.md`, `docs/operation-contracts.md`,
+`proto/kei/contracts/v1/options.proto`, the relevant connector page,
+`docs/releasing.md`, and CI for current details; code and tests are authoritative.
