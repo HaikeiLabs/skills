@@ -106,6 +106,7 @@ export function opencodeEnv(config, cwd) {
     OPENCODE_DISABLE_AUTOUPDATE: '1',
     XDG_CONFIG_HOME: configHome,
     XDG_DATA_HOME: dataHome,
+    OPENCODE_DISABLE_CLAUDE_CODE: '1',
     OPENCODE_DISABLE_CLAUDE_CODE_SKILLS: '1',
     OPENCODE_DISABLE_EXTERNAL_SKILLS: '1',
   };
@@ -149,8 +150,8 @@ export const HARNESSES = {
   },
   opencode: {
     skillDir: '.opencode/skills',
-    command: (prompt, model, cwd) => ['opencode', ['run', '--dir', cwd,
-      ...(model ? ['-m', model] : []), prompt]],
+    command: (prompt, model, _cwd, _outFile, opts = {}) => ['opencode', ['run',
+      ...(opts.opencodeStandalone ? ['--standalone'] : []), ...(model ? ['-m', model] : []), prompt]],
     // `opencode run` has no tool flags; the sandbox is inline config.
     // The run also ignores the user's opencode setup: an empty config home
     // (no global opencode.json, instructions, external_directory allowlist,

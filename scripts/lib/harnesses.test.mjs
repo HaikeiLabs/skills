@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { CLAUDE_SETTINGS, CLAUDE_TOOLS, CODEX_DISABLED_FEATURES, HARNESSES, opencodeConfig } from './harnesses.mjs';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { parseModelProfile } from './run.mjs';
+import { parseModelProfile, runCommand } from './run.mjs';
 
 const SKILL = 'kei-openai-backends';
 // Tools a skill eval must never use: subagents, search and listing, shell,
@@ -68,15 +68,26 @@ test('opencode sandbox denies reads of the eval answer key, even inside the skil
   assert.equal(decide(ruleset, 'read', `.opencode/skills/${SKILL}/SKILL.md`), 'allow');
 });
 
-// The runner image (kei/github-actions-runner:agent-evals-1.0.0) installs
-// opencode-ai@1.18.32: `run` supports --dir but has no --standalone flag, and
-// passing one makes yargs print the usage table to stderr and exit 1. The
-// argv must stay within what that pinned build parses.
-test('opencode runs in the subprocess working directory with --dir, a flag the pinned 1.18.32 build accepts', () => {
-  const [cmd, args] = HARNESSES.opencode.command('prompt', 'eval/model', '/tmp/x');
-  assert.equal(cmd, 'opencode');
-  assert.deepEqual(args, ['run', '--dir', '/tmp/x', '-m', 'eval/model', 'prompt']);
-  assert.ok(!args.includes('--standalone'));
+test('opencode uses the eval working directory without a directory flag', async () => {
+  const cwd = mkdtempSync(path.join(tmpdir(), 'opencode-cwd-'));
+  try {
+    const [cmd, args] = HARNESSES.opencode.command('prompt', 'eval/model', cwd);
+    assert.equal(cmd, 'opencode');
+    assert.deepEqual(args, ['run', '-m', 'eval/model', 'prompt']);
+    const result = await runCommand(process.execPath, ['-e', 'process.stdout.write(process.cwd())'],
+      { cwd, timeoutMs: 10_000 });
+    assert.equal(result.code, 0);
+    assert.equal(result.stdout, realpathSync(cwd));
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test('opencode 2 runs with a private server while 1.x keeps its supported arguments', () => {
+  const v2 = HARNESSES.opencode.command('prompt', 'eval/model', '/tmp/x', null, { opencodeStandalone: true });
+  const v1 = HARNESSES.opencode.command('prompt', 'eval/model', '/tmp/x', null, { opencodeStandalone: false });
+  assert.deepEqual(v2[1], ['run', '--standalone', '-m', 'eval/model', 'prompt']);
+  assert.deepEqual(v1[1], ['run', '-m', 'eval/model', 'prompt']);
 });
 
 test('opencode runs with_skill and without_skill under the same sandbox, isolated from user config', () => {
@@ -94,6 +105,7 @@ test('opencode runs with_skill and without_skill under the same sandbox, isolate
       assert.equal(env.OPENCODE_CONFIG, '');
       assert.equal(env.OPENCODE_PURE, '1');
       assert.equal(env.OPENCODE_DISABLE_EXTERNAL_SKILLS, '1');
+      assert.equal(env.OPENCODE_DISABLE_CLAUDE_CODE, '1');
       assert.equal(env.OPENCODE_DISABLE_CLAUDE_CODE_SKILLS, '1');
     }
   } finally {
