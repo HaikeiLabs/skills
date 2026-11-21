@@ -233,6 +233,8 @@ point.
   (pair a harness with a runtime, prove denials) and `agentware-sdk`
   (`KeiProxyEvaluator`, socket clients, tool manifests). Nothing in this
   skill requires or mentions a runtime token.
+  To take the model from a Kei model profile instead of `OPENAI_BASE_URL`,
+  see `build-agents-agentware`, "Take the model from the agent's model profile".
 - **The example is TypeScript-first.** Go has a full first-agent example;
   Python does not — do not claim a Python port exists.
 - **`withPolicy` is a local evaluator, not the Kei decision point.** It takes

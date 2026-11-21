@@ -1,6 +1,6 @@
 ---
 name: build-agents-agentware
-description: Build a governed AI agent end to end with the open-source kei-agents package and the agentware SDK — compose a prebuilt agent or workflow (Pedro, the PDE search agent, bug_to_linear_pr, github_pr_review, …) from its system prompt and rendered tools, wrap every tool call with AuditedToolClient so it is decided by policy, audited, and attributed to the invoking human, use KeiProxyEvaluator to let Kei decide, and design tool arguments with the Lexicon/Pragmatics/Semantics rule (relationship arguments carry the parent id; proxy-delegated scope is never an argument). Use when someone asks how to build, compose, or wire up an agent with agentware or kei-agents, how to govern or audit an agent's tool calls, what a tool's arguments should be, or how a subagent keeps the human's identity. For testing the agent load test-agents; for shipping it load deploy-agents.
+description: Build a governed AI agent end to end with the open-source kei-agents package and the agentware SDK — compose a prebuilt agent or workflow (Pedro, the PDE search agent, bug_to_linear_pr, github_pr_review, …) from its system prompt and rendered tools, wrap every tool call with AuditedToolClient so it is decided by policy, audited, and attributed to the invoking human, use KeiProxyEvaluator to let Kei decide, and design tool arguments with the Lexicon/Pragmatics/Semantics rule (relationship arguments carry the parent id; proxy-delegated scope is never an argument). Use when someone asks how to build, compose, or wire up an agent with agentware or kei-agents, how to govern or audit an agent's tool calls, what a tool's arguments should be, how a subagent keeps the human's identity, or how an Agentware agent takes its model from the runtime's Kei model profile instead of a hard-coded endpoint, model or API key. For testing the agent load test-agents; for shipping it load deploy-agents.
 ---
 
 # Build agents with the agentware SDK
@@ -147,11 +147,11 @@ client.with_policy(KeiProxyEvaluator(select_authorization_client("discord")))
 ```
 Instead of the control-plane sync helper above, choose direct local socket
 registration: define the protected declarations as `ToolSpec` values and call
-`await register_tool_specs(specs, socket_client);
+`await register_tool_specs(socket_client, specs)`;
 that sends manifest v3 to `POST /v1/tools:register`. In TypeScript use
-`registerToolSpecs`, and in Go use `toolsync.SocketRegistrar.Send`. An operator
-can also use `kei harness sync --harness custom --manifest tools.json` with kei
->= 0.1.33.
+`registerToolSpecs`, and in Go use `toolsync.SocketRegistrar.Send`. Don't load
+this v3 manifest with `kei harness sync --harness custom --manifest tools.json`:
+kei-cli reads `route` as a string, so it rejects the v3 export (HAI-1105).
 
 The primary path is the **`kei-proxy serve` daemon plus the socket client**.
 Run the daemon beside the harness and set `KEI_RUNTIME_SOCKET_PATH`; the
@@ -245,6 +245,105 @@ resource patterns), and `ToolRegistry.export_kei_tool_manifest()` emits
 deterministic JSON for the admin to load. The runtime never registers tools
 itself. Details: `agentware-sdk`, "Making protected tool calls".
 
+## 5. Take the model from the agent's model profile
+
+The harness shouldn't hard-code a model endpoint, a model name or an API
+key. An admin assigns a **model profile** to the agent, and the harness asks
+the runtime which model to use. How profiles are chosen and resolved is in
+**kei-model-profiles**. The SDK APIs used here are in **agentware-sdk**. This
+section is only the recipe that joins them.
+
+**Say both halves in every answer about this recipe.** The model comes from
+the profile, and **each tool call is still decided by `KeiProxyEvaluator`**
+through `AuditedToolClient` (section 2). The profile changes which model
+runs. It never changes the policy.
+
+**The flow:**
+
+1. The admin assigns the profile, on the console's Agents page (**Model
+   profile**) or with `kei model-profiles assign PROFILE --workspace WS
+   --agent AGENT_ID`.
+2. `kei-proxy serve` resolves the agent's current profile on each lookup. It
+   has no cache.
+3. The harness reads `model` and `endpoint` with the socket client's
+   `model_config()` and builds its backend from them.
+4. **The harness calls the model itself**: the loop sends its chat requests
+   to the backend, which POSTs to the profile's endpoint. kei-proxy has no
+   `POST /v1/chat/completions` route today, so chat never goes through the
+   socket. Tool calls and reasoning are parsed from the response.
+5. Each tool call goes through `AuditedToolClient` with `KeiProxyEvaluator`
+   (section 2).
+
+The harness config holds only the runtime settings: `KEI_RUNTIME_SOCKET_PATH`
+and `KEI_RUNTIME_TOKEN` (the token comes from the secret manager and is read
+by the socket client). It holds **no model URL, model name or API key**. A
+provider credential stays with kei-proxy. The socket client strips
+`credential`, `api_key` and `secret_ref` from what it returns.
+
+```python
+from haikeilabs.agentware.kei import KeiProxySocketAuthorizeClient
+from haikeilabs.agentware.llm import Message, OpenAIBackend, Role
+from haikeilabs.agentware.llm.request import ToolDefinition
+
+socket = KeiProxySocketAuthorizeClient()       # socket path and runtime token from the environment
+
+async def backend_from_profile() -> OpenAIBackend:
+    cfg = await socket.model_config()          # the agent's current profile, without secrets
+    if "status" in cfg:                        # no_profile / profile_revoked
+        raise RuntimeError(f"no model profile: {cfg['status']}")   # fail closed, no fallback model
+    return OpenAIBackend(model=cfg["model"], base_url=cfg["endpoint"])
+
+async def turn(messages: list[Message], tools: list[ToolDefinition]):
+    backend = await backend_from_profile()     # re-resolve per conversation (or on a timer)
+    resp = backend.complete(messages, tools)   # pass tools yourself (see the gap below)
+    for call in resp.tool_calls:               # parsed from tool_calls; resp.reasoning holds reasoning_content
+        await client.Execute(call.name, call.arguments, user_id=..., channel_id=...,
+                             guild_id=None, func=TOOLS[call.name], caller=caller)   # decided by KeiProxyEvaluator
+```
+
+**What works today, per port:**
+
+| | Model from the profile | Loop | Each call decided by `KeiProxyEvaluator` |
+|---|---|---|---|
+| Python | `await model_config()`, then `OpenAIBackend(model, base_url)` | Your own loop calling `backend.complete(messages, tools)`. `run_inference` drops the tools (`middleware/inference.py:113-129`) | Yes: `AuditedToolClient.Execute` with the evaluator |
+| TypeScript | `await modelConfig()`, then `new OpenAIBackend({ model, baseUrl })` | `AgentLoop` sends the tools and runs each tool's own `execute`. It has no policy hook (`executor/agent_loop.ts:35-47, 330-345`) | Inside each tool's `execute`, `await evaluator.evaluate(name, args, caller)` and run only on allow. The async evaluator can't be used with `withPolicy` |
+| Go | `ModelConfig(ctx, "", "")`, then `llm.NewServerBackend(llm.ServerConfig{BaseURL, Model})` | `inference.RunInference` returns the tool calls; you run them | `NewAuditedToolClient(...).WithPolicy(evaluator)` |
+
+Parse tool calls and reasoning with the SDK, not by hand:
+
+- `Response.tool_calls` comes from `parse_tool_calls`, which accepts
+  arguments as a JSON string or an object. Validate the arguments against the
+  tool schema.
+- `ReasoningAdapter().strip()` / `.extract()` separate reasoning from the
+  answer.
+
+Per-family formats are in **kei-openai-backends**.
+
+**SDK gaps (not built, don't invent them):**
+
+- **No Agentware backend over kei-proxy.** No `Backend` / `AsyncBackend` /
+  `llm.Backend` implementation wraps the socket client in any port (Python
+  `llm/backend.py:11`, TypeScript `llm/backend.ts:12`, Go
+  `go/llm/backend.go:8`).
+- **The chat route the SDK calls doesn't exist.** The socket client's
+  `chat_completion` / `stream_chat_completion` POST `/v1/chat/completions`,
+  which `kei-proxy serve` does not serve.
+- **The recipe above works only for profiles with `auth_type: none`**, such
+  as a model server on your own network. An `api_key` profile needs the key
+  at the provider. The only shipped path that keeps the key in kei-proxy is
+  the `kei-proxy model` subprocess, and no Agentware wrapper exists for it.
+  Don't copy the key into harness config.
+- **TypeScript `AgentLoop` has no policy hook.** Each tool's `execute` has to check the evaluator itself.
+
+**When the profile changes or fails:**
+
+| Situation | What the harness sees | Do |
+|---|---|---|
+| The admin changes the profile on the console mid-session | The next `model_config()` returns the new model; kei-proxy doesn't cache | Re-resolve per conversation or on a timer, and build a new backend. A request already sent is not recalled |
+| The profile is unassigned or disabled | `{"status":"no_profile"}` (a disabled profile shows the same; `profile_revoked` is possible but rare) | Stop model calls and tell the user. The workspace default applies only when the agent has no assignment at all |
+| The credential is unavailable (`api_key` profile) | `KeiProxySocketError` with reason `proxy_error`, code `credential_unavailable` | Stop. See **kei-setup-doctor** |
+| The daemon is down | `KeiProxySocketError` with reason `proxy_unavailable` | Stop. Never fall back to a hard-coded model |
+
 ## Validation commands
 
 ```bash
@@ -280,6 +379,7 @@ KEI_RUNTIME_SOCKET_PATH=/tmp/no-daemon.sock python your_harness.py   # expect "p
 ## Related skills
 
 - `agentware-sdk` — full SDK reference, decision table, Go/TypeScript ports.
+- `kei-model-profiles` — how the agent's model profile is assigned and resolved at run time.
 - `kei-agents` — the tool catalog, connector read schemas for connectors Kei checks, `render_tools`.
 - `test-agents` — table-test evals for the agent you just built.
 - `deploy-agents` — runtime, harness, policies, and per-user connectors.
