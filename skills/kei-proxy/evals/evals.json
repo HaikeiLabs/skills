@@ -164,7 +164,9 @@
       "checks": [
         {
           "text": "The response mentions credential release for governed data.",
-          "contains_all": ["credentials:release"]
+          "contains_all": [
+            "credentials:release"
+          ]
         },
         {
           "text": "The response passes --idempotency-key for retried writes.",
@@ -201,7 +203,7 @@
     },
     {
       "id": 8,
-      "prompt": "A Claude Code session ran one command that failed and asked about another that never ran (headless). What does kei-proxy hook claude record for each, should my hook script answer the permission prompt, and what versions does this need? Do not execute anything — just explain in text.",
+      "prompt": "A Claude Code session ran one command that failed and asked about another that never ran (headless). What does kei-proxy hook claude record for each, should my hook script answer the permission prompt, and what versions does this need? Do not execute anything \u2014 just explain in text.",
       "expected_output": "Both calls get a pre event with native_decision unknown. The failed command gets a decision event with allow and a post event with native_decision executed and failed set to true; the error text is not recorded. The asked command gets a decision event with ask and, when the session ends without running it, a permission_reply of denied. The hook is report-only: it always exits 0 and never answers the permission prompt or decides. This needs kei-proxy 0.2.5 or newer and Claude Code 2.1.119 or newer.",
       "expectations": [
         "the failed command's post event carries a failed flag",
@@ -279,7 +281,7 @@
     {
       "id": 11,
       "prompt": "What should I verify before relying on identity mode for an opaque_ref http_api connector, and which fail-closed reason codes can occur?",
-      "expected_output": "Check the installed kei-proxy version and the policy bundle’s connector descriptor/capability before relying on identity mode. Unsupported credential sources fail closed with credential_source_not_supported; descriptor_invalid, credential_unavailable and credential_backend_mismatch cover invalid descriptors or unavailable/mismatched secrets, and provider or unsupported account-model failures also deny.",
+      "expected_output": "Check the installed kei-proxy version and the policy bundle\u2019s connector descriptor/capability before relying on identity mode. Unsupported credential sources fail closed with credential_source_not_supported; descriptor_invalid, credential_unavailable and credential_backend_mismatch cover invalid descriptors or unavailable/mismatched secrets, and provider or unsupported account-model failures also deny.",
       "expectations": [
         "says to verify runtime version and policy bundle",
         "says unsupported connector credentials fail closed",
@@ -369,6 +371,60 @@
         {
           "regex": "(never|not|don't|do not|must not)[^.\\n]{0,40}(log|print)",
           "text": "says the runtime token is never logged"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "Our harness already talks to kei-proxy serve over the Unix socket. Can it send its chat completions to POST /v1/chat/completions on that socket so the model call goes through kei-proxy?",
+      "expected_output": "No. kei-proxy serve has no POST /v1/chat/completions route (removed in HAI-671). The harness reads the assigned profile with GET /v1/model-config on the socket and calls the model provider itself. The agentware socket client's chat_completion targets the missing route, so don't use it.",
+      "expectations": [
+        "The response says the daemon has no chat completions route.",
+        "The response points to GET /v1/model-config on the socket.",
+        "The response says the harness calls the model itself."
+      ],
+      "checks": [
+        {
+          "text": "The response says the daemon has no chat completions route.",
+          "regex": "(no|not|n.t|never)[^.\\n]{0,60}(/v1/)?chat/completions|chat/completions[^\\n]{0,80}(not served|isn.t served|is not served|does not serve|doesn.t serve|404|does not exist|doesn.t exist|removed|no such)|(no|not|n.t)[^.\\n]{0,40}(serve|expose|have|provide)[^.\\n]{0,40}chat|\\bno\\b[^.\\n]{0,30}chat[^.\\n]{0,30}(route|endpoint)"
+        },
+        {
+          "text": "The response points to GET /v1/model-config on the socket.",
+          "contains_all": [
+            "/v1/model-config"
+          ]
+        },
+        {
+          "text": "The response says the harness calls the model itself.",
+          "regex": "(calls?|calling|send|sends|POSTs?) (the )?(model|provider)[^.\\n]{0,40}(itself|directly|yourself)|harness[^.\\n]{0,60}(calls?|POSTs?|sends?)[^.\\n]{0,40}(model|provider)|(model|provider) directly"
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "prompt": "Which model-related routes does kei-proxy serve expose on its socket?",
+      "expected_output": "GET /v1/model-config (model, endpoint, credential of the assigned profile), GET /v1/models, and GET /v1/model-profiles; there is no POST /v1/chat/completions, and the harness calls the model itself.",
+      "expectations": [
+        "The response lists GET /v1/model-config.",
+        "The response lists GET /v1/models.",
+        "The response says there is no chat completions route."
+      ],
+      "checks": [
+        {
+          "text": "The response lists GET /v1/model-config.",
+          "contains_all": [
+            "/v1/model-config"
+          ]
+        },
+        {
+          "text": "The response lists GET /v1/models.",
+          "contains_all": [
+            "/v1/models"
+          ]
+        },
+        {
+          "text": "The response says there is no chat completions route.",
+          "regex": "(no|not|n.t|never)[^.\\n]{0,60}(/v1/)?chat/completions|chat/completions[^\\n]{0,80}(not served|isn.t served|is not served|does not serve|doesn.t serve|404|does not exist|doesn.t exist|removed|no such)|(no|not|n.t)[^.\\n]{0,40}(serve|expose|have|provide)[^.\\n]{0,40}chat|\\bno\\b[^.\\n]{0,30}chat[^.\\n]{0,30}(route|endpoint)"
         }
       ]
     }
