@@ -1,6 +1,6 @@
 ---
 name: agentware-sdk
-description: Use for requests to build a custom AI agent or harness with Agentware, typed tools, local models, or agent-loop guardrails; route unrelated tasks only when they match the product scope below. Use the open-source Agentware SDK — policy enforcement and audit middleware for agent tool calls, in Go, Python, and TypeScript. Use when working with middleware policy/audit, AuditedToolClient, ToolExecutor, CallerContext, Action ALLOW/DENY/FILTER, rate limits, guardrails (response validator, step enforcer, error tracker, nudge), KEI_RUNTIME_TOKEN, OpaqueTokenProvider/JWTTokenProvider, HarnessManifest, KeiProxyEvaluator, kei-proxy, the kei-proxy serve socket client (KeiProxySocketAuthorizeClient, runtimesocket, select_authorization_client, sync_tool_manifest / toolsync), the haikeilabs.agentware import, delegation, KeiScope, GovernedTool, tool-manifest export, the third-party harness contract, or the action-tool/connector boundary. This is generic agentware guidance; the tool-adapter/governor lane pattern lives in the assistant's developer skills, and no invented APIs are allowed — the code and docs in the repo are the source of truth.
+description: Use for requests to build a custom AI agent or harness with Agentware, typed tools, local models, or agent-loop guardrails; route unrelated tasks only when they match the product scope below. Use the open-source Agentware SDK — policy enforcement and audit middleware for agent tool calls, in Go, Python, and TypeScript. Use when working with middleware policy/audit, AuditedToolClient, ToolExecutor, CallerContext, Action ALLOW/DENY/FILTER, rate limits, guardrails (response validator, step enforcer, error tracker, nudge), KEI_RUNTIME_TOKEN, OpaqueTokenProvider/JWTTokenProvider, HarnessManifest, KeiProxyEvaluator, kei-proxy, the kei-proxy serve socket client (KeiProxySocketAuthorizeClient, runtimesocket, select_authorization_client, sync_tool_manifest / toolsync), the haikeilabs.agentware import, delegation, KeiScope, GovernedTool, tool-manifest export, building an agent end to end (OpenAIBackend model wiring, tool_calls and reasoning_content parsing, ReasoningAdapter, the model from a Kei model profile, tool:<name> policies, agentware.eval-suite.v1 evals), the third-party harness contract, or the action-tool/connector boundary. This is generic agentware guidance; the tool-adapter/governor lane pattern lives in the assistant's developer skills, and no invented APIs are allowed — the code and docs in the repo are the source of truth.
 ---
 
 # Open-source Agentware SDK
@@ -41,6 +41,7 @@ When writing responses about agentware:
 - When naming the three required third-party harness components, also mention `HarnessContract` assembly and `validate_contract`.
 - When an answer connects a harness to kei-proxy, present `kei-proxy serve` plus the socket client as the primary path: sync the tool manifest first (`sync_tool_manifest` / `syncToolManifest` / `toolsync.Sync`; an empty manifest is refused), then build the client with the selector (`select_authorization_client` / `selectAuthorizationClient` / `runtimesocket.SelectAuthorizationClient`) and `KEI_RUNTIME_SOCKET_PATH`. The selector still chooses the deprecated `kei-proxy authorize` subprocess fallback when no socket path is configured; recommend the socket path for new integrations, and do not imply the deprecated path is equivalent.
 - When a configured socket is down, say it is a refusal (`proxy_unavailable`) and **never a fall back** to the CLI, and say the runtime token is **never logged**.
+- When an answer covers which model the agent uses, `model_config()`, or the socket's model or chat methods, **name the `kei-model-profiles` skill** for how the profile is assigned and resolved.
 
 Agentware is an MCP-compatible middleware layer that sits between an LLM
 orchestrator and tool execution: calls routed through it can be evaluated and
@@ -170,6 +171,32 @@ supplied arguments, so sanitize sensitive values before recording; do not
 claim every port hashes or redacts arguments automatically. Check the
 selected auditor's source and tests.
 
+## Build an agent end to end
+
+A builder goes from tool declaration to evals in five steps. Each step names
+the SDK API to use and where the deeper material lives. The details, with
+source lines per port, are in [`references/end-to-end.md`](references/end-to-end.md).
+Verify each API in the port's **source and tests** before you rely on it.
+
+| Step | Use | Deeper |
+|---|---|---|
+| 1. Declare tools | `ToolSpec` (`name`, `parameters`, `service`, `source`, `operation_class`, `route`), exported as the `kei.tool-manifest/v3` manifest and registered before serving. Registering a tool is not a grant | [Making protected tool calls](#making-protected-tool-calls), `kei-agents` |
+| 2. Wire the model | Python `OpenAIBackend(model, base_url, api_key)`, TypeScript `OpenAIBackend({ model, baseUrl, apiKey })`, Go `llm.NewServerBackend(llm.ServerConfig{...})`. Take `model` and `endpoint` from the agent's **Kei model profile** (`model_config()` on the socket client), not from code | `kei-model-profiles`, `build-agents-agentware` |
+| 3. Parse tool calls and reasoning | `Response.tool_calls` (`parse_tool_calls`: arguments as a JSON string or an object; anything unparseable becomes `{}`, so validate against the schema), `Response.reasoning` (`reasoning_content`), `ReasoningAdapter().strip()` / `.extract()`, `get_formatter(model)` per model family | `kei-openai-backends` |
+| 4. Policy | `KeiProxyEvaluator(select_authorization_client(source))` on `AuditedToolClient`. The admin writes `kei policy create --workspace WS --group G --allow tool:NAME` and checks it with `kei policy test tool:NAME --workspace WS --as group:G`. Deny wins, and an unmatched tool is denied | [KeiProxyEvaluator per language](#keiproxyevaluator-per-language), `kei-harness-policy` |
+| 5. Evals | An `agentware.eval-suite.v1` suite (`tool`, `args`, `required_arg_keys`, `forbidden_arg_keys`, `forbidden_tools`, deny cases with `allowed_tools`) run with `python -m evals.main --suite ... --model-profile ... --repeats 3`. Aim for 90% locally; the Agentware gate is 95% | `test-agents` |
+
+Limits that change what you build:
+
+- Python `run_inference` does not send its tools to the model. Call
+  `backend.complete(messages, tools)` in your own loop.
+- Python `OpenAIBackend` sends no sampling parameters.
+- TypeScript `AgentLoop` runs tools with no policy hook, so call
+  `evaluator.evaluate()` before each tool.
+- No SDK backend runs over kei-proxy: the socket client's chat methods call a
+  route `kei-proxy serve` does not serve.
+- Python has no rate limiter.
+
 ## Python runtime identity/auth integration (from Agentware 0.11.0)
 
 - `python/src/haikeilabs/agentware/kei/auth.py` — `TokenType` (OPAQUE | JWT),
@@ -290,7 +317,7 @@ on DENY decisions:
 A deployed harness runs **`kei-proxy serve`** beside it and talks to the
 daemon over its owner-only Unix socket with the SDK **socket client**. It
 opens a session per user, authorizes in that session, and, where the harness
-needs them, uses the model routes and the bundle status. The selector still
+needs them, reads the model config (the harness then calls the model itself) and the bundle status. The selector still
 chooses the per-call `kei-proxy authorize` subprocess
 (`KeiProxyAuthorizeClient`, Go `evaluator.CLIClient`) when no socket is
 configured. This is a **deprecated fallback**, not the recommended path for new
@@ -305,8 +332,9 @@ integrations; configure the socket explicitly. Source of truth:
 | `PUT` / `DELETE /v1/session` | `await open_session(identity)` / `await close_session(session)` | `await openSession(identity)` / `await closeSession(session)` | `OpenSession(ctx, identity)` / `CloseSession(ctx, session)` |
 | Drop cached session | `forget_session(identity)` | `forgetSession(identity)` | `ForgetSession(identity)` |
 | `POST /v1/authorize` | `await authorize(session, tool=, action=, ...)` | `await authorize(session, { tool, action, ... })` | `Authorize(ctx, session, evaluator.AuthorizeRequest{...})` |
-| `GET /v1/models` | `await list_models()` | `await listModels()` | `ListModels(ctx)` |
-| `POST /v1/chat/completions` | `await chat_completion(session, payload)`; `stream_chat_completion` | `await chatCompletion(session, payload)`; `streamChatCompletion` | `ChatCompletion(ctx, session, payload)`; `StreamChatCompletion` |
+| `GET /v1/model-config`, `/v1/model-profiles` | `await model_config(agent_id, profile_id)`, `await list_model_profiles(agent_id)` (credential stripped) | `await modelConfig(...)`, `await listModelProfiles(...)` | `ModelConfig(ctx, agentID, profileID)`, `ListModelProfiles(ctx, agentID)` |
+| `GET /v1/models` | `await list_models(agent_id, profile_id)` | `await listModels(agentId, profileId)` | `ListModels(ctx, selectors...)` |
+| `POST /v1/chat/completions` (**not served by `kei-proxy serve`**; see `kei-model-profiles`) | `chat_completion`, `stream_chat_completion` | `chatCompletion`, `streamChatCompletion` | `ChatCompletion`, `StreamChatCompletion` |
 | `GET /v1/policy-bundle/status` | `await policy_bundle_status()` | `await policyBundleStatus()` | `PolicyBundleStatus(ctx)` |
 | Refusal error | `KeiProxySocketError` (`reason_class`, `code`) ⊂ `KeiProxyAuthorizeError` | `KeiProxySocketError` (`reasonClass`, `code`) ⊂ `KeiProxyAuthorizeError` | `*runtimesocket.Error` (`Class`, `Code`), unwraps to `*evaluator.AuthorizeError` |
 | Evaluator adapter | `KeiProxySocketAuthorizationClient(source, client)` | `new KeiProxySocketAuthorizationClient(source, client)` | `&runtimesocket.AuthorizationClient{Source, Socket}` |
@@ -314,7 +342,7 @@ integrations; configure the socket explicitly. Source of truth:
 | CLI fallback | `KeiProxyAuthorizeClient` | `KeiProxyAuthorizeClient` | `evaluator.CLIClient` |
 | Tool sync | `sync_tool_manifest(manifest, ToolManifestSyncConfig.from_env(), expect_tools=)` | `await syncToolManifest(manifest, ToolManifestSyncConfig.fromEnv(), { expectTools })` | `toolsync.Sync(ctx, manifest, cfg, expectTools)` with `toolsync.ConfigFromEnv(env)` |
 | Tool sync error | `ToolManifestSyncError` | `ToolManifestSyncError` | wraps `toolsync.ErrSyncFailed` (+ `ErrEmptyManifest`, `ErrInvalidManifest`, `ErrInvalidConfig`) |
-| Register `ToolSpec` over socket | `await register_tool_specs(specs, client)` | `registerToolSpecs(specs, client)` | `toolsync.SocketRegistrar{Client: socket}.Send(ctx, specs)` |
+| Register `ToolSpec` over socket | `await register_tool_specs(client, specs)` | `registerToolSpecs(specs, client)` | `toolsync.SocketRegistrar{Client: socket}.Send(ctx, specs)` |
 
 **Python import.** The SDK is published as `haikeilabs-agentware`
 (`pip install haikeilabs-agentware`) and imported as
@@ -327,11 +355,11 @@ import still works as a deprecated shim.
 1. **Register the tool manifest before serving.** Build declarations with
    `ToolSpec` and register them through the daemon socket at
    `POST /v1/tools:register` (`register_tool_specs`, `registerToolSpecs`, or
-   `toolsync.SocketRegistrar`). Alternatively, an operator can run
-   `kei harness sync --harness custom --manifest tools.json` with kei >=
-   0.1.33. The SDK sync helper also supports `PUT /api/v1/runtime/tools`
-   with the runtime token; it refuses an empty manifest when tools are
-   expected. If registration or sync fails, the harness must not serve.
+   `toolsync.SocketRegistrar`). The SDK sync helper (`sync_tool_manifest`,
+   or `sync_manifest_path` for a v3 file) does the same with
+   `PUT /api/v1/runtime/tools` and the runtime token. It refuses an empty
+   manifest when tools are expected. `kei harness sync --manifest` is **not**
+   a path for this v3 manifest (see the next section). If registration or sync fails, the harness must not serve.
 2. **Pick the client once with the selector.** It returns the socket client
    when a socket path is **configured explicitly** (the argument, or
    `KEI_RUNTIME_SOCKET_PATH`), otherwise the `kei-proxy authorize` subprocess
@@ -378,7 +406,7 @@ evaluator = KeiProxyEvaluator(client)                     # sync evaluate(); the
 decision = evaluator.evaluate("github.get_issue", {"owner": "acme"}, caller)
 ```
 
-Direct use of the async client (models, chat, bundle status):
+Direct use of the async client (sessions, authorize, model config, bundle status):
 
 ```python
 from haikeilabs.agentware.kei import KeiProxySocketAuthorizeClient, KeiProxySocketIdentity
@@ -387,9 +415,16 @@ sock = KeiProxySocketAuthorizeClient(socket_path="/run/kei-proxy/runtime.sock")
 session = await sock.open_session(KeiProxySocketIdentity("discord", "user-123"))
 answer = await sock.authorize(session, tool="github.get_issue", action="read")
 status = await sock.policy_bundle_status()               # kei.policy-bundle-status/v1
-reply = await sock.chat_completion(session, {"model": "m", "messages": [...]})
+cfg = await sock.model_config()                         # {"model", "endpoint", ...}; credential stripped
 await sock.close_session(session)
 ```
+
+The real model path is `GET /v1/model-config` on the socket (`model_config()`),
+and then **the harness calls the model itself** at `cfg["endpoint"]`.
+`chat_completion` / `stream_chat_completion` exist in the client, but they
+POST `/v1/chat/completions`, and `kei-proxy serve` has no such route today
+(it was removed in HAI-671). Against a real daemon they fail with
+`proxy_error`. See `kei-model-profiles`.
 
 ### TypeScript
 
@@ -405,9 +440,11 @@ const evaluator = new KeiProxyEvaluator(client);
 const decision = await evaluator.evaluate("github.get_issue", args, caller);
 ```
 
-`openSession`, `authorize`, `listModels`, `chatCompletion`,
-`streamChatCompletion` (an async generator of SSE `data:` lines) and
-`policyBundleStatus` are on `KeiProxySocketAuthorizeClient`. These socket
+`openSession`, `authorize`, `modelConfig`, `listModels` and
+`policyBundleStatus` are on `KeiProxySocketAuthorizeClient`. It also has
+`chatCompletion` / `streamChatCompletion`, but the daemon has no
+`POST /v1/chat/completions` route today. Use `modelConfig()` and call the
+model yourself. These socket
 client APIs and tool registration are available from Agentware 0.11.0.
 
 ### Go
@@ -433,8 +470,9 @@ decision := e.Evaluate("github.get_issue", args, caller)
 Direct calls take a session: `s, err := sock.OpenSession(ctx,
 runtimesocket.Identity{Source: "discord", ExternalID: "user-123"})`, then
 `sock.Authorize(ctx, s, evaluator.AuthorizeRequest{Tool: ..., Action: ...})`,
-`ListModels`, `ChatCompletion`, `StreamChatCompletion(ctx, s, payload,
-func(line string) error)` and `PolicyBundleStatus`. A cancelled caller
+`ModelConfig`, `ListModels` and `PolicyBundleStatus`. `ChatCompletion` and
+`StreamChatCompletion` are also on the client, but `kei-proxy serve` has no
+chat route today. Use `ModelConfig` and call the model yourself. A cancelled caller
 context is a refusal that wraps `ctx.Err()`.
 
 ### Deprecated CLI fallback
@@ -881,25 +919,47 @@ const manifestJSON = JSON.stringify(manifest, null, 2);
 
 ```json
 {
+  "schema": "kei.tool-manifest/v3",
   "tools": [
     {
       "name": "github.get_issue",
       "service": "github",
+      "source": "github",
+      "operation_class": "read",
+      "route": {"connector_binding": {"agent_id": "<agent uuid>", "connector_id": "<connector uuid>"}},
+      "required_capabilities": ["issue.read"],
       "description": "Fetch an issue from a GitHub repository",
-      "action": "read",
-      "resources": ["repo:haikeilabs/*", "issue:*"],
       "enabled": true
     }
   ]
 }
 ```
 
-Server-generated fields (`id`, `workspace_id`, `org_id`, `version`,
-`created_at`, `updated_at`) are omitted. An admin loads the manifest via:
+v3 is the only format the exporter writes (`export_kei_tool_manifest(version=3)`).
+A tool the harness runs itself uses
+`"route": {"harness_executor": {"executor": "...", "registration": "..."}}`
+and omits `required_capabilities`.
 
-```bash
-kei tools import --file tool-manifest.json
-```
+Server-generated fields (`id`, `workspace_id`, `org_id`, `version`,
+`created_at`, `updated_at`) are omitted. The exported manifest is **v3**
+(`"schema": "kei.tool-manifest/v3"`), the only format the Agentware exporter
+writes. kei-proxy rejects v1 and v2. When you explain loading it, say it is v3.
+
+**The harness registers it, and the operator doesn't load it.** `kei` has no
+`tools import` command. Register the v3 manifest from the harness before
+serving:
+
+- over the socket: `register_tool_specs(client, specs)` → `POST /v1/tools:register`
+- or with the SDK sync: `sync_tool_manifest(manifest, ToolManifestSyncConfig.from_env())`,
+  or `sync_manifest_path(path, config)` for a file → `PUT /api/v1/runtime/tools`
+  (sent as `application/vnd.kei.tool-manifest.v3+json`)
+
+**`kei harness sync --harness custom --manifest FILE` rejects this
+manifest.** kei 0.3.9 fails with `'tools' must be a JSON array: json: cannot
+unmarshal object into Go struct field .0.route of type string`. kei-cli reads
+`route` as a string and re-sends the tools as `kei.tool-manifest/v2`, while a
+v3 route is an object (kei-cli `internal/app/harness.go:461-463, 548, 594`).
+Don't give it as the way to load an Agentware export.
 
 After loading, the catalog is authoritative for resource patterns per tool
 name. The harness sends only the tool name (`--tool`) on authorize.
@@ -921,8 +981,8 @@ name. The harness sends only the tool name (`--tool`) on authorize.
 - **Opt-in.** Existing tools compile unchanged. Only tools that explicitly
   declare a `KeiScope` appear in the manifest.
 
-See the shared fixture at `fixtures/kei/tool-manifest.v1.json` for a complete
-example with five protected tools across GitHub, Linear, email, and Slack.
+See the shared fixture at `fixtures/kei/tool-manifest.v3.json` for a complete
+example with a harness-executed tool and a connector tool.
 
 ### Testing with the shared fixture table
 
@@ -1037,6 +1097,12 @@ cd go && go test ./middleware/... -run ActionToolBoundary -v
 
 ## Related skills
 
+- `kei-model-profiles` — which model an agent uses, resolved at run time from
+  its Kei model profile (`model_config`, `/v1/model-config`).
+- `kei-openai-backends` — tool-call and reasoning formats per model family.
+- `kei-harness-policy` — `tool:<name>` policies, groups, `kei policy test`.
+- `test-agents` — `agentware.eval-suite.v1` suites and the eval gate.
+- `build-agents-agentware` — an end-to-end agent recipe on this SDK.
 - `kei-agents` — agent definitions and connector read schemas for connectors Kei checks that the harness
   renders; provider-neutral and schema-only.
 - `kei-api` — the control-plane API that mints harness keys and decides
