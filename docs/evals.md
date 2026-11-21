@@ -77,7 +77,7 @@ HaikeiLabs/kei (`docs/agent-evals-gate.md` there is the runbook). In this repo
 it is `.github/workflows/agent-evals.yaml`.
 
 On a pull request it runs the suites the pull request changes, once per case,
-with a 30-minute job limit. It fails when any suite scores below 90% on either
+with a 60-minute job limit. It fails when any suite scores below 90% on either
 model profile (`EVAL_THRESHOLD: "0.90"`; the Agentware repo sets 95%). A pull
 request that changes no suite passes with "no eval-relevant changes". One
 sticky comment holds the suite-by-model table.

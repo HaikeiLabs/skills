@@ -73,7 +73,7 @@ These run in CI as well (Node 22, Python yamllint), on pull requests and pushes 
    request and posts the pass rates as a sticky comment, and its nightly sweep
    of `main` (every skill, 3 runs per case, averaged) is the record (see the
    Evals section of [AGENTS.md](AGENTS.md)). On a pull request each eval job
-   stops after 30 minutes, and a job that times out fails the gate. Closing or
+   stops after 60 minutes, and a job that times out fails the gate. Closing or
    merging the pull request cancels its eval run.
 
    If you are still iterating on a skill until it passes, add the
